@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 // An independently authored peer for the read-only command observation. These synthetic values
@@ -38,7 +39,7 @@ func inventoryFixture(mode string) {
 			if json.Unmarshal(q.Params, &p) != nil || !filepath.IsAbs(p.CWD) || p.Servers == nil || len(p.Servers) != 0 {
 				os.Exit(72)
 			}
-			if mode == "inventory-mcp-ready" || mode == "inventory-mcp-foreign" || mode == "inventory-mcp-other-server" {
+			if mode == "inventory-mcp-ready" || mode == "inventory-mcp-foreign" || mode == "inventory-mcp-other-server" || mode == "inventory-mcp-multiple" || mode == "inventory-mcp-multiple-missing" || mode == "inventory-mcp-late" {
 				owner := session
 				server := "dax_session"
 				if mode == "inventory-mcp-foreign" {
@@ -48,6 +49,9 @@ func inventoryFixture(mode string) {
 					server = "fixture-other-server"
 				}
 				write(map[string]any{"jsonrpc": "2.0", "method": "_kiro.dev/mcp/server_initialized", "params": map[string]any{"sessionId": owner, "serverName": server, "description": "dax_session"}})
+				if mode == "inventory-mcp-multiple" {
+					write(map[string]any{"jsonrpc": "2.0", "method": "_kiro.dev/mcp/server_initialized", "params": map[string]any{"sessionId": session, "serverName": "dax_scope_fixture"}})
+				}
 			}
 			if mode != "inventory-silent" {
 				owner := session
@@ -70,7 +74,7 @@ func inventoryFixture(mode string) {
 			reply(q.ID, map[string]any{"sessionId": session})
 			stage++
 		case stage == 2 && q.Method == "_kiro.dev/commands/execute":
-			if mode != "inventory-ready" && mode != "inventory-listed" && mode != "inventory-mcp-ready" && mode != "inventory-rejected" && mode != "inventory-bad-result" {
+			if mode != "inventory-ready" && mode != "inventory-listed" && mode != "inventory-mcp-ready" && mode != "inventory-mcp-multiple" && mode != "inventory-mcp-late" && mode != "inventory-rejected" && mode != "inventory-bad-result" {
 				os.Exit(73)
 			}
 			var p struct {
@@ -93,10 +97,17 @@ func inventoryFixture(mode string) {
 			if mode == "inventory-listed" {
 				tools = append(tools, map[string]any{"name": "read", "description": "Independent fixture tool", "status": "ask", "source": "fixture"})
 			}
-			if mode == "inventory-mcp-ready" {
+			if mode == "inventory-mcp-ready" || mode == "inventory-mcp-multiple" || mode == "inventory-mcp-late" {
 				tools = append(tools, map[string]any{"name": "fixture_relay_alias", "description": "Independent fixture alias", "status": "ask", "source": "fixture"})
 			}
+			if mode == "inventory-mcp-multiple" {
+				tools = append(tools, map[string]any{"name": "@dax_scope_fixture/foreign_fixture_alias", "description": "Independent second alias", "status": "ask", "source": "fixture"})
+			}
 			reply(q.ID, map[string]any{"success": success, "output": "Independent fixture result", "data": map[string]any{"tools": tools}})
+			if mode == "inventory-mcp-late" {
+				time.Sleep(20 * time.Millisecond)
+				write(map[string]any{"jsonrpc": "2.0", "method": "_kiro.dev/mcp/server_initialized", "params": map[string]any{"sessionId": session, "serverName": "dax_scope_fixture"}})
+			}
 		default:
 			os.Exit(75)
 		}

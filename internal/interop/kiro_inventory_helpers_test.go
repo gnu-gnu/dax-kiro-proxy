@@ -38,11 +38,16 @@ type inventoryReport struct {
 	AliasNameForm                                                      string
 	MCPParamKinds                                                      map[string]string
 	MCPDeclaredNameMatches                                             int
+	MCPMatches                                                         map[string]int
+	ToolMatches                                                        map[string]bool
 }
 
 type inventoryPrerequisite struct {
-	WaitForMCP bool
-	Alias      string
+	WaitForMCP    bool
+	Alias         string
+	ObservedTools map[string]string
+	WaitForAllMCP bool
+	SettleWindow  time.Duration
 }
 
 // The only dispatched private command is the advertised argument-free tools inventory. There is
@@ -53,6 +58,18 @@ func readOnlyToolsInventory(ctx context.Context, client *acp.Client, cwd string,
 
 func readOnlyToolsInventoryAfter(ctx context.Context, client *acp.Client, cwd string, advertisementWait time.Duration, required inventoryPrerequisite) (inventoryReport, error) {
 	report := inventoryReport{NativeNames: map[string]bool{}, ResultKinds: map[string]string{}, NotificationKinds: map[string]int{}, DataKinds: map[string]string{}, DataSizes: map[string]int{}, ToolEntryKinds: map[string]string{}, ListedNativeNames: map[string]bool{}, MCPParamKinds: map[string]string{}}
+	report.MCPMatches, report.ToolMatches = map[string]int{}, map[string]bool{}
+	if len(required.ObservedTools) > 8 || required.WaitForAllMCP && len(required.ObservedTools) == 0 || required.SettleWindow < 0 || required.SettleWindow > time.Second {
+		return report, errInventoryShape
+	}
+	seenAliases := map[string]bool{}
+	for server, alias := range required.ObservedTools {
+		if !inventoryMember(server) || !inventoryMember(alias) || seenAliases[alias] {
+			return report, errInventoryShape
+		}
+		seenAliases[alias] = true
+		report.MCPMatches[server], report.ToolMatches[server] = 0, false
+	}
 	if !filepath.IsAbs(cwd) || advertisementWait <= 0 || advertisementWait > 5*time.Second || len(required.Alias) > 256 || strings.IndexFunc(required.Alias, func(c rune) bool { return !inventoryNameCharacter(c) }) != -1 {
 		return report, errInventoryShape
 	}
@@ -71,7 +88,7 @@ func readOnlyToolsInventoryAfter(ctx context.Context, client *acp.Client, cwd st
 	report.SessionCreated = true
 	adCtx, cancel := context.WithTimeout(ctx, advertisementWait)
 	defer cancel()
-	for !report.Advertised || required.WaitForMCP && report.MCPDeclaredNameMatches == 0 {
+	for !report.Advertised || required.WaitForMCP && report.MCPDeclaredNameMatches == 0 || required.WaitForAllMCP && !report.allMCPSeen() {
 		if err := adCtx.Err(); err != nil {
 			return report, err
 		}
@@ -155,6 +172,13 @@ func readOnlyToolsInventoryAfter(ctx context.Context, client *acp.Client, cwd st
 						if ok && nativeInventoryName(name) {
 							report.ListedNativeNames[name] = true
 						}
+						if ok {
+							for server, alias := range required.ObservedTools {
+								if name == alias || name == "@"+server+"/"+alias {
+									report.ToolMatches[server] = true
+								}
+							}
+						}
 						if ok && required.Alias != "" {
 							switch name {
 							case required.Alias:
@@ -185,13 +209,42 @@ func readOnlyToolsInventoryAfter(ctx context.Context, client *acp.Client, cwd st
 	// drain makes no claim about optional notifications the peer sends after its response.
 	for {
 		n, ok, err := client.TryNext()
-		if err != nil || !ok {
+		if err != nil {
 			return report, err
+		}
+		if !ok {
+			break
 		}
 		if err := report.observe(n, session); err != nil {
 			return report, err
 		}
 	}
+	if required.SettleWindow > 0 {
+		settle, stop := context.WithTimeout(ctx, required.SettleWindow)
+		defer stop()
+		for {
+			n, err := client.Next(settle)
+			if errors.Is(err, context.DeadlineExceeded) && ctx.Err() == nil {
+				break
+			}
+			if err != nil {
+				return report, err
+			}
+			if err := report.observe(n, session); err != nil {
+				return report, err
+			}
+		}
+	}
+	return report, nil
+}
+
+func (r *inventoryReport) allMCPSeen() bool {
+	for _, count := range r.MCPMatches {
+		if count == 0 {
+			return false
+		}
+	}
+	return true
 }
 
 func (r *inventoryReport) observe(n acp.Notification, session string) error {
@@ -232,6 +285,9 @@ func (r *inventoryReport) observe(n acp.Notification, session string) error {
 		}
 		if server == "dax_session" {
 			r.MCPDeclaredNameMatches++
+		}
+		if _, tracked := r.MCPMatches[server]; tracked {
+			r.MCPMatches[server]++
 		}
 	case "_kiro.dev/commands/available":
 		var commands []json.RawMessage

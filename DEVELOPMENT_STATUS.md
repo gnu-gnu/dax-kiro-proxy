@@ -6,9 +6,10 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
-- D42 implements authenticated relay group membership and bounded lifetime. Independent failure
-  regressions and the installed read-only Kiro inventory pass; native execution restrictions and
-  the complete live/release gates remain open. Detailed results and failed attempts appear below.
+- D42 implements authenticated relay group membership and bounded lifetime. D43 observes five
+  explicitly registered relays successfully, but standalone MCP-file controls do not activate by
+  default, so the inheritance-exclusion comparison remains unverified. Native execution restrictions
+  and the complete live/release gates remain open. Detailed results and failed attempts appear below.
 - All fourteen repository Markdown documents read in README order, with README and AGENTS first.
 - Specification-only baseline committed as `7b108dd`.
 - Go selected by explicit user instruction; comparative experiments remain unmeasured.
@@ -458,6 +459,39 @@ prompt, actual client tool, credential copying, login/logout or external-provide
 Final whole-repository go vet, formatting and whitespace checks passed. Linux amd64 also compiled
 with CGO_ENABLED=0 and GOPROXY=off; this is cross-build evidence only, with runtime validation on
 the macOS host described above.
+
+### MCP source startup controls
+
+D43 adds independently authored multi-server and delayed-notification protocol fixtures before the
+installed scope observation. The initial observer API test failed to compile on missing fields; the
+implemented multiple/missing/late-source and prerequisite/privacy cases passed their focused race
+suite in 4.741s. No production code changed.
+
+The first installed attempt stopped on the unchanged five-second identity deadline (5.109s command,
+10.548s package), before ACP or relay startup. The following attempt's terminal output was not
+recoverable across restart and is not counted as evidence. Before another run, its tool session was
+absent and a name/PID-only process check found no remaining Go inventory test or owned relay. No
+unrelated Kiro process was signaled. Subsequent normalized stdout and exit status were saved in an
+owner-only ignored local observation directory.
+
+The retained `TestKiroPinnedMCPFileScopeObservation` run passed in 29.114s (27.55s test), with exit 0:
+
+| Case | Actual observation | Limit of conclusion |
+| --- | --- | --- |
+| Explicit registration | Five independently observed relays attached; five fresh aliases listed; two readiness notifications per server; no native tool listed; response 1,000 bytes | Commands, MCP enumeration and normal cleanup work for these owned servers |
+| Default standalone files | The primary relay attached and listed; all four standalone-file markers had no process record, attachment, readiness or listed alias; response 254 bytes | No inherited source was activated by these inputs during the bounded observation |
+
+Every observed relay PID and the owned ACP group were gone after Close, pending/queued/sealed work
+was zero, and the primary private configuration was removed. The explicit/default subtests took
+14.60s/12.94s. Both identity preflights passed in this run. The post-query observation window was one
+second; it is not evidence about later reloads. The flag-false and candidate comparisons were not run
+because their inherited-source positive control was absent. This passing observation is not a passing
+execution-restriction gate. No model prompt or client tool effect was requested.
+
+Final uncached `go test -race -count=1 -p 1 ./internal/acp ./internal/interop` passed in 5.811s and
+18.239s with installed-CLI opt-ins unset. It covers the changed independent protocol fixtures and
+relay observers; the live results above remain separate evidence. Whole-repository `go vet ./...`,
+format checks for the changed Go files and `git diff --check` passed.
 
 ### Request constraints and negative client recovery evidence
 

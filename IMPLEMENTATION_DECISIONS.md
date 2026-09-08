@@ -1331,3 +1331,39 @@ Public API references:
 - https://pkg.go.dev/os#NewFile
 - https://pkg.go.dev/golang.org/x/sys@v0.47.0/unix
 - https://man7.org/linux/man-pages/man7/unix.7.html
+
+## D43: independent MCP configuration-source controls (review R06)
+
+The read-only inventory observer now tracks up to eight explicitly supplied server/alias pairs.
+Names are bounded ASCII identifiers and aliases must be unique. A positive control can require
+readiness for every exact server name in the owned session before dispatching its one tools query.
+Only matching bare or server-qualified aliases count. Independent protocol cases cover two servers,
+a missing server and a notification arriving after the query response. An optional observation
+window is fixed at no more than one second; notifications retain the existing count/byte bounds and
+cannot extend it. This does not establish absence of events after the window.
+
+The installed test seeds four independently named, effect-free MCP servers in an owned KIRO_HOME's
+mcp.json and settings/mcp.json, and the owned workspace's .kiro/mcp.json and .kiro/settings/mcp.json.
+Each has its own fresh alias, closed-admission broker, authenticated socket and independent process
+observer. The primary session relay is separate. All five sockets bind to the test's owned ACP group;
+no tool call, model prompt, credential copy or real-HOME configuration write is performed.
+
+The explicit positive control also registers all four servers in the selected agent's mcpServers
+and lists all five exact tool references. With pinned Kiro 2.21.1/v2, every relay starts, attaches,
+appears in the inventory and disappears after ACP Close. This verifies the commands and server
+fixtures. The next control omits includeMcpJson, retains all five tool references, and registers only
+the primary relay in the agent. None of the four standalone-file servers starts or appears during
+that observation; only the primary alias is listed.
+
+Because the default case does not establish an active inherited source, the test does not run its
+flag-false and final-candidate comparisons or claim that includeMcpJson false caused exclusion. The
+public [2.x reference](https://kiro.dev/docs/cli/2x-reference/) identifies that field as new in 3.0;
+the [current configuration reference](https://kiro.dev/docs/custom-agents/configuration-reference/)
+also explicitly targets CLI 3.0. Both were rechecked on 2026-09-09. Unknown fields being accepted by
+the installed parser is not evidence of their effect on v2.
+
+This narrows the observations from configured CLI inventory (D37) to actual session startup and
+listing for these owned inputs. It does not prove every global/workspace search path, hooks,
+resource inheritance, configuration reload, session loading or native execution denial. Production
+startup continues to reject the unverified policy. No production adapter, dependency or timeout
+changes are made by these test controls.
