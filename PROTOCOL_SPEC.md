@@ -209,6 +209,11 @@ text and the media/document forms advertised by negotiated capabilities. A norma
 its streamed notifications jointly determine the Anthropic response. First-event and total-turn
 timeouts are independent.
 
+The inline media subset and limits are defined in D19: base64 PNG/JPEG/GIF/WebP require image
+capability, base64 PDFs require embedded context, and plain-text documents can use text projection.
+URL/file-ID sources and enabled citation conversion are unsupported. Historical images remain native
+blocks. The final encoded prompt must fit the ACP frame before it can be dispatched.
+
 ### Model selection
 
 Call `session/set_model` with `sessionId` and exact backend `modelId`. Selection occurs only while the

@@ -14,9 +14,10 @@ const MaxBodyBytes = 16 << 20
 var ErrRequest = errors.New("invalid Messages request")
 
 type Block struct {
-	Type string
-	Text string
-	Raw  json.RawMessage
+	Type  string
+	Text  string
+	Raw   json.RawMessage
+	media *Media
 }
 type Message struct {
 	Role    string
@@ -78,6 +79,7 @@ func DecodeRequest(body []byte) (*Request, error) {
 	if json.Unmarshal(fields["messages"], &messages) != nil || len(messages) == 0 || len(messages) > 4096 {
 		return nil, ErrRequest
 	}
+	mediaCount, mediaBytes := 0, 0
 	for _, raw := range messages {
 		m, err := ndjson.Object(raw)
 		if err != nil {
@@ -101,6 +103,24 @@ func DecodeRequest(body []byte) (*Request, error) {
 		message.Content, err = content(m["content"])
 		if err != nil || len(message.Content) == 0 {
 			return nil, ErrRequest
+		}
+		for i := range message.Content {
+			block := &message.Content[i]
+			if block.Type != "image" && block.Type != "document" {
+				continue
+			}
+			if message.Role != "user" {
+				return nil, ErrRequest
+			}
+			block.media, err = decodeMedia(*block)
+			if err != nil {
+				return nil, err
+			}
+			mediaCount++
+			mediaBytes += block.media.Bytes
+			if mediaCount > MaxMediaParts || mediaBytes > MaxMediaTotalBytes {
+				return nil, ErrRequest
+			}
 		}
 		if message.Role == "system" {
 			for _, b := range message.Content {

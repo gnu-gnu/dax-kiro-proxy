@@ -166,6 +166,21 @@ longer load/fuzz and clean-host release gates remain unverified. No new external
 
 ## Remaining work
 
+### Phase 6 media evidence
+
+Media validation and projection tests first failed on missing APIs. The implemented inline subset,
+limits and capability contract are recorded in D19. Independent PNG/JPEG/GIF encoders generate the
+test inputs; no upstream image fixture is copied. WebP uses the reviewed x/image header decoder.
+Malformed WebP/MIME mismatches are covered; a valid independently generated WebP and live media
+interoperability remain additional verification work. Synthetic PDF-shaped bytes test only the
+header/transport contract, not document rendering.
+
+Passed `go test -race -count=1 ./internal/anthropic ./internal/projection ./internal/session
+./internal/acp ./internal/gateway`: 8.845s, 1.879s, 8.470s, 6.405s and 2.589s respectively. The fake
+ACP sees native image bytes, the next turn sends only its text delta, and missing media capabilities
+or an escaped prompt above the line limit do not cancel another active pooled session. Provider
+token counts remain unchanged at zero. Actual Kiro media/embedding support is not inferred from this.
+
 ### Post-Phase 5 input and relay hardening
 
 Two failing regressions reproduced an invalid client model canceling an active pooled sibling and

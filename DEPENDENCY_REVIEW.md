@@ -193,3 +193,30 @@ resolved; it would be incorrect to report a copyleft-free release or a complete 
 
 No LICENSE file, copyright ownership claim, or statement that the earlier project's licensing risk
 has been eliminated is introduced by this review.
+
+## Phase 6 image-header dependency review
+
+Reviewed 2026-09-08 before adoption: `golang.org/x/image` v0.45.0 (Go 1.25 minimum) is proposed only
+for the WebP header decoder, alongside Go's standard PNG/JPEG/GIF header decoders. The pinned official
+[image LICENSE](https://raw.githubusercontent.com/golang/image/v0.45.0/LICENSE) is BSD-3-Clause and was
+read in full. Header decoding avoids allocating full pixel buffers in the gateway. No upstream image,
+example or test fixture will be incorporated.
+
+Its module manifest requires the already reviewed `golang.org/x/text` v0.41.0 and `golang.org/x/sys`
+v0.47.0. The pinned official [sys LICENSE](https://raw.githubusercontent.com/golang/sys/v0.47.0/LICENSE)
+was read in full and is also BSD-3-Clause. These pins are approved for development under the recorded
+notice obligations. Archive checksums, internal component notices, actual compiled package usage and
+advisories still need recording before the media adapter/release is declared verified. Merely being
+in a module manifest does not imply that x/sys is linked into the WebP adapter.
+
+Before imports, the installed archives' complete LICENSE and PATENTS files were also read. The
+filename inventory found those top-level files and no additional LICENSE/NOTICE/COPYING entry.
+Checksum-database verified archives: x/image v0.45.0
+`h1:FMb1nTbH5H9vF55SriQHgFw5GnNL9Jg6L25BwXKzhB0=` and x/sys v0.47.0
+`h1:o7XGOvZQCADBQQ4Y7VNq2dRWQR7JmOUW8Kxx4ZsNgWs=`. Their origins are the official
+`go.googlesource.com/image` and `/sys` tags. Source examples and test fixtures were not read or copied.
+
+After the WebP import and `go mod tidy`, `go list -test -deps ./...` reports three external compiled
+modules: jsonschema v6.0.3, x/image v0.45.0 and x/text v0.41.0. x/sys remains only in the resolved
+module graph; it is not in the compiled application/test packages. The retained licenses/notices and
+security advisory review for shipped components are still separate release work.

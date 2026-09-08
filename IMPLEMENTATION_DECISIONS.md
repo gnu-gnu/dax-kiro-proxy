@@ -390,3 +390,34 @@ closes it atomically on the ACP prompt reply, before publishing completion to HT
 handoffs keep admission open for the same owned prompt. Pending or validating calls at final
 completion close the broker permanently and fail the turn; they cannot spill into another prompt.
 Repeated shutdown still joins the existing cleanup. No client tool effect is performed by these tests.
+
+## D19: negotiated inline media (review R12/R15/R16)
+
+Prompt media accepts only inline base64 PNG/JPEG/GIF/WebP images, inline `text/plain` documents and
+base64 `application/pdf` documents. URL, file-ID, audio, custom document content and enabled citation
+requests reject before dispatch. Image/document source objects must have the exact supported fields.
+Document title/context are optional strings bounded at 8/32 KiB. Citation settings may explicitly
+disable citations; no structured citation support is claimed.
+
+Limits are 20 media parts per request, 4 MiB decoded bytes per part, 6 MiB aggregate decoded media,
+and image width/height between 1 and 8,000. Strict base64 rejects embedded newlines. Image MIME must
+match its recognized header; header decoding obtains dimensions without allocating pixel buffers.
+PDF MIME is checked by signature. These checks do not fully decode/render a file or prove a provider
+can process every accepted payload. Kiro failures retain ordinary failure/cleanup semantics.
+
+Images require negotiated `promptCapabilities.image`; PDFs require `embeddedContext`. Known
+capability fields require exact names and Boolean types, with absent capabilities disabled. Unknown
+future keys cannot enable a recognized feature by case-insensitive matching. Plain text documents
+remain JSON-wrapped text with title/context even when embedding is absent. Binary document resources
+use content-derived product URNs and inline blobs; no source URL or local filename is fetched.
+
+Historical and current images stay native content blocks, with JSON role markers preserving message
+and content order. Proven deltas retain only new content. The text-only projection remains unchanged.
+The final encoded prompt envelope, including the largest permitted request ID, must fit the configured
+ACP line ceiling before model/effort/prompt dispatch; rejection disposes only the affected lease.
+
+Sources checked 2026-09-08: [ACP content](https://agentclientprotocol.com/protocol/v1/content),
+[Anthropic images](https://platform.claude.com/docs/en/build-with-claude/vision),
+[PDF source shape](https://platform.claude.com/docs/en/build-with-claude/pdf-support) and
+[plain-text document shape](https://platform.claude.com/docs/en/build-with-claude/citations).
+Exact x/image version, checksum and BSD-3-Clause/PATENTS review are in DEPENDENCY_REVIEW.md.

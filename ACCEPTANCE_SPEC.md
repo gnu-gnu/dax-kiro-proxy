@@ -36,6 +36,9 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
 
 - Non-streaming text produces a valid assistant message and end-turn stop reason.
 - Streaming text produces the exact ordered event classes and reconstructs the non-streaming text.
+- Inline image/document shapes, MIME/header/dimension/count/byte limits and negotiated capabilities
+  are enforced; historical images stay native and proven deltas do not resend them. URL/file sources
+  cause no fetch. Unsupported citations and media reject before prompt dispatch.
 - Tool streaming produces a valid tool-use block and tool-use stop reason.
 - Server web search produces compatible use/result blocks and request count when supported.
 - Provider token usage remains zero when unreported; estimates appear only in labeled local metadata.

@@ -120,10 +120,7 @@ func Start(ctx context.Context, cfg Config) (*Client, error) {
 		if err != nil || string(fields["protocolVersion"]) != "1" {
 			err = ErrProtocol
 		} else if capBytes, ok := fields["agentCapabilities"]; ok {
-			err = json.Unmarshal(capBytes, &c.caps)
-			if err != nil {
-				err = ErrProtocol
-			}
+			c.caps, err = decodeCapabilities(capBytes)
 		}
 	}
 	if err != nil {

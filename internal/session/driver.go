@@ -215,14 +215,17 @@ func (d *Driver) Start(ctx context.Context, r *anthropic.Request) (inference.Tur
 		return nil, err
 	}
 	defer p.finishSetup()
-	var prompt []projection.Text
+	var prompt []projection.Part
 	if plan.Mode == history.Extend && (p.reused || p.loaded) {
-		prompt, err = projection.Delta(r, plan.Start)
+		prompt, err = projection.DeltaWithCapabilities(r, plan.Start, p.client.Capabilities().Prompt)
 	} else {
 		plan, err = d.hasher.Plan(history.Snapshot{}, r)
 		if err == nil {
-			prompt, err = projection.Full(r)
+			prompt, err = projection.FullWithCapabilities(r, p.client.Capabilities().Prompt)
 		}
+	}
+	if err == nil && !d.promptFits(p.info.ID, prompt) {
+		err = inference.ErrRequest
 	}
 	if err != nil {
 		d.discardStart(p.client, false)
@@ -310,7 +313,7 @@ func (d *Driver) Start(ctx context.Context, r *anthropic.Request) (inference.Tur
 	go func() {
 		t.result, t.resultErr = client.Call(owned, "session/prompt", struct {
 			Session string            `json:"sessionId"`
-			Prompt  []projection.Text `json:"prompt"`
+			Prompt  []projection.Part `json:"prompt"`
 		}{id, prompt})
 		if t.resultErr == nil && broker != nil {
 			if err := broker.EndTurn(); err != nil {
@@ -328,6 +331,17 @@ func (d *Driver) Start(ctx context.Context, r *anthropic.Request) (inference.Tur
 
 func (d *Driver) failedStart(client backendClient) {
 	d.discardStart(client, true)
+}
+
+// The HTTP body can fit while JSON escaping and projection exceed the ACP frame. Check the
+// largest legal request ID before dispatch so a local size error cannot retire shared transport.
+func (d *Driver) promptFits(id string, prompt []projection.Part) bool {
+	limit := d.cfg.Process.Limits.FrameBytes
+	if limit == 0 {
+		limit = 8 << 20
+	}
+	raw, err := json.Marshal(map[string]any{"jsonrpc": "2.0", "id": uint64(9007199254740991), "method": "session/prompt", "params": map[string]any{"sessionId": id, "prompt": prompt}})
+	return err == nil && len(raw) <= limit
 }
 
 // A rejected local request disposes its session without retiring healthy siblings. Ambiguous

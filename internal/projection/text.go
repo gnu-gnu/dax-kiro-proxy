@@ -33,6 +33,13 @@ func Full(r *anthropic.Request) ([]Text, error) {
 	if !r.ClientContent() || len(r.Messages) == 0 {
 		return nil, anthropic.ErrRequest
 	}
+	for _, m := range r.Messages {
+		for _, b := range m.Content {
+			if b.Type == "image" || b.Type == "document" {
+				return nil, anthropic.ErrRequest
+			}
+		}
+	}
 	latest := r.LatestUserIndex()
 	if latest < 0 {
 		return nil, anthropic.ErrRequest

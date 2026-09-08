@@ -38,6 +38,10 @@ func (r *Request) ClientContent() bool {
 		for _, block := range message.Content {
 			switch block.Type {
 			case "text":
+			case "image", "document":
+				if _, ok := block.Media(); message.Role != "user" || !ok {
+					return false
+				}
 			case "tool_use":
 				fields, err := ndjson.Object(block.Raw)
 				var t ToolUse
