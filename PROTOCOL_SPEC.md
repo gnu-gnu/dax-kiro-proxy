@@ -23,12 +23,19 @@ HTTP 401 using an Anthropic-style error envelope.
 | GET | `/v1/models` | Kiro-backed model catalog | model token |
 | POST | `/v1/messages` | Anthropic Messages compatibility | model token |
 | POST | `/messages` | compatibility alias | model token |
-| POST | product hook namespace: turn metrics | client hook bridge | UI token |
+| POST | `/dax-kiro-proxy/hooks/turn-metrics` | drain local turn metrics | UI token |
 | POST | product hook namespace: model capabilities | startup model notice | UI token |
-| GET | product status namespace: Kiro usage | nonblocking status line | UI token |
+| GET | `/dax-kiro-proxy/status/usage` | nonblocking usage and latest turn | UI token |
 
 The new implementation chooses a `dax-kiro-proxy`-owned route prefix rather than retaining a host
-project’s prefix.
+project's prefix.
+
+The turn-metrics hook accepts an empty body or empty JSON object, at most 4 KiB, and returns
+`{records: [...], dropped: N}`. Unsupported bodies do not drain records. Status returns normalized
+account-usage availability/state and optional `latest_turn`, which remains available after draining
+the queue or when account usage is unavailable. Neither route accepts a prompt or invokes a model.
+Decision D21 defines the cache, record bounds and delivery policy. The model-capability hook remains
+unimplemented pending the launcher/client contract.
 
 ### Message request validation
 
@@ -95,6 +102,11 @@ A streaming text response follows this order:
 6. message stop.
 
 A non-streaming response contains the equivalent single assistant message and text block.
+
+Streaming responses send a public Anthropic `ping` during a silent wait, initially every 15 seconds.
+The first ping can commit the message headers before any model text. Pings do not satisfy the first
+usable-event deadline, reset total-turn time, count as model output, or change provider usage.
+Failures after that commitment follow the ordinary late-failure/authentication rules below.
 
 ### Tool request
 

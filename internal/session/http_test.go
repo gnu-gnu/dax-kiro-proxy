@@ -19,7 +19,14 @@ func TestHTTPThroughIndependentACPProcess(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			h, err := gateway.New(gateway.Config{Backend: d, Tokens: tokens, FirstEventTimeout: 30 * time.Millisecond, TurnTimeout: 150 * time.Millisecond})
+			first, total := 500*time.Millisecond, 2*time.Second
+			if mode == "chat-before" {
+				first, total = 100*time.Millisecond, time.Second
+			}
+			if mode == "chat-slow" {
+				total = 800 * time.Millisecond
+			}
+			h, err := gateway.New(gateway.Config{Backend: d, Tokens: tokens, FirstEventTimeout: first, TurnTimeout: total, KeepAliveInterval: 10 * time.Millisecond})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -51,6 +58,9 @@ func TestHTTPThroughIndependentACPProcess(t *testing.T) {
 			}
 			if mode != "chat" && d.State() != session.Unstarted {
 				t.Fatal("failed HTTP turn retained ACP state")
+			}
+			if stream && (mode == "chat-before" || mode == "chat-slow") && !strings.Contains(w.Body.String(), "event: ping\n") {
+				t.Fatal("silent ACP wait did not emit a keepalive")
 			}
 		}
 	}

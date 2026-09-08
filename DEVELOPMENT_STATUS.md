@@ -181,6 +181,49 @@ ACP sees native image bytes, the next turn sends only its text delta, and missin
 or an escaped prompt above the line limit do not cancel another active pooled session. Provider
 token counts remain unchanged at zero. Actual Kiro media/embedding support is not inferred from this.
 
+### Phase 6 streaming evidence
+
+Keepalive tests first failed on the missing configuration/API, then passed with scheduled text,
+first-event expiry, total expiry and authentication failure. The gateway/session race suites passed
+in 2.959s/7.851s. The independent ACP HTTP suite also runs short ping intervals and verifies that
+failure still discards the process and normal completion becomes idle. D20 records header commitment
+and the unchanged owned deadlines. These are local fixture results, not live Kiro/client proof.
+
+The focused independent ACP HTTP regression subsequently passed in 5.093s. Its old 150 ms total
+budget sometimes expired during ordinary process startup under race instrumentation; the test now
+uses separate bounded startup, first-event and deliberately slow-turn scenarios. Product deadlines
+were not relaxed by that correction.
+
+### Phase 6 usage cache and turn metrics
+
+Cache/metadata/queue tests initially failed on missing APIs, followed by new integration failures on
+absent manager and gateway metrics configuration. The independent fake emits three identical private
+metadata notifications; two delivered main turns produce exactly two records in created/reused
+states. Title, parent-agent, canceled and undelivered cases produce none. A real fake ACP/MCP relay
+round trip publishes once only after its final response, never on its successful tool handoff.
+
+The UI hook tests reject wrong model/UI authority, wrong methods/paths and unsupported/oversize bodies
+without draining queued records. Missing account usage preserves the latest model-only status.
+Usage tests cover 100 coalesced readers, TTL/backoff, failure retaining prior values, copied snapshots,
+shutdown joining a canceled fetch and invalid numeric values. Private unknown strings never enter
+numeric diagnostics. D21 records the provisional field mapping and best-effort bounded queue policy.
+
+Passed `go test -race -count=1 ./internal/session ./internal/gateway ./internal/status
+./internal/kirofeature`: 9.554s, 3.025s, 2.152s and 2.344s respectively. Earlier focused metadata/cache
+tests passed in 1.924s/1.946s; the main lifecycle regression passed in 3.471s. These are synthetic
+protocol and module results; a real Kiro account-usage command, private payload mapping and actual
+client hook bridge have not been verified. No model credits or client tool effects were consumed.
+
+### Installed Kiro usage command surface
+
+Read-only help probes on unmodified Kiro 2.21.1 returned exit 2 for `usage --help` (unrecognized
+subcommand); `--help-all` and `user --help` advertise no account-usage subcommand. `chat --help`
+documents list-model/list-session JSON formats, not a usage JSON interface. No chat prompt or slash
+command was submitted. The public Kiro slash-command reference describes interactive `/usage`, but
+does not establish a safe noninteractive adapter for this installed version. Account usage must remain
+unavailable/model-only until a version-specific, non-model command path is independently verified;
+do not guess a CLI command or turn a refresh into inference. Cache/metrics infrastructure can proceed.
+
 ### Post-Phase 5 input and relay hardening
 
 Two failing regressions reproduced an invalid client model canceling an active pooled sibling and

@@ -421,3 +421,53 @@ Sources checked 2026-09-08: [ACP content](https://agentclientprotocol.com/protoc
 [PDF source shape](https://platform.claude.com/docs/en/build-with-claude/pdf-support) and
 [plain-text document shape](https://platform.claude.com/docs/en/build-with-claude/citations).
 Exact x/image version, checksum and BSD-3-Clause/PATENTS review are in DEPENDENCY_REVIEW.md.
+
+## D20: silent-stream keepalive (review R01/R04/R14)
+
+The gateway uses public Anthropic ping events during silent streaming waits, with a 15-second default
+and a configurable positive interval at most one minute. A ping can create the one message start and
+commit headers before text; the auth marker is therefore predeclared as a trailer. No heartbeat is
+generated for buffered responses. Pings have a reserved output budget and bounded write deadline.
+
+Only each Next wait receives the shorter heartbeat context. Its expiration consumes no model event
+and does not cancel the owned ACP prompt; another wait continues. The original first-usable-event and
+total deadlines remain unchanged. No extra reader goroutine is needed. First/total expiry after a
+ping emits the defined stream error, while recognized auth expiry appends login text and ends the
+same message normally. Synthetic scheduled turns and the independent ACP child test these cases.
+
+Source: [Anthropic stream event types](https://platform.claude.com/docs/en/build-with-claude/streaming),
+checked 2026-09-08. Actual client streaming behavior remains a separate interoperability gate.
+
+## D21: bounded status and foreground completion records (review R12/R14/R15)
+
+Usage reads return a copied in-memory snapshot immediately and admit at most one asynchronous fetch.
+The default TTL and failure backoff are 60 seconds, with a five-second fetch deadline. Failure keeps
+last good numeric data and records only a safe failure class. Close cancels and joins the fetch; a
+version-specific subprocess adapter must honor that context and own bounded group cleanup. No such
+adapter is enabled for installed Kiro 2.21.1 because its read-only help does not establish a non-model
+usage command. The cache's used/limit/remaining credit fields are normalized internal data, not a
+claimed Kiro JSON wire schema. Missing fields are never inferred from other amounts.
+
+The provisional private metadata adapter interprets `contextUsagePercentage`, `turnDurationMs` and
+`meteringUsage: [{unit, value}]` on `_kiro.dev/metadata` params. This is an explicit interpretation of
+the repository contract, not an observed live payload. Input is bounded at 64 KiB and 16 metering
+entries. Only finite nonnegative context (at most 100), duration (at most one hour in milliseconds),
+and credit/token values (at most 1e12) survive. Singular/plural unit labels normalize; unknown labels
+and fields are discarded. Repeated values replace the turn's previous snapshot without summing.
+Invalid optional fields do not erase independently valid diagnostics or fail ordinary text delivery.
+
+Only final successful delivery publishes a completion. A tool handoff retains the same owned turn;
+Finish is idempotent, and canceled, failed or undelivered responses publish nothing. Manager title
+families and requests with a parent-agent identity are excluded. Other main-family requests are the
+initial foreground classification, pending broader actual-client observations. Records contain only
+the keyed binding digest, namespaced selected model, optional multiplier, bounded local elapsed time
+(including setup/tool wait/delivery; accepted ceiling two hours), created/reused/loaded state, safe
+effort status and filtered private numeric metadata. Backend error prose and raw identity are absent.
+
+The shared queue retains at most 32 records plus one latest snapshot, with oldest-first eviction and
+a cumulative dropped counter. Sequence numbers increase without wrap through 2^53-1. The exact
+UI-authenticated turn-metrics POST accepts only an empty body/object within 4 KiB and drains once;
+it is best-effort diagnostics, so a failed response after draining may lose records. The latest
+snapshot survives draining and remains in usage status when account usage is unavailable. UI request
+admission and read/write deadlines are separate from model admission. No provider usage is changed.
+Token estimates and the launcher/client hook adapter remain separate implementation work.

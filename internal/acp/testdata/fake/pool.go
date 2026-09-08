@@ -106,6 +106,11 @@ func poolFixture(mode string) {
 			}
 			id := append(json.RawMessage(nil), q.ID...)
 			go func() {
+				if mode == "pool-metadata" {
+					for range 3 {
+						write(map[string]any{"jsonrpc": "2.0", "method": "_kiro.dev/metadata", "params": map[string]any{"sessionId": p.Session, "contextUsagePercentage": 12.5, "turnDurationMs": 725, "meteringUsage": []any{map[string]any{"unit": "credits", "value": 0.025}}, "unknown": "synthetic-private-content"}})
+					}
+				}
 				if mode == "pool-concurrent" {
 					for i := range 32 {
 						emit(p.Session, fmt.Sprintf("%s:%d", p.Session, i))

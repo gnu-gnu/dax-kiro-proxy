@@ -38,6 +38,7 @@ type Backend interface {
 }
 type Turn interface {
 	Model() string
+	// A wait deadline consumes no event and permits another Next call. Cancel owns turn disposal.
 	Next(context.Context) (Event, error)
 	// Finish releases a successfully delivered HTTP response. Tool handoff may leave the ACP turn live.
 	Finish()

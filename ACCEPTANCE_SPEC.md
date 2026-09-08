@@ -103,6 +103,8 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
 - Client disconnect before first event, during text streaming, and while waiting for tools each cancel
   and discard the session.
 - First-event and total-turn timeouts produce distinct diagnostics.
+- SSE keepalives maintain a silent stream without satisfying or extending either model deadline;
+  recognized authentication expiry after a keepalive still completes one normal assistant message.
 - Repeated caller cancellation cannot interrupt final cleanup or leak an ACP/relay child.
 - Shutdown can be called repeatedly and remains bounded.
 - Pool limits and idle/session TTLs hold under concurrency and do not evict active or pending-tool state.
@@ -116,6 +118,9 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
   when present and degrade independently when absent.
 - Multiple metadata notifications in one turn create only one visible completion metric.
 - Title/background turns are excluded; pending metrics are bounded.
+- Only final delivered responses publish completion metrics; a tool handoff or canceled/undelivered
+  final response cannot do so. UI hook authentication/body rejection consumes no queued record, and
+  draining records preserves the latest model-only status when account usage is unavailable.
 - Token estimates are deterministic, cache their computation within a bounded cache, exclude declared
   media/thinking content, and never claim actual provider cache hits.
 

@@ -14,8 +14,10 @@ import (
 	"dax-kiro-proxy/internal/anthropic"
 	"dax-kiro-proxy/internal/history"
 	"dax-kiro-proxy/internal/inference"
+	"dax-kiro-proxy/internal/kirofeature"
 	"dax-kiro-proxy/internal/ndjson"
 	"dax-kiro-proxy/internal/relay"
+	"dax-kiro-proxy/internal/status"
 )
 
 // A turn owns one ACP prompt. Each round owns exactly one HTTP response, including a tool handoff.
@@ -35,6 +37,11 @@ type turn struct {
 	plan                history.Plan
 	pendingHistory      history.Snapshot
 	lastIDs             []string
+	started             time.Time
+	sessionState        string
+	multiplier          *float64
+	effort              kirofeature.Status
+	metadata            kirofeature.TurnMetadata
 }
 type round struct {
 	turn              *turn
@@ -171,6 +178,9 @@ func (t *turn) notification(event acp.Notification) (string, bool, error) {
 		if event.Method == "_kiro.dev/commands/available" && event.SessionID == t.id {
 			_ = t.driver.effort.Advertise(event.Params)
 		}
+		if event.Method == "_kiro.dev/metadata" && event.SessionID == t.id {
+			t.metadata.Apply(event.Params)
+		}
 		return "", false, nil
 	}
 	if event.SessionID != t.id {
@@ -273,6 +283,9 @@ func (t *turn) complete(text string) {
 			if !d.closed {
 				d.persistIdle(snapshot, t.reuseCompat)
 				d.state = Idle
+				if d.cfg.Metrics != nil {
+					d.cfg.Metrics.Push(status.TurnRecord{Scope: d.cfg.MetricsScope, Model: t.model, Multiplier: t.multiplier, SessionState: t.sessionState, ElapsedMS: time.Since(t.started).Milliseconds(), Effort: t.effort, Metadata: t.metadata.Snapshot()})
+				}
 				if lease, ok := t.client.(*acppool.Lease); ok {
 					_ = lease.SetIdle(true)
 				}

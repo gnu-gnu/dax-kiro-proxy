@@ -4,9 +4,11 @@ package session
 import (
 	"context"
 	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -20,6 +22,7 @@ import (
 	"dax-kiro-proxy/internal/projection"
 	"dax-kiro-proxy/internal/relay"
 	"dax-kiro-proxy/internal/sessionstore"
+	"dax-kiro-proxy/internal/status"
 	"dax-kiro-proxy/internal/toolregistry"
 )
 
@@ -53,6 +56,8 @@ type Config struct {
 	PersistenceProfile string
 	PersistenceLaunch  string
 	PersistenceTTL     time.Duration
+	Metrics            *status.TurnQueue
+	MetricsScope       string
 }
 type Driver struct {
 	cfg                 Config
@@ -101,6 +106,12 @@ func New(cfg Config) (*Driver, error) {
 	if len(cfg.PoolScope) > 128 {
 		return nil, acp.ErrParameters
 	}
+	if cfg.Metrics != nil {
+		scope, err := hex.DecodeString(cfg.MetricsScope)
+		if err != nil || len(scope) != 32 || cfg.MetricsScope != strings.ToLower(cfg.MetricsScope) {
+			return nil, acp.ErrParameters
+		}
+	}
 	if cfg.Persistence != nil {
 		if cfg.Pool == nil || len(cfg.PersistenceProfile) != 64 || len(cfg.PersistenceLaunch) != 64 {
 			return nil, acp.ErrParameters
@@ -127,6 +138,7 @@ func New(cfg Config) (*Driver, error) {
 func (d *Driver) State() State { d.mu.Lock(); defer d.mu.Unlock(); return d.state }
 
 func (d *Driver) Start(ctx context.Context, r *anthropic.Request) (inference.Turn, error) {
+	started := time.Now()
 	if !d.startGate.TryLock() {
 		return nil, ErrBusy
 	}
@@ -280,6 +292,15 @@ func (d *Driver) Start(ctx context.Context, r *anthropic.Request) (inference.Tur
 	broker, socket := d.broker, d.socket
 	d.mu.Unlock()
 	t := &turn{driver: d, client: client, id: id, model: modelID, owned: owned, cancelOwned: stop, done: make(chan struct{}), released: make(chan struct{}), broker: broker, socket: socket, plan: plan, reuseCompat: stamp}
+	t.started = started
+	t.effort = d.effort.Status()
+	t.multiplier = selected.Multiplier
+	t.sessionState = "created"
+	if p.loaded {
+		t.sessionState = "loaded"
+	} else if p.reused {
+		t.sessionState = "reused"
+	}
 	t.compat, err = compatibility(r, registry)
 	if err != nil {
 		stop()

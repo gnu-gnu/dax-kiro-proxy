@@ -18,6 +18,7 @@ import (
 	"dax-kiro-proxy/internal/acp"
 	"dax-kiro-proxy/internal/anthropic"
 	"dax-kiro-proxy/internal/inference"
+	"dax-kiro-proxy/internal/status"
 )
 
 const AuthFallbackHeader = "X-Dax-Kiro-Proxy-Auth-Fallback"
@@ -50,17 +51,21 @@ func randomID(size int) (string, error) {
 type Config struct {
 	Tokens            Tokens
 	Backend           inference.Backend
+	Usage             *status.UsageCache
+	Metrics           *status.TurnQueue
 	FirstEventTimeout time.Duration
 	TurnTimeout       time.Duration
 	WriteTimeout      time.Duration
 	ReadTimeout       time.Duration
+	KeepAliveInterval time.Duration
 	MaxActiveRequests int
 	MaxOutputBytes    int
 }
 
 type Handler struct {
-	cfg    Config
-	active chan struct{}
+	cfg      Config
+	active   chan struct{}
+	uiActive chan struct{}
 }
 
 func New(cfg Config) (*Handler, error) {
@@ -79,6 +84,9 @@ func New(cfg Config) (*Handler, error) {
 	if cfg.ReadTimeout == 0 {
 		cfg.ReadTimeout = 15 * time.Second
 	}
+	if cfg.KeepAliveInterval == 0 {
+		cfg.KeepAliveInterval = 15 * time.Second
+	}
 	if cfg.MaxActiveRequests == 0 {
 		cfg.MaxActiveRequests = 16
 	}
@@ -87,10 +95,11 @@ func New(cfg Config) (*Handler, error) {
 	}
 	if cfg.FirstEventTimeout <= 0 || cfg.FirstEventTimeout > cfg.TurnTimeout || cfg.TurnTimeout > time.Hour ||
 		cfg.WriteTimeout <= 0 || cfg.WriteTimeout > time.Minute || cfg.ReadTimeout <= 0 || cfg.ReadTimeout > time.Minute ||
+		cfg.KeepAliveInterval <= 0 || cfg.KeepAliveInterval > time.Minute ||
 		cfg.MaxActiveRequests < 1 || cfg.MaxActiveRequests > 256 || cfg.MaxOutputBytes < 1024 || cfg.MaxOutputBytes > 64<<20 {
 		return nil, errors.New("invalid gateway resource limits")
 	}
-	return &Handler{cfg: cfg, active: make(chan struct{}, cfg.MaxActiveRequests)}, nil
+	return &Handler{cfg: cfg, active: make(chan struct{}, cfg.MaxActiveRequests), uiActive: make(chan struct{}, cfg.MaxActiveRequests)}, nil
 }
 
 func validToken(s string) bool {
@@ -141,7 +150,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	case "POST /v1/messages", "POST /messages", "GET /v1/models":
 		credential = h.cfg.Tokens.Model
-	case "GET /dax-kiro-proxy/status/usage":
+	case "GET /dax-kiro-proxy/status/usage", "POST /dax-kiro-proxy/hooks/turn-metrics":
 		credential = h.cfg.Tokens.UI
 	default:
 		writeError(w, 404, "not_found_error", "Route not found")
@@ -151,8 +160,8 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		writeError(w, 401, "authentication_error", "Invalid gateway credential")
 		return
 	}
-	if r.URL.Path == "/dax-kiro-proxy/status/usage" {
-		writeJSON(w, 200, map[string]any{"available": false})
+	if credential == h.cfg.Tokens.UI {
+		h.ui(w, r)
 		return
 	}
 	select {
@@ -255,6 +264,16 @@ func (h *Handler) messages(ctx context.Context, w http.ResponseWriter, r *http.R
 	firstCtx, stopFirst := context.WithTimeout(ctx, h.cfg.FirstEventTimeout)
 	defer stopFirst()
 	var stream *anthropic.TextStream
+	beginStream := func() error {
+		if stream != nil {
+			return nil
+		}
+		w.Header().Set("Content-Type", "text/event-stream")
+		w.Header().Set("Trailer", AuthFallbackHeader)
+		var err error
+		stream, err = anthropic.BeginStream(output, output.flush, "msg_"+id, turn.Model())
+		return err
+	}
 	var buffered strings.Builder
 	var blocks []anthropic.ResponseBlock
 	var pendingTools []anthropic.ToolUse
@@ -271,7 +290,30 @@ func (h *Handler) messages(ctx context.Context, w http.ResponseWriter, r *http.R
 		if !gotFirst {
 			nextCtx = firstCtx
 		}
-		event, err := turn.Next(nextCtx)
+		waitCtx := nextCtx
+		stopWait := func() {}
+		if request.Stream {
+			waitCtx, stopWait = context.WithTimeout(nextCtx, h.cfg.KeepAliveInterval)
+		}
+		event, err := turn.Next(waitCtx)
+		pingDue := errors.Is(err, context.DeadlineExceeded) && waitCtx.Err() == context.DeadlineExceeded && nextCtx.Err() == nil
+		stopWait()
+		if deadline, ok := nextCtx.Deadline(); ok && !time.Now().Before(deadline) {
+			pingDue = false
+		}
+		if request.Stream && pingDue {
+			if err := beginStream(); err != nil {
+				return
+			}
+			if output.remaining < 640 {
+				_ = stream.Fail(errOutputLimit.Error())
+				return
+			}
+			if err := stream.Ping(); err != nil {
+				return
+			}
+			continue
+		}
 		if err == nil && nextCtx.Err() != nil {
 			err = nextCtx.Err()
 		}
@@ -312,10 +354,7 @@ func (h *Handler) messages(ctx context.Context, w http.ResponseWriter, r *http.R
 			continue
 		}
 		if request.Stream && stream == nil {
-			w.Header().Set("Content-Type", "text/event-stream")
-			w.Header().Set("Trailer", AuthFallbackHeader)
-			stream, err = anthropic.BeginStream(output, output.flush, "msg_"+id, turn.Model())
-			if err != nil {
+			if err := beginStream(); err != nil {
 				return
 			}
 		}

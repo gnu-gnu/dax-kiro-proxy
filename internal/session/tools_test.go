@@ -17,14 +17,18 @@ import (
 	"dax-kiro-proxy/internal/session"
 )
 
-func toolDriver(t *testing.T, mode string, timeout time.Duration) *session.Driver {
+func toolDriver(t *testing.T, mode string, timeout time.Duration, options ...func(*session.Config)) *session.Driver {
 	t.Helper()
 	validator, err := schemacheck.New(schemacheck.Config{Executable: relayBinary, Directory: t.TempDir()})
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(validator.Close)
-	d, err := session.New(session.Config{Process: acp.Config{Executable: fixture, Args: []string{mode}, Directory: t.TempDir(), ClientInfo: acp.Info{Name: "dax-fixture", Version: "1"}, Auth: kiroauth.Classifier{}, Limits: acp.Limits{GracePeriod: 50 * time.Millisecond, TermPeriod: 50 * time.Millisecond, KillPeriod: time.Second}}, Validator: validator, RelayExecutable: relayBinary, RelayLimits: relay.Limits{ToolTimeout: timeout}, TurnTimeout: 3 * time.Second})
+	cfg := session.Config{Process: acp.Config{Executable: fixture, Args: []string{mode}, Directory: t.TempDir(), ClientInfo: acp.Info{Name: "dax-fixture", Version: "1"}, Auth: kiroauth.Classifier{}, Limits: acp.Limits{GracePeriod: 50 * time.Millisecond, TermPeriod: 50 * time.Millisecond, KillPeriod: time.Second}}, Validator: validator, RelayExecutable: relayBinary, RelayLimits: relay.Limits{ToolTimeout: timeout}, TurnTimeout: 3 * time.Second}
+	for _, option := range options {
+		option(&cfg)
+	}
+	d, err := session.New(cfg)
 	if err != nil {
 		t.Fatal(err)
 	}

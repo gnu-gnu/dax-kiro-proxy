@@ -222,6 +222,13 @@ func (s *TextStream) End(reason string) error {
 func (s *TextStream) Fail(message string) error {
 	return s.packet("error", ErrorBody("api_error", message))
 }
+
+func (s *TextStream) Ping() error {
+	if s.ended {
+		return errors.New("message already ended")
+	}
+	return s.event(streamEvent{Type: "ping"})
+}
 func (s *TextStream) event(e streamEvent) error { return s.packet(e.Type, e) }
 func (s *TextStream) packet(name string, value any) error {
 	b, err := json.Marshal(value)

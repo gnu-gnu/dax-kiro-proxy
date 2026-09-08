@@ -16,6 +16,7 @@ import (
 	"dax-kiro-proxy/internal/privatefs"
 	"dax-kiro-proxy/internal/requestfamily"
 	"dax-kiro-proxy/internal/sessionstore"
+	"dax-kiro-proxy/internal/status"
 )
 
 type ManagerConfig struct {
@@ -26,6 +27,7 @@ type ManagerConfig struct {
 	IdleTTL        time.Duration
 	Persistence    *sessionstore.Store
 	BackendVersion string
+	Metrics        *status.TurnQueue
 }
 type Manager struct {
 	cfg       ManagerConfig
@@ -51,6 +53,10 @@ type binding struct {
 }
 
 func NewManager(cfg ManagerConfig) (*Manager, error) {
+	// A manager derives per-binding scopes; callers must not supply a shared raw driver scope.
+	if cfg.Session.Metrics != nil || cfg.Session.MetricsScope != "" {
+		return nil, acp.ErrParameters
+	}
 	if cfg.ProfileScope == "" || len(cfg.ProfileScope) > 256 || len(cfg.Instance) > 128 {
 		return nil, acp.ErrParameters
 	}
@@ -227,6 +233,10 @@ func (m *Manager) Start(ctx context.Context, r *anthropic.Request) (inference.Tu
 	defer func() { stop(); cancel() }()
 	if e.driver == nil {
 		config := m.cfg.Session
+		if kind != requestfamily.Title && r.Identity.ParentAgent == "" {
+			config.Metrics = m.cfg.Metrics
+			config.MetricsScope = key
+		}
 		// Background title work is isolated even when a client sends identical system/tool policy.
 		config.PoolScope, _ = m.hasher.Digest("process-family", []string{config.PoolScope, requestfamily.Group(kind)})
 		if m.cfg.Persistence != nil && r.Identity.Session != "" && kind != requestfamily.Title {
