@@ -1018,3 +1018,50 @@ failure. Parent cancellation arriving during final startup cleanup remains visib
 Timing output is emitted when the command returns; client process launch is measured, while
 client session initialization remains explicitly unverified. Interactive readiness, live policy/load
 proof, R16 generation semantics, client assets/status bridge and release gates remain outstanding.
+
+## D36: configuration and capability observations without policy adoption (review R06/R14/R16)
+
+The public [Kiro 2.3 changelog](https://kiro.dev/changelog/cli/2-3/) establishes KIRO_HOME as a 2.x
+configuration-root option, including global agents and settings. It does not establish authentication
+continuity. The [2.10 changelog](https://kiro.dev/changelog/cli/2-10/) documents
+chat.disableInheritingDefaultResources and live agent/MCP configuration reload. Empty resource lists
+and a one-time inventory therefore cannot by themselves establish exclusion throughout a session.
+Exact search/merge precedence, effective hooks/native tools and attempted-dispatch restrictions
+remain observations to obtain on the pinned 2.21.1 installation. These sources were checked
+2026-09-09; newer 3.x fields are not substituted for 2.x proof.
+
+An owned-HOME inventory probe stops on authentication failure instead of substituting the real HOME
+or copying account files. A separately identified read-only identity experiment may retain the
+existing HOME and vary owned KIRO_HOME roots, comparing only ephemeral keyed identity scopes in
+memory. Even equal identities would not establish agent selection or execution restrictions. Neither
+experiment enables the production policy adapter or starts a model turn. The probes do not copy or
+directly modify credentials or invoke login/logout; installed CLIs may maintain account/cache state.
+
+The pinned main binary's read-only JSON getter distinguishes independently written flat Boolean
+values at KIRO_HOME/settings/cli.json while the existing HOME supplies its normal environment. Use
+the explicitly advertised --format json for this observation; the default is Markdown, and interpreting
+it as a bare Boolean was a test mistake. Account-backed agent inventories and settings getters did
+not exit within the initial five-second bounds; only these opt-in observations allow fifteen seconds
+for those exact commands. Their version/help checks remain five seconds, with bounded whole-probe
+deadlines. No production subprocess budget or setting is changed. Empty-HOME settings commands still
+fail with missing-file diagnostics, and setting readback does not prove effective resource exclusion.
+
+The installed ACP help also advertises v3 and --auth-method cli while retaining v2 as default.
+An engine-specific v3 investigation is possible without assuming that 3.x configuration fields apply
+to the current v2 adapter. No engine switch, v3 startup or restriction approval follows from help.
+
+The public [Claude environment-variable reference](https://code.claude.com/docs/en/env-vars)
+documents thinking omission and experimental-beta suppression. Local synthetic-response observations
+confirm their request-shape effects for Claude 2.1.263; beta suppression still leaves four header
+values in the tested profile. These are test inputs, not launcher defaults. Thinking omission does
+not prove a model's internal reasoning stops, and beta suppression is not a universal capability
+negotiation mechanism. No structured-output request was exercised. The existing title classifier
+requires an explicit disabled-thinking declaration, so omission cannot be adopted without separately
+checking actual title and foreground paths. Tool, permission, compaction and output-constraint
+semantics remain separate gates.
+
+Advisory Claude output is checked against the specifications and observations before use. A
+correlated relay/client-denial/sentinel experiment is a useful restriction test design, but passing
+one path cannot discharge R06. No silent constraint deletion, fabricated provider token limit,
+unrestricted payload recording or public verification bypass is authorized by that advice. The
+existing unsupported-control policy and all live startup gates remain in force.

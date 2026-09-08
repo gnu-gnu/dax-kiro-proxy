@@ -36,13 +36,32 @@ func TestClaudeThinkingRejectionObservation(t *testing.T) {
 		{"type-enum", "thinking.type: Input should be 'enabled' or 'disabled'", "0"},
 		{"synthetic-token", "capability_rejected: thinking", "0"},
 	} {
-		t.Run(tc.name, func(t *testing.T) { observeThinkingRejection(t, executable, tc.message, tc.retries) })
+		t.Run(tc.name, func(t *testing.T) {
+			observeThinkingRejection(t, executable, tc.message, tc.retries, capabilityProbeOptions{})
+		})
+	}
+}
+
+type capabilityProbeOptions struct{ omitThinking, omitBetas bool }
+
+// These documented knobs are observation inputs, not product defaults. Title, tool, structured
+// output and compaction behavior require separate evidence before any launch-policy adoption.
+func TestClaudeDocumentedCompatibilityOptions(t *testing.T) {
+	executable := os.Getenv("DAX_INTEROP_CLAUDE_BINARY")
+	if executable == "" {
+		t.Skip("set DAX_INTEROP_CLAUDE_BINARY for local compatibility-option observations; no model credits")
+	}
+	for _, tc := range []struct {
+		name    string
+		options capabilityProbeOptions
+	}{{"default", capabilityProbeOptions{}}, {"omit-thinking", capabilityProbeOptions{omitThinking: true}}, {"omit-betas", capabilityProbeOptions{omitBetas: true}}, {"omit-both", capabilityProbeOptions{true, true}}} {
+		t.Run(tc.name, func(t *testing.T) { observeThinkingRejection(t, executable, "", "0", tc.options) })
 	}
 }
 
 // An unmodified installed client receives newly authored local responses in an empty owned HOME.
 // Prompts, settings and responses are synthetic. No Kiro/model request or client tool is possible.
-func observeThinkingRejection(t *testing.T, executable, errorMessage, retries string) {
+func observeThinkingRejection(t *testing.T, executable, errorMessage, retries string, options capabilityProbeOptions) {
 	t.Helper()
 	root, err := os.MkdirTemp("/private/tmp", "dax-capability-probe-")
 	if err != nil {
@@ -73,6 +92,8 @@ func observeThinkingRejection(t *testing.T, executable, errorMessage, retries st
 	var mu sync.Mutex
 	var thinkingKinds []string
 	var fieldSets [][]string
+	var contextDeclarations, formatDeclarations []bool
+	var betaHeaderCounts []int
 	unknownFields := 0
 	rejected, accepted := 0, 0
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -131,6 +152,19 @@ func observeThinkingRejection(t *testing.T, executable, errorMessage, retries st
 		}
 		thinkingKinds = append(thinkingKinds, kind)
 		fieldSets = append(fieldSets, names)
+		contextDeclarations = append(contextDeclarations, fields["context_management"] != nil)
+		var outputConfig map[string]json.RawMessage
+		_ = json.Unmarshal(fields["output_config"], &outputConfig)
+		formatDeclarations = append(formatDeclarations, outputConfig["format"] != nil)
+		betaCount := 0
+		for _, line := range r.Header.Values("anthropic-beta") {
+			for _, value := range strings.Split(line, ",") {
+				if strings.TrimSpace(value) != "" {
+					betaCount++
+				}
+			}
+		}
+		betaHeaderCounts = append(betaHeaderCounts, betaCount)
 		unknownFields += unknown
 		unsupported := errorMessage != "" && kind != "absent" && kind != "disabled"
 		if unsupported {
@@ -165,6 +199,12 @@ func observeThinkingRejection(t *testing.T, executable, errorMessage, retries st
 		t.Fatal("cannot read owned probe settings")
 	}
 	env["CLAUDE_CODE_MAX_RETRIES"] = retries
+	for key, enabled := range map[string]bool{"CLAUDE_CODE_DISABLE_THINKING": options.omitThinking, "CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS": options.omitBetas} {
+		if enabled {
+			env[key] = "1"
+			command.Environment = append(command.Environment, key+"=1")
+		}
+	}
 	settings["env"], _ = json.Marshal(env)
 	overlay, _ = json.Marshal(settings)
 	if os.WriteFile(profile.SettingsPath(), overlay, 0600) != nil {
@@ -176,9 +216,16 @@ func observeThinkingRejection(t *testing.T, executable, errorMessage, retries st
 	mu.Lock()
 	defer mu.Unlock()
 	completed := runErr == nil && result.ExitCode == 0 && bytes.Contains(result.Stdout, []byte(answer)) && accepted == 1
-	t.Logf("version=%s, retries=%s, completed=%v, recovered=%v, exit=%d, request_count=%d, rejected=%d, accepted=%d, thinking_kinds=%v, fields=%v, unknown_fields=%d, stdout_bytes=%d", launcher.SupportedClientVersion, retries, completed, completed && rejected > 0, result.ExitCode, len(thinkingKinds), rejected, accepted, thinkingKinds, fieldSets, unknownFields, len(result.Stdout))
-	if len(thinkingKinds) != 1 || thinkingKinds[0] != "adaptive" {
+	t.Logf("version=%s, retries=%s, omit_thinking=%v, omit_betas=%v, completed=%v, recovered=%v, exit=%d, request_count=%d, rejected=%d, accepted=%d, thinking_kinds=%v, context_declarations=%v, format_declarations=%v, beta_header_counts=%v, fields=%v, unknown_fields=%d, stdout_bytes=%d", launcher.SupportedClientVersion, retries, options.omitThinking, options.omitBetas, completed, completed && rejected > 0, result.ExitCode, len(thinkingKinds), rejected, accepted, thinkingKinds, contextDeclarations, formatDeclarations, betaHeaderCounts, fieldSets, unknownFields, len(result.Stdout))
+	expectedThinking := "adaptive"
+	if options.omitThinking {
+		expectedThinking = "absent"
+	}
+	if len(thinkingKinds) != 1 || thinkingKinds[0] != expectedThinking {
 		t.Fatal("pinned client request shape changed; review this observation")
+	}
+	if options.omitBetas && (len(contextDeclarations) != 1 || contextDeclarations[0]) {
+		t.Fatal("context-management declaration survived the documented omission option")
 	}
 	if errorMessage == "" {
 		if !completed || rejected != 0 {

@@ -84,12 +84,126 @@ doctor explicitly reports that fact. A package-private fake adapter tests the co
 no trust flag or user-supplied verification record can select it. Client initialization timing/UI,
 assets/status integration, R16 request controls, real policy/load proof and release work remain open.
 
-Actual Claude Code consultation was prepared using its public
-[CLI isolation options](https://code.claude.com/docs/en/cli-reference) and a bounded
-single-turn prompt containing only this project's independently written constraints/findings. The
-installed help confirmed the options, but automatic approval review rejected external transmission
-pending specific payload/destination approval. No consultation result was obtained; independent local
-implementation continued. This consultation is separate from product Kiro inference routing.
+The user subsequently explicitly authorized an independent local Claude CLI consultation and asked
+that Claude save its answer to a file for review. That authorization superseded the earlier automatic
+approval rejection of external transmission. A direct Claude 2.1.263 print-mode invocation completed
+with exit 0 and wrote `.cache/claude-consult/work/answer.md` (4,762 bytes); the entire answer and the
+CLI result were read. The owned working directory, safe mode, Write-only tool selection, empty strict
+MCP configuration and no-session-persistence setting limited its inputs to the supplied independent
+project facts. No previous implementation was supplied or consulted. An earlier invocation with a
+different stripped environment failed; the successful direct invocation establishes neither its
+cause nor a need for login/logout. This consultation used Claude inference, separately from the
+product's Kiro routing. No Kiro model prompt has been sent.
+
+The accepted advice is a disposable tool-denial experiment correlating relay arrival, client refusal
+and absence of a sentinel effect. This would establish evidence for the exercised path only; R06
+still requires native filesystem/shell/task/subagent and inherited-configuration attempts. The review
+rejects unrestricted request/response recording, silent removal of unsupported constraints, an
+experimental public gate bypass, and treating one text response or a capability table as complete
+restriction proof. The answer's claim that Claude never recovers from a 400 also exceeds the narrower
+D33 observations. Independent fixtures and state-machine tests remain required and useful. The
+answer is advisory material, not an authoritative protocol contract.
+
+### Documented client options and Kiro configuration isolation
+
+Four local positive-response cases on unmodified Claude 2.1.263 passed in 1.919s (test 1.68s):
+
+| Test-only options | Thinking declaration | Context declaration | Beta header values | Result |
+| --- | --- | --- | --- | --- |
+| Default | adaptive | present | 7 | One request, exit 0 |
+| Disable thinking | absent | absent | 7 | One request, exit 0 |
+| Disable experimental betas | adaptive | absent | 4 | One request, exit 0 |
+| Both | absent | absent | 4 | One request, exit 0 |
+
+Every case used an owned HOME/project, disabled tools and an independently authored local HTTP
+response. None requested structured output. No Kiro, external model or actual client tool was used.
+Only field names, fixed kinds, presence flags, counts and byte lengths were logged. The documented
+variables are `CLAUDE_CODE_DISABLE_THINKING` and `CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS`; neither is
+adopted by production startup. Title generation, tool round trips, structured output and compaction
+need separate observations. D36 records the limits of these results.
+
+The new `TestKiroOwnedHomeAgentSelection` requires both pinned binaries, then attempts global-agent
+inventory under an empty owned HOME and two owned KIRO_HOME roots. Its installed run failed in
+2.667s: both version checks passed, but the first main-binary HOME-baseline `agent list` returned
+exit 1 with an authentication marker (64 bounded bytes). No synthetic agent marker appeared. The
+process group was gone and runner ownership released. Subsequent inventory cases were not run;
+global-agent search-root selection and restriction remain unverified. This failure does not imply
+that the existing real-HOME account is logged out. No session or model prompt was created.
+
+The separately reviewed `TestKiroOwnedHomeIdentityContinuity` then passed in 9.486s (test 9.26s).
+It retained the existing HOME only in the finite child commands and compared baseline, owned root A,
+owned root B and baseline again with one ephemeral HMAC key. All four identities matched, both pinned
+versions passed in each scope and every process group was gone. Only equality/status/size facts were
+reported; no identity value, digest or credential was retained in the report. No credential copying,
+login/logout, agent activation, ACP or model call occurred. This establishes continuity for these
+read-only invocations, not configuration isolation or future authentication validity.
+
+`TestKiroAccountHomeAgentSelection` independently supplies the existing HOME to child commands while
+writing all agent fixtures in owned directories. The first main-binary A inventory contained its
+expected marker but timed out after five seconds (870 bytes, exit -1); that output did not pass the
+gate. A later observation allowed fifteen seconds only for these account-backed list commands,
+retaining five-second versions and a seventy-five-second overall bound. It passed in 34.453s (test
+33.05s): both main/helper listed the selected A/B marker and neither other synthetic marker, exited 0
+and left no process group. This establishes distinguishable owned-agent search roots for those
+invocations. It does not prove an exclusive inventory, agent activation, inherited-MCP exclusion or
+execution restrictions. No real-HOME agent file was written and no model/session was created.
+
+The fully synthetic `TestKiroOwnedHomeSettingsDiscovery` passed pinned versions and confirmed the
+public help's KEY/VALUE positional interface, but its first setter returned exit 1 with 46 bounded
+diagnostic bytes. The initial fixed authentication/syntax markers were absent. The process group was
+gone. This installed run failed in 2.449s; no successful setting persistence or readback is claimed.
+Expanded fixed diagnostics reproduced the failure in 4.017s and identified missing-file/directory
+and OS error 2 markers, although the owned settings directory and cli.json existed. A bounded file
+inspection in a subsequent 2.616s run found only an empty JSON object (2 bytes), without the requested
+Boolean. The error is not reclassified as successful persistence or an authentication failure.
+The real HOME was never used by these settings experiments.
+
+A differential synthetic-HOME case precreated the documented default .kiro/settings/cli.json and
+its parent, but still failed identically in 3.666s with an empty alternate-root file. This did not
+support the hypothesis that merely supplying that fallback directory would repair the setter.
+
+A second explicitly authorized direct Claude consultation completed with exit 0 and saved
+`.cache/claude-consult/work/answer-settings.md` (2,558 bytes). The entire answer was read. A 120-second
+CLI deadline with a five-second kill grace, safe mode, Write-only tools and empty strict MCP
+configuration bounded the invocation. Its proposed independent A/B JSON getter experiment and
+main/helper public-help comparison were adopted. Its stronger claims about credential storage and
+exclusive agent isolation were rejected: matching account scopes and distinct synthetic markers do
+not establish either claim. An arbitrary undocumented setting key was not adopted as a probe.
+
+Both binaries' public settings help then advertised KEY/VALUE positionals (924/934 bounded bytes).
+Independently seeded flat Boolean A/B JSON files still did not make the empty-HOME main getter
+succeed: the first read returned exit 1 with the same missing-file/OS error 2 markers, in 3.551s.
+The failure is therefore observed on this getter as well as the setter. Its underlying cause remains
+unknown; no claim of successful settings isolation follows from the failed commands.
+
+The account-HOME getter initially emitted 14 bytes but timed out at five seconds (6.021s test run).
+With a fifteen-second getter-only limit it exited 0, but the bare-Boolean assertion failed because
+the public command defaults to Markdown output (8.563s run). The actual installed help explicitly
+advertises --format json; this was a probe output-format mistake, not evidence that the configured
+value was ignored. Version/help retain five seconds, getters receive fifteen only in the account-HOME
+observation, and the whole two-root observation is bounded at fifty-five seconds.
+
+`TestKiroAccountHomeSettingsReadback` then passed in 15.923s (test 14.86s) using the exact read-only
+command `settings chat.disableInheritingDefaultResources --format json`. It read true from independently
+written A and false from B, both exit 0, with the expected flat JSON files and no surviving process
+groups. No setter is allowed with the account HOME; the command wrapper admits only exact version,
+help and that JSON getter. This establishes settings readback/search-root behavior for this key and
+these invocations. Effective resource suppression and setter success remain unverified. Applying the
+same JSON output option with a fully empty HOME still failed with the missing-file/OS error 2 markers
+in 3.159s; that separate environment requirement remains unresolved.
+
+Installed ACP help also explicitly advertises v1/v2/v3 engine selection (default v2) and, for v3,
+--auth-method cli to keep credential resolution in the Kiro process. This confirms a separate engine
+candidate exists in the pinned binary. No v3 ACP process/session was started, and no 3.x agent field
+was consequently adopted for the current v2 adapter. Its configuration, protocol and restriction
+behavior need separate observations before an engine decision.
+
+The combined installed-Claude negative/positive race suite passed in 6.564s (six rejection/control
+observations and four option observations). The observed failure shapes remain negative evidence,
+not successful recovery. The final ordinary interop race suite passed in 2.109s with installed-client
+opt-ins unset; `go vet ./...` and `git diff --check` passed. The explicit failed Kiro observations above
+remain failed live gates, not results covered by that skipped run. No production option or dependency
+changed.
 
 ### Request constraints and negative client recovery evidence
 
