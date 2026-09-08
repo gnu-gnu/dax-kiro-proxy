@@ -166,6 +166,32 @@ longer load/fuzz and clean-host release gates remain unverified. No new external
 
 ## Remaining work
 
+### Phase 6 Kiro identity preflight and unauthenticated startup
+
+Initial probes without the Kiro installation directory in PATH timed out. The installed public
+`kiro-cli-chat` helper was then located and independently reported 2.21.1, matching `kiro-cli`.
+With that directory in the explicit PATH, `whoami --format json` completed with exit 0. The complete
+stdout was not JSON: a compact first object contained accountType/email/region/startUrl string fields,
+followed by a short non-JSON postamble. The helper returned the same format. No field values or
+postamble prose were logged. The earlier whole-stdout-object assumption was therefore incorrect.
+
+New preflight tests first failed on missing APIs. D26's version-specific parser now bounds and checks
+the leading identity object, rejects ambiguous JSON continuations and stores only a keyed account
+scope. Independent tests verify version-check ordering, environment, stable/different account scopes,
+malformed/duplicate/oversize output, command timeout and caller cancellation. The final launcher race
+suite passed in 2.149s. The installed read-only `TestKiroPinnedLoginPreflight` passed in 4.388s
+(2.50s test), with a verified CLI identity and a private scope digest. This supersedes the earlier
+unknown login result; it does not claim that the next model request's credentials cannot expire.
+
+The empty-HOME Kiro probe's syntax validator first timed out, then exited unsuccessfully after PATH
+was corrected. Validating that same new agent file with the existing HOME succeeded. ACP was still
+launched with the empty temporary HOME and no copied account files; it returned a recognized
+authentication failure before initialization completed. `TestKiroIsolatedACPHandshake` passed as that
+bounded observation in 6.766s, with no session prompt, model credits or client tool effect. This proves
+local unauthenticated failure classification, not logged-in ACP conformance or effective restrictions.
+No login/logout command was invoked, and no claim is made about the CLI's internal account-cache reads
+or updates. `go vet ./...` and `git diff --check` passed at this checkpoint.
+
 ### Phase 6 temporary client settings
 
 The profile tests first failed on the missing launcher component, then passed in 2.180s after its
@@ -231,8 +257,9 @@ The opt-in read-only Kiro probe verified `kiro-cli 2.21.1`. Its `whoami --format
 within the five-second command deadline and was terminated through the owned cleanup path. The
 observation test passed as a bounded probe (6.897s suite), but this is **not** evidence of successful
 authentication or a verified whoami JSON schema. No account values, stderr, prompts or model calls
-were retained. Login status remains unknown; a launcher must not infer logged-in or logged-out from
-this timeout. No login, logout or settings mutation command was invoked.
+were retained. At that checkpoint login status remained unknown; a launcher must not infer logged-in
+or logged-out from this timeout. The later D26 preflight above verifies the observed CLI identity. No
+login, logout or settings mutation command was invoked.
 
 Current official Kiro links redirect to CLI 3.0/IDE 1.0 documentation. The explicit
 [CLI 2.x reference](https://kiro.dev/docs/cli/2x-reference/) describes different tool/permission/hook

@@ -584,3 +584,31 @@ PreToolUse denial follows the public [hook contract](https://code.claude.com/doc
 2026-09-08. The peer requires an actual MCP result containing the synthetic hook denial and only one
 ACP prompt; the test requires exactly two HTTP model requests and final idle state. It does not treat
 a JSON-RPC error as proof of client permission enforcement or consume Kiro model credits.
+
+## D26: pinned Kiro identity preflight (review R06/R11/R14)
+
+Kiro 2.21.1 is the initial observed preflight version. Check both the configured `kiro-cli` and its
+sibling `kiro-cli-chat` executable with `--version`, requiring the same exact version before identity
+lookup. The allowlisted PATH contains that installation directory followed by standard system
+directories; HOME is the intended Kiro account scope, while cwd/TMPDIR are product-owned. Each finite
+command uses D23's bounds, and a canceled caller remains canceled instead of becoming a login error.
+
+The installed `whoami --help` documents `whoami --format json`. Both binaries in this installation
+returned one compact JSON object followed by a short non-JSON postamble. The version-specific adapter
+accepts one leading object with duplicate-key/UTF-8/depth validation: at most 16 KiB, 32 fields and
+64 KiB total command output. A postamble is bounded to 4 KiB/16 newline separators, never interpreted
+or logged, and cannot contain another complete or object/array/string-looking JSON line. This
+exception belongs to finite CLI output parsing, never the strict ACP transport.
+
+The observed identity fields are accountType, email, region and startUrl. Account type and email must
+be nonempty strings; optional region/startUrl, when present, must also be bounded strings without
+control characters. Only their domain-separated HMAC with the private scope key survives preflight;
+account values and output prose are not returned. Version mismatch, nonzero exit, timeout, malformed
+or ambiguous identity fails startup. An unknown login result instructs `kiro-cli login` without
+asserting that a timeout proves the account is logged out. No authentication-changing command runs.
+
+Successful identity preflight establishes a current CLI identity/cache scope, not future token
+validity or Kiro execution restrictions. A separate isolated-HOME probe used a newly authored empty
+agent. Its finite syntax validation succeeded with the existing HOME; ACP itself, started with the
+empty HOME, failed initialization with a recognized authentication error and was cleaned up. No
+`session/prompt` was submitted. Logged-in ACP/tool restrictions and clean-host release gates remain.
