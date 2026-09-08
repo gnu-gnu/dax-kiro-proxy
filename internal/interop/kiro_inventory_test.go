@@ -16,6 +16,8 @@ import (
 	"dax-kiro-proxy/internal/acp"
 	"dax-kiro-proxy/internal/childproc"
 	"dax-kiro-proxy/internal/launcher"
+	"dax-kiro-proxy/internal/relay"
+	"dax-kiro-proxy/internal/toolregistry"
 )
 
 func TestKiroReadOnlyToolsInventoryProtocol(t *testing.T) {
@@ -48,6 +50,10 @@ func TestKiroReadOnlyToolsInventoryProtocol(t *testing.T) {
 	}{
 		{"ready", true, true, nil},
 		{"listed", true, true, nil},
+		{"mcp-ready", true, true, nil},
+		{"mcp-silent", false, false, context.DeadlineExceeded},
+		{"mcp-foreign", false, false, errInventoryBinding},
+		{"mcp-other-server", false, false, context.DeadlineExceeded},
 		{"unavailable", false, false, nil},
 		{"foreign", false, false, errInventoryBinding},
 		{"malformed", false, false, errInventoryShape},
@@ -65,7 +71,11 @@ func TestKiroReadOnlyToolsInventoryProtocol(t *testing.T) {
 				t.Fatal(err)
 			}
 			defer client.Close()
-			report, err := readOnlyToolsInventory(ctx, client, root, 80*time.Millisecond)
+			required := inventoryPrerequisite{}
+			if strings.HasPrefix(test.mode, "mcp-") {
+				required = inventoryPrerequisite{WaitForMCP: true, Alias: "fixture_relay_alias"}
+			}
+			report, err := readOnlyToolsInventoryAfter(ctx, client, root, 80*time.Millisecond, required)
 			if !errors.Is(err, test.wantErr) || report.QuerySent != test.query || report.Success != test.success || !report.SessionCreated {
 				t.Fatalf("unexpected read-only observation: report=%+v, error=%v", report, err)
 			}
@@ -77,6 +87,9 @@ func TestKiroReadOnlyToolsInventoryProtocol(t *testing.T) {
 			}
 			if test.mode == "listed" && (report.DataSizes["tools"] != 1 || !report.ListedNativeNames["read"] || report.ListedNativeNames["fs_read"] || report.ToolEntryKinds["name"] != "string") {
 				t.Fatal("structured inventory was not distinguished from diagnostic text")
+			}
+			if test.mode == "mcp-ready" && (!report.AliasMatched || report.AliasNameForm != "bare" || report.NotificationKinds["_kiro.dev/mcp/server_initialized"] != 1 || report.MCPDeclaredNameMatches != 1) {
+				t.Fatal("MCP initialization and the intended relay alias were not observed")
 			}
 			if client.Close() != nil || !errors.Is(syscall.Kill(-client.PID(), 0), syscall.ESRCH) {
 				t.Fatal("read-only inventory peer survived cleanup")
@@ -132,11 +145,47 @@ func TestKiroPinnedReadOnlyToolsInventory(t *testing.T) {
 		tools  []string
 		listed []string
 	}{{"empty", []string{}, []string{}}, {"one-native", []string{"fs_read"}, []string{"read"}}} {
-		t.Run(test.name, func(t *testing.T) { observePinnedToolsInventory(t, executable, test.tools, test.listed) })
+		t.Run(test.name, func(t *testing.T) { observePinnedToolsInventory(t, executable, test.tools, test.listed, "") })
 	}
 }
 
-func observePinnedToolsInventory(t *testing.T, executable string, declaredTools, listedTools []string) {
+func TestKiroPinnedRelayInventory(t *testing.T) {
+	executable := os.Getenv("DAX_INTEROP_KIRO_BINARY")
+	if executable == "" {
+		t.Skip("set DAX_INTEROP_KIRO_BINARY for one owned ACP/relay setup and tools query; no prompt or tool call")
+	}
+	observePinnedToolsInventory(t, executable, nil, nil, buildRelayObserver(t))
+}
+
+func buildRelayObserver(t *testing.T) string {
+	t.Helper()
+	root := t.TempDir()
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatal("cannot identify owned build directory")
+	}
+	runner, err := childproc.New(childproc.Config{Timeout: time.Minute})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer runner.Close()
+	env := []string{"HOME=" + root, "PATH=/usr/bin:/bin:/usr/sbin:/sbin", "GOTOOLCHAIN=local", "GOPROXY=off", "GOSUMDB=off", "CGO_ENABLED=0"}
+	for _, key := range []string{"GOMODCACHE", "GOCACHE"} {
+		if value := os.Getenv(key); value != "" {
+			env = append(env, key+"="+value)
+		}
+	}
+	for _, target := range []struct{ name, source string }{{"owned-relay", "../../cmd/dax-kiro-proxy"}, {"observed-relay", "./testdata/relayobserver"}} {
+		_, err = runner.Run(t.Context(), childproc.Command{Executable: filepath.Join(runtime.GOROOT(), "bin", "go"), Directory: cwd, Environment: env,
+			Args: []string{"build", "-o", filepath.Join(root, target.name), target.source}})
+		if err != nil {
+			t.Fatal("cannot build the owned effect-free relay observation")
+		}
+	}
+	return filepath.Join(root, "observed-relay")
+}
+
+func observePinnedToolsInventory(t *testing.T, executable string, declaredTools, listedTools []string, relayExecutable string) {
 	t.Helper()
 	ctx, cancel := context.WithTimeout(t.Context(), time.Minute)
 	defer cancel()
@@ -151,13 +200,44 @@ func observePinnedToolsInventory(t *testing.T, executable string, declaredTools,
 			t.Fatal("cannot create owned inventory directories")
 		}
 	}
-	const name = "dax-readonly-inventory"
-	agent, err := json.Marshal(map[string]any{"name": name, "description": "Independent read-only protocol observation", "tools": declaredTools, "allowedTools": []string{}, "mcpServers": map[string]any{}, "resources": []any{}, "hooks": map[string]any{}, "includeMcpJson": false})
-	if err != nil {
-		t.Fatal("cannot encode independent inventory agent")
+	name := "dax-readonly-inventory"
+	required := inventoryPrerequisite{}
+	var broker *relay.Broker
+	var socket *relay.Socket
+	if relayExecutable == "" {
+		agent, err := json.Marshal(map[string]any{"name": name, "description": "Independent read-only protocol observation", "tools": declaredTools, "allowedTools": []string{}, "mcpServers": map[string]any{}, "resources": []any{}, "hooks": map[string]any{}, "includeMcpJson": false})
+		if err != nil || os.WriteFile(filepath.Join(cwd, ".kiro", "agents", name+".json"), agent, 0600) != nil {
+			t.Fatal("cannot write independent inventory agent")
+		}
+	} else {
+		// A fresh synthetic name prevents this observation from passing with an earlier tool cache.
+		tool, err := json.Marshal(map[string]any{"name": "Inventory" + rand.Text(), "description": "Independent no-effect inventory tool", "input_schema": map[string]any{"type": "object", "properties": map[string]any{}, "additionalProperties": false}})
+		if err != nil {
+			t.Fatal("cannot encode independent tool declaration")
+		}
+		registry, err := toolregistry.Build(ctx, []json.RawMessage{tool}, nil, syntaxFixtureValidator{})
+		if err != nil {
+			t.Fatal("cannot build independent inventory registry")
+		}
+		broker, err = relay.NewBroker(registry, relay.Limits{ToolTimeout: 5 * time.Second})
+		if err != nil {
+			t.Fatal("cannot create effect-free inventory relay")
+		}
+		defer broker.Close()
+		socket, err = relay.Listen(broker, relay.SocketConfig{BaseDirectory: root})
+		if err != nil {
+			t.Fatal("cannot create private inventory control socket")
+		}
+		defer socket.Close()
+		candidate, err := launcher.WriteCandidateAgent(launcher.AgentConfig{Directory: cwd, Registry: registry, RelayExecutable: relayExecutable, RelayConfig: socket.ConfigPath()})
+		if err != nil || candidate.ExecutionVerified {
+			t.Fatal("cannot create unverified relay-only candidate")
+		}
+		name = candidate.Name
+		required = inventoryPrerequisite{WaitForMCP: true, Alias: registry.Tools()[0].Alias}
+		declaredTools = []string{"@dax_session/" + required.Alias}
 	}
-	if os.WriteFile(filepath.Join(cwd, ".kiro", "agents", name+".json"), agent, 0600) != nil ||
-		os.WriteFile(filepath.Join(configuration, "settings", "cli.json"), []byte(`{"chat.disableInheritingDefaultResources":true}`), 0600) != nil {
+	if os.WriteFile(filepath.Join(configuration, "settings", "cli.json"), []byte(`{"chat.disableInheritingDefaultResources":true}`), 0600) != nil {
 		t.Fatal("cannot write owned inventory configuration")
 	}
 	runner, err := childproc.New(childproc.Config{})
@@ -196,10 +276,21 @@ func observePinnedToolsInventory(t *testing.T, executable string, declaredTools,
 		t.Fatalf("inventory ACP initialization failed: %s", kiroSetupFailure(err))
 	}
 	defer client.Close()
-	report, callErr := readOnlyToolsInventory(ctx, client, cwd, 3*time.Second)
+	report, callErr := readOnlyToolsInventoryAfter(ctx, client, cwd, 3*time.Second, required)
 	closeErr := client.Close()
 	groupGone := errors.Is(syscall.Kill(-client.PID(), 0), syscall.ESRCH)
 	runner.Close()
+	if broker != nil {
+		checkRelayProcessCleanup(t, relayExecutable, client.PID())
+		stats := broker.Stats()
+		broker.Close()
+		socket.Close()
+		_, configErr := os.Lstat(socket.ConfigPath())
+		t.Logf("relay_pending=%d, relay_alias_matched=%v, relay_alias_form=%s, relay_config_removed=%v, mcp_param_kinds=%v, mcp_declared_name_matches=%d", stats.Pending, report.AliasMatched, report.AliasNameForm, errors.Is(configErr, os.ErrNotExist), report.MCPParamKinds, report.MCPDeclaredNameMatches)
+		if stats.Pending != 0 || stats.Queued != 0 || stats.Sealed != 0 || !errors.Is(configErr, os.ErrNotExist) {
+			t.Error("relay observation retained tool work or private artifacts")
+		}
+	}
 	t.Logf("version=%s, engine=v2, owned_configuration_root=true, session_created=%v, advertised=%v, command_count=%d, tools_available=%v, query_sent=%v, query_success=%v, prompt_sent=false, result_bytes=%d, result_kinds=%v, other_result_fields=%d, notifications=%d, notification_kinds=%v, text_bytes=%d, native_name_presence=%v, execution_restriction_verified=false, cleanup_joined=%v, elapsed_ms=%d", info.Version,
 		report.SessionCreated, report.Advertised, report.Commands, report.ToolsAvailable, report.QuerySent, report.Success, report.ResultBytes, report.ResultKinds, report.UnknownResultFields, report.Notifications, report.NotificationKinds, report.TextBytes, report.NativeNames,
 		closeErr == nil && groupGone && runner.Active() == 0, time.Since(started).Milliseconds())
@@ -216,6 +307,9 @@ func observePinnedToolsInventory(t *testing.T, executable string, declaredTools,
 	}
 	if report.DataKinds["tools"] != "array" || report.DataSizes["tools"] != len(declaredTools) {
 		t.Fatal("declared and listed tool counts differ")
+	}
+	if required.WaitForMCP && (!report.AliasMatched || report.NotificationKinds["_kiro.dev/mcp/server_initialized"] == 0 || report.MCPDeclaredNameMatches == 0 || len(report.ListedNativeNames) != 0) {
+		t.Fatal("the sole relay alias and MCP initialization were not both observed")
 	}
 	for _, name := range listedTools {
 		if !report.ListedNativeNames[name] {

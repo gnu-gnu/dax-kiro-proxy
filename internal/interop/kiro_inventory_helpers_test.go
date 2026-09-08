@@ -34,13 +34,26 @@ type inventoryReport struct {
 	DataSizes                                                          map[string]int
 	ToolEntryKinds                                                     map[string]string
 	ListedNativeNames                                                  map[string]bool
+	AliasMatched                                                       bool
+	AliasNameForm                                                      string
+	MCPParamKinds                                                      map[string]string
+	MCPDeclaredNameMatches                                             int
+}
+
+type inventoryPrerequisite struct {
+	WaitForMCP bool
+	Alias      string
 }
 
 // The only dispatched private command is the advertised argument-free tools inventory. There is
 // deliberately no generic command or prompt parameter. The caller owns and joins process cleanup.
 func readOnlyToolsInventory(ctx context.Context, client *acp.Client, cwd string, advertisementWait time.Duration) (inventoryReport, error) {
-	report := inventoryReport{NativeNames: map[string]bool{}, ResultKinds: map[string]string{}, NotificationKinds: map[string]int{}, DataKinds: map[string]string{}, DataSizes: map[string]int{}, ToolEntryKinds: map[string]string{}, ListedNativeNames: map[string]bool{}}
-	if !filepath.IsAbs(cwd) || advertisementWait <= 0 || advertisementWait > 5*time.Second {
+	return readOnlyToolsInventoryAfter(ctx, client, cwd, advertisementWait, inventoryPrerequisite{})
+}
+
+func readOnlyToolsInventoryAfter(ctx context.Context, client *acp.Client, cwd string, advertisementWait time.Duration, required inventoryPrerequisite) (inventoryReport, error) {
+	report := inventoryReport{NativeNames: map[string]bool{}, ResultKinds: map[string]string{}, NotificationKinds: map[string]int{}, DataKinds: map[string]string{}, DataSizes: map[string]int{}, ToolEntryKinds: map[string]string{}, ListedNativeNames: map[string]bool{}, MCPParamKinds: map[string]string{}}
+	if !filepath.IsAbs(cwd) || advertisementWait <= 0 || advertisementWait > 5*time.Second || len(required.Alias) > 256 || strings.IndexFunc(required.Alias, func(c rune) bool { return !inventoryNameCharacter(c) }) != -1 {
 		return report, errInventoryShape
 	}
 	raw, err := client.Call(ctx, "session/new", map[string]any{"cwd": cwd, "mcpServers": []any{}})
@@ -58,7 +71,7 @@ func readOnlyToolsInventory(ctx context.Context, client *acp.Client, cwd string,
 	report.SessionCreated = true
 	adCtx, cancel := context.WithTimeout(ctx, advertisementWait)
 	defer cancel()
-	for !report.Advertised {
+	for !report.Advertised || required.WaitForMCP && report.MCPDeclaredNameMatches == 0 {
 		if err := adCtx.Err(); err != nil {
 			return report, err
 		}
@@ -68,6 +81,9 @@ func readOnlyToolsInventory(ctx context.Context, client *acp.Client, cwd string,
 		}
 		if err := report.observe(n, session); err != nil {
 			return report, err
+		}
+		if report.Advertised && !report.ToolsAvailable {
+			return report, nil
 		}
 	}
 	if !report.ToolsAvailable {
@@ -139,6 +155,14 @@ func readOnlyToolsInventory(ctx context.Context, client *acp.Client, cwd string,
 						if ok && nativeInventoryName(name) {
 							report.ListedNativeNames[name] = true
 						}
+						if ok && required.Alias != "" {
+							switch name {
+							case required.Alias:
+								report.AliasMatched, report.AliasNameForm = true, "bare"
+							case "@dax_session/" + required.Alias:
+								report.AliasMatched, report.AliasNameForm = true, "qualified"
+							}
+						}
 					}
 				}
 			case "object":
@@ -192,6 +216,23 @@ func (r *inventoryReport) observe(n acp.Notification, session string) error {
 		return errInventoryBinding
 	}
 	switch n.Method {
+	case "_kiro.dev/mcp/server_initialized":
+		if len(fields) > 32 {
+			return errInventoryShape
+		}
+		server, ok := inventoryString(fields["serverName"], 256)
+		if !ok {
+			return errInventoryShape
+		}
+		for field, raw := range fields {
+			if !inventoryMember(field) {
+				return errInventoryShape
+			}
+			r.MCPParamKinds[field] = inventoryKind(raw)
+		}
+		if server == "dax_session" {
+			r.MCPDeclaredNameMatches++
+		}
 	case "_kiro.dev/commands/available":
 		var commands []json.RawMessage
 		if inventoryKind(fields["commands"]) != "array" || json.Unmarshal(fields["commands"], &commands) != nil || len(commands) > 128 {

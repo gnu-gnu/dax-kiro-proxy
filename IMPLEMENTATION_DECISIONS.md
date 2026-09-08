@@ -1194,3 +1194,47 @@ native-tool inventory distinction. It is not proof of attempted native-tool deni
 or hooks exclusion, relay initialization, later configuration reloads, loaded sessions, model turns
 or full R06 acceptance. Actual effort arguments and private metadata semantics remain separate work.
 Production startup continues to return ErrPolicyUnverified.
+
+## D40: live relay enumeration and a separate process-group observation (review R06/R07/R09/R12)
+
+The read-only observation can additionally require _kiro.dev/mcp/server_initialized for the exact
+owned session and serverName dax_session before its sole tools query. Missing MCP readiness times
+out; a foreign session rejects. A server with another name cannot satisfy readiness by including
+dax_session in an unrelated description field. The latter synthetic regression first failed before
+the helper switched to exact serverName matching. Repeated valid readiness/advertisement events are
+bounded and do not multiply the expected tool inventory.
+
+The live probe builds the actual effect-free relay command from this repository. A fresh random
+synthetic tool name produces a new alias for every run, avoiding reuse of an earlier tool catalog.
+The generated D27 candidate contains only @dax_session/<alias>, its owned MCP command/configuration,
+empty resources/hooks and includeMcpJson false. The parent broker never opens tool-call admission.
+The schema fixture is sufficient only for this independently written empty object schema and
+enumeration; the real schema-worker suites remain the argument-validation evidence. No model
+prompt or client tool call is submitted.
+
+Pinned Kiro 2.21.1/v2 returns two initialization notifications for serverName dax_session and a
+successful tools response containing exactly the fresh bare alias, with no listed native tool.
+The actual relay server offers MCP 2025-06-18 and exposes tools/list only after its initialization
+lifecycle; this establishes the exercised enumeration's interoperability with that implementation.
+No complete MCP conformance suite, client tool round trip, inherited-MCP exclusion or live policy
+clearance is inferred. The two notifications are not evidence that two relay processes started.
+
+A separately built, standard-library-only observation wrapper now records its own PID and group
+before exec of the adjacent actual relay binary. It forwards descriptors/arguments unchanged and
+records no MCP data. The private record is limited to 32 entries/1 KiB, refuses symlinks and uses
+a nonblocking exclusive append lock. The independent version control verifies that exec retains
+the owned PID/group and that ordinary runner cleanup removes it. No global process table is searched.
+
+The installed wrapper observation records one relay process whose group differs from the ACP
+group. Normal ACP Close still leaves that relay PID gone, with no pending relay work and its private
+config removed. The same-group assertion fails. This disproves the current test's assumption that
+the ACP group's signal/reap path directly covers this child; it is not an observed orphan or proof
+that ordinary shutdown fails. The uninstrumented inventory successes do not close this ownership gap.
+
+Before enabling live startup, the relay lifecycle needs explicit evidence and ownership for its
+actual group: either a verified association with the ACP-owned group or separate authenticated child
+registration and bounded joining/termination. Forced ACP loss and cleanup during pending tool work
+must exercise the chosen mechanism. Tests may then validate that mechanism instead of requiring
+group equality by assumption. The current installed ownership probe remains failed; ordinary fixture
+success is not reported as real descendant-cleanup proof. No production gate, process policy,
+dependency or timeout is changed by these observations.

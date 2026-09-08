@@ -346,6 +346,44 @@ unset. Whole-repository go vet and git diff --check passed. No production code, 
 or launch-policy gate changed. Inherited MCP/hook exclusion, effective relay initialization, native
 execution attempts, live prompting and the other acceptance/release gates remain open.
 
+### Actual relay enumeration and remaining process ownership
+
+D40 extends the independent inventory peer with owned, missing, foreign-session and wrong-server
+MCP readiness. The observer APIs first failed to compile before implementation. A later regression
+demonstrated that a different server's unrelated description could incorrectly satisfy the intended
+name check; readiness now requires the exact serverName field. Thirteen fake protocol cases cover
+the complete observation workflow without a model prompt or client tool effect.
+
+TestKiroPinnedRelayInventory builds this repository's actual relay, creates a fresh alias and D27
+candidate, and leaves broker call admission closed. The initial installed run passed in 12.396s;
+the subsequent server-name-aware run passed in 8.698s (test 7.43s). Kiro 2.21.1/v2 returned exactly
+one fresh bare alias in a 254-byte response and two initialization notifications with matching
+serverName/sessionId string fields. No native tool was listed. Pending relay work remained zero,
+private relay configuration was removed and the ACP group was gone. These runs did not yet directly
+identify the relay process or test forced parent loss.
+
+The new independent PID/group wrapper preserves the actual relay's stdio and execs that same binary.
+Its ordinary process-identity control passed together with the inventory regressions in 5.306s.
+The instrumented installed run then **failed** the same-group ownership assertion in 9.274s
+(test 8.87s): one relay process was recorded in a group different from ACP. That PID was gone after
+normal ACP Close, so no surviving child was observed and the emergency PID kill path was not used.
+The fresh alias, matching server notifications, zero pending work and artifact cleanup still passed.
+
+This is a failed group-membership assumption and an unresolved production ownership/join path,
+not a failed tool-list exchange or evidence of a leaked process in the normal-close run. The
+installed ownership gate remains failed rather than treating the earlier uninstrumented success
+as whole-tree cleanup proof. The next lifecycle work must establish supervised cleanup for the
+separate relay group and test forced ACP loss and pending-tool cleanup. The diagnostic wrapper
+does not itself grant that supervision or open the production policy gate.
+
+No Kiro model prompt, external provider fallback, actual client tool, credential copying or
+login/logout was used. No production dependency or timeout changed. Inherited MCP/hooks, native
+execution attempts, full live client turns and the remaining R06/release requirements stay open.
+
+After the exact-server regression and record bounds were finalized, ordinary uncached interop/ACP
+race suites passed in 8.845s/7.975s, with installed opt-ins unset. Whole-repository go vet and
+git diff --check passed. Those results do not supersede the separately failed installed group gate.
+
 ### Request constraints and negative client recovery evidence
 
 D33 now inventories accepted request fields and the remaining R16 gaps. Known unmapped stop,
