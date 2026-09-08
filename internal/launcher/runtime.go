@@ -24,6 +24,7 @@ type OwnedBackend interface {
 
 type ClientRunConfig struct {
 	Backend  OwnedBackend
+	Models   *ModelState
 	Schema   *schemacheck.Pool
 	Client   ClientConfig
 	Server   gateway.ServerConfig
@@ -36,7 +37,7 @@ type ClientRunResult struct {
 	GatewayTime, ProfileTime, LaunchTime, CleanupTime time.Duration
 }
 
-// RunClient owns Backend, Schema and Server.Gateway.Usage from entry, including every failure path.
+// RunClient owns Backend, Models, Schema and Server.Gateway.Usage from entry, including every failure path.
 // Owners must honor their finite cancellation/Close contracts. Callers perform binary, login and
 // restricted-backend preflight before invoking this internal local-client stage. This function does
 // not grant execution authority or establish a Kiro policy or client version as verified.
@@ -71,6 +72,10 @@ func RunClient(ctx context.Context, cfg ClientRunConfig) (result ClientRunResult
 			jobs.Go(cfg.Server.Gateway.Usage.Close)
 		}
 		jobs.Wait()
+		// A delivered handler may still record its final model while server shutdown joins it.
+		if cfg.Models != nil {
+			cfg.Models.Close()
+		}
 		if attached != nil {
 			attached.Close()
 		}
@@ -98,6 +103,12 @@ func RunClient(ctx context.Context, cfg ClientRunConfig) (result ClientRunResult
 	if cfg.Backend == nil || cfg.Client.GatewayURL != "" || cfg.Client.ModelToken != "" || cfg.Server.Gateway.Backend != nil || cfg.Server.Gateway.Tokens != (gateway.Tokens{}) || cfg.Server.UnsafeNetwork {
 		return result, ErrConfig
 	}
+	if cfg.Models != nil {
+		if cfg.Client.Model != "" || !cfg.Models.ready() {
+			return result, ErrConfig
+		}
+		cfg.Client.Model = cfg.Models.Selection().Client
+	}
 	var err error
 	attached, err = childproc.NewAttached(cfg.Attached)
 	if err != nil {
@@ -108,6 +119,9 @@ func RunClient(ctx context.Context, cfg ClientRunConfig) (result ClientRunResult
 		return result, ErrRuntime
 	}
 	cfg.Server.Gateway.Tokens, cfg.Server.Gateway.Backend = tokens, cfg.Backend
+	if cfg.Models != nil {
+		cfg.Server.Gateway.Backend = &catalogBackend{inner: cfg.Backend, models: cfg.Models}
+	}
 	started := time.Now()
 	server, err = gateway.StartServer(owned, cfg.Server)
 	result.GatewayTime = time.Since(started)

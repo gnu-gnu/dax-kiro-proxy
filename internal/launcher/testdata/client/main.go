@@ -36,6 +36,30 @@ func main() {
 	mode := os.Getenv("TERM")
 	client := &http.Client{Timeout: 5 * time.Second, Transport: &http.Transport{Proxy: nil}}
 	defer client.CloseIdleConnections()
+	if mode == "catalog-text" {
+		req, err := http.NewRequest(http.MethodGet, endpoint+"/v1/models?limit=1000", nil)
+		if err != nil {
+			os.Exit(52)
+		}
+		req.Header.Set("x-api-key", token)
+		response, err := client.Do(req)
+		if err != nil {
+			os.Exit(53)
+		}
+		body, readErr := io.ReadAll(io.LimitReader(response.Body, 1<<20))
+		response.Body.Close()
+		var list struct{ Data []struct{ ID string } }
+		if readErr != nil || response.StatusCode != 200 || json.Unmarshal(body, &list) != nil {
+			os.Exit(54)
+		}
+		found := false
+		for _, entry := range list.Data {
+			found = found || entry.ID == os.Args[4]
+		}
+		if !found {
+			os.Exit(55)
+		}
+	}
 	r := map[string]any{"model": os.Args[4], "max_tokens": 64, "messages": []any{map[string]any{"role": "user", "content": "independent launcher request"}}}
 	if strings.HasPrefix(mode, "tools-") {
 		r["tools"] = []any{map[string]any{"name": "client_action", "input_schema": map[string]any{"type": "object", "properties": map[string]any{"n": map[string]string{"type": "integer"}}, "required": []string{"n"}}}}

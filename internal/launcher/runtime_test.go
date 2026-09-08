@@ -21,6 +21,7 @@ import (
 
 	"dax-kiro-proxy/internal/acp"
 	"dax-kiro-proxy/internal/anthropic"
+	"dax-kiro-proxy/internal/catalog"
 	"dax-kiro-proxy/internal/childproc"
 	"dax-kiro-proxy/internal/gateway"
 	"dax-kiro-proxy/internal/inference"
@@ -65,8 +66,11 @@ type observedOwner struct {
 	*session.Manager
 	closes        atomic.Int32
 	starts        atomic.Int32
+	lists         atomic.Int32
 	profileParent string
 	profileStayed atomic.Bool
+	models        *launcher.ModelState
+	modelsStayed  atomic.Bool
 	closeError    error
 }
 
@@ -75,9 +79,18 @@ func (b *observedOwner) Start(ctx context.Context, request *anthropic.Request) (
 	return b.Manager.Start(ctx, request)
 }
 
+func (b *observedOwner) Models(ctx context.Context) ([]inference.Model, error) {
+	b.lists.Add(1)
+	return b.Manager.Models(ctx)
+}
+
 func (b *observedOwner) Close() error {
 	b.closes.Add(1)
 	err := b.Manager.Close()
+	if b.models != nil {
+		_, modelErr := b.models.Models(context.Background())
+		b.modelsStayed.Store(modelErr == nil)
+	}
 	if b.starts.Load() > 0 {
 		entries, readErr := os.ReadDir(b.profileParent)
 		if readErr == nil {
@@ -192,9 +205,16 @@ func assertRuntimeGone(t *testing.T, cfg launcher.ClientRunConfig, owner *observ
 }
 
 func TestClientRuntimeJoinsNormalAndSuspendedToolSessions(t *testing.T) {
-	for _, mode := range []string{"text", "tools-complete", "tools-exit", "tools-hold"} {
+	for _, mode := range []string{"catalog-text", "tools-complete", "tools-exit", "tools-hold"} {
 		t.Run(mode, func(t *testing.T) {
 			cfg, owner, output, _ := runtimeConfig(t, mode)
+			modelCfg, data := runtimeModelConfig(t, cfg.Client.RuntimeParent)
+			cfg.Models, _ = launcher.PrepareModels(t.Context(), modelCfg)
+			if cfg.Models == nil {
+				t.Fatal("cannot prepare owned model catalog")
+			}
+			t.Cleanup(cfg.Models.Close)
+			owner.models, cfg.Client.Model = cfg.Models, ""
 			before, _ := os.ReadFile(cfg.Client.UserSettings)
 			ctx, cancel := context.WithCancel(t.Context())
 			defer cancel()
@@ -229,7 +249,46 @@ func TestClientRuntimeJoinsNormalAndSuspendedToolSessions(t *testing.T) {
 				t.Fatal("launcher shutdown did not join finite cleanup")
 			}
 			assertRuntimeGone(t, cfg, owner, seen, before)
+			if _, err := cfg.Models.Models(t.Context()); err == nil || !owner.modelsStayed.Load() || owner.lists.Load() != 0 {
+				t.Fatal("runtime did not serve and close its prepared catalog after backend cleanup")
+			}
+			last, found, err := catalog.LoadLastModel(modelCfg.Cache.Directory, modelCfg.Cache.Identity, data)
+			wantSaved := mode == "catalog-text" || mode == "tools-complete"
+			if err != nil || found != wantSaved || found && last != "fixture-backend" || cfg.Models.SaveFailed() {
+				t.Fatal("runtime did not persist exactly the final delivered model")
+			}
 		})
+	}
+}
+
+func runtimeModelConfig(t *testing.T, parent string) (launcher.ModelConfig, *catalog.Catalog) {
+	t.Helper()
+	data, err := catalog.New([]catalog.Backend{{ID: "fixture-backend"}, {ID: "another-independent-model"}}, "fixture-backend")
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg := launcher.ModelConfig{Cache: catalog.CacheConfig{Directory: filepath.Join(parent, "model-cache"), Identity: catalog.Identity{Executable: runtimeACP, Version: "independent-fixture", ProfileDigest: strings.Repeat("4", 64), AgentDigest: strings.Repeat("5", 64), CapabilitiesDigest: strings.Repeat("6", 64)}}, Interactive: true, Discover: func(context.Context) (*catalog.Catalog, error) { return data, nil }}
+	return cfg, data
+}
+
+func TestClientRuntimeClosesPreparedModelsOnConfigurationFailure(t *testing.T) {
+	cfg, owner, _, _ := runtimeConfig(t, "text")
+	modelCfg, _ := runtimeModelConfig(t, cfg.Client.RuntimeParent)
+	var err error
+	cfg.Models, err = launcher.PrepareModels(t.Context(), modelCfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(cfg.Models.Close)
+	// A caller-supplied model conflicts with the prepared model authority.
+	if _, err := launcher.RunClient(t.Context(), cfg); !errors.Is(err, launcher.ErrConfig) {
+		t.Fatal("conflicting model authorities were accepted")
+	}
+	if owner.closes.Load() != 1 || owner.starts.Load() != 0 {
+		t.Fatal("invalid model configuration did not close its unstarted backend")
+	}
+	if _, err := cfg.Models.Models(t.Context()); err == nil {
+		t.Fatal("failed startup left prepared model discovery open")
 	}
 }
 

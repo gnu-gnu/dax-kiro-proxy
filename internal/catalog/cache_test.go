@@ -168,6 +168,36 @@ func TestLastInteractiveModelIsSeparateAndStrictlyValidated(t *testing.T) {
 	}
 }
 
+func TestLastModelPreferenceSurvivesRemovalOfLaunchOverrides(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "catalog")
+	current := modelCatalog(t, "model.a")
+	initial := identity()
+	initial.InitialModel, initial.InitialEffort = "model.a", "high"
+	if err := catalog.SaveLastModel(dir, initial, "model.a", true); err != nil {
+		t.Fatal(err)
+	}
+	if got, ok, err := catalog.LoadLastModel(dir, identity(), current); err != nil || !ok || got != "model.a" {
+		t.Fatal("removing one-launch overrides discarded the last interactive preference")
+	}
+	firstDigest, _ := initial.Digest()
+	secondDigest, _ := identity().Digest()
+	if firstDigest == secondDigest {
+		t.Fatal("catalog discovery identity must still include launch overrides")
+	}
+	changed := identity()
+	changed.AgentDigest = strings.Repeat("d", 64)
+	if _, ok, err := catalog.LoadLastModel(dir, changed, current); err != nil || ok {
+		t.Fatal("last model preference crossed agent policy identity")
+	}
+	legacy, _ := json.Marshal(map[string]any{"version": 1, "identity": secondDigest, "model": "model.a"})
+	if os.WriteFile(filepath.Join(dir, "last-model.json"), legacy, 0600) != nil {
+		t.Fatal("cannot write owned legacy fixture")
+	}
+	if _, ok, err := catalog.LoadLastModel(dir, identity(), current); err != nil || ok {
+		t.Fatal("old preference identity was silently reinterpreted")
+	}
+}
+
 func TestFailedCatalogRefreshRetainsLastGoodDataAndBacksOff(t *testing.T) {
 	var seconds atomic.Int64
 	seconds.Store(1_780_000_000)

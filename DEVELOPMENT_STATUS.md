@@ -1,6 +1,6 @@
 # Development status and acceptance evidence
 
-Last updated: 2026-09-08. Overall objective: complete the standalone Go Kiro ACP proxy and launcher
+Last updated: 2026-09-09. Overall objective: complete the standalone Go Kiro ACP proxy and launcher
 contract described in PRODUCT_SPEC.md, including the full acceptance/release gates. This document
 does not redefine completion around an intermediate phase.
 
@@ -68,6 +68,36 @@ only known field/kind names, counts and lengths. Production retry policy remains
 The current max_tokens bound is validation only, and reasoning/context-management/structured-output
 constraints still have no complete mapping. Existing title-isolation tests establish separation, not
 JSON Schema output enforcement. R16, live client compatibility and release readiness remain open.
+
+### Prepared catalog and last completed model
+
+D34 connects the existing catalog cache and last-model policy to the internal launcher runtime.
+Startup selects explicit configuration, then a compatible interactive preference, then Kiro's current
+catalog model, using exact aliases. Model listing uses the prepared cache instead of starting ACP.
+Runtime ownership joins HTTP/client/backend work before closing catalog refresh and removing the
+private client profile. The final executable's verified Kiro preflight/identity wiring remains open.
+
+A new regression reproduced loss of the last-used preference after one-launch model/effort options
+were removed. Preference schema 2 now excludes those options while retaining all other identity
+boundaries; catalog identity still includes them. Old preferences are invalidated, not migrated.
+The new launcher tests initially failed on absent model-preparation APIs. The focused race suites
+then passed for catalog (2.164s) and launcher (4.498s).
+
+The gateway wrapper saves the actual reported model only after final foreground delivery. Title and
+agent work, tool handoff alone, cancellation, early Finish, authentication fallback and noninteractive
+launches do not save. Completed foreground tool results can save. Unadvertised actual models and
+local write failures retain a safe Boolean diagnostic rather than guessing or failing delivered text.
+
+The independent runtime client also checks that its local model-list response contains the startup
+alias. Full runtime cases exercise that cached list, final text/tool saves, exit/cancellation during
+a suspended tool call, model-owner startup failure cleanup and source-settings preservation. The
+focused runtime race suite passed in 5.091s. It does not use installed Kiro, model inference or the
+actual Claude model-picker UI. Stable real profile/agent/capability identity remains a preflight gate.
+
+The complete uncached `go test -race -p 2 -count=1 ./...` run then passed: ACP 5.017s, process pool
+2.827s, Anthropic 8.144s, catalog 1.394s, child process 5.862s, gateway 3.004s, launcher 5.154s,
+schema worker 3.420s and session 9.512s; all other packages passed. Installed-client observations
+remain explicitly opt-in. `go vet ./...` and `git diff --check` also passed. No dependency was added.
 
 ## Phase 1 acceptance mapping
 

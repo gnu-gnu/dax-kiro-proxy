@@ -227,6 +227,16 @@ type lastModel struct {
 	Model    string `json:"model"`
 }
 
+// Preferences survive one-launch overrides, while catalog discovery retains the full identity.
+// Version 2 invalidates earlier records instead of reinterpreting their narrower identity scope.
+func preferenceIdentity(identity Identity) (string, error) {
+	if _, err := identity.Digest(); err != nil {
+		return "", err
+	}
+	identity.InitialModel, identity.InitialEffort = "", ""
+	return identity.Digest()
+}
+
 func SaveLastModel(directory string, identity Identity, backend string, interactive bool) error {
 	if !interactive {
 		return nil
@@ -234,7 +244,7 @@ func SaveLastModel(directory string, identity Identity, backend string, interact
 	if !validID(backend) {
 		return ErrModel
 	}
-	hash, err := identity.Digest()
+	hash, err := preferenceIdentity(identity)
 	if err != nil {
 		return err
 	}
@@ -242,7 +252,7 @@ func SaveLastModel(directory string, identity Identity, backend string, interact
 	if err != nil {
 		return err
 	}
-	data, err := json.Marshal(lastModel{1, hash, backend})
+	data, err := json.Marshal(lastModel{2, hash, backend})
 	if err != nil {
 		return ErrCatalog
 	}
@@ -252,7 +262,7 @@ func LoadLastModel(directory string, identity Identity, current *Catalog) (strin
 	if current == nil {
 		return "", false, ErrCatalog
 	}
-	hash, err := identity.Digest()
+	hash, err := preferenceIdentity(identity)
 	if err != nil {
 		return "", false, err
 	}
@@ -268,7 +278,7 @@ func LoadLastModel(directory string, identity Identity, current *Catalog) (strin
 		return "", false, err
 	}
 	fields, err := ndjson.Object(data)
-	if err != nil || string(fields["version"]) != "1" {
+	if err != nil || string(fields["version"]) != "2" {
 		return "", false, nil
 	}
 	var record lastModel

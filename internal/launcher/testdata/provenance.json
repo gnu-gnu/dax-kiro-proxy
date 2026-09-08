@@ -1,11 +1,13 @@
 {
   "created": "2026-09-08",
+  "updated": "2026-09-09",
   "scope": "Independent local HTTP client for launcher lifetime tests; no installed-client captures or external inference",
   "repository_sources": ["PRODUCT_SPEC.md", "PROTOCOL_SPEC.md", "ACCEPTANCE_SPEC.md", "IMPLEMENTATION_DECISIONS.md"],
   "fixtures": ["client/main.go"],
   "constraints": [
     "Only Go standard-library imports; no proxy implementation imports",
     "The supplied gateway must use HTTP with a literal loopback IP",
+    "The catalog-text mode checks that local model discovery includes its explicit startup alias",
     "All prompts, tools, arguments, results and settings are independently chosen synthetic values",
     "The fixture executes no client tool or hook and modifies no user or project file",
     "Observed stdout contains only its owned process ID, local address, runtime path and fixed state",

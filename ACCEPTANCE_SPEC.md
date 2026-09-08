@@ -64,6 +64,12 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
 - Reverse mapping rejects an ID absent from the current catalog.
 - Configured initial model wins the first turn; later client model selection calls set-model while idle.
 - Last interactive model is restored without changing the client’s global default.
+- Removing one-launch model/effort overrides preserves an otherwise compatible last-model preference,
+  while changing profile/agent/version/capability identity still invalidates it. Unknown explicit
+  models never fall back. Title/agent/canceled/auth-fallback/incomplete-tool work cannot overwrite
+  the preference; a delivered final foreground turn records its actual model through the catalog.
+- Prepared cached model discovery avoids an ACP session. Runtime shutdown preserves the model owner
+  through response/backend cleanup, then cancels and joins refresh, including startup failure.
 - Model switch during an active/pending-tool turn is rejected.
 - Auto model skips effort.
 - Known unsupported effort is skipped; absent `/effort` is unavailable; unknown capability probes at

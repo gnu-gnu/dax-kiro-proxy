@@ -915,3 +915,53 @@ recovery acceptance gate. Each case has an empty owned HOME/project, disabled cl
 process deadline and bounded output, and a local synthetic HTTP responder. It records only fixed
 field/kind enums, counts, exit status and output length. No client source, Kiro prompt, live inference,
 real tool effect or private user profile is used.
+
+## D34: prepared catalog and completed-model preference (review R11/R12/R14)
+
+The internal launcher prepares its catalog before opening the client gateway. The existing cache
+retains its full identity and 24-hour TTL, bounded/coalesced asynchronous refresh, failure backoff
+and last-good behavior. Startup selects an exact backend ID in this order: an explicit initial model,
+a compatible last-used preference for an interactive launch, then the catalog's advertised current
+model. An unavailable explicit choice fails; it is never replaced by a saved or approximate model.
+An absent/removed saved choice can use the current model. A catalog with no selectable current model
+requires an explicit valid choice or saved preference. Selection returns the exact client alias,
+source, initial stale flag and measured catalog-loading duration, without modifying client defaults.
+
+Last-model record schema 2 keeps executable/version, profile, agent and capability identity but omits
+the one-launch model/effort overrides from the preference digest. Those overrides still participate in
+catalog discovery identity. This corrects the reproduced case where removing a previous launch's
+explicit options made its last-used preference unreachable. Version 1 preferences are ignored rather
+than migrated. Existing private atomic file limits and exact current-catalog membership checks apply.
+No prompt, client conversation identifier, tool value or credential enters the preference record.
+
+The optional prepared-model owner is transferred to RunClient on entry, even on invalid startup.
+Its selected alias supplies the client profile; a second caller-supplied profile model rejects as
+conflicting authority. The gateway's model-list method uses this prepared cache, without creating an
+ACP discovery session. Inference still goes to the configured backend, which must check actual ACP
+model support before prompting. A stale advertised alias cannot authorize fallback or override a
+backend rejection. Callers still construct the session model/effort configuration from the explicit
+launch contract; the model cache does not mutate an existing manager's configuration.
+
+A response wrapper saves only after a final end_turn/max_tokens/refusal event and successful response
+delivery via Finish. It resolves the actual backend-reported client model through the compatible
+catalog. It does not assume the original requested model was used. Tool handoff alone, cancellation,
+early Finish, authentication fallback, title generation, identified child/parent-agent work and
+noninteractive launches do not update the preference. A completed foreground tool continuation can
+update it. Repeated Finish/Cancel has one winner. No new discovery occurs on the save path. A missing
+actual catalog model or local write failure sets a sticky Boolean diagnostic and does not invalidate
+an already-delivered response. The failure's arbitrary text is not retained or logged.
+
+Runtime shutdown joins HTTP handlers, the client and backend before closing the prepared catalog;
+those handlers can still record a delivered final response during shutdown. Catalog Close then
+cancels and joins its bounded refresh before private client profile removal. Repeated closure joins
+the same cleanup. The internal model owner uses caller-provided stable policy/profile/capability
+digests, not D27's volatile per-session candidate file digest. Constructing the real stable Kiro
+identity remains part of verified launcher preflight; this API does not confer execution authority.
+
+Independent tests cover selection precedence, exact aliases, removed preferences, unknown explicit
+choices, the one-launch identity regression, title/agent/tool/cancellation/error delivery cases,
+unadvertised actual models, atomic-write failure, stale refresh coalescing and shutdown. The independent
+HTTP client now optionally requests the cached model list and verifies its selected alias before its
+synthetic message. Full runtime tests retain model state through backend closure, save final text/tool
+completion, discard abandoned tool handoffs, close the cache on startup failure and preserve source
+settings. No installed Kiro/model request or client selector UI is exercised by this composition.

@@ -81,6 +81,9 @@ discovery.
 
 The last-used model record is separate, atomic, owner-only, and applied only to interactive launches.
 It never modifies the client’s global setting.
+Decision D34 excludes one-launch model/effort overrides from preference identity while preserving
+them in catalog identity. It records the actual model only after final foreground response delivery;
+title/agent work, canceled turns and incomplete tool handoffs do not replace the preference.
 
 Session persistence uses a separate cache. Version every record schema and invalidate rather than
 migrate when correctness cannot be proven.
