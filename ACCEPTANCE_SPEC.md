@@ -101,6 +101,9 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
   rejects.
 - Process compatibility prevents sharing when agent, system policy, tool registry, native tools, or
   launch semantics differ.
+- A prepared launch reserves capacity before creating its policy artifacts and serves only one
+  lifetime session. Compatible turns retain that session; a changed tool policy replaces the owned
+  launch without interrupting an unrelated binding. Partial preparation failure revokes its relay.
 - A process crash invalidates every attached session, fails all waiters, and never replays pending tools.
 - Rejection of a local invalid model or unsupported prompt does not cancel a healthy active sibling.
 
@@ -121,6 +124,9 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
   terminal ownership/settings and existing signal handling are restored after success, failure,
   cancellation and failed exec without closing the caller's descriptors.
 - Pool limits and idle/session TTLs hold under concurrency and do not evict active or pending-tool state.
+- Prepared policy cleanup occurs once after ACP/router shutdown and before releasing capacity.
+  Repeated idle release joins the same cleanup result. A retired cleanup failure remains visible to
+  pool shutdown and prevents admission of further launch artifacts.
 
 ## H. Usage and diagnostics
 

@@ -14,19 +14,34 @@ import (
 	"dax-kiro-proxy/internal/ndjson"
 )
 
+var ErrCleanup = errors.New("ACP pool cleanup failed")
+
 type Config struct {
 	Process                                                           acp.Config
 	MaxProcesses, SessionsPerProcess, MaxIdle, EventQueue, EventBytes int
 	IdleTTL, SetupTimeout                                             time.Duration
 }
 type Stats struct{ Processes, Sessions, Busy, Idle int }
+
+// PreparedProcess transfers one process's launch artifacts to the pool. Preparation must honor its
+// setup context, and Cleanup must finish within its own finite bound without relying on that context.
+// The pool calls Cleanup once even when preparation or process startup fails, after any child group
+// and router have joined. A failed preparation must return its partial ownership along with the error.
+type PreparedProcess struct {
+	Config  acp.Config
+	Cleanup func() error
+}
+
+type PrepareProcess func(context.Context) (PreparedProcess, error)
+
 type Pool struct {
-	cfg       Config
-	mu        sync.Mutex
-	groups    map[*group]struct{}
-	closed    bool
-	closeOnce sync.Once
-	closeErr  error
+	cfg        Config
+	mu         sync.Mutex
+	groups     map[*group]struct{}
+	closed     bool
+	closeOnce  sync.Once
+	closeErr   error
+	cleanupErr error
 }
 type group struct {
 	pool                  *Pool
@@ -43,6 +58,8 @@ type group struct {
 	creating              *Lease
 	createGate            chan struct{}
 	barriers              chan chan struct{}
+	dedicated             bool
+	cleanup               func() error
 }
 type Lease struct {
 	g             *group
@@ -56,8 +73,8 @@ type Lease struct {
 	ended         bool
 }
 
-// The pool owns one immutable launch configuration. A session may not silently substitute another
-// executable, environment, working directory, classifier or transport limit through a borrowed pool.
+// Ordinary acquisitions use the pool's immutable configuration. Explicit prepared acquisitions
+// reserve a separate process and never share either an ordinary or another prepared launch.
 func (p *Pool) MatchesProcess(cfg acp.Config) bool { return reflect.DeepEqual(p.cfg.Process, cfg) }
 
 func New(cfg Config) (*Pool, error) {
@@ -87,9 +104,19 @@ func New(cfg Config) (*Pool, error) {
 	return &Pool{cfg: cfg, groups: make(map[*group]struct{})}, nil
 }
 func (p *Pool) Acquire(ctx context.Context, scope string) (*Lease, error) {
-	return p.acquire(ctx, scope, true)
+	return p.acquire(ctx, scope, true, nil)
 }
-func (p *Pool) acquire(ctx context.Context, scope string, recycle bool) (*Lease, error) {
+
+// AcquirePrepared reserves capacity before calling prepare. Its first session is its only lifetime
+// allocation, regardless of SessionsPerProcess; keeping that session idle still permits turn reuse.
+func (p *Pool) AcquirePrepared(ctx context.Context, scope string, prepare PrepareProcess) (*Lease, error) {
+	if prepare == nil {
+		return nil, acp.ErrParameters
+	}
+	return p.acquire(ctx, scope, true, prepare)
+}
+
+func (p *Pool) acquire(ctx context.Context, scope string, recycle bool, prepare PrepareProcess) (*Lease, error) {
 	if ctx.Err() != nil {
 		return nil, ctx.Err()
 	}
@@ -98,13 +125,18 @@ func (p *Pool) acquire(ctx context.Context, scope string, recycle bool) (*Lease,
 	}
 	p.mu.Lock()
 	p.pruneLocked()
+	if p.cleanupErr != nil {
+		err := p.cleanupErr
+		p.mu.Unlock()
+		return nil, err
+	}
 	if p.closed {
 		p.mu.Unlock()
 		return nil, acp.ErrClosed
 	}
 	var g *group
 	for candidate := range p.groups {
-		if candidate.scope == scope && candidate.client != nil && candidate.err == nil && candidate.client.Err() == nil && candidate.allocated < p.cfg.SessionsPerProcess {
+		if prepare == nil && !candidate.dedicated && candidate.scope == scope && candidate.client != nil && candidate.err == nil && candidate.client.Err() == nil && candidate.allocated < p.cfg.SessionsPerProcess {
 			g = candidate
 			break
 		}
@@ -124,7 +156,7 @@ func (p *Pool) acquire(ctx context.Context, scope string, recycle bool) (*Lease,
 				p.mu.Unlock()
 				select {
 				case <-oldest.closed:
-					return p.acquire(ctx, scope, false)
+					return p.acquire(ctx, scope, false, prepare)
 				case <-ctx.Done():
 					return nil, ctx.Err()
 				}
@@ -134,13 +166,23 @@ func (p *Pool) acquire(ctx context.Context, scope string, recycle bool) (*Lease,
 		}
 		setup, cancel := context.WithTimeout(ctx, p.cfg.SetupTimeout)
 		g = &group{pool: p, scope: scope, ready: make(chan struct{}), failed: make(chan struct{}), closed: make(chan struct{}), routerDone: make(chan struct{}), cancel: cancel, leases: make(map[*Lease]struct{}), routes: make(map[string]*Lease), createGate: make(chan struct{}, 1), barriers: make(chan chan struct{}, p.cfg.SessionsPerProcess)}
+		g.dedicated = prepare != nil
 		p.groups[g] = struct{}{}
 		l := g.newLeaseLocked()
 		p.mu.Unlock()
-		client, err := acp.Start(setup, p.cfg.Process)
+		launch := PreparedProcess{Config: p.cfg.Process}
+		err := setup.Err()
+		if err == nil && prepare != nil {
+			launch, err = prepare(setup)
+		}
+		var client *acp.Client
+		if err == nil {
+			client, err = acp.Start(setup, launch.Config)
+		}
 		cancel()
 		p.mu.Lock()
 		g.client = client
+		g.cleanup = launch.Cleanup
 		close(g.ready)
 		if err != nil {
 			g.retireLocked(err)
@@ -154,7 +196,7 @@ func (p *Pool) acquire(ctx context.Context, scope string, recycle bool) (*Lease,
 		p.mu.Unlock()
 		if retired != nil {
 			<-g.closed
-			return nil, retired
+			return nil, errors.Join(retired, g.closeErr)
 		}
 		return l, nil
 	}
@@ -236,8 +278,16 @@ func (g *group) retireLocked(reason error) {
 			g.closeErr = g.client.Close()
 		}
 		<-g.routerDone
+		if g.cleanup != nil {
+			g.closeErr = errors.Join(g.closeErr, g.cleanup())
+		}
 		p := g.pool
 		p.mu.Lock()
+		// Retain only the first failure and stop further admission. Removing a retired group cannot
+		// erase evidence of its unfinished cleanup or allow repeated failed artifact accumulation.
+		if g.closeErr != nil && p.cleanupErr == nil {
+			p.cleanupErr = errors.Join(ErrCleanup, g.closeErr)
+		}
 		delete(p.groups, g)
 		p.mu.Unlock()
 		close(g.closed)
@@ -260,7 +310,12 @@ func (l *Lease) ReleaseIdle() error {
 	p := g.pool
 	p.mu.Lock()
 	if l.err != nil {
+		retired := g.err != nil
 		p.mu.Unlock()
+		if retired {
+			<-g.closed
+			return g.closeErr
+		}
 		return nil
 	}
 	if !l.idle && g.err == nil {
@@ -276,13 +331,14 @@ func (l *Lease) ReleaseIdle() error {
 	if l.id != "" {
 		g.routes[l.id] = nil
 	}
-	if len(g.leases) == 0 && g.allocated >= p.cfg.SessionsPerProcess {
+	if len(g.leases) == 0 && (g.dedicated || g.allocated >= p.cfg.SessionsPerProcess) {
 		g.retireLocked(acp.ErrClosed)
 	}
 	retired := g.err != nil
 	p.mu.Unlock()
 	if retired {
 		<-g.closed
+		return g.closeErr
 	}
 	return nil
 }
@@ -359,8 +415,10 @@ func (p *Pool) Close() error {
 		p.mu.Unlock()
 		for _, g := range groups {
 			<-g.closed
-			p.closeErr = errors.Join(p.closeErr, g.closeErr)
 		}
+		p.mu.Lock()
+		p.closeErr = p.cleanupErr
+		p.mu.Unlock()
 	})
 	return p.closeErr
 }

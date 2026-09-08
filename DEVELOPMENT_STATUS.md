@@ -167,6 +167,32 @@ longer load/fuzz and clean-host release gates remain unverified. No new external
 
 ## Remaining work
 
+### Prepared process and session lifetimes
+
+The new pool/session tests first failed on absent APIs. D31 adds capacity admission before launch
+preparation, one lifetime session per prepared process, and cleanup of partial or retired policy
+artifacts after ACP/router shutdown. An additional failing regression reproduced repeated idle
+release returning before cleanup; all callers now join the same result. The first cleanup failure
+survives removal of its group, is returned by pool shutdown and stops further admission.
+
+`go test -race -p 2 -count=1 ./internal/acppool ./internal/session` passed in 2.845s and 9.570s.
+Independent fixtures cover separate policy/relay paths, unchanged public session cwd, exact aliases,
+compatible turn reuse, tool_choice none replacing a prior policy, unaffected sibling ownership, and
+the same ACP prompt across successful HTTP tool handoff. Both final delivery and cancellation join
+the prepared configuration and relay cleanup. Partial preparation/start failure, pool cancellation,
+cleanup failure and eight concurrent release/close callers are covered. `go vet ./...` passed.
+
+Prepared session persistence explicitly rejects until profile/relay restoration is independently
+verified. The generic shared-pool/session-load tests remain applicable. No Kiro execution permission,
+live preparer or unverified-start bypass is added; D27's candidate and R06 remain unverified. The
+synthetic launch manifests are independent controls, not Kiro configuration observations. No new
+dependency, installed-client invocation or model request was needed for this change.
+
+The complete uncached `go test -race -p 2 -count=1 ./...` passed after the final cancellation check:
+ACP 5.030s, pool 3.011s, Anthropic 8.224s, childproc 5.989s, gateway 2.977s, launcher 1.604s and
+session 9.064s; all remaining packages passed. Installed-client/Kiro tests remain opt-in and were
+skipped. `git diff --check` passed.
+
 ### Restricted-agent candidate preparation
 
 The new candidate-profile test first failed on the missing builder, then passed for empty/two-tool

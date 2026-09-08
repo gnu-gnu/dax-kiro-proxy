@@ -13,11 +13,27 @@ import (
 
 // This independently authored process exercises public multi-session routing without external I/O.
 func poolFixture(mode string) {
+	var launch struct {
+		Aliases     []string `json:"aliases"`
+		RelayConfig string   `json:"relayConfig"`
+	}
+	if mode == "pool-prepared" {
+		if len(os.Args) != 3 {
+			os.Exit(67)
+		}
+		raw, err := os.ReadFile(os.Args[2])
+		if err != nil || json.Unmarshal(raw, &launch) != nil || launch.Aliases == nil || launch.RelayConfig == "" {
+			os.Exit(68)
+		}
+	}
+	launchDirectory, _ := os.Getwd()
 	input := bufio.NewScanner(os.Stdin)
 	input.Buffer(make([]byte, 4096), 9<<20)
 	var mu sync.Mutex
 	counts := map[string]int{}
 	loaded := map[string]bool{}
+	sessionDirectories := map[string]string{}
+	mcpCounts := map[string]int{}
 	next := 0
 	emit := func(id, text string) {
 		write(map[string]any{"jsonrpc": "2.0", "method": "session/update", "params": map[string]any{"sessionId": id, "update": map[string]any{"sessionUpdate": "agent_message_chunk", "content": map[string]string{"type": "text", "text": text}}}})
@@ -40,6 +56,9 @@ func poolFixture(mode string) {
 				os.Exit(61)
 			}
 			next++
+			if mode == "pool-prepared" && (next != 1 || len(p.MCP) != 0) {
+				os.Exit(69)
+			}
 			id := fmt.Sprintf("pool-session-%d", next)
 			if q.Method == "session/load" {
 				id = p.Session
@@ -51,6 +70,8 @@ func poolFixture(mode string) {
 			mu.Lock()
 			counts[id] = 0
 			loaded[id] = q.Method == "session/load"
+			sessionDirectories[id] = p.CWD
+			mcpCounts[id] = len(p.MCP)
 			mu.Unlock()
 			if q.Method == "session/load" {
 				emit(id, "synthetic replay that must be discarded")
@@ -72,7 +93,11 @@ func poolFixture(mode string) {
 			}
 			reply(q.ID, map[string]any{"sessionId": id, "models": map[string]any{"currentModelId": "fixture-backend", "availableModels": []any{map[string]string{"modelId": "fixture-backend", "name": "Fixture"}}}})
 		case "session/prompt":
-			if len(os.Args) > 2 {
+			if mode == "pool-prepared" {
+				if _, err := os.Stat(os.Args[2]); err != nil {
+					os.Exit(70)
+				}
+			} else if len(os.Args) > 2 {
 				entries, err := os.ReadDir(os.Args[2])
 				if err != nil {
 					os.Exit(65)
@@ -95,6 +120,7 @@ func poolFixture(mode string) {
 			mu.Lock()
 			count, ok := counts[p.Session]
 			wasLoaded := loaded[p.Session]
+			sessionDirectory, mcpCount := sessionDirectories[p.Session], mcpCounts[p.Session]
 			count++
 			counts[p.Session] = count
 			mu.Unlock()
@@ -117,7 +143,12 @@ func poolFixture(mode string) {
 						time.Sleep(time.Millisecond)
 					}
 				} else {
-					body, _ := json.Marshal(map[string]any{"pid": os.Getpid(), "session": p.Session, "promptCount": count, "prompt": p.Prompt, "loaded": wasLoaded})
+					observation := map[string]any{"pid": os.Getpid(), "session": p.Session, "promptCount": count, "prompt": p.Prompt, "loaded": wasLoaded}
+					if mode == "pool-prepared" {
+						observation["launchDirectory"], observation["sessionDirectory"] = launchDirectory, sessionDirectory
+						observation["mcpCount"], observation["launchAliases"], observation["relayConfig"], observation["launchMarker"] = mcpCount, launch.Aliases, launch.RelayConfig, os.Args[2]
+					}
+					body, _ := json.Marshal(observation)
 					emit(p.Session, string(body))
 				}
 				reply(id, map[string]string{"stopReason": "end_turn"})

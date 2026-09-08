@@ -57,6 +57,10 @@ func NewManager(cfg ManagerConfig) (*Manager, error) {
 	if cfg.Session.Metrics != nil || cfg.Session.MetricsScope != "" {
 		return nil, acp.ErrParameters
 	}
+	// Restoring persisted launch-bound relay/profile data requires separate interoperability proof.
+	if cfg.Session.PrepareLaunch != nil && cfg.Persistence != nil {
+		return nil, acp.ErrParameters
+	}
 	if cfg.ProfileScope == "" || len(cfg.ProfileScope) > 256 || len(cfg.Instance) > 128 {
 		return nil, acp.ErrParameters
 	}
@@ -82,11 +86,11 @@ func NewManager(cfg ManagerConfig) (*Manager, error) {
 		}
 		cfg.Instance = hex.EncodeToString(entropy[:])
 	}
-	validated, err := New(cfg.Session)
+	validated, err := normalizeConfig(cfg.Session)
 	if err != nil {
 		return nil, err
 	}
-	cfg.Session = validated.cfg
+	cfg.Session = validated
 	ctx, cancel := context.WithCancel(context.Background())
 	m := &Manager{cfg: cfg, hasher: history.New(cfg.Session.HistoryKey), entries: make(map[string]*binding), ctx: ctx, cancel: cancel, pool: cfg.Session.Pool}
 	if m.pool == nil {

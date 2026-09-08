@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"slices"
 
 	"dax-kiro-proxy/internal/acp"
 	"dax-kiro-proxy/internal/acppool"
@@ -103,6 +104,7 @@ func (d *Driver) prepare(ctx context.Context, reuse bool, registry *toolregistry
 		}
 		var err error
 		mcp := []any{}
+		relayConfig := ""
 		if registry != nil {
 			broker, err := relay.NewBroker(registry, d.cfg.RelayLimits)
 			if err != nil {
@@ -117,12 +119,28 @@ func (d *Driver) prepare(ctx context.Context, reuse bool, registry *toolregistry
 			d.broker = broker
 			d.socket = socket
 			d.mu.Unlock()
+			relayConfig = socket.ConfigPath()
 			mcp = append(mcp, map[string]any{"name": "dax_session", "command": d.cfg.RelayExecutable, "args": []string{"relay", "--config", socket.ConfigPath()}, "env": []any{}})
 		}
 		if d.cfg.Pool != nil {
 			scope := sha256.Sum256(append([]byte(d.cfg.PoolScope+"\x00"), processStamp[:]...))
 			var lease *acppool.Lease
-			lease, err = d.cfg.Pool.Acquire(setup, hex.EncodeToString(scope[:]))
+			if d.cfg.PrepareLaunch != nil {
+				lease, err = d.cfg.Pool.AcquirePrepared(setup, hex.EncodeToString(scope[:]), func(ctx context.Context) (acppool.PreparedProcess, error) {
+					resources, err := d.cfg.PrepareLaunch(ctx, LaunchInput{Registry: registry, RelayExecutable: d.cfg.RelayExecutable, RelayConfig: relayConfig})
+					process := d.cfg.Process
+					process.Args = append(slices.Clone(process.Args), resources.Args...)
+					if resources.Directory != "" {
+						process.Directory = resources.Directory
+					}
+					if resources.RelayAtLaunch {
+						mcp = []any{}
+					}
+					return acppool.PreparedProcess{Config: process, Cleanup: resources.Cleanup}, err
+				})
+			} else {
+				lease, err = d.cfg.Pool.Acquire(setup, hex.EncodeToString(scope[:]))
+			}
 			if err == nil {
 				p.client = lease
 			}

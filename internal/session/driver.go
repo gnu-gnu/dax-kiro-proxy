@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -58,6 +59,7 @@ type Config struct {
 	PersistenceTTL     time.Duration
 	Metrics            *status.TurnQueue
 	MetricsScope       string
+	PrepareLaunch      PrepareLaunch
 }
 type Driver struct {
 	cfg                 Config
@@ -90,6 +92,22 @@ type Driver struct {
 }
 
 func New(cfg Config) (*Driver, error) {
+	var err error
+	cfg, err = normalizeConfig(cfg)
+	if err != nil {
+		return nil, err
+	}
+	if cfg.PrepareLaunch != nil && cfg.Pool == nil {
+		return nil, acp.ErrParameters
+	}
+	driver := &Driver{cfg: cfg, state: Unstarted, effort: kirofeature.NewEffort(cfg.UnsupportedEfforts), hasher: history.New(cfg.HistoryKey)}
+	if cfg.Metrics != nil {
+		driver.estimator = status.NewEstimator(cfg.HistoryKey)
+	}
+	return driver, nil
+}
+
+func normalizeConfig(cfg Config) (Config, error) {
 	if cfg.TurnTimeout == 0 {
 		cfg.TurnTimeout = 10 * time.Minute
 	}
@@ -97,49 +115,51 @@ func New(cfg Config) (*Driver, error) {
 		cfg.SetupTimeout = 30 * time.Second
 	}
 	if cfg.TurnTimeout <= 0 || cfg.TurnTimeout > time.Hour || cfg.SetupTimeout <= 0 || cfg.SetupTimeout > time.Minute {
-		return nil, acp.ErrParameters
+		return Config{}, acp.ErrParameters
 	}
 	if len(cfg.InitialModel) > 256 || cfg.InitialEffort != "" && kirofeature.Normalize(cfg.InitialEffort) == "" || len(cfg.UnsupportedEfforts) > 1280 {
-		return nil, acp.ErrParameters
+		return Config{}, acp.ErrParameters
 	}
 	if (cfg.Validator != nil) != (cfg.RelayExecutable != "") || cfg.RelayExecutable != "" && !filepath.IsAbs(cfg.RelayExecutable) {
-		return nil, acp.ErrParameters
+		return Config{}, acp.ErrParameters
 	}
 	if len(cfg.PoolScope) > 128 {
-		return nil, acp.ErrParameters
+		return Config{}, acp.ErrParameters
 	}
 	if cfg.Metrics != nil {
 		scope, err := hex.DecodeString(cfg.MetricsScope)
 		if err != nil || len(scope) != 32 || cfg.MetricsScope != strings.ToLower(cfg.MetricsScope) {
-			return nil, acp.ErrParameters
+			return Config{}, acp.ErrParameters
 		}
 	}
 	if cfg.Persistence != nil {
 		if cfg.Pool == nil || len(cfg.PersistenceProfile) != 64 || len(cfg.PersistenceLaunch) != 64 {
-			return nil, acp.ErrParameters
+			return Config{}, acp.ErrParameters
 		}
 		if cfg.PersistenceTTL == 0 {
 			cfg.PersistenceTTL = time.Hour
 		}
 		if cfg.PersistenceTTL <= 0 || cfg.PersistenceTTL > 24*time.Hour {
-			return nil, acp.ErrParameters
+			return Config{}, acp.ErrParameters
 		}
 	}
 	// The ACP turn may outlive an individual HTTP tool handoff. Short setup calls use their own ctx.
+	if cfg.PrepareLaunch != nil && (cfg.Validator == nil || cfg.Persistence != nil) {
+		return Config{}, acp.ErrParameters
+	}
 	cfg.Process.Limits.RequestTimeout = max(cfg.TurnTimeout, cfg.SetupTimeout)
 	if cfg.Pool != nil && !cfg.Pool.MatchesProcess(cfg.Process) {
-		return nil, acp.ErrParameters
+		return Config{}, acp.ErrParameters
 	}
 	if cfg.HistoryKey == ([32]byte{}) {
 		if _, err := rand.Read(cfg.HistoryKey[:]); err != nil {
-			return nil, err
+			return Config{}, err
 		}
 	}
-	driver := &Driver{cfg: cfg, state: Unstarted, effort: kirofeature.NewEffort(cfg.UnsupportedEfforts), hasher: history.New(cfg.HistoryKey)}
-	if cfg.Metrics != nil {
-		driver.estimator = status.NewEstimator(cfg.HistoryKey)
-	}
-	return driver, nil
+	cfg.Process.Args = slices.Clone(cfg.Process.Args)
+	cfg.Process.Environment = slices.Clone(cfg.Process.Environment)
+	cfg.UnsupportedEfforts = slices.Clone(cfg.UnsupportedEfforts)
+	return cfg, nil
 }
 func (d *Driver) State() State { d.mu.Lock(); defer d.mu.Unlock(); return d.state }
 

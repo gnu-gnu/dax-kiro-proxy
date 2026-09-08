@@ -766,3 +766,47 @@ complete identity/TTL rules and compare actual session model support before disp
 ID mapping or fallback is introduced. The public CLI help/black-box JSON observation is the wire
 source; the synthetic tests use newly invented names, descriptions and metadata rather than copying
 the installed catalog as a fixture.
+
+## D31: prepared process and session policy ownership (review R06/R07/R12)
+
+An explicit prepared acquisition reserves a pool process slot before invoking its preparation
+callback. Overload, invalid input, prior cleanup failure and closed/canceled admission do not invoke
+the callback. The callback shares the existing bounded setup context and transfers any partial
+artifacts even when it returns an error. Ordinary acquisitions retain the immutable launch template
+and existing shared-session behavior. Prepared processes have exactly one lifetime session allocation:
+they never share another prepared or ordinary acquisition, including one with the same compatibility
+scope. Their one session can still serve successive compatible turns while idle. The global process,
+idle and TTL limits apply to both paths together.
+
+Retirement joins the ACP process and notification router, then invokes owned-artifact cleanup once
+before freeing its process slot. Cleanup does not receive the canceled caller/setup context. Internal
+preparers must honor their setup context and implement finite cleanup; this is not an interface for
+untrusted extension code that can ignore those contracts. Partial preparation/start failure also
+joins cleanup. A repeated idle release waits for the same retirement and returns the same error.
+The pool retains its first cleanup failure after removing the retired group, refuses subsequent
+admission, and reports that failure on Close. It cannot silently accumulate further failed artifacts.
+
+The session extension passes only the validated current registry, relay executable and owned relay
+config path to a preparer. Its relay admission remains closed during setup. The extension can append
+launch arguments and choose a separate process cwd; it cannot replace the transport executable,
+environment, authentication classifier, client identity or limits. Configuration slices are copied.
+The public ACP session cwd remains the original project. An internal adapter may explicitly declare
+that its independently verified launch profile binds this exact relay, in which case session/new
+receives an empty MCP list rather than a duplicate server declaration. Otherwise the existing public
+session MCP declaration is retained. No HTTP authority, conversation text or client request identity
+is passed into process preparation.
+
+Policy changes, including tool_choice none, retire the old prepared session and its launch artifacts
+before preparing the next one. Unrelated sessions remain owned independently. Successful HTTP tool
+handoff retains the same launch artifacts, relay and ACP prompt until final delivery or cancellation.
+A manager supplies one common process-capacity owner to all prepared bindings. A standalone prepared
+driver must be given an explicit pool. Prepared session persistence is rejected at configuration time;
+restoring a launch profile or relay binding requires separate proof before enabling session/load on
+this path. The already-tested public shared-pool/load path is unchanged.
+
+This closes the internal lifetime wiring gap, not the Kiro execution-restriction gate. No production
+Kiro preparer, user-controlled verification bit, trust flag or unverified-model bypass is added.
+D27's candidate remains unverified. The independent fake has its own invented launch manifest and
+MCP binding; it is not a claim about Kiro's config precedence, hooks, allowedTools, inherited MCP or
+session/load behavior. The pinned CLI's first-session agent selection motivates the conservative
+single-session launch path, while actual restricted-policy evidence remains required under R06.

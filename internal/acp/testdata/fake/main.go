@@ -141,6 +141,16 @@ func main() {
 				os.Exit(26)
 			}
 			if strings.HasPrefix(mode, "chat-tools") {
+				if mode == "chat-tools-launch" {
+					if len(p.MCP) != 0 || len(os.Args) != 3 {
+						os.Exit(46)
+					}
+					raw, err := os.ReadFile(os.Args[2])
+					if err != nil || !json.Valid(raw) {
+						os.Exit(47)
+					}
+					p.MCP = []json.RawMessage{raw}
+				}
 				if len(p.MCP) != 1 {
 					os.Exit(34)
 				}
