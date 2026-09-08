@@ -612,3 +612,23 @@ validity or Kiro execution restrictions. A separate isolated-HOME probe used a n
 agent. Its finite syntax validation succeeded with the existing HOME; ACP itself, started with the
 empty HOME, failed initialization with a recognized authentication error and was cleaned up. No
 `session/prompt` was submitted. Logged-in ACP/tool restrictions and clean-host release gates remain.
+
+## D27: reviewable restricted-agent candidate (review R06/R14)
+
+The candidate builder takes a validated registry and the owned relay executable/configuration paths.
+It enumerates only `@dax_session/<alias>` entries in tools and allowedTools, with no wildcard or native
+tool exception. The sole MCP server runs the execution-free relay. Resources and hooks are empty,
+and includeMcpJson is false. No client tool names, descriptions, schemas or conversation text are
+copied into the agent's prompt; the exact registry fingerprint participates in its policy digest.
+
+The compact JSON is limited to 64 KiB and written atomically with mode 0600 under a private
+`.kiro/agents` directory in the supplied product-owned workspace. The policy digest includes the
+Kiro version, registry and relay binding; its name is deterministic for those inputs. Existing
+different content and directory links reject instead of overwriting or traversing outside data.
+
+This function produces an unverified candidate and starts no process. Its current evidence is the
+independent alias/file tests only. Literal MCP-reference validation, effective built-in/hook/MCP
+suppression, launch-profile lifetime and pooling/load behavior still require interoperability work.
+The installed ACP help describes --agent as selecting the first session's agent; later sessions must
+not be assumed to inherit the same restriction. Successful syntax validation is never an execution
+restriction proof or permission to enable real model traffic.

@@ -166,6 +166,22 @@ longer load/fuzz and clean-host release gates remain unverified. No new external
 
 ## Remaining work
 
+### Restricted-agent candidate preparation
+
+The new candidate-profile test first failed on the missing builder, then passed for empty/two-tool
+registries. It checks literal relay-only aliases, no wildcard/native authority, the sole owned MCP
+command, empty resources/hooks, no inherited MCP flag, private file modes and deterministic policy
+identity. D27 keeps the result explicitly unverified; it is not wired into live model startup.
+The initial filesystem fixture did not provide an owner-only runtime root; the test now explicitly
+creates one with MkdirTemp instead of relaxing the production mode check. The launcher race suite,
+including directory-link refusal and conflicting-file preservation, passed in 2.444s. `go vet ./...`
+and `git diff --check` passed for this checkpoint.
+
+The installed `kiro-cli acp --help` lists --agent as applying to the first session, --model/--effort,
+and an explicit --agent-engine selector with v2 as the current default. The first-session wording
+requires a separate effective-profile check before enabling shared or loaded live sessions. No
+trust-all-tools flag was used. Candidate validation, process/profile lifecycle and R06 remain open.
+
 ### Phase 6 Kiro identity preflight and unauthenticated startup
 
 Initial probes without the Kiro installation directory in PATH timed out. The installed public
