@@ -58,8 +58,10 @@ files are removed when the command finishes. Source client settings are not modi
 `doctor` succeeding means its checks completed; inspect `launch_available` and `policy` separately.
 The current `run` command stops with exit 3 after successful preflight because effective Kiro execution
 restrictions remain unverified. There is no override. Its full startup/runtime/shutdown composition is
-tested with independent fake processes, but real Kiro prompting and the complete product acceptance
-gates remain unfinished. This development build is not a release or installation procedure.
+tested with independent fake processes. One explicitly approved live Kiro Read-denial round trip also
+passes: the client refuses the tool, Kiro receives that refusal and completes the turn. Broader Kiro
+execution restrictions and the complete product acceptance gates remain unfinished. This development
+build is not a release or installation procedure.
 
 ## Naming
 

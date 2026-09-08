@@ -1398,7 +1398,8 @@ No production configuration or policy gate is changed and no model prompt or too
 ## D45: bounded client-denial experiment before credit opt-in (review R04/R06/R14)
 
 LIVE_KIRO_TEST_PLAN.md specifies one reviewable live interoperability experiment. Its Kiro variant
-requires DAX_INTEROP_KIRO_CREDIT_OPT_IN=1 and both pinned executable paths; it has not yet been run.
+requires DAX_INTEROP_KIRO_CREDIT_OPT_IN=1 and both pinned executable paths. It was unrun at this
+checkpoint; D51 records the later explicit approval and successful live result.
 It is confined to test code and does not change the production run gate or declare the candidate
 execution-verified. A successful single path would not discharge native/inherited/reload/load proof.
 
@@ -1698,3 +1699,27 @@ blocked MCP observation payload was sent. Public documents and independent tests
 
 No dependency or live-policy authority is added. Real Kiro metadata/usage, full interactive/client
 compatibility, R06/R16 and release work remain separate unfinished gates.
+
+## D51: first live Kiro client-denial continuation (review R04/R06/R14)
+
+The user explicitly approved the bounded one-attempt experiment in LIVE_KIRO_TEST_PLAN.md on
+2026-09-09. TestKiroLiveOnePromptClientDenial then ran once with its separate credit opt-in,
+Kiro 2.21.1/v2, Claude Code 2.1.263 and the exact advertised auto model. The existing prepared
+agent/relay path, isolated client profile and guard were used without a production-policy override.
+
+The test passed: one Read call was exposed, the client's PreToolUse hook refused it, its exact
+error result returned through the relay and the same ACP turn completed. Initial request plus
+continuation accounted for two accepted backend requests. Client exit was 0; canary preservation,
+absence from checked output, idle-before-shutdown state, source-setting checks, private artifact
+removal, joined HTTP/pool ownership and disappearance of the relay PID/observed group all passed.
+The test took 40.91s (42.402s package under race instrumentation). Only the normalized counters,
+Boolean outcomes, sizes and exit status are retained under
+.cache/interop-observations/live-kiro-denial.de4u7z. No automatic repeat ran.
+
+The result is real inference evidence for this particular client-denial continuation and cleanup
+path. It does not measure provider call count, billed token/credit usage or a fixed cost, and it
+cannot prove that Kiro never performed an unobserved internal read. Native filesystem/shell/task/
+subagent denial, inherited configuration exclusion, reload/load restrictions and approved client
+tool execution require their own evidence. R16 reasoning/output constraints and other models/media/
+web behavior are unchanged. Therefore the candidate remains execution-unverified and production
+run still fails closed with ErrPolicyUnverified. No dependency or implementation policy changed.

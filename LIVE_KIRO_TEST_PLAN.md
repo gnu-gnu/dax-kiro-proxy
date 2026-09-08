@@ -1,7 +1,7 @@
 # One-turn Kiro/client denial experiment
 
-Prepared: 2026-09-09. Status: actual Kiro execution awaits explicit opt-in; no Kiro model prompt has
-been sent. This is an interoperability experiment, not a release or an override of the product's
+Prepared: 2026-09-09. Status: the explicitly approved live attempt passed on 2026-09-09; results
+appear below. This is an interoperability experiment, not a release or an override of the product's
 execution-policy gate. The full product objective and remaining acceptance requirements are unchanged.
 
 ## Purpose and authorization boundary
@@ -103,4 +103,33 @@ The local control was rechecked after D50 on 2026-09-09 and passed in 3.13 secon
 backend requests, one exposed Read, one matched denial and one final completion. The canary stayed
 unchanged and unobserved; the relay and its observed process group were gone, and the client exited 0.
 The normalized record is under .cache/interop-observations/turn-metrics-client-regression.xLl3b1.
-This rehearsal used fake ACP and Kiro credit opt-in 0. Actual Kiro authorization remains pending.
+This rehearsal used fake ACP and Kiro credit opt-in 0. The user's subsequent explicit consent
+authorized one live attempt under the bounds above, with no automatic retry or broader policy bypass.
+
+## Approved live result
+
+The exact live test ran once with Kiro 2.21.1/v2, Claude Code 2.1.263 and the advertised auto model.
+It passed in 40.91 seconds (42.402 seconds for the race-enabled test package), with test exit 0.
+The normalized record and exit status are retained privately under
+.cache/interop-observations/live-kiro-denial.de4u7z.
+
+| Observation | Result |
+| --- | --- |
+| Accepted initial request and matching continuation | 2 backend requests |
+| Exposed client Read calls | 1 |
+| Exact returned hook denials | 1 |
+| Final end_turn completions | 1 |
+| Client PreToolUse refusal marker | Present |
+| Canary file unchanged / canary observed in checked output | True / false |
+| Client exit | 0 |
+| Relay PID and observed process group gone | Both true |
+| Prepared launch/relay artifacts and HTTP/pool/profile cleanup | Passed |
+
+The 1,771-byte client result was checked in bounded memory; its full content was not retained.
+Only counts, sizes, fixed labels and Boolean outcomes are logged. This was real Kiro inference and
+may consume credits; neither provider call count nor billed usage was measured. No retry ran.
+
+This establishes the exercised client-denial/continuation path through actual Kiro. It does not
+establish native filesystem/shell/task/subagent denial, inherited configuration exclusion, reload/load
+restrictions, successful client tool effects or general generation compatibility. The production
+run command continues to refuse an unverified execution policy. D51 records this distinction.

@@ -6,6 +6,10 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D51 is the first approved real Kiro model-turn result: one client Read request, its exact Claude
+  hook denial and the matching final completion passed through the prepared ACP/relay path. Cleanup
+  and canary checks passed. Native/inherited execution restrictions and the production run gate stay
+  unverified; this result does not close R06 or the complete live/release requirements.
 - D42 implements authenticated relay group membership and bounded lifetime. D43 observes five
   explicitly registered relays successfully, but standalone MCP-file controls do not activate by
   default, so the inheritance-exclusion comparison remains unverified. Native execution restrictions
@@ -30,7 +34,8 @@ does not redefine completion around an intermediate phase.
 - Specification-only baseline committed as `7b108dd`.
 - Go selected by explicit user instruction; comparative experiments remain unmeasured.
 - Local host: macOS 15.4 (24E248), arm64; Go 1.27.1 downloaded into the ignored repository cache.
-- Public CLI black-box version/help checks: Kiro 2.21.1 and Claude Code 2.1.263; no model request yet.
+- Initial public CLI black-box version/help checks: Kiro 2.21.1 and Claude Code 2.1.263, without
+  a model request at that checkpoint. D51 below records the later first live model turn.
 - Phase 1 tests first failed because implementation packages were absent, then passed after the new
   transport was implemented. Additional error-envelope/correlation/notification regression tests
   reproduced five failures before their fixes.
@@ -115,7 +120,8 @@ MCP configuration and no-session-persistence setting limited its inputs to the s
 project facts. No previous implementation was supplied or consulted. An earlier invocation with a
 different stripped environment failed; the successful direct invocation establishes neither its
 cause nor a need for login/logout. This consultation used Claude inference, separately from the
-product's Kiro routing. No Kiro model prompt has been sent.
+product's Kiro routing. No Kiro model prompt had been sent at that checkpoint; D51 records the later
+explicitly approved live turn.
 
 The accepted advice is a disposable tool-denial experiment correlating relay arrival, client refusal
 and absence of a sentinel effect. This would establish evidence for the exercised path only; R06
@@ -539,8 +545,9 @@ and `git diff --check` passed. No production source or dependency changed at thi
 
 ### One-turn client-denial experiment preparation
 
-D45 and LIVE_KIRO_TEST_PLAN.md define the proposed credit-consuming experiment. The actual Kiro
-variant remains unrun, explicitly skipped without its separate credit opt-in. The code contains no
+D45 and LIVE_KIRO_TEST_PLAN.md defined the proposed credit-consuming experiment. The actual Kiro
+variant was unrun at this checkpoint and is skipped without its separate credit opt-in. D51 below
+records the later explicit approval and successful live result. The code contains no
 production run override. Its single ACP turn may include multiple internal Kiro model calls; no
 fixed credit maximum is claimed.
 
@@ -577,7 +584,7 @@ and client exit 0 (1,761 output bytes). The production environment policy remain
 
 Final whole-repository vet, changed-file formatting and diff checks passed. Invoking only the live
 test with its credit flag explicitly disabled skipped immediately (1.250s package); this verifies
-the opt-in boundary, not a successful live turn. The exact pending experiment is reviewable in
+the opt-in boundary, not a successful live turn. The experiment and its later result are reviewable in
 LIVE_KIRO_TEST_PLAN.md, which is now included in README's mandatory reading order.
 
 ### CLI and ACP model identity agreement
@@ -600,8 +607,9 @@ are retained in separate owner-only ignored observation directories.
 
 This closes the observed CLI-to-session catalog identity check for that version/session, not live
 model changes, generation semantics, the interactive model selector or R06. No model prompt, client
-tool effect, credential copying or login/logout was involved. The D45 credit test remains unrun and
-requires its pending explicit opt-in; no production adapter, dependency or permission changed.
+tool effect, credential copying or login/logout was involved. The D45 credit test was still unrun
+at this catalog checkpoint; D51 records its later approved result. No production adapter,
+dependency or permission changed in the catalog observation.
 
 Final uncached `go test -race -count=1 -p 1 ./internal/acp ./internal/interop` passed in 5.650s and
 18.594s with installed-CLI opt-ins empty and the credit flag explicitly disabled. Whole-repository
@@ -824,6 +832,32 @@ Read-denial harness also passed against fake ACP in 3.13s: one exposed Read, one
 one final completion, unchanged canary and no surviving relay/group. No actual Kiro prompt was sent.
 The private normalized log and exit 0 are under
 .cache/interop-observations/turn-metrics-client-regression.xLl3b1.
+
+### First live Kiro client-denial round trip
+
+After the user explicitly approved the prepared one-attempt experiment, TestKiroLiveOnePromptClientDenial
+ran once with the credit opt-in enabled and the pinned installed Kiro/Claude paths. No test or
+production code was changed for this run. Kiro 2.21.1/v2, its authenticated account/catalog preflight
+and the exact advertised auto model were used. The test passed in 40.91s, with race-enabled package
+exit 0 at 42.402s. The normalized log and exit status are retained privately under
+.cache/interop-observations/live-kiro-denial.de4u7z.
+
+There were exactly two accepted backend requests: the initial request and its matching client-error
+continuation. One Read call reached Claude, its PreToolUse hook refused it, the matching denial
+returned through the relay and the same ACP turn ended successfully. Final completions, exposed
+calls and matched denials were each one. The client exited 0. The synthetic canary was unchanged
+and absent from checked client/model/tool output. The relay PID and its observed process group were
+gone, the driver became idle before shutdown, all HTTP/pool owners joined, private launch/relay
+artifacts were removed and the owned client settings/profile checks passed. The 1,771-byte client
+result was inspected in bounded memory and not retained in the normalized log.
+
+This is the first real Kiro inference result; earlier fake/no-prompt evidence remains historical.
+No repeat ran. Provider call count, token/credit charges and a fixed credit cost were not measured.
+The independently passing Read-denial control is now live evidence for this specific continuation
+path, not full native-tool restriction proof or successful client file/shell execution. D51 leaves
+native filesystem/shell/task/subagent attempts, inherited configuration/reload/load, R16 request
+controls, other model/media/web behavior and release work open. The production run command remains
+ErrPolicyUnverified with no override.
 
 ### Request constraints and negative client recovery evidence
 
@@ -1414,7 +1448,7 @@ the exact scope: interactive UI and actual-client tool continuation remain unver
 | 1 | All acceptance A plus applicable G; independent fake child, framing, negotiation, correlation, notifications, stderr, deadlines, process-group cleanup | Passed on local macOS with fake ACP |
 | 2 | Authenticated HTTP text path, exact SSE/non-streaming responses, authentication fallback, disconnect tests | Passed with independent fake ACP; broader B/C requirements tracked below |
 | 3 | Model catalog/mapping/cache/selection and optional effort state | Passed independent module/process tests; launcher and live interoperability remain below |
-| 4 | Restricted Kiro agent proof, MCP relay, schema validation, client-only tool effects and result ownership | Fake-process/HTTP implementation passes; R06 live restriction proof and additional hardening remain |
+| 4 | Restricted Kiro agent proof, MCP relay, schema validation, client-only tool effects and result ownership | Fake-process/HTTP implementation and one live client Read-denial continuation pass; full R06 restriction proof and additional hardening remain |
 | 5 | Request families/history/pool/persistence/resume and crash tests | Independent implementation tests pass; live client/Kiro and extended hardening remain |
 | 6 | Media/web capabilities, cached usage/metrics, isolated launcher/profile and client interoperability | Pending |
 | 7 | Full acceptance, fuzz/race/load, license inventory, macOS packaging/install/uninstall and opt-in live gates | Pending |
