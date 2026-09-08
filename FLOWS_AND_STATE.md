@@ -135,8 +135,11 @@ session.
 Ordered assistant/user digest pairs are accompanied by message-role anchors, including per-message
 system updates. This detects changes that a pair alone would miss. A truncated overlap must include
 both user and assistant content and end at the last delivered assistant. Assistant-only overlap does
-not establish continuity. Pending tool continuation permits only the next matching result message;
-new system or user text cannot be injected into the already-running ACP prompt through that path.
+not establish continuity. Pending tool continuation permits the next matching result message, optionally
+followed by an exact repetition of the complete system-message sequence immediately before the last
+delivered assistant handoff. The repeated keyed anchors are retained for reconciliation without
+resending those already-present instructions to ACP. Older, partial, reordered or changed sequences
+reject. New system or user text cannot be injected into the already-running ACP prompt through that path.
 
 ## 8. Persistent resume flow
 

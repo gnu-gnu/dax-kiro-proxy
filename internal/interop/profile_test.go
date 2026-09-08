@@ -3,6 +3,7 @@ package interop_test
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -16,6 +17,7 @@ import (
 	"testing"
 	"time"
 
+	"dax-kiro-proxy/internal/anthropic"
 	"dax-kiro-proxy/internal/childproc"
 	"dax-kiro-proxy/internal/gateway"
 	"dax-kiro-proxy/internal/launcher"
@@ -88,8 +90,11 @@ func TestClaudeIsolatedProfilePreservesPoliciesAndGateway(t *testing.T) {
 	}
 	var mu sync.Mutex
 	messages, models := 0, 0
+	advertisedTools := 0
 	toolError, routeTokenOK, continuationDecoded := false, true, false
 	var continuationRoles []string
+	var systemDigests [][32]byte
+	repeatedSystem := true
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "HEAD" {
 			w.WriteHeader(404)
@@ -138,8 +143,32 @@ func TestClaudeIsolatedProfilePreservesPoliciesAndGateway(t *testing.T) {
 		mu.Lock()
 		messages++
 		round := messages
+		decoded, decodeErr := anthropic.DecodeRequest(body)
+		if decodeErr == nil {
+			advertisedTools = len(decoded.Tools)
+			for i, message := range decoded.Messages {
+				if message.Role != "system" {
+					continue
+				}
+				texts := make([]string, 0, len(message.Content))
+				for _, block := range message.Content {
+					texts = append(texts, block.Text)
+				}
+				canonical, _ := json.Marshal(texts)
+				digest := sha256.Sum256(canonical)
+				if round == 1 {
+					systemDigests = append(systemDigests, digest)
+				} else if i > decoded.LatestUserIndex() {
+					matched := false
+					for _, old := range systemDigests {
+						matched = matched || old == digest
+					}
+					repeatedSystem = repeatedSystem && matched
+				}
+			}
+		}
 		if round == 2 {
-			continuationDecoded = true
+			continuationDecoded = decodeErr == nil
 			for _, message := range request.Messages {
 				continuationRoles = append(continuationRoles, message.Role)
 				var blocks []struct {
@@ -191,7 +220,7 @@ func TestClaudeIsolatedProfilePreservesPoliciesAndGateway(t *testing.T) {
 	_, helperErr := os.Stat(helperMarker)
 	mu.Lock()
 	defer mu.Unlock()
-	t.Logf("client=%s, messages=%d, models=%d, wrong_route=%d, user_hook=%v, project_hook_with_local_env=%v, tool_denied=%v, continuation_roles=%v, exit=%d", launcher.SupportedClientVersion, messages, models, wrongRoute.Load(), userHook, projectHook, toolError, continuationRoles, result.ExitCode)
+	t.Logf("client=%s, messages=%d, models=%d, wrong_route=%d, user_hook=%v, project_hook_with_local_env=%v, tool_denied=%v, advertised_tools=%d, continuation_roles=%v, trailing_system_repeats_prior=%v, decoder_accepts=%v, exit=%d", launcher.SupportedClientVersion, messages, models, wrongRoute.Load(), userHook, projectHook, toolError, advertisedTools, continuationRoles, repeatedSystem, continuationDecoded, result.ExitCode)
 	if runErr != nil || !bytes.Contains(result.Stdout, []byte(answer)) {
 		t.Fatalf("client fixture did not finish: safe_error=%v, stdout_bytes=%d", runErr, len(result.Stdout))
 	}

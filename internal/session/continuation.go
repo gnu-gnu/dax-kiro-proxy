@@ -63,7 +63,7 @@ func (d *Driver) resume(ctx context.Context, r *anthropic.Request, registry *too
 		return nil, inference.ErrRequest
 	}
 	plan, err := d.hasher.Plan(t.pendingHistory, r)
-	if err != nil || plan.Mode != history.Extend || plan.Start != len(r.Messages)-1 || len(r.Messages[plan.Start].Content) != len(results) {
+	if err != nil || plan.Mode != history.Extend || plan.Start != r.LatestUserIndex() || len(r.Messages[plan.Start].Content) != len(results) || !d.repeatedSystem(t.pendingHistory, r.Messages[plan.Start+1:]) {
 		return nil, inference.ErrRequest
 	}
 	if err := t.broker.Resolve(t.broker.Credentials().Owner, converted); err != nil {
@@ -75,6 +75,34 @@ func (d *Driver) resume(ctx context.Context, r *anthropic.Request, registry *too
 	t.lastIDs = nil
 	d.state = Prompting
 	return &round{turn: t}, nil
+}
+
+// A repeated, complete standing instruction sequence is already present in the owned ACP prompt.
+// Record the client's repeated anchors without injecting content into tool output or starting a
+// second prompt. New instructions require a new ordinary turn and cannot alter a suspended call.
+func (d *Driver) repeatedSystem(pending history.Snapshot, suffix []anthropic.Message) bool {
+	if len(suffix) == 0 {
+		return true
+	}
+	start := len(pending.Nodes) - 1 - len(suffix)
+	if start < 0 || start > 0 && pending.Nodes[start-1].Role == "system" {
+		return false
+	}
+	for i, message := range suffix {
+		if message.Role != "system" {
+			return false
+		}
+		for _, block := range message.Content {
+			if block.Type != "text" {
+				return false
+			}
+		}
+		node, err := d.hasher.Message(message)
+		if err != nil || node != pending.Nodes[start+i] {
+			return false
+		}
+	}
+	return true
 }
 func sameResultIDs(ids []string, results []anthropic.ToolResult) bool {
 	if len(ids) == 0 || len(ids) != len(results) {

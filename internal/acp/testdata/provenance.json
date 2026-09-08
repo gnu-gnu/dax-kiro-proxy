@@ -9,7 +9,8 @@
     "https://agentclientprotocol.com/protocol/v1/session-config-options",
     "https://agentclientprotocol.com/protocol/v1/tool-calls",
     "https://modelcontextprotocol.io/specification/2025-06-18/basic/lifecycle",
-    "https://modelcontextprotocol.io/specification/2025-06-18/server/tools"
+    "https://modelcontextprotocol.io/specification/2025-06-18/server/tools",
+    "https://code.claude.com/docs/en/hooks"
   ],
   "repository_sources": ["PROTOCOL_SPEC.md", "ACCEPTANCE_SPEC.md", "IMPLEMENTATION_DECISIONS.md"],
   "fixtures": ["fake/main.go", "fake/relay.go", "fake/pool.go"],
@@ -19,6 +20,6 @@
     "All text, error strings, IDs and credential sentinels are synthetic",
     "Descendant processes only exercise lifecycle cleanup; they execute no client tool",
     "Private command shapes are specification interpretations under D09, not live Kiro observations",
-    "MCP tool requests are answered only by the synthetic test client; no filesystem or shell effect is performed"
+    "MCP tool requests are answered by synthetic test clients or an opt-in unmodified public client with an independently authored denying hook; the fake backend performs no filesystem or shell tool effect"
   ]
 }

@@ -80,6 +80,9 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
 - A successful tool handoff keeps the same ACP prompt alive across HTTP requests and does not reset
   the original total deadline. Timeout/auth expiry while no response is open still cleans up the
   session; a matching later request observes only the scoped terminal outcome, never tool replay.
+- A tool-result request may repeat the complete most recent standing system-message sequence without
+  starting another ACP prompt. Changed, partial, reordered or older instructions and extra user text
+  reject before any pending result is consumed.
 - Cancellation and timeout resolve all suspended relay calls and remove owner-only socket/config data.
 
 ## F. Session continuity

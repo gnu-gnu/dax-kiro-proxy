@@ -204,3 +204,49 @@ func TestFirstHTTPDeadlineIsNotResetByToolHandoff(t *testing.T) {
 		t.Fatal("tool handoff reset the initial total HTTP deadline")
 	}
 }
+
+func TestToolContinuationAcceptsOnlyTheRepeatedLatestSystemSequence(t *testing.T) {
+	d := toolDriver(t, "chat-tools", 2*time.Second)
+	r := toolRequest(t)
+	system := func(text string) anthropic.Message {
+		return anthropic.Message{Role: "system", Content: []anthropic.Block{{Type: "text", Text: text}}}
+	}
+	older := system("An earlier independent instruction.")
+	current := system("Continue under the current client permission policy.")
+	ending := system("Keep the same declared tool boundary for this task.")
+	r.Messages = append([]anthropic.Message{older}, r.Messages...)
+	r.Messages = append(r.Messages, current, ending)
+	turn, err := d.Start(t.Context(), r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	prefix, uses := toolHandoff(t, turn)
+	turn.Finish()
+	next := followup(t, r, prefix, uses)
+	for _, suffix := range [][]anthropic.Message{{system("A changed instruction.")}, {older}, {ending}, {current, current}, {ending, current}, {current, {Role: "assistant", Content: []anthropic.Block{{Type: "text", Text: "new reply"}}}}, {current, {Role: "user", Content: []anthropic.Block{{Type: "text", Text: "new user text"}}}}} {
+		bad := *next
+		bad.Messages = append(append([]anthropic.Message(nil), next.Messages...), suffix...)
+		if _, err := d.Start(t.Context(), &bad); !errors.Is(err, inference.ErrRequest) && !errors.Is(err, inference.ErrBusy) {
+			t.Fatal("new, older or ambiguous instructions resumed a pending tool")
+		}
+		if d.State() != session.WaitingTools {
+			t.Fatal("rejected continuation consumed pending ownership")
+		}
+	}
+	next.Messages = append(next.Messages, current, ending)
+	resumed, err := d.Start(t.Context(), next)
+	if err != nil {
+		t.Fatal("identical standing instruction repetition was rejected", err)
+	}
+	text, err := collect(t.Context(), resumed)
+	if err != nil || !strings.Contains(text, `"promptCount":1`) || !strings.Contains(text, `"isError":true`) {
+		t.Fatal("repeated system update changed the original tool result or started a new prompt")
+	}
+	resumed.Finish()
+	if d.State() != session.Idle {
+		t.Fatal("delivered continuation did not become idle")
+	}
+	if _, err := d.Start(t.Context(), next); !errors.Is(err, inference.ErrRequest) {
+		t.Fatal("replayed result plus repeated system was accepted")
+	}
+}

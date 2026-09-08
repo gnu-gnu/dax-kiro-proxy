@@ -306,6 +306,7 @@ stable system context. The longest proven truncated overlap must contain user an
 an assistant-only match is insufficient. Completed duplicates and idle divergence create fresh
 backend state. Active/pending divergence rejects. Pending tool results additionally require exactly
 the sealed IDs and no new user/system content; successful resolution continues the original prompt.
+D25 permits a strict repetition of the last complete standing system-message sequence.
 Only final successful HTTP completion commits history. Ordinary model/effort changes remain idle-only.
 
 The manager defaults to eight bindings and one-hour lazy idle expiration, with per-key admission and
@@ -558,3 +559,28 @@ This is the settings/environment component, not complete launcher acceptance. Us
 assets and global config preservation, managed deployments, interactive readiness/terminal ownership,
 status-line integration and actual Kiro restrictions remain separate gates. The adapter must not be
 advertised as preserving untested assets or as a bypass of organizational permission/model policy.
+
+## D25: repeated client instruction suffix at tool handoff (review R10/R14/R16)
+
+An unmodified Claude 2.1.263 tool-result request contained user, system, assistant, user, system roles.
+The trailing system text repeated the preceding system message. Accepting arbitrary new system content
+would change the meaning of an already-running ACP prompt; embedding it into tool output would also
+alter that output's contract. Neither is adopted.
+
+A valid pending-history extension must still start at its one next user message containing exactly
+the matching results. It may end with the same complete, contiguous system-message sequence that
+immediately preceded the delivered assistant tool handoff. Each message must match its existing
+HMAC anchor, including order and compatible content normalization. A partial/reordered sequence,
+an older instruction, new text or extra user/assistant content rejects before consuming a result.
+
+These identical standing instructions are already in the owned prompt. Only their new client-history
+anchors are retained; no second ACP prompt, extra MCP result content or tool effect is generated.
+Ordinary new instructions remain supported on a subsequent idle turn. Changed runtime instructions
+during a pending tool remain an explicit unsupported case, not silently discarded information.
+
+The installed-client test uses the actual gateway, session driver, schema worker and MCP relay with
+an independently authored ACP peer. Only the catalog listing is a static fixture. A client-owned
+PreToolUse denial follows the public [hook contract](https://code.claude.com/docs/en/hooks), checked
+2026-09-08. The peer requires an actual MCP result containing the synthetic hook denial and only one
+ACP prompt; the test requires exactly two HTTP model requests and final idle state. It does not treat
+a JSON-RPC error as proof of client permission enforcement or consume Kiro model credits.

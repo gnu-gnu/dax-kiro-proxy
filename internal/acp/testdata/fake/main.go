@@ -265,6 +265,29 @@ func main() {
 						write(map[string]any{"jsonrpc": "2.0", "id": q.ID, "error": map[string]any{"code": 401, "message": "login required"}})
 						continue
 					}
+					if mode == "chat-tools-client" {
+						if len(os.Args) != 3 {
+							os.Exit(45)
+						}
+						relayChild.send(3, "tools/call", map[string]any{"name": relayChild.alias, "arguments": map[string]string{"file_path": os.Args[2]}})
+						var returned struct {
+							IsError bool                          `json:"isError"`
+							Content []struct{ Type, Text string } `json:"content"`
+						}
+						if json.Unmarshal(relayChild.read(), &returned) != nil || relayChild.responseError || !returned.IsError {
+							os.Exit(46)
+						}
+						deniedByHook := false
+						for _, block := range returned.Content {
+							deniedByHook = deniedByHook || block.Type == "text" && strings.Contains(block.Text, "independent fixture denial")
+						}
+						if !deniedByHook {
+							os.Exit(47)
+						}
+						emit("independent client relay complete")
+						reply(q.ID, map[string]any{"stopReason": "end_turn"})
+						continue
+					}
 					result := relayChild.call()
 					text, _ := json.Marshal(map[string]any{"promptCount": promptCount, "relayResult": result})
 					emit(string(text))

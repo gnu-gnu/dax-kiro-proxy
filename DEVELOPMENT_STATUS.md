@@ -184,11 +184,37 @@ were unchanged and the runtime removed. No Kiro or external model request was ma
 The first probe's path-specific Read pattern did not deny the tool; that independently authored test
 was corrected to the unambiguous whole-tool Read rule without changing product permission behavior.
 The corrected probe passed in 2.526s. Its actual continuation roles were user, system, assistant,
-user, system. D15's existing result-only continuation currently rejects that trailing system update;
-this newly observed shape still requires a semantic decision and regression coverage before real
-client tool interoperability can be claimed.
+user, system. The later D25 work below handles an exact repetition of the last standing system
+sequence; arbitrary new instructions during a suspended tool remain unsupported.
 The completed profile race suite, including link/replaced-root cleanup, passed in 1.983s.
 `go vet ./...` and `git diff --check` passed at this checkpoint.
+
+### Phase 6 actual-client tool continuation
+
+The local profile probe confirmed that the trailing system text repeats the prior standing update,
+and that the decoder accepts the envelope. The session regression covers a two-message system
+sequence: changed, older, partial, duplicated and reordered sequences, extra user/assistant content,
+then the valid complete repetition and a rejected result replay. Rejections leave pending ownership
+available. The first assertion incorrectly required Request for a new ordinary user request; it was
+corrected to accept the existing Busy rejection as well. The focused race suite passed in 3.931s.
+
+The first actual-client/ACP integration failed because its whole-tool deny left zero advertised
+tools; the independent ACP peer requires one declared relay alias. The separate profile observation
+now records that zero count explicitly. A new client-owned PreToolUse hook instead denies the declared
+Read call when requested. The peer distinguishes a real MCP tool result from JSON-RPC failure and
+requires the synthetic hook denial reason before completing its one ACP prompt.
+
+All three opt-in unmodified Claude 2.1.263 tests passed together in 5.135s. The actual gateway →
+independent ACP → MCP relay → client hook denial → matching result path passed in 2.11s, with exactly
+two HTTP model requests, final idle state, unchanged source settings and joined driver cleanup. The
+other probes verified envelope/header/discovery behavior and settings/environment precedence. No
+Kiro, external inference or client file/shell tool effect was used. An approved real tool effect,
+interactive UI and live Kiro execution restrictions remain separate release gates.
+
+The full uncached `go test -race -p 2 -count=1 ./...` suite then passed: ACP 4.990s, pool 2.595s,
+Anthropic 8.204s, gateway 2.262s, launcher 1.570s, session 8.550s and status 1.378s. All remaining
+packages passed; installed-client tests are separately opt-in and were verified above. `go vet ./...`
+and `git diff --check` passed after the continuation changes.
 
 ### Phase 6 finite launcher subprocess runner
 

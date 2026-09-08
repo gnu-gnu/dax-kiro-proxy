@@ -12,10 +12,11 @@ import (
 // The fake ACP backend talks only to the supplied MCP stdio child. It never reads the parent's
 // private control configuration or invokes a client tool effect.
 type fixtureRelay struct {
-	cmd    *exec.Cmd
-	input  io.WriteCloser
-	output *bufio.Reader
-	alias  string
+	cmd           *exec.Cmd
+	input         io.WriteCloser
+	output        *bufio.Reader
+	alias         string
+	responseError bool
 }
 
 func startFixtureRelay(raw []byte, cwd string) *fixtureRelay {
@@ -85,7 +86,8 @@ func (f *fixtureRelay) read() json.RawMessage {
 	if json.Unmarshal(line, &response) != nil {
 		os.Exit(43)
 	}
-	if len(response.Error) > 0 {
+	f.responseError = len(response.Error) > 0
+	if f.responseError {
 		return json.RawMessage(`{"isError":true,"content":[{"type":"text","text":"relay interrupted"}]}`)
 	}
 	return response.Result
