@@ -18,7 +18,7 @@ type historyMessage struct {
 // Full is a fresh-session projection. JSON preserves role boundaries without an ambiguous
 // delimiter around user-supplied historical text. The latest user blocks retain their order.
 func Full(r *anthropic.Request) ([]Text, error) {
-	if !r.TextOnly() || len(r.Messages) == 0 {
+	if !r.ClientContent() || len(r.Messages) == 0 {
 		return nil, anthropic.ErrRequest
 	}
 	var parts []Text
@@ -33,7 +33,11 @@ func Full(r *anthropic.Request) ([]Text, error) {
 		for _, m := range r.Messages[:len(r.Messages)-1] {
 			item := historyMessage{Role: m.Role, Content: []string{}}
 			for _, b := range m.Content {
-				item.Content = append(item.Content, b.Text)
+				if b.Type == "text" {
+					item.Content = append(item.Content, b.Text)
+				} else {
+					item.Content = append(item.Content, string(b.Raw))
+				}
 			}
 			data.History = append(data.History, item)
 		}
@@ -44,6 +48,9 @@ func Full(r *anthropic.Request) ([]Text, error) {
 		parts = append(parts, Text{"text", "Conversation context follows as JSON; preserve its role and content order."}, Text{"text", string(encoded)}, Text{"text", "Current user content follows."})
 	}
 	for _, b := range r.Messages[len(r.Messages)-1].Content {
+		if b.Type != "text" {
+			return nil, anthropic.ErrRequest
+		}
 		parts = append(parts, Text{"text", b.Text})
 	}
 	return parts, nil

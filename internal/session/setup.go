@@ -6,6 +6,8 @@ import (
 	"dax-kiro-proxy/internal/acp"
 	"dax-kiro-proxy/internal/catalog"
 	"dax-kiro-proxy/internal/ndjson"
+	"dax-kiro-proxy/internal/relay"
+	"dax-kiro-proxy/internal/toolregistry"
 )
 
 type prepared struct {
@@ -20,16 +22,27 @@ type prepared struct {
 
 func (p *prepared) finishSetup() { p.cancel(); close(p.done) }
 
-func (d *Driver) prepare(ctx context.Context, reuse bool) (*prepared, error) {
+func (d *Driver) prepare(ctx context.Context, reuse bool, registry *toolregistry.Registry) (*prepared, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
+	}
+	if registry == nil && d.cfg.Validator != nil {
+		var err error
+		registry, err = toolregistry.Build(ctx, nil, nil, d.cfg.Validator)
+		if err != nil {
+			return nil, err
+		}
+	}
+	fingerprint := ""
+	if registry != nil {
+		fingerprint = registry.Fingerprint()
 	}
 	d.mu.Lock()
 	if d.closed {
 		d.mu.Unlock()
 		return nil, acp.ErrClosed
 	}
-	if d.state == Starting || d.state == Prompting {
+	if d.state == Starting || d.state == Prompting || d.state == WaitingTools {
 		d.mu.Unlock()
 		return nil, ErrBusy
 	}
@@ -39,23 +52,48 @@ func (d *Driver) prepare(ctx context.Context, reuse bool) (*prepared, error) {
 	d.setupDone = p.done
 	d.state = Starting
 	previous := d.client
-	if reuse && d.fresh && previous != nil {
+	previousSocket, previousBroker := d.socket, d.broker
+	if reuse && d.fresh && previous != nil && fingerprint == d.registryFingerprint {
 		p.client = previous
 		p.info = d.modelState
 		p.current = p.info.Catalog.Current()
 	}
 	if p.client == nil {
 		d.client = nil
+		d.socket = nil
+		d.broker = nil
 	}
 	d.mu.Unlock()
 	fail := func(err error) (*prepared, error) { d.failedStart(p.client); p.finishSetup(); return nil, err }
 	if p.client == nil {
+		if previousSocket != nil {
+			previousSocket.Close()
+		} else if previousBroker != nil {
+			previousBroker.Close()
+		}
 		if previous != nil {
 			if err := previous.Close(); err != nil {
 				return fail(err)
 			}
 		}
 		var err error
+		mcp := []any{}
+		if registry != nil {
+			broker, err := relay.NewBroker(registry, d.cfg.RelayLimits)
+			if err != nil {
+				return fail(err)
+			}
+			socket, err := relay.Listen(broker, relay.SocketConfig{})
+			if err != nil {
+				broker.Close()
+				return fail(err)
+			}
+			d.mu.Lock()
+			d.broker = broker
+			d.socket = socket
+			d.mu.Unlock()
+			mcp = append(mcp, map[string]any{"name": "dax_session", "command": d.cfg.RelayExecutable, "args": []string{"relay", "--config", socket.ConfigPath()}, "env": []any{}})
+		}
 		p.client, err = acp.Start(setup, d.cfg.Process)
 		if err != nil {
 			return fail(err)
@@ -63,7 +101,7 @@ func (d *Driver) prepare(ctx context.Context, reuse bool) (*prepared, error) {
 		raw, err := p.client.Call(setup, "session/new", struct {
 			CWD string `json:"cwd"`
 			MCP []any  `json:"mcpServers"`
-		}{d.cfg.Process.Directory, []any{}})
+		}{d.cfg.Process.Directory, mcp})
 		if err != nil {
 			return fail(err)
 		}
@@ -84,6 +122,7 @@ func (d *Driver) prepare(ctx context.Context, reuse bool) (*prepared, error) {
 	}
 	d.client = p.client
 	d.modelState = p.info
+	d.registryFingerprint = fingerprint
 	d.mu.Unlock()
 	return p, nil
 }

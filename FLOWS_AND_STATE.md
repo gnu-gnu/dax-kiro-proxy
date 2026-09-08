@@ -118,7 +118,7 @@ Rules:
 - divergence while idle and without pending tools: recreate once and send full current history;
 - divergence during an active turn or with pending tools: reject;
 - a tool-result continuation must match the current tool registry/system compatibility and contain all
-  and only pending IDs.
+  and only the IDs in the latest sealed, successfully delivered batch.
 
 History is committed only after a successful completed Kiro turn. A request that begins a new turn first
 invalidates the previously persisted idle snapshot so two processes cannot claim the same backend
@@ -174,10 +174,11 @@ initial states.
 4. Kiro calls an alias through the relay.
 5. The parent authenticates the control request, validates the schema, and creates a unique client
    tool-use ID.
-6. The gateway completes the current Anthropic response with that tool request.
+6. The gateway seals the calls included in the response and completes the current Anthropic response.
+   Successful HTTP delivery leaves the owned ACP prompt alive. Calls arriving later remain queued.
 7. The client applies its normal permission/hooks, executes the tool, and sends a tool result.
-8. The gateway validates exact session and pending ID ownership, resumes the suspended relay call, and
-   lets Kiro continue the same turn.
+8. The gateway validates the entire sealed result set and exact session ownership before resuming any
+   suspended relay call. Kiro continues the same prompt; no second `session/prompt` is dispatched.
 
 Alias generation is deterministic from the original tool name, uses a cryptographic digest prefix, and
 extends the prefix on collision. The registry fingerprint includes original name, alias, description,

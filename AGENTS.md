@@ -15,7 +15,7 @@ commits as implementation input.
 Permitted inputs are:
 
 - the specifications committed in this repository;
-- public ACP, Anthropic API, JSON-RPC, JSON Schema, HTTP, and SSE documentation;
+- public ACP, Anthropic API, MCP, JSON-RPC, JSON Schema, HTTP, and SSE documentation;
 - behavior observed by running unmodified public clients and Kiro CLI as black boxes;
 - dependencies whose licenses have been reviewed and recorded.
 

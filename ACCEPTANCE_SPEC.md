@@ -70,6 +70,11 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
 - A valid tool call suspends until the exact client result arrives, preserves text/image/error status,
   and completes once.
 - Duplicate, orphan, late, partial, extra, or cross-session tool results never reach Kiro.
+- Calls arriving after a sealed response stay in a later batch. No result is accepted before its
+  successful HTTP delivery, and a rejected set consumes no pending ID.
+- A successful tool handoff keeps the same ACP prompt alive across HTTP requests and does not reset
+  the original total deadline. Timeout/auth expiry while no response is open still cleans up the
+  session; a matching later request observes only the scoped terminal outcome, never tool replay.
 - Cancellation and timeout resolve all suspended relay calls and remove owner-only socket/config data.
 
 ## F. Session continuity

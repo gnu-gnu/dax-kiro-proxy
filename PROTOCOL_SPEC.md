@@ -93,7 +93,9 @@ A tool request follows this order:
 5. message delta with `tool_use` stop reason;
 6. message stop.
 
-The next client request must return all and only the pending tool-result IDs for that session.
+The next client request must return all and only the tool-result IDs in that response's sealed,
+successfully delivered batch. Later relay calls remain queued for a subsequent response. Validate
+the complete result set and final encoded result sizes before completing any suspended call.
 
 ### Server web search
 
@@ -239,9 +241,17 @@ They may enrich logs but must not be required for correct text or tool-result de
 
 Each Kiro session gets a child MCP server plus a private parent-control channel.
 
-The child MCP server speaks newline-delimited JSON-RPC over stdio and supports only initialize, ping,
-tools/list, and tools/call. It performs no tool effect. A tools/call is forwarded over an owner-only
+The child MCP server speaks newline-delimited JSON-RPC over stdio, implements the 2025-06-18
+initialization lifecycle, and supports only initialize, ping, tools/list, and tools/call request
+methods. Lifecycle/cancellation notifications receive no replies. Real Kiro version negotiation must
+be verified before live enablement. It performs no tool effect. A tools/call is forwarded over an owner-only
 Unix-domain socket to the parent, authenticated by a random per-session secret.
+
+The version-1 private control channel uses a four-byte unsigned big-endian payload length followed
+by a strict UTF-8 JSON object. Its call fields are `version`, `owner`, `secret`, `callId`, `alias` and
+object `arguments`. The opaque relay owner is allocated before the Kiro session ID and bound only to
+that session. Replies contain version, matching callId, and either result or a safe error. A relay
+call ID never becomes reusable after completion; a bounded lifetime ledger retires on exhaustion.
 
 The control request identifies the relay call, opaque tool alias, and object arguments. The parent
 validates the secret, unique call ID, alias membership, argument schema, queue capacity, and session

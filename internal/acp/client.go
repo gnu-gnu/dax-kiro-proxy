@@ -42,6 +42,7 @@ type Client struct {
 	err, cleanupErr error
 
 	events     chan Notification
+	activity   chan struct{}
 	eventBytes int
 	writes     chan outbound
 	writeBytes int
@@ -107,7 +108,7 @@ func Start(ctx context.Context, cfg Config) (*Client, error) {
 	_ = inR.Close()
 	_ = outW.Close()
 	_ = errW.Close()
-	c := &Client{config: cfg, limits: limits, cmd: cmd, stdin: inW, stdout: outR, stderr: errR, nextID: 1, pending: make(map[uint64]pendingCall), events: make(chan Notification, limits.EventQueue), writes: make(chan outbound, limits.WriteQueue), failed: make(chan struct{}), done: make(chan struct{}), exited: make(chan struct{}), readDone: make(chan struct{}), stderrDone: make(chan struct{}), writeDone: make(chan struct{}), stopWriter: make(chan struct{})}
+	c := &Client{config: cfg, limits: limits, cmd: cmd, stdin: inW, stdout: outR, stderr: errR, nextID: 1, pending: make(map[uint64]pendingCall), events: make(chan Notification, limits.EventQueue), activity: make(chan struct{}, 1), writes: make(chan outbound, limits.WriteQueue), failed: make(chan struct{}), done: make(chan struct{}), exited: make(chan struct{}), readDone: make(chan struct{}), stderrDone: make(chan struct{}), writeDone: make(chan struct{}), stopWriter: make(chan struct{})}
 	go c.readLoop()
 	go c.writeLoop()
 	go c.stderrLoop()
@@ -144,6 +145,16 @@ func (c *Client) PID() int                   { return c.cmd.Process.Pid }
 func (c *Client) Capabilities() Capabilities { return c.caps }
 func (c *Client) Done() <-chan struct{}      { return c.done }
 func (c *Client) Err() error                 { c.mu.Lock(); defer c.mu.Unlock(); return c.err }
+
+// Activity is a coalescing wake hint for a single TryNext consumer multiplexing another event source.
+// Consumers always drain TryNext before waiting again; a hint is not itself a protocol event.
+func (c *Client) Activity() <-chan struct{} { return c.activity }
+func (c *Client) signalActivity() {
+	select {
+	case c.activity <- struct{}{}:
+	default:
+	}
+}
 
 func (c *Client) Call(ctx context.Context, method string, params any) (json.RawMessage, error) {
 	return c.call(ctx, method, params, false)
@@ -447,6 +458,7 @@ func (c *Client) receive(frame []byte) error {
 		select {
 		case c.events <- event:
 			c.eventBytes += event.size
+			c.signalActivity()
 			return nil
 		default:
 			return ErrOverloaded
@@ -560,6 +572,7 @@ func (c *Client) retire(reason error) {
 		delete(c.pending, id)
 	}
 	close(c.failed)
+	c.signalActivity()
 	c.mu.Unlock()
 	go c.cleanup(sessions)
 }

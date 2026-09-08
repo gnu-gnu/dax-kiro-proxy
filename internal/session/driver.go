@@ -5,7 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"io"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -14,8 +14,9 @@ import (
 	"dax-kiro-proxy/internal/catalog"
 	"dax-kiro-proxy/internal/inference"
 	"dax-kiro-proxy/internal/kirofeature"
-	"dax-kiro-proxy/internal/ndjson"
 	"dax-kiro-proxy/internal/projection"
+	"dax-kiro-proxy/internal/relay"
+	"dax-kiro-proxy/internal/toolregistry"
 )
 
 var ErrBusy = inference.ErrBusy
@@ -23,11 +24,12 @@ var ErrBusy = inference.ErrBusy
 type State string
 
 const (
-	Unstarted State = "unstarted"
-	Starting  State = "starting"
-	Idle      State = "idle"
-	Prompting State = "prompting"
-	Closed    State = "closed"
+	Unstarted    State = "unstarted"
+	Starting     State = "starting"
+	Idle         State = "idle"
+	Prompting    State = "prompting"
+	WaitingTools State = "waiting-for-tools"
+	Closed       State = "closed"
 )
 
 type Config struct {
@@ -37,22 +39,29 @@ type Config struct {
 	InitialModel       string
 	InitialEffort      string
 	UnsupportedEfforts []kirofeature.Pair
+	Validator          toolregistry.Validator
+	RelayExecutable    string
+	RelayLimits        relay.Limits
 }
 type Driver struct {
-	cfg         Config
-	mu          sync.Mutex
-	state       State
-	client      *acp.Client
-	current     *turn
-	closed      bool
-	setupCancel context.CancelFunc
-	setupDone   chan struct{}
-	closeOnce   sync.Once
-	closeErr    error
-	modelState  catalog.Session
-	fresh       bool
-	initialUsed bool
-	effort      *kirofeature.Effort
+	cfg                 Config
+	mu                  sync.Mutex
+	state               State
+	client              *acp.Client
+	current             *turn
+	closed              bool
+	setupCancel         context.CancelFunc
+	setupDone           chan struct{}
+	closeOnce           sync.Once
+	closeErr            error
+	modelState          catalog.Session
+	fresh               bool
+	initialUsed         bool
+	effort              *kirofeature.Effort
+	broker              *relay.Broker
+	socket              *relay.Socket
+	registryFingerprint string
+	outcome             *terminalOutcome
 }
 
 func New(cfg Config) (*Driver, error) {
@@ -68,6 +77,9 @@ func New(cfg Config) (*Driver, error) {
 	if len(cfg.InitialModel) > 256 || cfg.InitialEffort != "" && kirofeature.Normalize(cfg.InitialEffort) == "" || len(cfg.UnsupportedEfforts) > 1280 {
 		return nil, acp.ErrParameters
 	}
+	if (cfg.Validator != nil) != (cfg.RelayExecutable != "") || cfg.RelayExecutable != "" && !filepath.IsAbs(cfg.RelayExecutable) {
+		return nil, acp.ErrParameters
+	}
 	// The ACP turn may outlive an individual HTTP tool handoff. Short setup calls use their own ctx.
 	cfg.Process.Limits.RequestTimeout = max(cfg.TurnTimeout, cfg.SetupTimeout)
 	return &Driver{cfg: cfg, state: Unstarted, effort: kirofeature.NewEffort(cfg.UnsupportedEfforts)}, nil
@@ -78,11 +90,49 @@ func (d *Driver) Start(ctx context.Context, r *anthropic.Request) (inference.Tur
 	if ctx.Err() != nil {
 		return nil, ctx.Err()
 	}
+	if !r.ClientContent() {
+		return nil, inference.ErrRequest
+	}
+	disabled, err := r.ToolPolicy()
+	if err != nil {
+		return nil, inference.ErrRequest
+	}
+	d.mu.Lock()
+	busy := d.state == Starting || d.state == Prompting
+	d.mu.Unlock()
+	if busy {
+		return nil, ErrBusy
+	}
+	var registry *toolregistry.Registry
+	if d.cfg.Validator != nil {
+		registry, err = toolregistry.Build(ctx, r.Tools, nil, d.cfg.Validator)
+		if err != nil {
+			return nil, errors.Join(inference.ErrRequest, err)
+		}
+		if disabled {
+			registry, err = toolregistry.Build(ctx, nil, nil, d.cfg.Validator)
+			if err != nil {
+				return nil, err
+			}
+		}
+	} else if len(r.Tools) > 0 {
+		return nil, inference.ErrRequest
+	}
+	results, err := r.LatestToolResults()
+	if err != nil {
+		return nil, inference.ErrRequest
+	}
+	d.mu.Lock()
+	waiting := d.state == WaitingTools
+	d.mu.Unlock()
+	if waiting || len(results) > 0 {
+		return d.resume(ctx, r, registry, results)
+	}
 	prompt, err := projection.Full(r)
 	if err != nil {
 		return nil, err
 	}
-	p, err := d.prepare(ctx, true)
+	p, err := d.prepare(ctx, true, registry)
 	if err != nil {
 		return nil, err
 	}
@@ -122,14 +172,35 @@ func (d *Driver) Start(ctx context.Context, r *anthropic.Request) (inference.Tur
 		d.failedStart(client)
 		return nil, acp.ErrProtocol
 	}
-	owned, stop := context.WithTimeout(context.Background(), d.cfg.TurnTimeout)
-	response, signal := context.WithCancel(context.Background())
-	t := &turn{driver: d, client: client, id: id, model: modelID, owned: owned, cancelOwned: stop, response: response, signalResponse: signal, done: make(chan struct{})}
+	deadline := time.Now().Add(d.cfg.TurnTimeout)
+	if requestDeadline, ok := ctx.Deadline(); ok && requestDeadline.Before(deadline) {
+		deadline = requestDeadline
+	}
+	// Preserve the first HTTP request's total deadline across successful handoffs, without inheriting
+	// its cancellation when the response handler returns. Standalone setup retains its own timeout.
+	owned, stop := context.WithDeadline(context.Background(), deadline)
+	d.mu.Lock()
+	broker, socket := d.broker, d.socket
+	d.mu.Unlock()
+	t := &turn{driver: d, client: client, id: id, model: modelID, owned: owned, cancelOwned: stop, done: make(chan struct{}), released: make(chan struct{}), broker: broker, socket: socket}
+	t.compat, err = compatibility(r, registry)
+	if err != nil {
+		stop()
+		d.failedStart(client)
+		return nil, inference.ErrRequest
+	}
+	t.history, err = historyDigest(r.Messages)
+	if err != nil {
+		stop()
+		d.failedStart(client)
+		return nil, inference.ErrRequest
+	}
+	t.messageCount = len(r.Messages)
+	round := &round{turn: t}
 	d.mu.Lock()
 	if d.closed || p.ctx.Err() != nil {
 		d.mu.Unlock()
 		stop()
-		signal()
 		d.failedStart(client)
 		if p.ctx.Err() != nil {
 			return nil, p.ctx.Err()
@@ -147,12 +218,25 @@ func (d *Driver) Start(ctx context.Context, r *anthropic.Request) (inference.Tur
 			Prompt  []projection.Text `json:"prompt"`
 		}{id, prompt})
 		close(t.done)
-		signal()
+		if t.resultErr != nil {
+			t.abort(t.resultErr)
+		}
 	}()
-	return t, nil
+	go t.watch()
+	return round, nil
 }
 
 func (d *Driver) failedStart(client *acp.Client) {
+	d.mu.Lock()
+	socket, broker := d.socket, d.broker
+	d.socket = nil
+	d.broker = nil
+	d.mu.Unlock()
+	if socket != nil {
+		socket.Close()
+	} else if broker != nil {
+		broker.Close()
+	}
 	if client != nil {
 		_ = client.Close()
 	}
@@ -184,7 +268,7 @@ func (d *Driver) Models(ctx context.Context) ([]inference.Model, error) {
 }
 
 func (d *Driver) RefreshModels(ctx context.Context) (*catalog.Catalog, error) {
-	p, err := d.prepare(ctx, false)
+	p, err := d.prepare(ctx, false, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -212,13 +296,19 @@ func (d *Driver) Close() error {
 		}
 		setup := d.setupDone
 		current, client := d.current, d.client
+		socket, broker := d.socket, d.broker
 		d.mu.Unlock()
 		if current != nil {
-			current.Cancel()
+			current.abort(context.Canceled)
 		}
 		// Finish may have won its single-flight race against Cancel; Close still owns the process.
 		if client != nil {
 			d.closeErr = client.Close()
+		}
+		if socket != nil {
+			socket.Close()
+		} else if broker != nil {
+			broker.Close()
 		}
 		if setup != nil {
 			<-setup
@@ -227,149 +317,6 @@ func (d *Driver) Close() error {
 	return d.closeErr
 }
 
-type turn struct {
-	driver            *Driver
-	client            *acp.Client
-	id, model         string
-	owned             context.Context
-	cancelOwned       context.CancelFunc
-	response          context.Context
-	signalResponse    context.CancelFunc
-	done              chan struct{}
-	result            json.RawMessage
-	resultErr         error
-	nextMu            sync.Mutex
-	terminal, success bool
-	settle            sync.Once
-}
-
-func (t *turn) Model() string { return t.model }
-func (t *turn) Next(ctx context.Context) (inference.Event, error) {
-	t.nextMu.Lock()
-	defer t.nextMu.Unlock()
-	if t.terminal {
-		return inference.Event{}, io.EOF
-	}
-	for {
-		if err := ctx.Err(); err != nil {
-			return inference.Event{}, err
-		}
-		var event acp.Notification
-		var err error
-		select {
-		case <-t.done:
-			var ok bool
-			event, ok, err = t.client.TryNext()
-			if err != nil {
-				return inference.Event{}, err
-			}
-			if !ok {
-				t.terminal = true
-				if t.resultErr != nil {
-					return inference.Event{}, t.resultErr
-				}
-				obj, err := ndjson.Object(t.result)
-				var stop string
-				if err != nil || !strictString(obj["stopReason"], &stop) {
-					return inference.Event{}, acp.ErrProtocol
-				}
-				switch stop {
-				case "end_turn", "max_tokens", "refusal":
-					t.success = true
-					return inference.Event{Kind: inference.End, StopReason: stop}, nil
-				case "cancelled":
-					return inference.Event{}, context.Canceled
-				default:
-					return inference.Event{}, acp.ErrProtocol
-				}
-			}
-		default:
-			wait, cancel := context.WithCancel(ctx)
-			stop := context.AfterFunc(t.response, cancel)
-			event, err = t.client.Next(wait)
-			stop()
-			cancel()
-			if err != nil {
-				select {
-				case <-t.done:
-					continue
-				default:
-					return inference.Event{}, err
-				}
-			}
-		}
-		if event.SessionID != "" && event.SessionID != t.id {
-			return inference.Event{}, acp.ErrProtocol
-		}
-		if event.Method != "session/update" {
-			if event.Method == "_kiro.dev/commands/available" && event.SessionID == t.id {
-				_ = t.driver.effort.Advertise(event.Params)
-			}
-			continue
-		}
-		if event.SessionID != t.id {
-			return inference.Event{}, acp.ErrProtocol
-		}
-		fields, err := ndjson.Object(event.Params)
-		if err != nil {
-			return inference.Event{}, acp.ErrProtocol
-		}
-		update, err := ndjson.Object(fields["update"])
-		if err != nil {
-			return inference.Event{}, acp.ErrProtocol
-		}
-		var kind string
-		if !strictString(update["sessionUpdate"], &kind) {
-			return inference.Event{}, acp.ErrProtocol
-		}
-		if kind != "agent_message_chunk" {
-			continue
-		}
-		content, err := ndjson.Object(update["content"])
-		var typ, text string
-		if err != nil || !strictString(content["type"], &typ) || typ != "text" || !strictString(content["text"], &text) {
-			return inference.Event{}, acp.ErrProtocol
-		}
-		if text == "" {
-			continue
-		}
-		return inference.Event{Kind: inference.Text, Text: text}, nil
-	}
-}
-func (t *turn) Finish() {
-	t.nextMu.Lock()
-	success := t.success
-	t.nextMu.Unlock()
-	if !success {
-		t.Cancel()
-		return
-	}
-	t.settle.Do(func() { t.cancelOwned(); t.release(false) })
-}
-func (t *turn) Cancel() {
-	t.settle.Do(func() { t.cancelOwned(); _ = t.client.Close(); <-t.done; t.release(true) })
-}
-func (t *turn) release(discard bool) {
-	d := t.driver
-	d.mu.Lock()
-	defer d.mu.Unlock()
-	if d.current != t {
-		return
-	}
-	d.current = nil
-	if discard {
-		d.client = nil
-	} else {
-		d.initialUsed = true
-	}
-	if !d.closed {
-		if discard {
-			d.state = Unstarted
-		} else {
-			d.state = Idle
-		}
-	}
-}
 func strictString(raw json.RawMessage, out *string) bool {
 	return len(raw) > 0 && raw[0] == '"' && json.Unmarshal(raw, out) == nil
 }

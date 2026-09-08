@@ -2,13 +2,48 @@
 
 Review date: 2026-09-08. Status: candidate assessment, not distribution clearance.
 
-Implementation update: the user selected Go. The implementation and independent Go fake process
-currently use no external modules. Go 1.27.1 darwin/arm64 was downloaded through the official Go
+## Phase 4 adoption review
+
+The following exact archives were downloaded from the official Go module proxy with checksum-database
+verification on 2026-09-08. Their complete installed LICENSE files were read before importing them;
+the Go additional PATENTS grant was also read. Filename-level license/NOTICE inventory found the
+top-level licenses and no separate NOTICE file in these three module archives. They are approved for
+local implementation/testing subject to the stated use boundaries; this does not close release or
+ownership gates. The current schemas and tests remain independently authored, with no upstream test
+corpus copied into this repository.
+
+| Module | Version | License | Module archive checksum | Intended use |
+| --- | --- | --- | --- | --- |
+| `github.com/santhosh-tekuri/jsonschema/v6` | v6.0.3 | Apache-2.0 | `h1:1EYB5IzjZawrrnELUi78f9fPu57HuXjmddZPjrls/28=` | Draft 2020-12 compiler/validator; untrusted work must have process-enforced deadlines and an in-memory-only resource loader |
+| `golang.org/x/text` | v0.41.0 | BSD-3-Clause | `h1:vz/seA0lnX87Othu2f/0L24RcgrXD9/YFTSuGjj3rH8=` | Runtime dependency of schema validation; selected over its old v0.14.0 manifest minimum |
+| `github.com/dlclark/regexp2` | v1.11.0 | MIT | `h1:G/nrcoOa7ZXlpoa/91N3X7mM3r8eIlMBBJZvsz/mxKI=` | Reviewed upstream test-graph dependency only; not approved as a runtime regex engine by this adoption |
+
+Primary license anchors: [validator v6.0.3](https://raw.githubusercontent.com/santhosh-tekuri/jsonschema/v6.0.3/LICENSE),
+[x/text v0.41.0](https://raw.githubusercontent.com/golang/text/v0.41.0/LICENSE),
+[regexp2 v1.11.0](https://raw.githubusercontent.com/dlclark/regexp2/v1.11.0/LICENSE).
+The x/text v0.41.0 module manifest additionally names x/tools v0.48.0, x/mod v0.38.0 and x/sync v0.22.0
+for its broader build/development graph. They are not assumed to be linked or licensed merely from
+that manifest. Record the compiled and test graphs after imports, retain applicable notices with the
+artifact, and run an advisory review before release. No vulnerability-free or complete supply-chain
+clearance is claimed from version freshness alone.
+
+After imports and `go mod tidy`, the application/test compiled package graph contains exactly two
+external modules: jsonschema v6.0.3 and x/text v0.41.0. `go list -m all` additionally resolves
+regexp2 v1.11.0, x/mod v0.38.0, x/sync v0.22.0 and x/tools v0.48.0 through dependency manifests.
+Those additional modules are not in `go list -test -deps ./...`; this project does not run upstream
+dependency test suites. The new helper and MCP child are built from the same application module.
+This graph evidence is distinct from the final binary, vendored Unicode/runtime components, notices,
+advisory and release-artifact audits, which remain outstanding.
+
+## Historical Phase 1–3 implementation scope
+
+The user selected Go. Through Phase 3 the implementation and independent Go fake process
+used no external modules. Go 1.27.1 darwin/arm64 was downloaded through the official Go
 toolchain mechanism into the ignored repository cache; its installed LICENSE (BSD-3-Clause) and
 PATENTS grant were read. `go.mod` records Go 1.27.0 with toolchain 1.27.1. The initial host's Go 1.22.0
 was used only to bootstrap the selected toolchain. Runtime/vendor/race-test component inventory is
-still a release task. The following Phase 0 candidate assessment is historical; no Rust dependency
-or JSON Schema library has been adopted yet.
+still a release task. The following Phase 0 candidate assessment is historical. No Rust dependency
+has been adopted; the Phase 4 update above supersedes the earlier schema-candidate status.
 
 No project license has been selected. At the Phase 0 review no dependency was installed or imported,
 no module/lock file was created, and no full build/test dependency graph existed. Library names below are recommendations

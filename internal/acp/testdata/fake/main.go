@@ -50,6 +50,13 @@ func main() {
 	session := ""
 	currentModel := "fixture-backend"
 	var calls []string
+	var relayChild *fixtureRelay
+	promptCount := 0
+	defer func() {
+		if relayChild != nil {
+			relayChild.close()
+		}
+	}()
 	modelOptions := func() []any {
 		return []any{map[string]any{"id": "fixture-select", "name": "Model", "category": "model", "type": "select", "currentValue": currentModel, "options": []any{map[string]any{"value": "fixture-backend", "name": "Fixture"}, map[string]any{"value": "fixture-alternate", "name": "Alternate"}, map[string]any{"value": "auto", "name": "Automatic"}}}}
 	}
@@ -104,6 +111,11 @@ func main() {
 			continue
 		}
 		switch q.Method {
+		case "schema/check", "schema/validate":
+			if mode != "schema-hang" {
+				os.Exit(33)
+			}
+			hanging = append(hanging, q.ID)
 		case "session/new":
 			calls = []string{"session/new"}
 			if !strings.HasPrefix(mode, "chat") {
@@ -115,6 +127,12 @@ func main() {
 			}
 			if json.Unmarshal(q.Params, &p) != nil || p.CWD == "" || p.MCP == nil {
 				os.Exit(26)
+			}
+			if strings.HasPrefix(mode, "chat-tools") {
+				if len(p.MCP) != 1 {
+					os.Exit(34)
+				}
+				relayChild = startFixtureRelay(p.MCP[0], p.CWD)
 			}
 			session = "fixture-conversation"
 			if mode == "chat-no-id" {
@@ -191,6 +209,7 @@ func main() {
 			write(map[string]any{"jsonrpc": "2.0", "method": "fixture/accepted", "params": map[string]any{"id": q.ID}})
 			hanging = append(hanging, q.ID)
 		case "session/prompt":
+			promptCount++
 			calls = append(calls, q.Method)
 			if strings.HasPrefix(mode, "chat") {
 				var p struct {
@@ -206,6 +225,29 @@ func main() {
 				}
 				if mode == "chat-before" {
 					hanging = append(hanging, q.ID)
+					continue
+				}
+				if strings.HasPrefix(mode, "chat-tools") {
+					if relayChild == nil || promptCount != 1 {
+						os.Exit(35)
+					}
+					emit := func(text string) {
+						write(map[string]any{"jsonrpc": "2.0", "method": "session/update", "params": map[string]any{"sessionId": session, "update": map[string]any{"sessionUpdate": "agent_message_chunk", "content": map[string]any{"type": "text", "text": text}}}})
+					}
+					emit("before client tool")
+					for range 2 {
+						write(map[string]any{"jsonrpc": "2.0", "method": "session/update", "params": map[string]any{"sessionId": session, "update": map[string]any{"sessionUpdate": "tool_call", "toolCallId": "diagnostic-only", "title": "fixture status", "status": "pending"}}})
+					}
+					if mode == "chat-tools-auth" {
+						relayChild.send(3, "tools/call", map[string]any{"name": relayChild.alias, "arguments": map[string]any{"n": 1}})
+						time.Sleep(300 * time.Millisecond)
+						write(map[string]any{"jsonrpc": "2.0", "id": q.ID, "error": map[string]any{"code": 401, "message": "login required"}})
+						continue
+					}
+					result := relayChild.call()
+					text, _ := json.Marshal(map[string]any{"promptCount": promptCount, "relayResult": result})
+					emit(string(text))
+					reply(q.ID, map[string]any{"stopReason": "end_turn"})
 					continue
 				}
 				owner := session

@@ -206,8 +206,12 @@ func (h *Handler) messages(ctx context.Context, w http.ResponseWriter, r *http.R
 		writeError(w, 400, "invalid_request_error", "Invalid Messages request")
 		return
 	}
-	if !request.TextOnly() {
+	if !request.ClientContent() {
 		writeError(w, 400, "invalid_request_error", "Content or tools are unsupported by the current adapter")
+		return
+	}
+	if _, err := request.ToolPolicy(); err != nil {
+		writeError(w, 400, "invalid_request_error", "Unsupported tool choice restriction")
 		return
 	}
 	id, err := randomID(18)
@@ -245,6 +249,15 @@ func (h *Handler) messages(ctx context.Context, w http.ResponseWriter, r *http.R
 	defer stopFirst()
 	var stream *anthropic.TextStream
 	var buffered strings.Builder
+	var blocks []anthropic.ResponseBlock
+	var pendingTools []anthropic.ToolUse
+	flushText := func() {
+		if buffered.Len() > 0 {
+			text := buffered.String()
+			blocks = append(blocks, anthropic.ResponseBlock{Type: "text", Text: &text})
+			buffered.Reset()
+		}
+	}
 	gotFirst := false
 	for {
 		nextCtx := ctx
@@ -274,7 +287,7 @@ func (h *Handler) messages(ctx context.Context, w http.ResponseWriter, r *http.R
 		if event.Kind == inference.Text && event.Text == "" {
 			continue
 		}
-		if event.Kind != inference.Text && event.Kind != inference.End {
+		if event.Kind != inference.Text && event.Kind != inference.End && event.Kind != inference.Tools || event.Kind == inference.Tools && !validToolBatch(request, event.Tools) || len(pendingTools) > 0 && event.Kind != inference.End {
 			if stream != nil {
 				_ = stream.Fail("Unsupported Kiro response event")
 			} else {
@@ -286,10 +299,15 @@ func (h *Handler) messages(ctx context.Context, w http.ResponseWriter, r *http.R
 			gotFirst = true
 			stopFirst()
 		}
+		// Keep complete validated tools private until the backend confirms the tool-use handoff.
+		if event.Kind == inference.Tools {
+			pendingTools = event.Tools
+			continue
+		}
 		if request.Stream && stream == nil {
 			w.Header().Set("Content-Type", "text/event-stream")
 			w.Header().Set("Trailer", AuthFallbackHeader)
-			stream, err = anthropic.BeginTextStream(output, output.flush, "msg_"+id, turn.Model())
+			stream, err = anthropic.BeginStream(output, output.flush, "msg_"+id, turn.Model())
 			if err != nil {
 				return
 			}
@@ -314,7 +332,7 @@ func (h *Handler) messages(ctx context.Context, w http.ResponseWriter, r *http.R
 			}
 			continue
 		}
-		if event.StopReason != "end_turn" && event.StopReason != "max_tokens" && event.StopReason != "refusal" {
+		if event.StopReason != "end_turn" && event.StopReason != "max_tokens" && event.StopReason != "refusal" && event.StopReason != "tool_use" || (event.StopReason == "tool_use") != (len(pendingTools) > 0) {
 			if stream != nil {
 				_ = stream.Fail("Kiro turn did not complete")
 			} else {
@@ -322,14 +340,71 @@ func (h *Handler) messages(ctx context.Context, w http.ResponseWriter, r *http.R
 			}
 			return
 		}
+		if len(pendingTools) > 0 {
+			if stream != nil {
+				size := 0
+				for _, tool := range pendingTools {
+					n, e := stream.ToolBytes(tool)
+					if e != nil {
+						_ = stream.Fail("Invalid Kiro tool request")
+						return
+					}
+					size += n
+				}
+				if size+512 > output.remaining {
+					_ = stream.Fail(errOutputLimit.Error())
+					return
+				}
+				for _, tool := range pendingTools {
+					if err := stream.Tool(tool); err != nil {
+						return
+					}
+				}
+			} else {
+				flushText()
+				for _, tool := range pendingTools {
+					blocks = append(blocks, tool.Block())
+				}
+			}
+		}
 		if request.Stream {
 			err = stream.End(event.StopReason)
 		} else {
-			err = output.json(anthropic.NewResponse("msg_"+id, turn.Model(), buffered.String(), event.StopReason))
+			if len(blocks) == 0 {
+				err = output.json(anthropic.NewResponse("msg_"+id, turn.Model(), buffered.String(), event.StopReason))
+			} else {
+				flushText()
+				err = output.json(anthropic.NewBlocksResponse("msg_"+id, turn.Model(), blocks, event.StopReason))
+			}
 		}
 		finished = err == nil && r.Context().Err() == nil
 		return
 	}
+}
+
+func validToolBatch(request *anthropic.Request, tools []anthropic.ToolUse) bool {
+	disabled, err := request.ToolPolicy()
+	if err != nil || disabled || len(tools) == 0 || len(tools) > 64 {
+		return false
+	}
+	names := make(map[string]bool)
+	for _, raw := range request.Tools {
+		var declaration struct {
+			Name string `json:"name"`
+		}
+		if json.Unmarshal(raw, &declaration) != nil {
+			return false
+		}
+		names[declaration.Name] = true
+	}
+	ids := make(map[string]bool)
+	for _, tool := range tools {
+		if !tool.Valid() || !names[tool.Name] || ids[tool.ID] {
+			return false
+		}
+		ids[tool.ID] = true
+	}
+	return true
 }
 
 func failureMessage(err error, first bool, total context.Context) string {

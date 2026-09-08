@@ -162,4 +162,97 @@ directory root. Directory path normalization precedes the symlink check. Individ
 exceed 4 MiB; catalog and last-model readers impose smaller limits. Files contain metadata/digests,
 not conversation bodies. Exclusive session leases and crash recovery remain Phase 5 work.
 
-Other Phase 0 proposals remain pending until adopted with their relevant implementation and tests.
+## D11: bounded schema validation (review R12/R13)
+
+Custom tool schemas require root `type: "object"`, use Draft 2020-12, and may resolve only resources
+within the submitted document. An explicit loader rejects all network and file retrieval. Go's default
+RE2 regex subset is used; unsupported lookaround/backreferences reject the schema. Formats and content
+keywords retain the draft's annotation behavior. Numbers use exact decimal representations, with a
+128-character lexical limit and exponents between -1000 and 1000. Schema/argument limits are 64 KiB/
+1 MiB, depth 64, and 8,192/65,536 value nodes. These are an explicit accepted subset, not a claim that
+all Draft 2020-12 schemas or ECMAScript regular expressions work.
+
+The reviewed validator runs in a separate helper process, with no inherited home/credentials and a
+denied schema resource loader. At most two helpers run by default, each caching 16 compiled schemas.
+The parent enforces 500 ms per operation, 5 seconds for startup and 5 minutes of lazy idle retention;
+cancellation or deadline expiration retires and reaps the helper's group. The internal version-1
+handshake reuses the tested ACP lifecycle carrier; `schema/*` RPCs are never sent to Kiro. A 64 MiB Go
+memory target is soft, not an OS memory sandbox or a hard RSS guarantee. Stack/thread caps and input,
+node, concurrency and time limits are independent; adversarial RSS measurements remain hardening work.
+
+Dependency pins and licenses are in DEPENDENCY_REVIEW.md. Independently written worker tests cover
+local/dynamic refs, unevaluated properties, exact large integers and decimals, denied retrieval,
+unsupported regex, invalid/oversized input and process-enforced cancellation. No upstream fixture
+corpus is incorporated.
+
+## D12: effect-free relay and sealed batches (review R04/R05/R09/R12)
+
+The MCP child implements the public 2025-06-18 initialization lifecycle, including
+`notifications/initialized` and `notifications/cancelled`. If another version is requested, it offers
+2025-06-18; the client must accept that version or disconnect. This pins the independently tested
+contract, not a claim of real Kiro negotiation. Only initialize, ping, tools/list and tools/call are
+request methods. No reply is sent to notifications. Tool waits do not block ping or the stdin reader.
+Input/output MCP frames are bounded at 8 MiB, active requests at 64 and writes at 5 seconds.
+
+The parent control protocol is version 1: a four-byte unsigned big-endian byte length followed by one
+strict UTF-8 JSON object, at most 4 MiB. A call carries `version`, `owner`, `secret`, `callId`, `alias`
+and object `arguments`. Replies carry version, matching callId and exactly a result or a safe error.
+Each session has an opaque random owner independent of its eventual Kiro ID, a separate 256-bit
+secret, a fresh 0700 directory, and 0600 socket/config. Defaults are 64 socket connections, 5-second
+frame reads/writes, 64 combined pending/validating calls, 16 MiB pending use data and 5-minute tool
+waits. A 4,096-entry call-ID ledger never evicts a tombstone to permit reuse; exhaustion retires the
+relay. Config and socket paths are private and never supplied in logs.
+
+Tool aliases are `relay_` plus a SHA-256 prefix of a domain-separated original name. Colliding
+prefixes extend symmetrically, independent of declaration order; a full digest collision rejects.
+Names follow the public 1-64 ASCII letter/digit/underscore/hyphen contract, descriptions are at most
+8 KiB, and registries have at most 128 tools/1 MiB. Fingerprints include sorted original names,
+aliases, descriptions, canonical schemas and native choices. Canonicalization sorts keys and removes
+whitespace while preserving number spellings; a numeric spelling change conservatively changes the
+fingerprint. No native tool adapter is enabled yet.
+
+The broker seals only calls included in one response, up to the encoded batch budget. Calls arriving
+later stay queued. Results cannot be accepted before successful HTTP handoff. The complete result set
+is validated and encoded before any future completes; duplicate/partial/extra/cross-owner/late sets
+consume no IDs. Results preserve text, supported base64 images and error status. Other client result
+content is serialized as text without fetching or executing it. Cancellation/timeout completes pending
+calls with safe tool errors, makes the relay unusable, and removes its private artifacts. Timer
+callbacks verify that their own call is still pending, including callbacks racing a successful result.
+
+Sources checked 2026-09-08: https://modelcontextprotocol.io/specification/2025-06-18/basic/lifecycle,
+https://modelcontextprotocol.io/specification/2025-06-18/server/tools and
+https://platform.claude.com/docs/en/agents-and-tools/tool-use/define-tools.
+MCP is explicitly added to AGENTS.md's permitted public protocol documentation under the user's
+existing public-protocol authorization. No previous implementation is an input.
+
+## D13: HTTP tool handoff and continuation ownership (review R04/R05/R10/R16)
+
+Each ACP prompt owns its context across one or more HTTP responses. A successful tool-use response
+only delivers a sealed batch; its Finish does not cancel the prompt. The following exact client
+results resolve the relay and continue that same prompt without another `session/prompt`. A session
+supervisor enforces tool/turn deadlines and process cleanup while no HTTP request is open. A scoped
+terminal outcome retains only compatibility digest, pending IDs and safe failure class, for at most
+five minutes. A correlated auth-expiry class takes precedence over the secondary relay disconnect.
+
+Until Phase 5 reconciliation, continuation requires the exact previous history plus the delivered
+assistant message and a user message containing only that batch's results. Changed system, registry,
+requested model/effort or client metadata is incompatible. An ordinary new prompt while waiting is
+busy; a completed or orphan tool-result request cannot start a fresh model prompt. Stable family
+keys, truncated histories, shared-process routing and persisted resume remain Phase 5 work.
+
+The HTTP adapter preserves text before tools and emits complete validated JSON argument deltas. It
+buffers a tool batch until the backend confirms its tool-use stop, then writes blocks with sequential
+indices and checks the encoded budget before tool emission. ACP tool status notifications do not
+create tool-use blocks. Streaming and buffered responses describe the same ordered content, and
+provider token counts remain zero when unreported.
+
+Custom tools and `tool_choice` auto/none are implemented; none exposes an empty effective registry.
+Required/specific tool choices, disabling parallel use, deferred tool loading, non-direct callers and
+unsupported versioned typed tools are rejected before dispatch. Strict custom arguments are validated
+before exposure, with no claim of backend constrained decoding. Security-affecting unsupported choices
+are never silently ignored. The complete request-field table, live client shapes, media/native web
+and exact enforcement of other provider-specific generation controls remain R14/R16/Phase 6 work.
+
+The current executable has only internal `schema-worker` and `relay --config` commands. It is not a
+finished launcher or an approved live Kiro profile. R06 execution restriction and all live release
+gates remain open. Other Phase 0 proposals remain pending until implemented and tested.

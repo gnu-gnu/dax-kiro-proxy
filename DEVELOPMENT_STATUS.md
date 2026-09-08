@@ -18,7 +18,7 @@ does not redefine completion around an intermediate phase.
 - Passed `go vet ./...` and `git diff --check`.
 - Passed `go test ./internal/ndjson -run '^$' -fuzz FuzzObject -fuzztime=5s -parallel=2`:
   74,534 fuzz executions, no failing input; runtime 6.647s.
-- `go list -m all` reports only this module. No external Go module is currently required.
+- Through Phase 3, `go list -m all` reported only this module; Phase 4 dependencies are recorded below.
 - Phase 2 independent HTTP and request-validation tests were written before their adapters. The
   session test suite first failed because no implementation existed. An additional encoded-output
   overflow test reproduced an incomplete SSE sequence before the terminal-error fix.
@@ -91,6 +91,44 @@ The last-model/cache policy modules pass independently; final launcher integrati
 Private effort wire shapes are explicit specification interpretations pending real Kiro validation
 (decision D09). The unmodified client model-selector UI and all live release behavior remain unverified.
 
+## Phase 4 implementation evidence
+
+Schema-worker, registry, broker, socket, MCP child, mixed HTTP block and session-continuation tests
+were written before their respective implementation and initially failed on absent APIs/behavior.
+An additional regression reproduced a completed call's timer incorrectly canceling a newer batch;
+the timer now checks its still-pending ownership before retiring a relay. Correlated auth expiry wins
+over a racing relay disconnect, and notifications are drained again at the prompt completion barrier.
+
+- Passed `go test -race -count=1 ./internal/toolregistry ./internal/schemacheck`: deterministic
+  collision extension and registry ownership; real worker Draft 2020-12/numeric/retrieval/deadline cases.
+- Passed `go test -race -count=1 ./internal/relay/...`: sealed batch atomicity, cross-owner/repeated/
+  partial/late results, byte/admission limits, timeout/cancel, private file modes and cleanup; real
+  MCP child lifecycle, suspended call plus ping, exact whitelist and cancellation.
+- Passed `go test -race -count=1 ./internal/gateway ./internal/anthropic`: mixed text/tool event order,
+  buffered/SSE content, exact large-number arguments, no partial/undeclared tool block and explicit
+  rejection of unsupported tool-choice restrictions, plus the existing auth/deadline suites.
+- Passed `go test -race -count=1 ./internal/session` in 6.188s: actual gateway → independent fake ACP
+  → MCP child → private socket → matching client result, in both response modes; only one ACP prompt
+  spans the round trip. Includes preserved tool error/output, ignored duplicate diagnostic tool
+  updates, HTTP completion versus cancellation, no-consumer tool expiry, model/result replay refusal
+  and graceful auth expiry while no HTTP response is open.
+- Schema runtime dependencies are jsonschema v6.0.3 (Apache-2.0) and x/text v0.41.0 (BSD-3-Clause).
+  `go mod tidy` and the compiled application/test graph are recorded in DEPENDENCY_REVIEW.md.
+- Passed full uncached `go test -race -count=1 ./...`: ACP 6.689s, gateway 3.251s, broker 3.007s,
+  MCP child 5.690s, schema worker 6.010s and session 8.122s; all other packages passed. After adding
+  the original-HTTP-deadline regression, the session race suite passed again in 6.434s.
+- Passed `go vet ./...` and `git diff --check`. Control-frame fuzzing passed 265,734 executions
+  in 6.442s (`-fuzztime=5s -parallel=2`), with no failing input.
+
+Black-box Kiro 2.21.1 configuration evidence remains limited: an independently authored temporary
+profile with empty tools, empty MCP servers/resources, no hooks and `includeMcpJson: false` passed
+`agent validate` with exit 0. The default agent creation behavior advertised all tools (`*`) and
+included inherited MCP configuration. The create command opened an editor; the owned editor/process
+was terminated, and later probes suppressed editor invocation and used bounded process groups.
+Syntax acceptance does not prove effective tool suppression. No model request or client tool effect
+has been run. Real Kiro restricted-profile/negotiation proof (R06), actual Claude model UI (R14), and
+credit-consuming live opt-in gates remain open.
+
 ## Remaining work
 
 | Phase | Completion evidence required | State |
@@ -98,7 +136,7 @@ Private effort wire shapes are explicit specification interpretations pending re
 | 1 | All acceptance A plus applicable G; independent fake child, framing, negotiation, correlation, notifications, stderr, deadlines, process-group cleanup | Passed on local macOS with fake ACP |
 | 2 | Authenticated HTTP text path, exact SSE/non-streaming responses, authentication fallback, disconnect tests | Passed with independent fake ACP; broader B/C requirements tracked below |
 | 3 | Model catalog/mapping/cache/selection and optional effort state | Passed independent module/process tests; launcher and live interoperability remain below |
-| 4 | Restricted Kiro agent proof, MCP relay, schema validation, client-only tool effects and result ownership | Next |
+| 4 | Restricted Kiro agent proof, MCP relay, schema validation, client-only tool effects and result ownership | Fake-process/HTTP implementation passes; R06 live restriction proof and additional hardening remain |
 | 5 | Request families/history/pool/persistence/resume and crash tests | Pending |
 | 6 | Media/web capabilities, cached usage/metrics, isolated launcher/profile and client interoperability | Pending |
 | 7 | Full acceptance, fuzz/race/load, license inventory, macOS packaging/install/uninstall and opt-in live gates | Pending |

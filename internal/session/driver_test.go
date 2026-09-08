@@ -23,6 +23,7 @@ import (
 )
 
 var fixture string
+var relayBinary string
 var fixtureClientID string
 
 func TestMain(m *testing.M) {
@@ -37,6 +38,14 @@ func TestMain(m *testing.M) {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
+		_ = os.RemoveAll(dir)
+		os.Exit(1)
+	}
+	relayBinary = filepath.Join(dir, "dax-kiro-proxy")
+	cmd = exec.Command("go", "build", "-o", relayBinary, "../../cmd/dax-kiro-proxy")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if cmd.Run() != nil {
 		_ = os.RemoveAll(dir)
 		os.Exit(1)
 	}

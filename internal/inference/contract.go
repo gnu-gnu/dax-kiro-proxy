@@ -15,12 +15,14 @@ type Kind uint8
 const (
 	Text Kind = iota + 1
 	End
+	Tools
 )
 
 type Event struct {
 	Kind       Kind
 	Text       string
 	StopReason string
+	Tools      []anthropic.ToolUse
 }
 type Model struct {
 	ID          string `json:"id"`
