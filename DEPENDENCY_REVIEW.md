@@ -359,3 +359,78 @@ Before release, the concrete remaining dependency work is to:
 No release notice files, dependency examples, upstream fixtures or project LICENSE are introduced
 by this checkpoint. Kiro, Claude Code and system test utilities remain separately installed
 executables; their bundling and service/use permissions are not granted by these library reviews.
+
+## Exact data and race-runtime notices — 2026-09-09
+
+Two previously unavailable notice texts have now been obtained from their official release sources,
+read in full, and retained byte-for-byte. This closes the missing-text portion of their reviews;
+it does not complete the artifact, full subcomponent, advisory or owner-rights gates. The new notice
+directories contain dependency licenses only, not a license for this project or bundled dependency
+implementations, examples or fixtures.
+
+### CLDR 32 generated data
+
+The official [CLDR 32 release directory](https://www.unicode.org/Public/cldr/32/) supplies core.zip.
+Its readme identifies the final CLDR 32 release and assigns data/software to unicode-license.txt.
+The full 2,849-byte text matches
+[Unicode-DFS-2016](https://spdx.org/licenses/Unicode-DFS-2016.html), with the original 1991-2017
+copyright notice. It permits use and distribution while requiring the notice with the data/software
+or associated documentation and restricting use of copyright-holder names for promotion. The current
+Unicode License v3 must not silently replace this release-specific text.
+
+The archive was fetched over HTTPS with a 25 MiB download ceiling and a forty-second deadline.
+Measured size: 20,248,715 bytes. SHA-256:
+`e561d24a93fac8ece726c3124e8ea5162b47da9b3caea58e0f78a896d33f5d1e`.
+Only the release readme and named license files were extracted/read; no locale corpus, tool source
+or fixture is used as implementation input. The complete archive remains in the ignored review
+cache and is not a distribution input.
+
+The data notice is retained at
+[third_party/notices/runtime/unicode-cldr-32.txt](third_party/notices/runtime/unicode-cldr-32.txt),
+SHA-256 `6a6976a5da6ac21a6a001c685c057f4a6e619be11f5465371088ecd80c7fbe06`.
+It is byte-identical to the separate official
+[CLDR 32.0.1 tag notice](https://raw.githubusercontent.com/unicode-org/cldr/release-32-0-1/unicode-license.txt)
+also fetched in this review. The provenance of the retained file is core.zip for version 32, not an
+assumed substitution of 32.0.1 data. x/text's generated CLDR-32 tables remain the scoped application
+use identified in the previous checkpoint.
+
+The release readme separately assigns ICU and Apache notices to ICU/Guava/Xerces dependencies of its
+Java tools. Those tools are not used or bundled here. Their presence in a data release archive does
+not establish that those libraries are linked into this Go application. They are not newly adopted
+dependencies, and no complete review of ICU's separate bundled-data notices is claimed. Unicode 17
+data in Go's standard-library vendor graph remains a distinct notice/provenance task.
+
+### Exact Go race-runtime upstream license
+
+The installed Go runtime/race README identifies LLVM revision
+51bfeff0e4b0757ff773da6882f4d538996c9b04 for race_darwin_arm64.syso, as recorded above. A bounded
+HTTPS fetch of that revision's
+[compiler-rt LICENSE.TXT](https://raw.githubusercontent.com/llvm/llvm-project/51bfeff0e4b0757ff773da6882f4d538996c9b04/compiler-rt/LICENSE.TXT)
+now succeeds. The entire 16,708-byte text was read. It identifies Apache-2.0 with LLVM exceptions,
+separately licensed third-party components, and legacy NCSA/MIT alternatives for historical code.
+The legacy paragraph is not treated as an unrestricted MIT election for all current LLVM material.
+
+The exact text is retained at
+[third_party/notices/test/llvm-compiler-rt.txt](third_party/notices/test/llvm-compiler-rt.txt),
+SHA-256 `1a8f1058753f1ba890de984e48f0242a3a5c29a6a8f2ed9fd813f36985387e8d`.
+It supports the recorded local race-testing use. This project has not modified upstream LLVM code.
+Go's platform patch/build provenance, any applicable separately licensed sanitizer components and
+final instrumented-artifact attribution remain separate from merely obtaining this top-level text.
+The ordinary proxy binary does not select the race runtime; this test notice must not imply that
+LLVM is an ordinary runtime dependency or authorize bundling the Go toolchain.
+
+### Metaschema license clarification still awaiting resource matching
+
+The current official JSON Schema specification
+[README](https://raw.githubusercontent.com/json-schema-org/json-schema-spec/main/README.md) expressly
+offers BSD-3-Clause or AFL-3.0, and its complete
+[LICENSE](https://raw.githubusercontent.com/json-schema-org/json-schema-spec/main/LICENSE) was read.
+The draft-bhutton-json-schema-01 release tag's README also states an AFL-or-BSD choice, but that tag
+has no LICENSE at the attempted root path. No release-specific text was invented from the 404.
+
+This is evidence that the specification source's license is not determined solely by the IETF prose
+notice. It is not yet a completed mapping of all nineteen resources embedded by jsonschema v6.0.3.
+Their draft-04/06/07/2019-09/2020-12 origins, exact resource correspondence, copyright notice and
+chosen branch still need explicit matching before a complete metaschema notice is retained. No
+upstream schema test suite was opened or adopted, no dependency version changed, and no claim of
+complete distribution clearance follows from these two newly retained notices.
