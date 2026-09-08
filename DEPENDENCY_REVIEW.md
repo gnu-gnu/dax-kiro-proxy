@@ -237,3 +237,125 @@ v6.0.3, x/image v0.45.0, x/text v0.41.0 and x/sys v0.47.0. `go.mod` now lists x/
 macOS test utility, invoked by its documented argument interface without copying its source or
 examples; it is neither a runtime launcher dependency nor bundled with the product. Final binary,
 runtime/race component, notice and advisory audits remain open.
+
+## Dependency inventory checkpoint — 2026-09-09
+
+This review inspected the current module metadata, installed dependency license/PATENTS files,
+license and attribution markers, embedded-resource filenames, and Go package/build metadata. It
+used no previous implementation, dependency implementation as a design template, or copied fixture.
+No package was installed, release artifact built, or project license selected. Earlier graph counts
+above describe their respective checkpoints; the following counts describe this inspection.
+
+### Resolved and compiled scopes
+
+| Component | Exact version | Observed scope | License evidence and review state |
+| --- | --- | --- | --- |
+| Go toolchain/runtime | Go 1.27.1, darwin/arm64; module language minimum 1.27.0 | Build/test toolchain and standard-library compilation | Installed BSD-3-Clause LICENSE and PATENTS reread; bundled components require the separate review below |
+| github.com/santhosh-tekuri/jsonschema/v6 | v6.0.3 | Direct; application/test package graph and current command target | Installed Apache-2.0 LICENSE reread; development adoption remains as recorded above |
+| golang.org/x/image | v0.45.0 | Direct; application/test package graph, absent from the current command target | Installed BSD-3-Clause LICENSE and PATENTS reread |
+| golang.org/x/sys | v0.47.0 | Direct; application/test package graph and current command target | Installed BSD-3-Clause LICENSE and PATENTS reread |
+| golang.org/x/text | v0.41.0 | Indirect; application/test package graph and current command target | Installed BSD-3-Clause LICENSE and PATENTS reread; generated-data attribution remains below |
+| github.com/dlclark/regexp2 | v1.11.0 | Resolved module graph only | Installed MIT LICENSE reread; no runtime regex adoption |
+| golang.org/x/mod | v0.38.0 | Resolved module graph only; archive not inspected | Exact archive/license/component review remains open |
+| golang.org/x/sync | v0.22.0 | Resolved module graph only; archive not inspected | Exact public BSD-3-Clause LICENSE read; archive/checksum/component review remains open |
+| golang.org/x/tools | v0.48.0 | Resolved module graph only; archive not inspected | Exact archive/license/component review remains open |
+
+Primary license anchors remain the pinned links in the adoption sections. The additional exact
+[x/sync v0.22.0 LICENSE](https://raw.githubusercontent.com/golang/sync/v0.22.0/LICENSE) was read in
+full. Fetching the exact x/mod and x/tools license anchors did not succeed, so their graph presence
+does not become a completed component review.
+
+`go list -m -json all` resolved eight external modules. `go list -test -deps ./...` identified four
+external compiled modules: jsonschema, x/image, x/sys and x/text. The image packages are webp, riff,
+vp8 and vp8l; the Unix adapter imports x/sys/unix. The separate current
+`go list -deps ./cmd/dax-kiro-proxy` graph contains three external modules, with x/image absent.
+That executable had only internal helper entry points at the audited `f931442` checkpoint. D35's
+subsequent startup composition makes x/image reachable from the command too: a fresh
+`go list -deps ./cmd/dax-kiro-proxy` now reports all four external application modules above. No module
+version or license selection changed. These are package graphs, not proof of final linked symbols or
+a future completed launcher's shipped contents.
+
+The installed Go binary was invoked directly with GOTOOLCHAIN=local, GOPROXY=off, GOSUMDB=off and the
+repository's existing module/build caches for these offline inspections. `go mod verify` reported
+`all modules verified`. This compares cached module contents with retained hashes; it is not a fresh
+online origin, advisory or toolchain authenticity check. Previously recorded checksum-database
+verification and go.sum archive checksums remain separate evidence. The retained toolchain archive
+ziphash is `h1:51Yfd9AJPm34szJ1qdVX7+kqAGDd3vI9FzVuY7UqLfA=` for
+`golang.org/toolchain v0.0.1-go1.27.1.darwin-arm64`.
+
+### Generated data, embedded resources and toolchain components
+
+The installed x/text tables used by plural, language/compact, language and number packages identify
+CLDR version 32. The standard-library vendored Unicode packages selected by the test graph use
+tables17.0.0. A module's BSD declaration alone does not complete the attribution review for generated
+data. The current [Unicode terms](https://www.unicode.org/copyright.html) identify the separate
+[Unicode License v3](https://www.unicode.org/license.txt), subject to release-specific terms.
+The exact CLDR 32 notice could not be fetched during this review. Determine and retain the applicable
+data notices before closing the generated-component gate; no complete Unicode notice bundle exists
+in this repository yet.
+
+The validator's Go EmbedFiles metadata lists 19 metaschema resources covering drafts 04, 06, 07,
+2019-09 and 2020-12. No separate license/NOTICE file or license marker was found under that embedded
+resource directory. Record their provenance and applicable notices explicitly rather than assuming
+the module's Apache label settles every embedded resource. The public
+[JSON Schema 2020-12 core specification](https://json-schema.org/draft/2020-12/json-schema-core)
+identifies IETF legal provisions; the release review must establish the applicable license and
+notice for these particular embedded resources rather than inferring them from the specification
+document's terms alone.
+
+Whole dependency archives also contain material absent from the compiled graph. Attribution lines
+in x/text's internal/testtext/text.go reference CC-BY-SA 3.0 Vietnamese and CC-BY-SA 1.0 Russian text.
+That package is absent from this project's application/test dependency graph. Only attribution
+markers were examined; the text was not copied as a fixture or used as implementation input. This
+does not establish linked copyleft code, but it does prevent treating a bundle of entire module
+caches or upstream test directories as BSD-only. Such bundling is not approved by this review.
+
+Go's installed src/vendor/modules.txt records a separate standard-library vendor graph:
+
+| Vendored module | Version recorded by Go 1.27.1 |
+| --- | --- |
+| golang.org/x/crypto | v0.52.1-0.20260526024921-9beb694f9766 |
+| golang.org/x/net | v0.55.1-0.20260731170536-c1d18010be90 |
+| golang.org/x/sys | v0.45.0 |
+| golang.org/x/text | v0.37.0 |
+
+The application/test graph reaches portions of vendored x/crypto, x/net and x/text. The current
+command target reaches x/net's DNS package. The separately inspected src/cmd/vendor/modules.txt
+contains additional build-tool dependencies and different versions; it must remain a separate
+inventory from both this table and go.mod resolution. No claim that every Go toolchain component is
+linked into the proxy follows from its presence in the toolchain archive.
+
+Race-enabled test compilation selects runtime/race/race_darwin_arm64.syso. The installed race README
+attributes that prebuilt runtime to LLVM revision 51bfeff0e4b0757ff773da6882f4d538996c9b04 with a Go
+platform patch, built from Go revision a61fd428974822a8c57a2b2840fc237e6711b24d. Its measured SHA-256
+is `6ca6a32e8b650ac03b6a11b40c7a0cdd938d00046bd1c942f7c530e0fdaf23b2`.
+The [current LLVM license](https://llvm.org/LICENSE.txt) uses Apache-2.0 with LLVM exceptions and
+identifies separately licensed components. Fetching the exact pinned compiler-rt license failed,
+so that exact-component review remains open. Ordinary command compilation does not select the race
+runtime; an instrumented binary or bundled toolchain would need its own distribution review.
+
+### Advisory evidence and remaining release review
+
+The official [GO-2026-5061 advisory](https://pkg.go.dev/vuln/GO-2026-5061) covers a WebP decoder panic
+affecting Decode and DecodeConfig before x/image v0.43.0. The selected v0.45.0 is beyond that fixed
+version. This checks one relevant advisory only. Database API requests did not succeed and no new
+scanner was installed, so no complete dependency or standard-library vulnerability scan is claimed.
+The [Go vulnerability documentation](https://go.dev/doc/security/vuln/) distinguishes curated reports
+from function-reachability analysis; review and pin any scanner before adoption, then retain its
+database date, target, toolchain, command and findings.
+
+Before release, the concrete remaining dependency work is to:
+
+- resolve the generated Unicode/CLDR, embedded metaschema and exact race-runtime notices above;
+- finish the appropriate build/test/toolchain component inventory, including target-specific native
+  components, rather than counting only modules in go.sum;
+- retain approved license and attribution texts with the artifact and inspect the actual binary,
+  native dependencies, build metadata and archive contents for each supported target;
+- run the reviewed advisory/reachability check against the selected toolchain and final package
+  graph, and resolve findings without claiming that a clean result covers unknown vulnerabilities;
+- close the owner's ownership/employment, specification-provenance, Kiro/private-extension use and
+  intended-distribution records before selecting the project license or clearing release.
+
+No release notice files, dependency examples, upstream fixtures or project LICENSE are introduced
+by this checkpoint. Kiro, Claude Code and system test utilities remain separately installed
+executables; their bundling and service/use permissions are not granted by these library reviews.
