@@ -42,6 +42,9 @@ type turn struct {
 	multiplier          *float64
 	effort              kirofeature.Status
 	metadata            kirofeature.TurnMetadata
+	inputEstimate       status.InputEstimate
+	previousEstimate    status.InputEstimate
+	visibleOutput       status.VisibleOutput
 }
 type round struct {
 	turn              *turn
@@ -94,6 +97,7 @@ func (r *round) Next(ctx context.Context) (inference.Event, error) {
 				return inference.Event{}, acp.ErrFrameTooLarge
 			}
 			r.text.WriteString(text)
+			t.visibleOutput.AddText(text)
 			return inference.Event{Kind: inference.Text, Text: text}, nil
 		}
 		select {
@@ -116,6 +120,7 @@ func (r *round) Next(ctx context.Context) (inference.Event, error) {
 					return inference.Event{}, acp.ErrFrameTooLarge
 				}
 				r.text.WriteString(text)
+				t.visibleOutput.AddText(text)
 				return inference.Event{Kind: inference.Text, Text: text}, nil
 			}
 			if t.resultErr != nil {
@@ -152,6 +157,9 @@ func (r *round) Next(ctx context.Context) (inference.Event, error) {
 				uses := make([]anthropic.ToolUse, len(batch.Calls))
 				for i, call := range batch.Calls {
 					uses[i] = anthropic.ToolUse{ID: call.ID, Name: call.Name, Input: call.Input}
+				}
+				if t.driver.estimator != nil {
+					t.visibleOutput.AddTools(uses)
 				}
 				return inference.Event{Kind: inference.Tools, Tools: uses}, nil
 			}
@@ -284,7 +292,12 @@ func (t *turn) complete(text string) {
 				d.persistIdle(snapshot, t.reuseCompat)
 				d.state = Idle
 				if d.cfg.Metrics != nil {
-					d.cfg.Metrics.Push(status.TurnRecord{Scope: d.cfg.MetricsScope, Model: t.model, Multiplier: t.multiplier, SessionState: t.sessionState, ElapsedMS: time.Since(t.started).Milliseconds(), Effort: t.effort, Metadata: t.metadata.Snapshot()})
+					record := status.TurnRecord{Scope: d.cfg.MetricsScope, Model: t.model, Multiplier: t.multiplier, SessionState: t.sessionState, ElapsedMS: time.Since(t.started).Milliseconds(), Effort: t.effort, Metadata: t.metadata.Snapshot()}
+					if estimate, ok := t.inputEstimate.Summary(t.previousEstimate, t.visibleOutput); ok {
+						record.Estimate = &estimate
+					}
+					d.cfg.Metrics.Push(record)
+					d.lastEstimate = t.inputEstimate
 				}
 				if lease, ok := t.client.(*acppool.Lease); ok {
 					_ = lease.SetIdle(true)

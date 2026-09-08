@@ -17,6 +17,7 @@ type TurnRecord struct {
 	ElapsedMS    int64                `json:"elapsed_ms"`
 	Effort       kirofeature.Status   `json:"effort"`
 	Metadata     kirofeature.Metadata `json:"metadata"`
+	Estimate     *Estimate            `json:"local_estimate,omitempty"`
 }
 type MetricsPage struct {
 	Records []TurnRecord `json:"records"`
@@ -75,6 +76,10 @@ func (q *TurnQueue) Latest() *TurnRecord {
 }
 func copyRecord(r TurnRecord) TurnRecord {
 	r.Metadata = r.Metadata.Copy()
+	if r.Estimate != nil {
+		estimate := *r.Estimate
+		r.Estimate = &estimate
+	}
 	if r.Multiplier != nil {
 		n := *r.Multiplier
 		r.Multiplier = &n
@@ -82,6 +87,9 @@ func copyRecord(r TurnRecord) TurnRecord {
 	return r
 }
 func validRecord(r TurnRecord) bool {
+	if r.Estimate != nil && !r.Estimate.valid() {
+		return false
+	}
 	if len(r.Scope) != 64 || len(r.Model) > 256 || !strings.HasPrefix(r.Model, "claude-dax-") || r.ElapsedMS < 0 || r.ElapsedMS > 7200000 || !r.Metadata.Valid() {
 		return false
 	}

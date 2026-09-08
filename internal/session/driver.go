@@ -85,6 +85,8 @@ type Driver struct {
 	startGate           sync.Mutex
 	processWatch        sync.WaitGroup
 	persistenceFailed   bool
+	estimator           *status.Estimator
+	lastEstimate        status.InputEstimate
 }
 
 func New(cfg Config) (*Driver, error) {
@@ -133,7 +135,11 @@ func New(cfg Config) (*Driver, error) {
 			return nil, err
 		}
 	}
-	return &Driver{cfg: cfg, state: Unstarted, effort: kirofeature.NewEffort(cfg.UnsupportedEfforts), hasher: history.New(cfg.HistoryKey)}, nil
+	driver := &Driver{cfg: cfg, state: Unstarted, effort: kirofeature.NewEffort(cfg.UnsupportedEfforts), hasher: history.New(cfg.HistoryKey)}
+	if cfg.Metrics != nil {
+		driver.estimator = status.NewEstimator(cfg.HistoryKey)
+	}
+	return driver, nil
 }
 func (d *Driver) State() State { d.mu.Lock(); defer d.mu.Unlock(); return d.state }
 
@@ -301,6 +307,9 @@ func (d *Driver) Start(ctx context.Context, r *anthropic.Request) (inference.Tur
 	} else if p.reused {
 		t.sessionState = "reused"
 	}
+	if d.estimator != nil {
+		t.inputEstimate, _ = d.estimator.Measure(r)
+	}
 	t.compat, err = compatibility(r, registry)
 	if err != nil {
 		stop()
@@ -328,6 +337,7 @@ func (d *Driver) Start(ctx context.Context, r *anthropic.Request) (inference.Tur
 	}
 	d.client = client
 	d.current = t
+	t.previousEstimate = d.lastEstimate
 	d.state = Prompting
 	d.fresh = false
 	d.mu.Unlock()

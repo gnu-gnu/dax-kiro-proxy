@@ -12,6 +12,7 @@ import (
 	"dax-kiro-proxy/internal/jsoncanon"
 	"dax-kiro-proxy/internal/ndjson"
 	"dax-kiro-proxy/internal/relay"
+	"dax-kiro-proxy/internal/status"
 	"dax-kiro-proxy/internal/toolregistry"
 )
 
@@ -30,6 +31,10 @@ func (d *Driver) resume(ctx context.Context, r *anthropic.Request, registry *too
 	converted, err := relayResults(results)
 	if err != nil {
 		return nil, inference.ErrRequest
+	}
+	var estimated status.InputEstimate
+	if d.estimator != nil {
+		estimated, _ = d.estimator.Measure(r)
 	}
 	d.mu.Lock()
 	defer d.mu.Unlock()
@@ -65,6 +70,7 @@ func (d *Driver) resume(ctx context.Context, r *anthropic.Request, registry *too
 		return nil, inference.ErrRequest
 	}
 	t.plan = plan
+	t.inputEstimate = estimated
 	t.pendingHistory = history.Snapshot{}
 	t.lastIDs = nil
 	d.state = Prompting

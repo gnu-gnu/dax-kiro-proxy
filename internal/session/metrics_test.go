@@ -29,7 +29,8 @@ func TestToolHandoffPublishesOnlyAfterOwnedTurnCompletes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err = collect(context.Background(), next); err != nil {
+	finalText, err := collect(context.Background(), next)
+	if err != nil {
 		next.Cancel()
 		t.Fatal(err)
 	}
@@ -38,8 +39,14 @@ func TestToolHandoffPublishesOnlyAfterOwnedTurnCompletes(t *testing.T) {
 	}
 	next.Finish()
 	next.Finish()
-	if len(q.Drain().Records) != 1 {
+	page := q.Drain()
+	if len(page.Records) != 1 {
 		t.Fatal("tool round trip did not create exactly one completion")
+	}
+	estimate := page.Records[0].Estimate
+	want := int64((len(prefix) + len(finalText) + len(uses[0].Input) + 3) / 4)
+	if estimate == nil || !estimate.Approximate || estimate.VisibleOutputTokens != want {
+		t.Fatal("visible output estimate lost text or tool arguments across HTTP handoffs")
 	}
 }
 
@@ -105,6 +112,9 @@ func TestForegroundMetricsRequireFinalDeliveryAndReplaceRepeatedMetadata(t *test
 				t.Fatalf("got %d records, want %d", len(page.Records), expected)
 			}
 			for i, record := range page.Records {
+				if record.Estimate == nil || !record.Estimate.Approximate || record.Estimate.InputContextTokens <= 0 || record.Estimate.VisibleOutputTokens <= 0 || i == 1 && record.Estimate.LogicalPrefixTokens <= 0 {
+					t.Fatal("local estimate unavailable or missing repeated-prefix opportunity")
+				}
 				state := "created"
 				if i == 1 {
 					state = "reused"

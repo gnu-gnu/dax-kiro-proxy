@@ -470,4 +470,31 @@ UI-authenticated turn-metrics POST accepts only an empty body/object within 4 Ki
 it is best-effort diagnostics, so a failed response after draining may lose records. The latest
 snapshot survives draining and remains in usage status when account usage is unavailable. UI request
 admission and read/write deadlines are separate from model admission. No provider usage is changed.
-Token estimates and the launcher/client hook adapter remain separate implementation work.
+The launcher/client hook adapter remains separate implementation work; D22 defines local estimates.
+
+## D22: labeled local token heuristic (review R12/R16)
+
+`local_estimate` explicitly identifies an approximation using `utf8-bytes/4-v1`: round up the selected
+UTF-8 byte total divided by four. It includes system/message text, tool names/descriptions and
+canonical schemas, historical tool names/arguments and text tool results. It excludes every declared
+image/document and thinking/redacted-thinking block, including nested media in tool results. It is
+not a model tokenizer, and does not account for hidden backend context, framing overhead or media
+costs. Provider usage remains zero when no compatible accounting is reported.
+
+Visible output includes text and canonical tool arguments across all successfully delivered HTTP
+handoffs belonging to the same ACP prompt, with one rounding step at the end. Only integer counts
+are accumulated; no additional output transcript is retained. Final input context describes the
+latest complete client request in that turn, including any matched tool results. A canceled or
+undelivered final response produces no completion record or committed estimate.
+
+Each foreground binding has a 128-entry FIFO computation cache holding only keyed digests and byte
+counts. Exact repeated components avoid reparsing/canonicalization. Inputs are bounded at 4,096
+messages, 128 tools, 65,536 blocks and 32 MiB of selected source representations. Larger/unsupported
+estimation inputs omit this optional diagnostic rather than failing an otherwise valid turn. The
+previous successful input retains at most 4,098 component digests/counts; output count overflow above
+1 TiB similarly disables that estimate.
+
+`logical_prefix_tokens` counts the common ordered component prefix against that binding's previous
+delivered input. It describes local reuse opportunity even if backend state was recreated. It is
+neither a provider cache hit nor proof of ACP session reuse; no estimate enters an Anthropic usage
+field. Cache formatting/hint/media changes may conservatively reduce prefix recognition.

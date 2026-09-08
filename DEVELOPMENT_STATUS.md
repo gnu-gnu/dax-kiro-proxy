@@ -171,8 +171,8 @@ longer load/fuzz and clean-host release gates remain unverified. No new external
 Media validation and projection tests first failed on missing APIs. The implemented inline subset,
 limits and capability contract are recorded in D19. Independent PNG/JPEG/GIF encoders generate the
 test inputs; no upstream image fixture is copied. WebP uses the reviewed x/image header decoder.
-Malformed WebP/MIME mismatches are covered; a valid independently generated WebP and live media
-interoperability remain additional verification work. Synthetic PDF-shaped bytes test only the
+Malformed WebP/MIME mismatches are covered. A later positive test below adds independently generated
+lossless WebP; live media interoperability remains unverified. Synthetic PDF-shaped bytes test only the
 header/transport contract, not document rendering.
 
 Passed `go test -race -count=1 ./internal/anthropic ./internal/projection ./internal/session
@@ -213,6 +213,38 @@ Passed `go test -race -count=1 ./internal/session ./internal/gateway ./internal/
 tests passed in 1.924s/1.946s; the main lifecycle regression passed in 3.471s. These are synthetic
 protocol and module results; a real Kiro account-usage command, private payload mapping and actual
 client hook bridge have not been verified. No model credits or client tool effects were consumed.
+
+### Phase 6 local estimates
+
+The estimator's tests first failed on absent APIs, then passed for deterministic UTF-8 byte estimates,
+128-entry computation caching, ordered logical prefix accounting, JSON formatting, large integer
+arguments and exclusion of declared media/thinking. New session assertions initially failed on the
+missing completion estimate. The integration now verifies that text before tools, serialized tool
+arguments and final text all contribute once across HTTP handoffs; consecutive main turns retain
+logical prefix opportunity. D22 documents that this is not a provider tokenizer or cache-hit claim.
+
+Passed `go test -race -count=1 ./internal/session ./internal/status ./internal/gateway` in 9.380s,
+2.423s and 3.065s respectively. The earlier standalone status suite passed in 1.955s. No provider
+usage fields changed, and the cache/records retain only keyed digests and numeric diagnostics.
+
+The WebP positive fixture is independently generated from the public
+[lossless bitstream format](https://developers.google.com/speed/webp/docs/webp_lossless_bitstream_specification)
+and [RIFF container contract](https://developers.google.com/speed/webp/docs/riff_container), checked
+2026-09-08. It uses newly chosen constant colors and single-symbol code alphabets, with no imported
+image or upstream encoder/test code. Both opaque and transparent 2×3 images must fully decode to
+their exact pixels before the gateway's header-only validation is tested. This adds local format
+evidence without claiming Kiro image interoperability or full production pixel validation.
+
+The focused WebP race test passed in 2.061s. `go vet ./...` and `git diff --check` also passed after
+the estimator and positive media fixture were integrated.
+
+The first full race run had one fake ACP initialization exceed its existing two-second test RPC
+limit; other packages passed. The unchanged negotiation test then passed ten consecutive repetitions
+(2.514s suite; first case 0.33s, later cases 0.03–0.05s). The complete uncached suite with package
+parallelism bounded at two, `go test -race -p 2 -count=1 ./...`, passed: ACP 5.014s, pool 2.306s,
+Anthropic 7.896s, gateway 2.230s, session 8.273s and status 1.338s. Product and test deadlines remain
+unchanged. Higher build/test process concurrency and startup sensitivity remain part of Phase 7 load
+verification; a single passing rerun is not a diagnosis of the initial timeout.
 
 ### Installed Kiro usage command surface
 
