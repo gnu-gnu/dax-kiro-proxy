@@ -141,6 +141,11 @@ of this repository's incomplete private contract, not a claim of observed live K
 Live validation must confirm or amend them before claiming private feature support. A missing or
 unrecognized advertisement leaves ordinary text working without the feature.
 
+D39 subsequently observes a different envelope for the read-only tools command: its discriminator
+is command, and args is an object. That observation does not validate the historical effort payload
+above or establish effort's argument members. The current effort fixture remains an unverified
+interpretation; no actual effort synchronization is claimed from the tools query.
+
 Setup has its own bounded context. The transport's RPC ceiling must not accidentally shorten setup
 to a smaller owned-turn timeout; each prompt still receives the explicit owned-turn deadline. A
 delayed-initialize fixture reproduces and verifies this separation. The gateway's overall request
@@ -1133,3 +1138,59 @@ loading, images and HTTP MCP, while audio, embedded context and SSE MCP remain f
 the process group. No session/new or session/prompt is sent. This establishes that initialization
 works in that specific environment, not that the selected agent is activated or inherited effects
 are excluded. Production policy/capability cache identities are not upgraded from this observation.
+
+## D39: observed read-only tools command and native-name projection (review R06/R14)
+
+An independent fake ACP peer precedes the installed observation. It admits only initialize,
+session/new with an empty MCP list, and one exact argument-free tools query. A valid advertisement
+must belong to the newly returned session. Missing advertisement times out; an advertised list
+without tools sends no query. Foreign sessions, malformed or duplicate command names, malformed
+success values and bounded diagnostic overflow reject. Pre-response notifications are drained before
+reporting completion. Every case closes and checks its process group; no prompt method is supported.
+
+The pinned Kiro 2.21.1/v2 observation uses the account HOME for existing authentication, an owned
+KIRO_HOME, an empty owned workspace, a newly authored agent and explicit environment. Agent resources
+and hooks are empty, allowedTools is empty, MCP servers are empty and includeMcpJson is false. The
+owned cli.json sets chat.disableInheritingDefaultResources. These inputs do not, by themselves,
+establish the effectiveness of every field or inherited-configuration exclusion. Both binary versions
+and the current account identity must pass before ACP starts. No credential is copied or directly
+modified, no login/logout runs, and no model prompt is submitted. Kiro may maintain its own state.
+
+Session creation advertises 25 commands, including tools. An initial D09-style name/arguments object
+fails with -32700. Fixed parse markers successively identify command and args as required members,
+and an array args value fails the expected-struct check. The following exact request succeeds:
+
+```json
+{
+  "sessionId": "<owned-session-id>",
+  "command": {"command": "tools", "args": {}}
+}
+```
+
+The method is _kiro.dev/commands/execute. Only this read-only command and empty arguments are admitted
+by the test helper. It never converts a slash command to session/prompt or accepts arbitrary command
+arguments. The public [ACP extension reference](https://kiro.dev/docs/cli/acp/) identifies the method
+and advertisement lifecycle; the [2.x reference](https://kiro.dev/docs/cli/2x-reference/) identifies
+bare /tools as the permission inventory. Exact request/response shapes here are independent black-box
+observations on 2026-09-09, not inferred 3.x behavior or copied implementation artifacts.
+
+Successful responses have Boolean success, string message and object data. data contains a tools
+array and a message string. The empty agent returns zero tool entries. A separately owned positive
+control with tools [fs_read] returns one entry, whose name is read; its description, source and status
+are strings. Thus configuration and listed tool names are not assumed identical. The first equality
+assertion fails before the explicit fs_read-to-read observation is recorded. No description, status
+value, account value, session ID or unrestricted upstream error text is logged. Diagnostics retain
+bounded field names/kinds, container sizes, fixed native-name matches and fixed parse markers.
+
+The observation bounds session/new results to 1 MiB, command results and individual notification
+params to 64 KiB, notifications to 64/1 MiB, advertisements and tool arrays to 128 entries, and
+field names to 64 ASCII bytes. Version/account commands retain five seconds; each ACP request has
+fifteen seconds, advertisement wait three seconds and each case a one-minute caller deadline.
+Shielded process cleanup remains separately bounded by the existing transport. No production limit
+or policy adapter changes, and no public bypass is introduced.
+
+This establishes session creation, a usable read-only command envelope, and the observed empty/one
+native-tool inventory distinction. It is not proof of attempted native-tool denial, inherited MCP
+or hooks exclusion, relay initialization, later configuration reloads, loaded sessions, model turns
+or full R06 acceptance. Actual effort arguments and private metadata semantics remain separate work.
+Production startup continues to return ErrPolicyUnverified.

@@ -1,0 +1,93 @@
+package main
+
+import (
+	"bufio"
+	"encoding/json"
+	"os"
+	"path/filepath"
+)
+
+// An independently authored peer for the read-only command observation. These synthetic values
+// describe a fixture, not Kiro's actual tool inventory. Any prompt or extra command terminates it.
+func inventoryFixture(mode string) {
+	input := bufio.NewScanner(os.Stdin)
+	input.Buffer(make([]byte, 4096), 64<<10)
+	stage, queries := 0, 0
+	const session = "fixture-inventory-session"
+	for input.Scan() {
+		var q request
+		if json.Unmarshal(input.Bytes(), &q) != nil {
+			os.Exit(70)
+		}
+		switch {
+		case stage == 0 && q.Method == "initialize":
+			var p struct {
+				Version int            `json:"protocolVersion"`
+				Caps    map[string]any `json:"clientCapabilities"`
+			}
+			if json.Unmarshal(q.Params, &p) != nil || p.Version != 1 || p.Caps == nil || len(p.Caps) != 0 {
+				os.Exit(71)
+			}
+			reply(q.ID, map[string]any{"protocolVersion": 1})
+			stage++
+		case stage == 1 && q.Method == "session/new":
+			var p struct {
+				CWD     string            `json:"cwd"`
+				Servers []json.RawMessage `json:"mcpServers"`
+			}
+			if json.Unmarshal(q.Params, &p) != nil || !filepath.IsAbs(p.CWD) || p.Servers == nil || len(p.Servers) != 0 {
+				os.Exit(72)
+			}
+			if mode != "inventory-silent" {
+				owner := session
+				var name any = "/tools"
+				if mode == "inventory-unavailable" {
+					name = "/help"
+				}
+				if mode == "inventory-malformed" {
+					name = 42
+				}
+				if mode == "inventory-foreign" {
+					owner = "fixture-other-session"
+				}
+				commands := []any{map[string]any{"name": name}}
+				if mode == "inventory-duplicate" {
+					commands = append(commands, map[string]any{"name": "tools"})
+				}
+				write(map[string]any{"jsonrpc": "2.0", "method": "_kiro.dev/commands/available", "params": map[string]any{"sessionId": owner, "commands": commands}})
+			}
+			reply(q.ID, map[string]any{"sessionId": session})
+			stage++
+		case stage == 2 && q.Method == "_kiro.dev/commands/execute":
+			if mode != "inventory-ready" && mode != "inventory-listed" && mode != "inventory-rejected" && mode != "inventory-bad-result" {
+				os.Exit(73)
+			}
+			var p struct {
+				Session string `json:"sessionId"`
+				Command struct {
+					Name string                     `json:"command"`
+					Args map[string]json.RawMessage `json:"args"`
+				} `json:"command"`
+			}
+			if json.Unmarshal(q.Params, &p) != nil || p.Session != session || p.Command.Name != "tools" || p.Command.Args == nil || len(p.Command.Args) != 0 || queries != 0 {
+				os.Exit(74)
+			}
+			queries++
+			var success any = mode != "inventory-rejected"
+			if mode == "inventory-bad-result" {
+				success = "true"
+			}
+			write(map[string]any{"jsonrpc": "2.0", "method": "session/update", "params": map[string]any{"sessionId": session, "update": map[string]any{"sessionUpdate": "agent_message_chunk", "content": map[string]any{"type": "text", "text": "Independent fixture inventory: fs_read"}}}})
+			tools := []any{}
+			if mode == "inventory-listed" {
+				tools = append(tools, map[string]any{"name": "read", "description": "Independent fixture tool", "status": "ask", "source": "fixture"})
+			}
+			reply(q.ID, map[string]any{"success": success, "output": "Independent fixture result", "data": map[string]any{"tools": tools}})
+		default:
+			os.Exit(75)
+		}
+	}
+	if input.Err() != nil {
+		os.Exit(76)
+	}
+}

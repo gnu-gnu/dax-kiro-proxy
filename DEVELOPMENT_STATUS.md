@@ -6,7 +6,7 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
-- All twelve pre-implementation Markdown documents read in README order.
+- All fourteen repository Markdown documents read in README order, with README and AGENTS first.
 - Specification-only baseline committed as `7b108dd`.
 - Go selected by explicit user instruction; comparative experiments remain unmeasured.
 - Local host: macOS 15.4 (24E248), arm64; Go 1.27.1 downloaded into the ignored repository cache.
@@ -304,6 +304,47 @@ does not clear release or change any runtime dependency.
 The final ordinary interop race suite passed in 1.323s with installed-client opt-ins unset;
 go vet ./... and git diff --check passed. The separate installed initialize-only race result above
 is positive evidence; the synthetic-HOME identity failures remain explicitly failed live gates.
+
+### Read-only ACP command envelope and effective inventory observation
+
+D39 adds an independently authored fake ACP inventory peer and a bounded test-only observer.
+The first protocol suite failed on missing observer APIs. Nine fake cases now cover a successful
+empty/one-item response, missing or unavailable advertisement, foreign ownership, malformed and
+duplicate command names, negative command success and malformed success. A separate diagnostic
+test checks event/byte limits, fixed error-marker privacy and unchanged authentication classification.
+No fixture can dispatch a prompt or client tool. Its provenance manifest includes the public Kiro
+ACP and 2.x references; all text and IDs are independently invented.
+
+Actual Kiro 2.21.1/v2 successfully creates a session in an owned KIRO_HOME/workspace and advertises
+25 commands, including tools. The original name/arguments interpretation fails with -32700;
+fixed parse markers identify command, args and an object argument shape. The successful request is
+`{sessionId, command: {command: "tools", args: {}}}` on `_kiro.dev/commands/execute`.
+One intervening run failed account preflight before ACP (5.394s); no particular account state or
+timeout cause is inferred. Later pinned checks pass without changing production deadlines.
+
+The final installed race run of TestKiroPinnedReadOnlyToolsInventory passed in 14.267s (test 12.92s):
+
+| Independently declared tools | Returned data.tools | Response bytes | Result |
+| --- | --- | ---: | --- |
+| Empty array | Empty array | 98 | Query succeeds; group gone |
+| fs_read only | One item, named read | 814 | Query succeeds; group gone |
+
+The earlier assertion that listed/configuration names are identical failed before the explicit
+fs_read-to-read mapping was recorded. Item name, description, source and status have string types;
+status/description values are not logged. A prior two-case shape observation passed in 15.558s but
+did not yet assert names. The final check verifies both counts and the observed native name. These
+are meaningful positive/negative inventory controls, not proof of attempted execution denial.
+
+No model prompt, client tool effect, credential copying or login/logout was used. Each case uses
+existing account HOME, an owned configuration/workspace and a newly authored agent, with all declared
+resources/hooks/MCP servers empty. Kiro may maintain its own state. Only bounded schema field names,
+kinds, sizes, fixed tool-name matches and parse markers survive in test diagnostics. Current effort
+arguments are still unverified; the tools envelope does not confirm the old D09 effort interpretation.
+
+The ordinary uncached interop and ACP race suites passed in 3.563s and 5.704s, with installed opt-ins
+unset. Whole-repository go vet and git diff --check passed. No production code, dependency, timeout
+or launch-policy gate changed. Inherited MCP/hook exclusion, effective relay initialization, native
+execution attempts, live prompting and the other acceptance/release gates remain open.
 
 ### Request constraints and negative client recovery evidence
 

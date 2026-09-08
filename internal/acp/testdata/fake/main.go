@@ -42,6 +42,10 @@ func main() {
 	if len(os.Args) > 1 {
 		mode = os.Args[1]
 	}
+	if strings.HasPrefix(mode, "inventory-") {
+		inventoryFixture(mode)
+		return
+	}
 	if strings.HasPrefix(mode, "pool-") {
 		poolFixture(mode)
 		return
