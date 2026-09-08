@@ -543,8 +543,9 @@ permissions or a final symlink/hardlink, at most 2 MiB. Missing settings mean an
 malformed/duplicate JSON and invalid env values fail preparation. Its temporary snapshot preserves
 permissions, hooks and other compatible settings at user scope. Old model selection, credential
 helpers and provider/routing environment entries are removed from the snapshot. The source is never
-written. Project/local settings remain loaded by the client, and the host overlay omits permissions,
-hooks and availableModels. No safe/restricted/empty-settings-source/strict-MCP flags are added.
+written. Project/local settings remain loaded by the client. The initial host overlay omits
+permissions, hooks and availableModels; D49 subsequently adds a startup notice hook with observed
+user/project hook preservation. No safe/restricted/empty-settings-source/strict-MCP flags are added.
 
 The initial environment permits only named OS/terminal/tool-socket variables, with HOME, TMPDIR and
 CLAUDE_CONFIG_DIR supplied explicitly. The host sets the literal loopback HTTP URL, one ephemeral
@@ -1570,7 +1571,74 @@ hooks in this environment. The later notices do not establish a universal barrie
 hooks, asynchronous work or input usability; no latency distribution or full onboarding is claimed.
 
 Production still reports process launch separately from the unverified client-initialization phase.
-Neither SessionStart nor status rendering becomes a readiness flag. The model-capability startup
-notice now has positive synthetic systemMessage display evidence, but its actual product payload,
-UI route and launcher hook remain separate implementation work. Full readiness, R06 and release
-gates remain open; this decision changes no production transport, dependency or execution authority.
+Neither SessionStart nor status rendering becomes a readiness flag. This decision supplied positive
+synthetic systemMessage display evidence; D49 subsequently implements the product payload, UI route
+and launcher hook. Full readiness, R06 and release gates remain open. D48 itself changed no production
+transport, dependency or execution authority.
+
+## D49: bounded startup model notice without a model turn (review R14/R15)
+
+The launcher supplies its prepared client model alias to the gateway. A caller cannot supply a
+second startup-model authority through the internal runtime configuration. The exact UI-authenticated
+POST /dax-kiro-proxy/hooks/model-capabilities accepts only an empty body/object within 4 KiB. It
+shares existing UI admission and I/O deadlines. Model-route credentials cannot authorize it, and
+the UI credential remains unable to authorize either model route.
+
+The version-1 response has exactly these fields:
+
+| Field | Startup value |
+| --- | --- |
+| version | 1 |
+| model | Prepared launch alias |
+| image_input, pdf_input, effort | unknown |
+| native_web_search | unsupported |
+| client_tools | client_permissions |
+| provider_token_usage | unreported |
+
+No session is opened or queried on this path, so media and effort support cannot be inferred from
+the selected model's name. Native web search is unavailable in this adapter; this is not a claim
+that Kiro lacks that feature. The tool field describes client ownership, not verified Kiro execution
+restrictions. Provider usage has not been reported at startup and is not estimated as billed usage.
+The route neither invokes model discovery/usage refresh nor drains completion metrics. A missing
+prepared model returns a fixed 503; it never attempts to acquire one. The payload is immutable launch
+information, not the current model after a later switch. Future capability support needs an explicit
+payload/formatter update and independent evidence.
+
+The existing private version-1 statusline.json file also supplies the model-notice helper. Its
+four-field schema, owner-only mode and runtime lifetime are unchanged. Shared internal uiclient code
+restricts both helpers to enumerated operations: status uses its existing GET, and model-notice sends
+one POST with {}. Neither helper reads client stdin, transcripts or ambient credentials. There are
+no child processes, DNS names, proxies, redirects or retries. The existing 750ms HTTP, 250/300ms
+connect/header, 8 KiB header and 64 KiB body limits apply. Both exact command forms have a two-second
+deadline beginning in main, including blocked inherited stdout and filesystem calls. Late invocation
+cannot recreate a removed runtime or fetch with removed credentials.
+
+The host settings overlay adds a synchronous SessionStart command with matcher startup and timeout
+three seconds. It uses a cleared environment and literal shell-quoted executable/config paths; the
+UI token is never in that command or its environment. Resume, clear and compact do not trigger it.
+No permission or disableAllHooks setting is added. User/project hooks retain the client-controlled
+merge and policy behavior verified below. This updates D24's initial omission of product hooks;
+the D47 status-line contract is unchanged.
+
+The helper validates the exact response shape, constants and launch alias before formatting. It
+emits a single JSON object containing only systemMessage, within 1 KiB. Labels are normalized solely
+for display, with no routing-prefix/digest reversal. Network and malformed-response failures produce
+a fixed unavailable notice; invalid private configuration or caller cancellation return a silent
+failure. There is no additionalContext, initialUserMessage, permission decision or control field.
+
+The public [hook contract](https://code.claude.com/docs/en/hooks), checked on 2026-09-09, distinguishes
+synchronous systemMessage display from asynchronous delivery into a later model turn. It also defines
+parallel handlers and effective disableAllHooks precedence. This helper therefore stays synchronous;
+its completion or absence is never an initialization barrier. D48's ordering evidence still applies.
+
+Installed Claude 2.1.263 rendered the product notice with exactly one UI request in both idle-terminal
+and held-peer-hook controls. Each made zero model requests/backend starts and retained the existing
+status refresh and process cleanup checks. Separate local synthetic-conversation controls retained
+user/project hooks, local environment precedence and client Read denial. With hooks disabled, the
+same conversation and denial completed with zero startup-notice requests. Neither of the two model
+request bodies in either control contained the notice. These checks use independently authored local
+responders, not Kiro prompting or external inference; source settings remain unchanged.
+
+No dependency or execution-policy authority changes. This completes the initial startup-notice
+contract only. Full interactive readiness, real feature/usage adapters, turn-metrics client hooks,
+R06/R16 and release gates remain open.

@@ -35,6 +35,9 @@ type statusProbeBackend struct {
 
 func (b *statusProbeBackend) Models(context.Context) ([]inference.Model, error) {
 	b.lists.Add(1)
+	if b.catalog == nil {
+		return nil, inference.ErrRequest
+	}
 	return b.catalog.List(), nil
 }
 func (b *statusProbeBackend) Start(context.Context, *anthropic.Request) (inference.Turn, error) {
@@ -94,7 +97,7 @@ func observeClaudeStatusUI(t *testing.T, startup *startupObservation) {
 		t.Fatal("cannot prepare synthetic status record")
 	}
 	tokens, _ := gateway.NewTokens()
-	handler, err := gateway.New(gateway.Config{Tokens: tokens, Backend: backend, Metrics: queue})
+	handler, err := gateway.New(gateway.Config{Tokens: tokens, Backend: backend, Metrics: queue, LaunchModel: model})
 	if err != nil {
 		t.Fatal("cannot prepare local status gateway")
 	}
@@ -105,12 +108,16 @@ func observeClaudeStatusUI(t *testing.T, startup *startupObservation) {
 	ready := make(chan struct{})
 	var completed sync.Once
 	var messageRequests atomic.Int32
+	var noticeRequests atomic.Int32
 	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if startup != nil && startup.handle(w, r) {
 			return
 		}
 		if r.URL.Path == "/v1/messages" || r.URL.Path == "/messages" {
 			messageRequests.Add(1)
+		}
+		if r.Method == "POST" && r.URL.Path == "/dax-kiro-proxy/hooks/model-capabilities" && r.Header.Get("x-api-key") == tokens.UI {
+			noticeRequests.Add(1)
 		}
 		if r.Method == "GET" && r.URL.Path == "/dax-kiro-proxy/status/usage" && r.Header.Get("x-api-key") == tokens.UI {
 			if startup != nil {
@@ -224,6 +231,7 @@ func observeClaudeStatusUI(t *testing.T, startup *startupObservation) {
 	text := terminalEscapes.ReplaceAllString(string(got.result.Stdout), " ")
 	normalized := strings.ToLower(strings.Join(strings.Fields(text), " "))
 	visible := strings.Contains(normalized, "kiro last status-fixture")
+	noticeVisible := strings.Contains(normalized, "kiro launch status-fixture.")
 	markers := map[string]bool{}
 	for _, marker := range []string{"welcome", "theme", "log in", "login", "trust", "security notes", "claude can make mistakes", "enter to continue", "custom api", "terminal", "continue", "model", "error"} {
 		markers[marker] = strings.Contains(normalized, marker)
@@ -234,6 +242,10 @@ func observeClaudeStatusUI(t *testing.T, startup *startupObservation) {
 	count, elapsed := calls, interval
 	mu.Unlock()
 	t.Logf("status_requests=%d, refresh_interval_ms=%d, status_model_visible=%v, model_requests=%d, model_starts=%d, catalog_requests=%d, terminal_exit=%d, terminal_bytes=%d, setup_stage=%d, setup_markers=%v, client_pid_recorded=%v, client_pid_gone=%v, client_group_gone=%v, runner_active=%d, terminal_active=%d", count, elapsed.Milliseconds(), visible, messageRequests.Load(), backend.starts.Load(), backend.lists.Load(), got.result.ExitCode, len(got.result.Stdout), got.setupAnswers, markers, openErr == nil && parseErr == nil && pid > 1, pid > 1 && errors.Is(syscall.Kill(pid, 0), syscall.ESRCH), groupGone, runner.Active(), terminalOwner.Active())
+	t.Logf("startup_notice_requests=%d, startup_notice_visible=%v", noticeRequests.Load(), noticeVisible)
+	if noticeRequests.Load() != 1 || !noticeVisible {
+		t.Error("installed client did not display exactly one startup model notice")
+	}
 	if count < 2 || count > 10 || elapsed == 0 || !visible || messageRequests.Load() != 0 || backend.starts.Load() != 0 || !groupGone || runner.Active() != 0 || terminalOwner.Active() != 0 || errors.Is(got.err, childproc.ErrCleanup) || errors.Is(got.err, childproc.ErrIO) || errors.Is(got.err, childproc.ErrOutputLimit) || fileFingerprint(t, settings) != before {
 		t.Fatal("installed client status refresh or terminal cleanup was not established")
 	}

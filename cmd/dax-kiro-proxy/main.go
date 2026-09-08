@@ -23,6 +23,7 @@ import (
 	"dax-kiro-proxy/internal/relay"
 	"dax-kiro-proxy/internal/relay/mcp"
 	"dax-kiro-proxy/internal/schemacheck/worker"
+	"dax-kiro-proxy/internal/startupnotice"
 	"dax-kiro-proxy/internal/statusline"
 )
 
@@ -37,16 +38,17 @@ func main() {
 		return
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	// A status display owns no child process or durable state. Its whole-process deadline also
+	// A UI helper owns no child process or durable state. Its whole-process deadline also
 	// bounds a stalled inherited stdout or filesystem call, which context alone cannot interrupt.
 	var displayDeadline *time.Timer
-	if len(os.Args) == 4 && os.Args[1] == "statusline" && os.Args[2] == "--config" {
+	if len(os.Args) == 4 && (os.Args[1] == "statusline" || os.Args[1] == "model-notice") && os.Args[2] == "--config" {
 		displayDeadline = time.AfterFunc(2*time.Second, func() { os.Exit(1) })
 	}
 	files := childproc.AttachedIO{Stdin: os.Stdin, Stdout: os.Stdout, Stderr: os.Stderr, Foreground: true}
 	services := commandServices{
 		defaults: defaultOptions, inspect: launcher.Inspect, run: launcher.Run,
 		statusline: statusline.Display,
+		notice:     startupnotice.Output,
 		schema:     func() error { return worker.Run(os.Stdin, os.Stdout) },
 		relay: func(ctx context.Context, path string) error {
 			config, err := relay.LoadChildConfig(path)
@@ -77,6 +79,7 @@ type commandServices struct {
 	schema     func() error
 	relay      func(context.Context, string) error
 	statusline func(context.Context, string) (string, error)
+	notice     func(context.Context, string) (string, error)
 }
 
 const helpText = `usage: dax-kiro-proxy <doctor|models|run> [options]
@@ -112,11 +115,15 @@ func execute(ctx context.Context, args []string, files childproc.AttachedIO, out
 		}
 		return 0
 	}
-	if len(args) == 3 && args[0] == "statusline" && args[1] == "--config" {
-		if services.statusline == nil {
+	if len(args) == 3 && (args[0] == "statusline" || args[0] == "model-notice") && args[1] == "--config" {
+		display := services.statusline
+		if args[0] == "model-notice" {
+			display = services.notice
+		}
+		if display == nil {
 			return 1
 		}
-		line, err := services.statusline(ctx, args[2])
+		line, err := display(ctx, args[2])
 		if err != nil || len(line) > 1024 {
 			return 1
 		}

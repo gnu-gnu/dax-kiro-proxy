@@ -96,7 +96,7 @@ func PrepareClient(cfg ClientConfig) (*ClientProfile, error) {
 		env[key] = value
 	}
 	// Connection, authentication, optional traffic and product status use the command-line layer.
-	// Omitting permissions/hooks lets the client retain its user < project < local < managed order.
+	// Permission policy retains its user < project < local < managed order. Product hooks are additive.
 	host := map[string]any{"env": hostEnvironment(cfg.GatewayURL, cfg.ModelToken), "apiKeyHelper": "", "awsAuthRefresh": "", "awsCredentialExport": "", "otelHeadersHelper": ""}
 	root, err := privatefs.New(path)
 	if err != nil {
@@ -112,6 +112,8 @@ func PrepareClient(cfg ClientConfig) (*ClientProfile, error) {
 		// its sole credential is read from the private file, never embedded in a shell argument.
 		command := "/usr/bin/env -i PATH=/usr/bin:/bin " + quote(cfg.StatusExecutable) + " statusline --config " + quote(filepath.Join(path, "statusline.json"))
 		host["statusLine"] = map[string]any{"type": "command", "command": command, "refreshInterval": 5}
+		noticeCommand := "/usr/bin/env -i PATH=/usr/bin:/bin " + quote(cfg.StatusExecutable) + " model-notice --config " + quote(filepath.Join(path, "statusline.json"))
+		host["hooks"] = map[string]any{"SessionStart": []any{map[string]any{"matcher": "startup", "hooks": []any{map[string]any{"type": "command", "command": noticeCommand, "timeout": 3}}}}}
 	}
 	overlay, _ := json.Marshal(host)
 	if root.Write("host-settings.json", overlay) != nil {

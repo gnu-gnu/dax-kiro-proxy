@@ -100,7 +100,7 @@ func RunClient(ctx context.Context, cfg ClientRunConfig) (result ClientRunResult
 	if ctx.Err() != nil {
 		return result, ctx.Err()
 	}
-	if cfg.Backend == nil || cfg.Client.GatewayURL != "" || cfg.Client.ModelToken != "" || cfg.Client.UIToken != "" || cfg.Server.Gateway.Backend != nil || cfg.Server.Gateway.Tokens != (gateway.Tokens{}) || cfg.Server.UnsafeNetwork {
+	if cfg.Backend == nil || cfg.Client.GatewayURL != "" || cfg.Client.ModelToken != "" || cfg.Client.UIToken != "" || cfg.Server.Gateway.Backend != nil || cfg.Server.Gateway.Tokens != (gateway.Tokens{}) || cfg.Server.Gateway.LaunchModel != "" || cfg.Server.UnsafeNetwork {
 		return result, ErrConfig
 	}
 	if cfg.Models != nil {
@@ -119,6 +119,7 @@ func RunClient(ctx context.Context, cfg ClientRunConfig) (result ClientRunResult
 		return result, ErrRuntime
 	}
 	cfg.Server.Gateway.Tokens, cfg.Server.Gateway.Backend = tokens, cfg.Backend
+	cfg.Server.Gateway.LaunchModel = cfg.Client.Model
 	if cfg.Models != nil {
 		cfg.Server.Gateway.Backend = &catalogBackend{inner: cfg.Backend, models: cfg.Models}
 	}

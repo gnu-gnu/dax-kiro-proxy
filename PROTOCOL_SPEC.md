@@ -24,7 +24,7 @@ HTTP 401 using an Anthropic-style error envelope.
 | POST | `/v1/messages` | Anthropic Messages compatibility | model token |
 | POST | `/messages` | compatibility alias | model token |
 | POST | `/dax-kiro-proxy/hooks/turn-metrics` | drain local turn metrics | UI token |
-| POST | product hook namespace: model capabilities | startup model notice | UI token |
+| POST | `/dax-kiro-proxy/hooks/model-capabilities` | startup model notice | UI token |
 | GET | `/dax-kiro-proxy/status/usage` | nonblocking usage and latest turn | UI token |
 
 The new implementation chooses a `dax-kiro-proxy`-owned route prefix rather than retaining a host
@@ -34,8 +34,18 @@ The turn-metrics hook accepts an empty body or empty JSON object, at most 4 KiB,
 `{records: [...], dropped: N}`. Unsupported bodies do not drain records. Status returns normalized
 account-usage availability/state and optional `latest_turn`, which remains available after draining
 the queue or when account usage is unavailable. Neither route accepts a prompt or invokes a model.
-Decision D21 defines the cache, record bounds and delivery policy. The model-capability hook remains
-unimplemented pending the launcher/client contract.
+Decision D21 defines the cache, record bounds and delivery policy.
+
+The model-capabilities POST accepts the same empty body/object and 4 KiB limit. It returns a version-1
+object with exactly `version`, `model`, `image_input`, `pdf_input`, `native_web_search`, `effort`,
+`client_tools` and `provider_token_usage`. `model` is the immutable prepared launch alias; callers
+cannot select another model through this route. Image, PDF and effort states are `unknown` until
+negotiated; native web search is `unsupported` by the current adapter, client tools use
+`client_permissions`, and provider token usage is `unreported`. These are startup information, not
+claims of effective Kiro restrictions or a ready session. The route opens no ACP session, invokes
+no discovery/usage refresh, and consumes no turn record. An absent prepared launch model returns a
+fixed 503 without discovery. Decision D49 defines this initial payload; future verified capabilities
+need a corresponding contract change.
 
 The temporary client settings select a product-owned `statusLine` command with a five-second
 `refreshInterval`. Its `statusline --config ABSOLUTE_PATH` helper reads a version-1, owner-only JSON
@@ -47,6 +57,16 @@ is at most 1 KiB of normalized single-line text; unavailable data has a fixed lo
 two-second deadline started in helper main also bounds blocked inherited output. Source settings
 remain unchanged, and a late invocation cannot recreate the removed runtime. Decision D47 records
 credential delivery, display semantics and the distinction from live Kiro usage verification.
+
+The same private configuration also serves `model-notice --config ABSOLUTE_PATH`. Its only request
+is the exact model-capabilities POST with `{}` and the UI token, under the same HTTP and process
+bounds. The launcher adds a synchronous command hook for `SessionStart` with matcher `startup` and
+a three-second client hook timeout. It preserves source hooks, permission policy and the client's
+effective hook-disable setting. Other session lifecycle events do not repeat the launch notice.
+The helper emits at most 1 KiB of JSON containing only a fixed-format `systemMessage`; it never emits
+model context, a new user prompt or permission/control output. Unavailable/malformed responses produce
+a fixed unavailable notice; invalid private configuration and caller cancellation fail silently.
+Neither a notice nor an optional hook's absence changes the separate initialization/policy gates.
 
 ### Message request validation
 

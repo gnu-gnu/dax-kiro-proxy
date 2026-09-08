@@ -294,7 +294,7 @@ func TestClientRuntimeClosesPreparedModelsOnConfigurationFailure(t *testing.T) {
 }
 
 func TestClientRuntimeStartupFailureStillClosesItsOwners(t *testing.T) {
-	for _, mode := range []string{"canceled", "settings", "exec", "conflicting-authority", "limits"} {
+	for _, mode := range []string{"canceled", "settings", "exec", "conflicting-authority", "conflicting-startup-model", "limits"} {
 		t.Run(mode, func(t *testing.T) {
 			cfg, owner, _, _ := runtimeConfig(t, "text")
 			ctx, cancel := context.WithCancel(t.Context())
@@ -308,10 +308,15 @@ func TestClientRuntimeStartupFailureStillClosesItsOwners(t *testing.T) {
 				cfg.Client.Executable = filepath.Join(cfg.Client.Home, "absent-independent-client")
 			case "conflicting-authority":
 				cfg.Client.ModelToken = "independent-secret-sentinel"
+			case "conflicting-startup-model":
+				cfg.Server.Gateway.LaunchModel = "claude-dax-different-launch"
 			case "limits":
 				cfg.Attached.Lifetime = -time.Second
 			}
 			result, err := launcher.RunClient(ctx, cfg)
+			if mode == "conflicting-startup-model" && !errors.Is(err, launcher.ErrConfig) {
+				t.Fatal("startup notice accepted a separate model authority")
+			}
 			if err == nil || result.ClientPID != 0 || result.ExitCode != -1 || owner.closes.Load() != 1 || owner.Stats().Processes != 0 {
 				t.Fatal("startup failure skipped owned cleanup", err)
 			}

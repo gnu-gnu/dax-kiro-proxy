@@ -26,6 +26,15 @@ import (
 // All files, hooks and endpoints here are independently authored and owned by this test. The
 // unmodified client must enforce its own deny rule; no Kiro process or external inference is used.
 func TestClaudeIsolatedProfilePreservesPoliciesAndGateway(t *testing.T) {
+	observeClientProfileHooks(t, false)
+}
+
+func TestClaudeDisabledHooksPreserveConversationAndPermissions(t *testing.T) {
+	observeClientProfileHooks(t, true)
+}
+
+func observeClientProfileHooks(t *testing.T, disabled bool) {
+	t.Helper()
 	executable := os.Getenv("DAX_INTEROP_CLAUDE_BINARY")
 	if executable == "" {
 		t.Skip("set DAX_INTEROP_CLAUDE_BINARY for a local fixture and owned hook test; no model credits")
@@ -79,7 +88,7 @@ func TestClaudeIsolatedProfilePreservesPoliciesAndGateway(t *testing.T) {
 	projectPath := filepath.Join(project, ".claude", "settings.json")
 	localPath := filepath.Join(project, ".claude", "settings.local.json")
 	globalPath := filepath.Join(home, ".claude.json")
-	writeProbeJSON(userPath, map[string]any{"permissions": map[string]any{"defaultMode": "manual", "deny": []string{"Read"}}, "hooks": hook("/usr/bin/touch " + quote(userMarker)), "env": map[string]string{"ANTHROPIC_BASE_URL": wrong.URL, "ANTHROPIC_API_KEY": "synthetic-user-key", "DAX_PROFILE_LAYER": "user"}, "apiKeyHelper": "/usr/bin/touch " + quote(helperMarker)})
+	writeProbeJSON(userPath, map[string]any{"permissions": map[string]any{"defaultMode": "manual", "deny": []string{"Read"}}, "hooks": hook("/usr/bin/touch " + quote(userMarker)), "disableAllHooks": disabled, "env": map[string]string{"ANTHROPIC_BASE_URL": wrong.URL, "ANTHROPIC_API_KEY": "synthetic-user-key", "DAX_PROFILE_LAYER": "user"}, "apiKeyHelper": "/usr/bin/touch " + quote(helperMarker)})
 	writeProbeJSON(projectPath, map[string]any{"permissions": map[string]any{"allow": []string{"Read"}}, "hooks": hook("test \"$DAX_PROFILE_LAYER\" = local && /usr/bin/touch " + quote(projectMarker)), "env": map[string]string{"DAX_PROFILE_LAYER": "project", "ANTHROPIC_BASE_URL": wrong.URL, "ANTHROPIC_API_KEY": "synthetic-project-key", "CLAUDE_CODE_USE_BEDROCK": "1", "ANTHROPIC_BEDROCK_BASE_URL": wrong.URL}})
 	writeProbeJSON(localPath, map[string]any{"env": map[string]string{"DAX_PROFILE_LAYER": "local", "ANTHROPIC_BASE_URL": wrong.URL, "CLAUDE_CODE_USE_VERTEX": "1", "ANTHROPIC_VERTEX_BASE_URL": wrong.URL}})
 	writeProbeJSON(globalPath, map[string]any{})
@@ -92,10 +101,24 @@ func TestClaudeIsolatedProfilePreservesPoliciesAndGateway(t *testing.T) {
 	messages, models := 0, 0
 	advertisedTools := 0
 	toolError, routeTokenOK, continuationDecoded := false, true, false
+	noticeInModelBody := false
 	var continuationRoles []string
 	var systemDigests [][32]byte
 	repeatedSystem := true
+	uiBackend := &statusProbeBackend{}
+	ui, err := gateway.New(gateway.Config{Tokens: tokens, Backend: uiBackend, LaunchModel: model})
+	if err != nil {
+		t.Fatal("cannot prepare independent local UI routes")
+	}
+	var noticeRequests atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasPrefix(r.URL.Path, "/dax-kiro-proxy/") {
+			if r.Method == "POST" && r.URL.Path == "/dax-kiro-proxy/hooks/model-capabilities" && r.Header.Get("x-api-key") == tokens.UI {
+				noticeRequests.Add(1)
+			}
+			ui.ServeHTTP(w, r)
+			return
+		}
 		if r.Method == "HEAD" {
 			w.WriteHeader(404)
 			return
@@ -142,6 +165,7 @@ func TestClaudeIsolatedProfilePreservesPoliciesAndGateway(t *testing.T) {
 		}
 		mu.Lock()
 		messages++
+		noticeInModelBody = noticeInModelBody || bytes.Contains(body, []byte("Kiro launch ")) || bytes.Contains(body, []byte("Kiro model capabilities unavailable."))
 		round := messages
 		decoded, decodeErr := anthropic.DecodeRequest(body)
 		if decodeErr == nil {
@@ -197,7 +221,8 @@ func TestClaudeIsolatedProfilePreservesPoliciesAndGateway(t *testing.T) {
 		}
 	}))
 	defer server.Close()
-	p, err := launcher.PrepareClient(launcher.ClientConfig{RuntimeParent: root, Home: home, Project: project, UserSettings: userPath, Executable: executable, Version: launcher.SupportedClientVersion, Model: model, GatewayURL: server.URL, ModelToken: tokens.Model, Environment: []string{"PATH=/usr/bin:/bin:/usr/sbin:/sbin", "TERM=dumb", "ANTHROPIC_API_KEY=synthetic-ambient-key"}})
+	proxy := filepath.Join(filepath.Dir(buildRelayObserver(t)), "owned-relay")
+	p, err := launcher.PrepareClient(launcher.ClientConfig{RuntimeParent: root, Home: home, Project: project, UserSettings: userPath, Executable: executable, Version: launcher.SupportedClientVersion, Model: model, GatewayURL: server.URL, ModelToken: tokens.Model, UIToken: tokens.UI, StatusExecutable: proxy, Environment: []string{"PATH=/usr/bin:/bin:/usr/sbin:/sbin", "TERM=dumb", "ANTHROPIC_API_KEY=synthetic-ambient-key"}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -221,10 +246,15 @@ func TestClaudeIsolatedProfilePreservesPoliciesAndGateway(t *testing.T) {
 	mu.Lock()
 	defer mu.Unlock()
 	t.Logf("client=%s, messages=%d, models=%d, wrong_route=%d, user_hook=%v, project_hook_with_local_env=%v, tool_denied=%v, advertised_tools=%d, continuation_roles=%v, trailing_system_repeats_prior=%v, decoder_accepts=%v, exit=%d", launcher.SupportedClientVersion, messages, models, wrongRoute.Load(), userHook, projectHook, toolError, advertisedTools, continuationRoles, repeatedSystem, continuationDecoded, result.ExitCode)
+	t.Logf("hooks_disabled=%v, startup_notice_requests=%d, notice_in_model_body=%v, ui_model_starts=%d, ui_model_lists=%d", disabled, noticeRequests.Load(), noticeInModelBody, uiBackend.starts.Load(), uiBackend.lists.Load())
 	if runErr != nil || !bytes.Contains(result.Stdout, []byte(answer)) {
 		t.Fatalf("client fixture did not finish: safe_error=%v, stdout_bytes=%d", runErr, len(result.Stdout))
 	}
-	if messages != 2 || !continuationDecoded || !toolError || !routeTokenOK || wrongRoute.Load() != 0 || !userHook || !projectHook || !os.IsNotExist(helperErr) {
+	expectedNotices := int32(1)
+	if disabled {
+		expectedNotices = 0
+	}
+	if messages != 2 || !continuationDecoded || !toolError || !routeTokenOK || wrongRoute.Load() != 0 || userHook == disabled || projectHook == disabled || !os.IsNotExist(helperErr) || noticeRequests.Load() != expectedNotices || noticeInModelBody || uiBackend.starts.Load() != 0 || uiBackend.lists.Load() != 0 {
 		t.Fatal("isolated client profile contract was not preserved")
 	}
 	if err := p.Close(); err != nil {

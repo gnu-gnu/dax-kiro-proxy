@@ -64,6 +64,15 @@ func (h *Handler) ui(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	if r.URL.Path == "/dax-kiro-proxy/hooks/model-capabilities" {
+		notice, err := status.LaunchNotice(h.cfg.LaunchModel)
+		if err != nil {
+			writeError(w, 503, "api_error", "Startup model information unavailable")
+			return
+		}
+		writeJSON(w, 200, notice)
+		return
+	}
 	page := status.MetricsPage{Records: []status.TurnRecord{}}
 	if h.cfg.Metrics != nil {
 		page = h.cfg.Metrics.Drain()

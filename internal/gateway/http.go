@@ -53,6 +53,7 @@ type Config struct {
 	Backend           inference.Backend
 	Usage             *status.UsageCache
 	Metrics           *status.TurnQueue
+	LaunchModel       string
 	FirstEventTimeout time.Duration
 	TurnTimeout       time.Duration
 	WriteTimeout      time.Duration
@@ -69,6 +70,11 @@ type Handler struct {
 }
 
 func New(cfg Config) (*Handler, error) {
+	if cfg.LaunchModel != "" {
+		if _, err := status.LaunchNotice(cfg.LaunchModel); err != nil {
+			return nil, errors.New("invalid prepared startup model")
+		}
+	}
 	if cfg.Backend == nil || !validToken(cfg.Tokens.Model) || !validToken(cfg.Tokens.UI) || cfg.Tokens.Model == cfg.Tokens.UI {
 		return nil, errors.New("gateway requires a backend and two distinct 256-bit tokens")
 	}
@@ -150,7 +156,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	case "POST /v1/messages", "POST /messages", "GET /v1/models":
 		credential = h.cfg.Tokens.Model
-	case "GET /dax-kiro-proxy/status/usage", "POST /dax-kiro-proxy/hooks/turn-metrics":
+	case "GET /dax-kiro-proxy/status/usage", "POST /dax-kiro-proxy/hooks/turn-metrics", "POST /dax-kiro-proxy/hooks/model-capabilities":
 		credential = h.cfg.Tokens.UI
 	default:
 		writeError(w, 404, "not_found_error", "Route not found")

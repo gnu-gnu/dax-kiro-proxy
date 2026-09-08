@@ -172,6 +172,14 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
 - Startup diagnostics distinguish process launch, individual hook execution and visible UI from
   session initialization. A held-hook control must not let an earlier callback or status render
   pass a full-readiness assertion. Disabled optional hooks must not make healthy startup fail.
+- The startup model-notice hook uses only the exact UI-authenticated model-capabilities POST and the
+  prepared launch model. It cannot discover/select a model, refresh usage or consume completion
+  metrics. Unsupported request bodies and model credentials reject before exposing the notice.
+- Its synchronous `startup` hook emits only bounded `systemMessage` JSON. Unverified model support
+  and unreported provider usage stay explicit; malformed responses cannot inject text or context.
+  Existing user/project hooks and permission rules remain effective. An installed-client control
+  verifies the notice is absent from model input, and disabling optional hooks preserves conversation
+  completion and tool denial. Timeout, blocked output and late invocation obey the UI-helper bounds.
 - Context percentage, duration, metering units, credits, model, multiplier, and effort status are parsed
   when present and degrade independently when absent.
 - Multiple metadata notifications in one turn create only one visible completion metric.

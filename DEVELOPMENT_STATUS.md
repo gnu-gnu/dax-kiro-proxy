@@ -19,6 +19,9 @@ does not redefine completion around an intermediate phase.
   execution-policy proof; the dedicated evidence below distinguishes helper and actual UI checks.
 - D48 observes visible status while another SessionStart hook is still running in installed Claude
   2.1.263. Hook completion and visible UI must remain separate from unverified full initialization.
+- D49 adds a bounded startup model notice using the prepared alias and UI-only credentials. Actual
+  Claude displays it, keeps existing hooks/Read denial, and excludes it from the exercised model
+  inputs. Disabling hooks preserves conversation completion. Feature/policy verification remains open.
 - The original fourteen repository Markdown documents were read in README order, with README and
   AGENTS first. LIVE_KIRO_TEST_PLAN.md now adds the concrete scope of a separately opted-in test.
 - Specification-only baseline committed as `7b108dd`.
@@ -96,8 +99,9 @@ CLIs may maintain their own account/cache metadata; no claim of globally untouch
 The built-in Kiro policy adapter remains unavailable. Run cannot start actual model traffic, and
 doctor explicitly reports that fact. A package-private fake adapter tests the complete runtime path;
 no trust flag or user-supplied verification record can select it. Client initialization timing and
-complete interactive behavior, asset preservation, capability/metrics hooks, R16 request controls,
-real policy/load proof and release work remain open. D47 adds the separate status display below.
+complete interactive behavior, asset preservation, verified capabilities, turn-metrics client hooks,
+R16 request controls, real policy/load proof and release work remain open. D47/D49 add the separate
+status display and startup model notice below.
 
 The user subsequently explicitly authorized an independent local Claude CLI consultation and asked
 that Claude save its answer to a file for review. That authorization superseded the earlier automatic
@@ -689,8 +693,8 @@ zero active children. The private normalized log and exit 0 are retained under
 .cache/interop-observations/startup-order.gHCAPN. Raw terminal output remains in bounded memory only.
 
 This is positive ordering and notice-display evidence, not a prompt-input usability test, latency
-benchmark or full readiness guarantee. D48 retains the initialization gate and the missing product
-capability-notice payload/route/hook work. No Kiro process, model credit, actual client tool,
+benchmark or full readiness guarantee. D48 retains the initialization gate; D49 subsequently adds
+the product capability-notice payload/route/hook. No Kiro process, model credit, actual client tool,
 authentication mutation, dependency or production-policy change was involved.
 
 The complete uncached interop race suite passed in 20.011s with both installed-CLI opt-ins empty
@@ -701,6 +705,53 @@ zero message requests/backend starts and joined cleanup. Its normalized log and 
 .cache/interop-observations/startup-status.RBIDSF. Whole-repository vet, changed-file formatting and
 diff checks passed. No unrelated production acceptance suite or live Kiro gate is claimed by these
 test-only changes.
+
+### Startup model notice and optional hooks
+
+D49 adds the exact UI-authenticated model-capabilities POST, strict version-1 notice formatter and
+internal model-notice command. The launcher installs a synchronous startup-only SessionStart hook
+while preserving the client-controlled source hooks and permissions. The helper reuses the existing
+private UI configuration and bounded HTTP reader; its output is only systemMessage JSON. It shows
+the launch model, client tool ownership, unverified media/effort, currently unavailable native web
+search and unreported provider usage. It performs no discovery, usage refresh or model work and
+does not consume queued metrics. This does not verify Kiro policy or complete initialization.
+
+The new contract/route/helper/dispatch tests first failed on absent APIs. Focused race tests then
+passed for status (1.801s), gateway (1.549s), startupnotice (1.535s), existing statusline (2.357s) and
+command dispatch (1.558s). The launcher/helper checks passed in 9.819s: actual compiled helpers retain
+literal hostile shell paths, cleared environments, private credentials and a two-second exit even
+with unread stdin and blocked stdout. Runtime composition reads the prepared launch alias without
+another model start, then removes the credential at shutdown. Later failure/cancellation and
+conflicting-startup-model checks passed in startupnotice 2.522s and launcher 3.813s. Redirects,
+unauthorized/oversized/stalled responses, mismatched models and injected context fields cannot broaden
+the display; caller cancellation keeps its cause. A preliminary command with malformed -p1 syntax
+ran no tests; the reported runs use Go's -p 1 syntax.
+
+Four installed-Claude 2.1.263 controls passed in 19.801s under the race detector. The interactive
+status and held-peer-hook cases each made one startup-notice request and visibly displayed the
+product message, with zero HTTP model requests/backend starts. Their status refresh intervals were
+5,101ms and 4,862ms. Client PID/group and held/fast helper PIDs were gone after cleanup; terminal
+exit 143 was the harness's intentional shutdown, and the tests exited 0. The existing ordering
+distinction remained: visible status preceded release of the held hook. In that run status appeared
+before the first hook callback, so its negative relative timestamp is valid rather than missing data.
+The normalized log and exit 0 are retained under .cache/interop-observations/model-notice.LUl2oZ.
+
+The final two synthetic-conversation controls also checked every model request body for the notice
+and passed in 5.255s (individual tests 2.28s/1.44s). Each completed two local requests and a Read
+denial with client exit 0 and zero UI-backend discovery/starts. With hooks enabled, the product notice
+ran once alongside both user/project hooks; with disableAllHooks enabled, all three were absent and
+the conversation still completed. The notice was absent from both model bodies in each control.
+Source settings stayed unchanged. The owner-only normalized log and exit 0 are under
+.cache/interop-observations/model-notice-context.6hsxGH. No Kiro process, model credit, external
+inference or actual client file read was used. No dependency or production-policy change was made.
+
+The final uncached `go test -race -p 1 -count=1 -timeout=3m ./...` passed across all packages under
+umask 077, with installed-CLI opt-ins empty and Kiro credit opt-in 0. Results include ACP 4.921s,
+gateway 3.024s, interop 19.777s, launcher 18.212s, session 16.186s, startupnotice 2.027s and existing
+statusline 2.148s. The complete normalized log and exit 0 are retained under
+.cache/interop-observations/model-notice-regression.xSyVut. Whole-repository vet, changed-file
+formatting and diff checks also passed. This validates the local notice implementation and affected
+regressions; the full product and live/release gates remain unfinished.
 
 ### Request constraints and negative client recovery evidence
 
@@ -908,8 +959,9 @@ limits. A suspended usage fetch joins, and an arbitrary synthetic cleanup error 
 fixed class while other cleanup continues. Source settings and caller descriptors remain unchanged.
 
 At this checkpoint this was an internal runtime stage. D34/D35 subsequently connected catalog,
-last-model and public CLI startup; D47 adds status credentials/display. Kiro restriction proof,
-client assets, complete interactive readiness and capability/metrics hooks remain unfinished.
+last-model and public CLI startup; D47/D49 add status credentials/display and startup notices. Kiro
+restriction proof, client assets, complete interactive readiness, verified capabilities and
+turn-metrics client hooks remain unfinished.
 The independent runtime fixture contains no upstream capture and performs no
 actual client tool effect, installed-client invocation or Kiro model request. No dependency was added.
 
