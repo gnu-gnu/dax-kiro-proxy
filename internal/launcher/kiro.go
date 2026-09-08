@@ -37,35 +37,13 @@ type KiroInfo struct {
 // CheckKiro performs finite, read-only checks. It establishes a versioned identity/cache scope;
 // it does not prove that the account's next model request will succeed or that tools are restricted.
 func CheckKiro(ctx context.Context, runner CommandRunner, cfg KiroConfig) (KiroInfo, error) {
-	if runner == nil || cfg.ScopeKey == ([32]byte{}) {
+	if cfg.ScopeKey == ([32]byte{}) {
 		return KiroInfo{}, ErrConfig
 	}
-	for _, path := range []string{cfg.Executable, cfg.Home, cfg.Directory} {
-		if !filepath.IsAbs(path) || len(path) > 4096 || strings.ContainsAny(path, "\x00\r\n") {
-			return KiroInfo{}, ErrConfig
-		}
+	info, command, err := checkedKiroCommand(ctx, runner, cfg)
+	if err != nil {
+		return KiroInfo{}, err
 	}
-	info := KiroInfo{Executable: cfg.Executable, Helper: filepath.Join(filepath.Dir(cfg.Executable), "kiro-cli-chat"), Version: SupportedKiroVersion}
-	env := []string{"HOME=" + cfg.Home, "PATH=" + filepath.Dir(cfg.Executable) + ":/usr/bin:/bin:/usr/sbin:/sbin", "TMPDIR=" + cfg.Directory, "TERM=dumb", "LANG=en_US.UTF-8"}
-	command := childproc.Command{Executable: cfg.Executable, Directory: cfg.Directory, Environment: env, Args: []string{"--version"}}
-	for i, executable := range []string{info.Executable, info.Helper} {
-		if ctx.Err() != nil {
-			return KiroInfo{}, ctx.Err()
-		}
-		command.Executable = executable
-		result, err := runner.Run(ctx, command)
-		if ctx.Err() != nil {
-			return KiroInfo{}, ctx.Err()
-		}
-		name := "kiro-cli"
-		if i == 1 {
-			name = "kiro-cli-chat"
-		}
-		if err != nil || result.ExitCode != 0 || len(result.Stdout) > 256 || strings.TrimSpace(string(result.Stdout)) != name+" "+SupportedKiroVersion {
-			return KiroInfo{}, ErrKiroVersion
-		}
-	}
-	command.Executable = cfg.Executable
 	command.Args = []string{"whoami", "--format", "json"}
 	result, err := runner.Run(ctx, command)
 	if ctx.Err() != nil {
@@ -84,6 +62,39 @@ func CheckKiro(ctx context.Context, runner CommandRunner, cfg KiroConfig) (KiroI
 	info.ProfileScope = hex.EncodeToString(mac.Sum(nil))
 	info.HadPostamble = postamble
 	return info, nil
+}
+
+func checkedKiroCommand(ctx context.Context, runner CommandRunner, cfg KiroConfig) (KiroInfo, childproc.Command, error) {
+	if runner == nil {
+		return KiroInfo{}, childproc.Command{}, ErrConfig
+	}
+	for _, path := range []string{cfg.Executable, cfg.Home, cfg.Directory} {
+		if !filepath.IsAbs(path) || len(path) > 4096 || strings.ContainsAny(path, "\x00\r\n") {
+			return KiroInfo{}, childproc.Command{}, ErrConfig
+		}
+	}
+	info := KiroInfo{Executable: cfg.Executable, Helper: filepath.Join(filepath.Dir(cfg.Executable), "kiro-cli-chat"), Version: SupportedKiroVersion}
+	env := []string{"HOME=" + cfg.Home, "PATH=" + filepath.Dir(cfg.Executable) + ":/usr/bin:/bin:/usr/sbin:/sbin", "TMPDIR=" + cfg.Directory, "TERM=dumb", "LANG=en_US.UTF-8"}
+	command := childproc.Command{Executable: cfg.Executable, Directory: cfg.Directory, Environment: env, Args: []string{"--version"}}
+	for i, executable := range []string{info.Executable, info.Helper} {
+		if ctx.Err() != nil {
+			return KiroInfo{}, childproc.Command{}, ctx.Err()
+		}
+		command.Executable = executable
+		result, err := runner.Run(ctx, command)
+		if ctx.Err() != nil {
+			return KiroInfo{}, childproc.Command{}, ctx.Err()
+		}
+		name := "kiro-cli"
+		if i == 1 {
+			name = "kiro-cli-chat"
+		}
+		if err != nil || result.ExitCode != 0 || len(result.Stdout) > 256 || strings.TrimSpace(string(result.Stdout)) != name+" "+SupportedKiroVersion {
+			return KiroInfo{}, childproc.Command{}, ErrKiroVersion
+		}
+	}
+	command.Executable = cfg.Executable
+	return info, command, nil
 }
 
 func kiroIdentity(output []byte) ([]byte, bool, error) {

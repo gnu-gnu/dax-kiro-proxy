@@ -289,6 +289,15 @@ rate_unit strings and context_window_tokens/rate_multiplier numbers. Only names,
 were recorded, not account values or model output. This identifies a possible finite startup catalog
 source; strict decoding, unit semantics and cache integration remain implementation work.
 
+The subsequent strict CLI catalog adapter first failed on absent APIs, then passed
+`go test -race -count=1 ./internal/launcher ./internal/catalog` in 2.069s and 1.529s. It reuses the
+version/environment constructor, enforces the complete JSON and declared-default contract, and
+rejects malformed/duplicate/oversized output without disclosing diagnostics. D30 records the subset.
+The opt-in `TestKiroPinnedReadOnlyCatalog` passed in 4.394s (2.54s test): 19 models, an advertised
+default and exact ID/alias round trips. All 19 rate-unit values were outside the test's fixed known
+enum candidates; no raw units or credit multipliers were invented or recorded. Rate interpretation,
+startup cache wiring and live ACP-ID comparison remain separate. `go vet ./...` passed.
+
 ### Phase 6 owned HTTP server
 
 New server tests first failed on absent APIs. D29 adds connection admission before HTTP parsing,

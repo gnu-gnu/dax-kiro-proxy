@@ -274,3 +274,64 @@ func TestKiroReadOnlyModelListingShape(t *testing.T) {
 	}
 	t.Logf("version=%s, model_listing_json=true, root_array=%v, model_count=%d, first_item_fields=%v", launcher.SupportedKiroVersion, array, len(items), first)
 }
+
+type catalogObservationRunner struct {
+	*childproc.Runner
+	units map[string]int
+}
+
+func (r *catalogObservationRunner) Run(ctx context.Context, command childproc.Command) (childproc.Result, error) {
+	result, err := r.Runner.Run(ctx, command)
+	if err == nil && strings.Join(command.Args, " ") == "chat --list-models --format json" {
+		var body struct {
+			Models []struct {
+				Unit string `json:"rate_unit"`
+			} `json:"models"`
+		}
+		if json.Unmarshal(result.Stdout, &body) == nil {
+			r.units = map[string]int{}
+			for _, model := range body.Models {
+				unit := "unrecognized"
+				for _, known := range []string{"credit", "credits", "request", "requests", "token", "tokens", "per_request", "per_token"} {
+					if model.Unit == known {
+						unit = known
+						break
+					}
+				}
+				r.units[unit]++
+			}
+		}
+	}
+	return result, err
+}
+func TestKiroPinnedReadOnlyCatalog(t *testing.T) {
+	executable := os.Getenv("DAX_INTEROP_KIRO_BINARY")
+	if executable == "" {
+		t.Skip("set DAX_INTEROP_KIRO_BINARY for the pinned read-only catalog adapter; no prompt")
+	}
+	runner, err := childproc.New(childproc.Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer runner.Close()
+	observed := &catalogObservationRunner{Runner: runner}
+	c, err := launcher.ReadKiroCatalog(t.Context(), observed, launcher.KiroConfig{Executable: executable, Home: os.Getenv("HOME"), Directory: t.TempDir()})
+	if err != nil {
+		t.Fatalf("pinned public catalog adapter failed: %v", err)
+	}
+	defaultAlias, err := c.ClientID(c.Current())
+	if err != nil || !strings.HasPrefix(defaultAlias, "claude-dax-") {
+		t.Fatal("public default model is not advertised")
+	}
+	for _, item := range c.List() {
+		backend, err := c.Resolve(item.ID)
+		if err != nil {
+			t.Fatal("public model alias did not resolve")
+		}
+		reverse, err := c.ClientID(backend.ID)
+		if err != nil || reverse != item.ID {
+			t.Fatal("public model IDs were approximated or collided")
+		}
+	}
+	t.Logf("version=%s, model_count=%d, default_advertised=true, aliases_round_trip=true, recognized_rate_units=%v", launcher.SupportedKiroVersion, len(c.List()), observed.units)
+}

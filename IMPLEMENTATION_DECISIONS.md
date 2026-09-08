@@ -738,3 +738,31 @@ ACP process group. This is local lifecycle evidence, not live Kiro or complete l
 
 Primary API source checked 2026-09-08: [Go HTTP server contract](https://pkg.go.dev/net/http#Server),
 including Shutdown, BaseContext, ConnState, Protocols and ResponseController.
+
+## D30: finite public CLI catalog decoding (review R11/R14)
+
+The launcher can read the pinned 2.21.1 catalog with `chat --list-models --format json`, after checking
+both main/helper versions with the same allowlisted command constructor as D26. This operation sends
+no prompt and creates no ACP session. Identity/login checking is still a separate mandatory startup
+step. A canceled caller runs no listing command; command/output failure yields a fixed catalog error.
+
+The independently observed shape is one complete JSON object with default_model and a models array.
+The decoder accepts at most 64 KiB, 16 fields per relevant object and 256 advertised entries. It
+rejects duplicate keys/IDs, malformed or additional JSON/prose, empty catalogs, invalid names and
+descriptions, and a default absent from the advertised list. In contrast to public ACP's explicit
+current selection, this CLI default cannot synthesize a missing model entry. model_id/model_name/
+description map into the existing catalog and its exact reversible client aliases.
+
+Optional rate_multiplier and rate_unit are type/bounds checked, but do not populate credit multipliers
+until the rate-unit meaning is independently established. The first fixed unit-enum probe recognized
+none of the 19 observed values; it is not evidence that the CLI lacks rate metadata. Context-window
+metadata is not used to invent a tokenizer, billing, or ACP capability. Compatible unused fields stay
+irrelevant to routing. No provider usage response changes.
+
+The pinned live read-only adapter verified 19 advertised models, membership of the default and exact
+alias round trips. This is an available discovery source, not proof that every ID has the same live
+ACP representation or that a client model selector is fully integrated. Cache use must retain D11's
+complete identity/TTL rules and compare actual session model support before dispatch; no approximate
+ID mapping or fallback is introduced. The public CLI help/black-box JSON observation is the wire
+source; the synthetic tests use newly invented names, descriptions and metadata rather than copying
+the installed catalog as a fixture.
