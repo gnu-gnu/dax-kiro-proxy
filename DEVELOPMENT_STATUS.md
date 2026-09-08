@@ -267,6 +267,29 @@ Anthropic 8.204s, gateway 2.262s, launcher 1.570s, session 8.550s and status 1.3
 packages passed; installed-client tests are separately opt-in and were verified above. `go vet ./...`
 and `git diff --check` passed after the continuation changes.
 
+### Phase 6 attached client and terminal lifecycle
+
+The previous checkpoint's full uncached `go test -race -p 2 -count=1 ./...` passed: ACP 5.071s,
+pool 2.539s, Anthropic 8.009s, gateway 2.202s, launcher 1.544s, session 8.486s and status 1.241s;
+all remaining packages passed, with live tests still opt-in.
+
+New attached-client tests first failed on absent APIs. The descriptor/environment, output-stall,
+input-stall, admission, repeated Close and whole-group cleanup implementation then passed its race
+suite in 5.543s. The disposable macOS terminal fixture exposed two distinct issues: exact termios
+comparison included the documented pending-input PENDIN state, and Ignore/Reset did not preserve the
+parent's prior signal state. The test now excludes only PENDIN, and the implementation restores
+foreground ownership through a bounded effect-free self invocation without changing signal handlers.
+The helper initially hit its one-second deadline under the race runtime's default exit delay;
+the helper's explicit environment now disables only that test-runtime delay, leaving its deadline
+unchanged. D28 records the final behavior and limits.
+
+Final `go test -race -count=1 ./internal/childproc ./internal/launcher` passed in 5.931s and 2.148s.
+The actual disposable tty test covers normal/nonzero/forced termination, failed exec, competing tty
+ownership, original termios/group restoration, existing SIGTTOU handler delivery and ignored-signal
+preservation. No user terminal, real client, Kiro model or client tool effect was used in these tests.
+`go vet ./...` and `git diff --check` passed. x/sys's compiled use is recorded in DEPENDENCY_REVIEW.md.
+Gateway/session orchestration, actual interactive readiness and shell job control remain unfinished.
+
 ### Phase 6 finite launcher subprocess runner
 
 Tests first failed because the CLI runner did not exist. `go test -race -count=1 ./internal/childproc`

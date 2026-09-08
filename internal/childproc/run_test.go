@@ -21,6 +21,13 @@ import (
 var executable string
 
 func TestMain(m *testing.M) {
+	if childproc.IsTerminalReclaimer(os.Args[1:]) {
+		os.Exit(0)
+	}
+	if fixture := os.Getenv("DAX_ATTACHED_TTY_FIXTURE"); fixture != "" {
+		executable = fixture
+		os.Exit(m.Run())
+	}
 	dir, err := os.MkdirTemp("", "dax-cli-fixture-")
 	if err != nil {
 		panic(err)

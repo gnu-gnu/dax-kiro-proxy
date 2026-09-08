@@ -1,0 +1,21 @@
+{
+  "created": "2026-09-08",
+  "scope": "Independent finite CLI, interactive client and process-tree fixtures",
+  "repository_sources": ["ACCEPTANCE_SPEC.md", "IMPLEMENTATION_REQUIREMENTS.md", "IMPLEMENTATION_DECISIONS.md"],
+  "public_sources": [
+    "https://pkg.go.dev/os/exec",
+    "https://pkg.go.dev/syscall#SysProcAttr",
+    "https://pkg.go.dev/os/signal",
+    "https://pkg.go.dev/golang.org/x/sys/unix@v0.47.0",
+    "https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man3/tcsetpgrp.3.html"
+  ],
+  "local_public_manuals": ["macOS 15.4 script(1)", "macOS 15.4 termios(4)"],
+  "fixtures": ["fake/main.go", "fake/terminal_darwin.go", "fake/terminal_other.go"],
+  "constraints": [
+    "The fake CLI does not import implementation packages",
+    "All strings, sentinels and process actions are independently authored",
+    "No earlier implementation or upstream example/test was consulted or copied",
+    "The system script utility allocates a disposable pseudo-terminal only for this test",
+    "No user terminal or model service is used and no client tool effect is performed"
+  ]
+}

@@ -110,6 +110,10 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
   recognized authentication expiry after a keepalive still completes one normal assistant message.
 - Repeated caller cancellation cannot interrupt final cleanup or leak an ACP/relay child.
 - Shutdown can be called repeatedly and remains bounded.
+- An attached client has explicit descriptors/environment and bounded ownership. Blocked input/output,
+  leader exit with descendants and repeated shutdown cannot retain an owned process group. Foreground
+  terminal ownership/settings and existing signal handling are restored after success, failure,
+  cancellation and failed exec without closing the caller's descriptors.
 - Pool limits and idle/session TTLs hold under concurrency and do not evict active or pending-tool state.
 
 ## H. Usage and diagnostics

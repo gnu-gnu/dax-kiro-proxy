@@ -220,3 +220,20 @@ After the WebP import and `go mod tidy`, `go list -test -deps ./...` reports thr
 modules: jsonschema v6.0.3, x/image v0.45.0 and x/text v0.41.0. x/sys remains only in the resolved
 module graph; it is not in the compiled application/test packages. The retained licenses/notices and
 security advisory review for shipped components are still separate release work.
+
+## Phase 6 terminal adapter adoption
+
+The already reviewed and checksum-verified `golang.org/x/sys` v0.47.0 is now selected as a direct
+dependency for descriptor duplication and terminal ioctls in the macOS/Linux launcher adapter.
+The BSD-3-Clause LICENSE and additional PATENTS review above apply; no version change, upstream
+fixture, example, or terminal-emulation library is introduced. The adapter uses named platform APIs
+from the [official unix package documentation](https://pkg.go.dev/golang.org/x/sys/unix@v0.47.0).
+The prior statement that x/sys was graph-only describes the media checkpoint, not this adoption.
+Actual compiled graphs and final artifact notices must be updated after integration.
+
+After integration, `go list -test -deps ./...` reports four external compiled modules: jsonschema
+v6.0.3, x/image v0.45.0, x/text v0.41.0 and x/sys v0.47.0. `go.mod` now lists x/sys directly and
+`go.sum` retains the already reviewed archive checksum. System `script` is a separately installed
+macOS test utility, invoked by its documented argument interface without copying its source or
+examples; it is neither a runtime launcher dependency nor bundled with the product. Final binary,
+runtime/race component, notice and advisory audits remain open.

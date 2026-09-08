@@ -639,3 +639,46 @@ the number 42 both exited 0. The observation uses `/usr/bin/false` as its declar
 unexpected validation-time execution cannot perform a client tool. This is evidence of an unreliable
 validation exit status, not evidence that malformed tools were effectively enabled or rejected.
 Neither this utility nor its success code may be used as the R06 startup gate.
+
+## D28: attached client lifetime and terminal ownership (review R07/R12/R14)
+
+An attached client has one owner and one active process slot, an explicit validated command/environment,
+and three caller-owned file descriptors. Descriptors go directly to the child, so blocked terminal,
+pipe or file I/O creates no parent copy goroutine or retained transcript. This is the client UI path;
+finite Kiro checks still use D23's bounded capture/discard policy. The owner never closes the caller's
+descriptors. The default client lifetime is 24 hours, with a positive configurable ceiling of seven
+days. Cancellation and owner shutdown stop admission and join owned cleanup. Normal leader exit
+also triggers descendant cleanup. Grace/TERM/KILL use the same implementation and default stages as
+D23: 100 ms, 250 ms and one second; each configured stage is at most five seconds.
+
+Foreground mode requires the input descriptor to identify the caller's current foreground controlling
+terminal. One terminal owner is permitted across the process; invalid/nonforeground terminals fail
+before client execution. A private close-on-exec duplicate retains the terminal handle for cleanup.
+Go's `SysProcAttr.Foreground` gives the child a new foreground process group, with no terminal data
+proxy or emulation. The original group and termios settings are restored after process cleanup and
+after failed exec. Window size is shared directly with the client; the owner does not consume input.
+
+Restoring the foreground group from a background parent must not alter process-wide SIGTTOU handlers.
+The executable handles the exact internal `internal-terminal-reclaim` argument by immediately exiting
+successfully, before settings or application work. During cleanup the parent starts that same binary
+with Go foreground process attributes and the original group, then restores termios from the now
+foreground parent. The helper receives no account/provider environment or terminal input/output. Its
+only environment entry disables the race runtime's exit sleep for instrumented tests. A one-second
+deadline and one-second WaitDelay bound it. Since it joins the parent's group, timeout targets only
+the helper PID, never the shared group. A failed helper is reported; when the original group was
+nevertheless restored, termios restoration is still attempted. No group IDs or tty descriptors come
+from command-line text, and direct invocation of the helper command has no authority or effect.
+
+The macOS fixture uses the system `script` utility with `/dev/null` as its transcript destination and
+an independently authored client inside a disposable pseudo-terminal. It verifies normal/nonzero/
+forced exit, exec failure, foreground exclusivity, restored settings, and preservation of both an
+existing SIGTTOU handler and an ignored disposition. macOS's PENDIN flag is pending-input state;
+comparisons exclude only that state bit while checking all persistent settings. No user terminal or
+live model is exercised. The Linux adapter uses platform-specific termios constants; runtime
+portability, shell job suspension/resumption, actual interactive Claude initialization and launcher-wide
+gateway/session cleanup remain separate checks. This component does not open the R06 live-model gate.
+
+Sources checked 2026-09-08: [Go process attributes](https://pkg.go.dev/syscall#SysProcAttr),
+[Go signals](https://pkg.go.dev/os/signal),
+[Apple foreground-group contract](https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man3/tcsetpgrp.3.html),
+the installed macOS 15.4 `script(1)` and `termios(4)` manuals, and the reviewed x/sys API documentation.

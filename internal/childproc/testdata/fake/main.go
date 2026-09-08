@@ -17,9 +17,15 @@ func main() {
 	if len(os.Args) != 2 {
 		os.Exit(2)
 	}
+	if strings.HasPrefix(os.Args[1], "terminal-") {
+		terminalFixture(os.Args[1])
+		return
+	}
 	switch os.Args[1] {
 	case "version":
 		fmt.Println("fixture-cli 1.2.3")
+	case "read-input":
+		_, _ = bufio.NewReader(os.Stdin).ReadString('\n')
 	case "environment":
 		json.NewEncoder(os.Stdout).Encode(map[string]bool{"inherited": os.Getenv("DAX_RUNNER_SHOULD_NOT_INHERIT") != "", "allowed": os.Getenv("ONLY_FOR_FIXTURE") == "yes"})
 	case "failure":

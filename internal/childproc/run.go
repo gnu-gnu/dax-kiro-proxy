@@ -184,19 +184,7 @@ func (r *Runner) Run(ctx context.Context, command Command) (Result, error) {
 		}
 	}
 	// Cleanup has its own finite stages and does not inherit a canceled request's context.
-	if !waitGone(result.PID, exited, r.cfg.GracePeriod) {
-		if signal(result.PID, false) != nil {
-			err = errors.Join(err, ErrCleanup)
-		}
-		if !waitGone(result.PID, exited, r.cfg.TermPeriod) {
-			if signal(result.PID, true) != nil {
-				err = errors.Join(err, ErrCleanup)
-			}
-			if !waitGone(result.PID, exited, r.cfg.KillPeriod) {
-				err = errors.Join(err, ErrCleanup)
-			}
-		}
-	}
+	err = errors.Join(err, shutdownGroup(result.PID, exited, r.cfg.GracePeriod, r.cfg.TermPeriod, r.cfg.KillPeriod))
 	// A same-group descendant cannot retain the pipes. Unexpected inherited descriptors also get
 	// a bounded drain window; closing these owned file handles unblocks their readers.
 	join := time.NewTimer(r.cfg.KillPeriod)
