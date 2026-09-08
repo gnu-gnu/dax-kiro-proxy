@@ -11,12 +11,14 @@ import (
 
 	"dax-kiro-proxy/internal/acp"
 	"dax-kiro-proxy/internal/anthropic"
+	"dax-kiro-proxy/internal/catalog"
 	"dax-kiro-proxy/internal/inference"
+	"dax-kiro-proxy/internal/kirofeature"
 	"dax-kiro-proxy/internal/ndjson"
 	"dax-kiro-proxy/internal/projection"
 )
 
-var ErrBusy = errors.New("session has an active response")
+var ErrBusy = inference.ErrBusy
 
 type State string
 
@@ -29,9 +31,12 @@ const (
 )
 
 type Config struct {
-	Process      acp.Config
-	TurnTimeout  time.Duration
-	SetupTimeout time.Duration
+	Process            acp.Config
+	TurnTimeout        time.Duration
+	SetupTimeout       time.Duration
+	InitialModel       string
+	InitialEffort      string
+	UnsupportedEfforts []kirofeature.Pair
 }
 type Driver struct {
 	cfg         Config
@@ -44,6 +49,10 @@ type Driver struct {
 	setupDone   chan struct{}
 	closeOnce   sync.Once
 	closeErr    error
+	modelState  catalog.Session
+	fresh       bool
+	initialUsed bool
+	effort      *kirofeature.Effort
 }
 
 func New(cfg Config) (*Driver, error) {
@@ -56,9 +65,12 @@ func New(cfg Config) (*Driver, error) {
 	if cfg.TurnTimeout <= 0 || cfg.TurnTimeout > time.Hour || cfg.SetupTimeout <= 0 || cfg.SetupTimeout > time.Minute {
 		return nil, acp.ErrParameters
 	}
+	if len(cfg.InitialModel) > 256 || cfg.InitialEffort != "" && kirofeature.Normalize(cfg.InitialEffort) == "" || len(cfg.UnsupportedEfforts) > 1280 {
+		return nil, acp.ErrParameters
+	}
 	// The ACP turn may outlive an individual HTTP tool handoff. Short setup calls use their own ctx.
-	cfg.Process.Limits.RequestTimeout = cfg.TurnTimeout
-	return &Driver{cfg: cfg, state: Unstarted}, nil
+	cfg.Process.Limits.RequestTimeout = max(cfg.TurnTimeout, cfg.SetupTimeout)
+	return &Driver{cfg: cfg, state: Unstarted, effort: kirofeature.NewEffort(cfg.UnsupportedEfforts)}, nil
 }
 func (d *Driver) State() State { d.mu.Lock(); defer d.mu.Unlock(); return d.state }
 
@@ -70,78 +82,64 @@ func (d *Driver) Start(ctx context.Context, r *anthropic.Request) (inference.Tur
 	if err != nil {
 		return nil, err
 	}
+	p, err := d.prepare(ctx, true)
+	if err != nil {
+		return nil, err
+	}
+	defer p.finishSetup()
 	d.mu.Lock()
-	if d.closed {
-		d.mu.Unlock()
-		return nil, acp.ErrClosed
-	}
-	if d.state == Starting || d.state == Prompting {
-		d.mu.Unlock()
-		return nil, ErrBusy
-	}
-	previous := d.client
-	d.client = nil
-	d.state = Starting
-	setup, cancel := context.WithTimeout(ctx, d.cfg.SetupTimeout)
-	d.setupCancel = cancel
-	done := make(chan struct{})
-	d.setupDone = done
+	first := !d.initialUsed
 	d.mu.Unlock()
-	defer func() { cancel(); close(done) }()
-	if previous != nil {
-		_ = previous.Close()
+	var selected catalog.Backend
+	if first && d.cfg.InitialModel != "" {
+		selected, err = p.info.Catalog.Backend(d.cfg.InitialModel)
+	} else {
+		selected, err = p.info.Catalog.Resolve(r.Model)
 	}
-	client, err := acp.Start(setup, d.cfg.Process)
 	if err != nil {
-		d.failedStart(nil)
+		d.failedStart(p.client)
+		return nil, errors.Join(inference.ErrRequest, err)
+	}
+	if err = p.selectModel(selected.ID); err != nil {
+		d.failedStart(p.client)
 		return nil, err
 	}
-	raw, err := client.Call(setup, "session/new", struct {
-		CWD string `json:"cwd"`
-		MCP []any  `json:"mcpServers"`
-	}{d.cfg.Process.Directory, []any{}})
-	if err != nil {
-		d.failedStart(client)
+	requested := r.Effort
+	if first && d.cfg.InitialEffort != "" {
+		requested = d.cfg.InitialEffort
+	}
+	if err = p.drain(); err != nil {
+		d.failedStart(p.client)
 		return nil, err
 	}
-	fields, err := ndjson.Object(raw)
-	var id string
-	if err != nil || !strictString(fields["sessionId"], &id) || len(id) == 0 || len(id) > 1024 {
+	if _, err = d.effort.Sync(p.ctx, p.client, p.info.ID, selected.ID, requested); err != nil {
+		d.failedStart(p.client)
+		return nil, err
+	}
+	client, id := p.client, p.info.ID
+	modelID, err := p.info.Catalog.ClientID(selected.ID)
+	if err != nil {
 		d.failedStart(client)
 		return nil, acp.ErrProtocol
 	}
-	// Notifications emitted during setup are owned by this new session, not a prompt response.
-	for {
-		event, ok, err := client.TryNext()
-		if err != nil {
-			d.failedStart(client)
-			return nil, err
-		}
-		if !ok {
-			break
-		}
-		if event.SessionID != "" && event.SessionID != id {
-			d.failedStart(client)
-			return nil, acp.ErrProtocol
-		}
-	}
 	owned, stop := context.WithTimeout(context.Background(), d.cfg.TurnTimeout)
 	response, signal := context.WithCancel(context.Background())
-	t := &turn{driver: d, client: client, id: id, model: r.Model, owned: owned, cancelOwned: stop, response: response, signalResponse: signal, done: make(chan struct{})}
+	t := &turn{driver: d, client: client, id: id, model: modelID, owned: owned, cancelOwned: stop, response: response, signalResponse: signal, done: make(chan struct{})}
 	d.mu.Lock()
-	if d.closed || setup.Err() != nil {
+	if d.closed || p.ctx.Err() != nil {
 		d.mu.Unlock()
 		stop()
 		signal()
 		d.failedStart(client)
-		if setup.Err() != nil {
-			return nil, setup.Err()
+		if p.ctx.Err() != nil {
+			return nil, p.ctx.Err()
 		}
 		return nil, acp.ErrClosed
 	}
 	d.client = client
 	d.current = t
 	d.state = Prompting
+	d.fresh = false
 	d.mu.Unlock()
 	go func() {
 		t.result, t.resultErr = client.Call(owned, "session/prompt", struct {
@@ -167,10 +165,42 @@ func (d *Driver) failedStart(client *acp.Client) {
 	}
 }
 
-// Model discovery and selection are supplied by the catalog phase; this driver never invents one.
-func (d *Driver) Models(context.Context) ([]inference.Model, error) {
-	return nil, errors.New("model discovery is not configured")
+func (d *Driver) Models(ctx context.Context) ([]inference.Model, error) {
+	d.mu.Lock()
+	data := d.modelState.Catalog
+	closed := d.closed
+	d.mu.Unlock()
+	if closed {
+		return nil, acp.ErrClosed
+	}
+	if data == nil {
+		var err error
+		data, err = d.RefreshModels(ctx)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return data.List(), nil
 }
+
+func (d *Driver) RefreshModels(ctx context.Context) (*catalog.Catalog, error) {
+	p, err := d.prepare(ctx, false)
+	if err != nil {
+		return nil, err
+	}
+	defer p.finishSetup()
+	d.mu.Lock()
+	if d.closed || p.ctx.Err() != nil {
+		d.mu.Unlock()
+		d.failedStart(p.client)
+		return nil, acp.ErrClosed
+	}
+	d.state = Idle
+	d.fresh = true
+	d.mu.Unlock()
+	return p.info.Catalog, nil
+}
+func (d *Driver) EffortStatus() kirofeature.Status { return d.effort.Status() }
 
 func (d *Driver) Close() error {
 	d.closeOnce.Do(func() {
@@ -272,6 +302,9 @@ func (t *turn) Next(ctx context.Context) (inference.Event, error) {
 			return inference.Event{}, acp.ErrProtocol
 		}
 		if event.Method != "session/update" {
+			if event.Method == "_kiro.dev/commands/available" && event.SessionID == t.id {
+				_ = t.driver.effort.Advertise(event.Params)
+			}
 			continue
 		}
 		if event.SessionID != t.id {
@@ -326,6 +359,8 @@ func (t *turn) release(discard bool) {
 	d.current = nil
 	if discard {
 		d.client = nil
+	} else {
+		d.initialUsed = true
 	}
 	if !d.closed {
 		if discard {

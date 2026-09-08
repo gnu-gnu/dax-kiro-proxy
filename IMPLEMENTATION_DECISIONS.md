@@ -7,7 +7,7 @@ AGENTS.md requires decisions or independent tests where the specifications are a
 
 Go is selected by the user, with no claim of measured superiority over Rust. The specification-only
 baseline is `7b108dd`; LANGUAGE_DECISION_RECORD.md records the selection. The first production commit
-will reference it. Owner rights and the project license remain unresolved release gates. Initial
+`fd1df50` references that record. Owner rights and the project license remain unresolved release gates. Initial
 production and test code use the Go standard library only; the fake ACP child is independently
 written in Go and does not import production protocol packages.
 
@@ -107,5 +107,59 @@ internal adapter, with catalog/selection and executable launcher entry points st
 owned turn timeout survives HTTP context disposal; successful delivery uses Finish, and Cancel/Close
 join process cleanup independently of caller cancellation. The test driver configures empty MCP
 servers for the text-only fake; no live Kiro launch is authorized by that fixture configuration.
+
+## D08: model identities and selectors (review R08/R14/R15)
+
+Client IDs use `claude-dax-`, at most 48 normalized ASCII name characters, and the first 16 hexadecimal
+digits of SHA-256 of the exact backend ID. Only the validated current catalog reverses them. Duplicate
+backend IDs, derived client collisions, empty catalogs and malformed/oversized entries fail. A valid
+omitted current backend is added. Limits are 256 models and 1 MiB encoded catalog data; individual
+IDs/names are at most 256 bytes and descriptions at most 8 KiB. Multipliers are display metadata and
+do not affect IDs. Returned catalog views cannot mutate retained data.
+
+The repository's legacy `models`/`session/set_model` contract is supported. A session advertising a
+public `configOptions` model select control instead uses `session/set_config_option`; inconsistent
+confirmation fails, and mode/permission selectors are never changed. Multiple competing model
+selectors are rejected as ambiguous. The public contract is documented at
+https://agentclientprotocol.com/protocol/v1/session-config-options (checked 2026-09-08).
+The configured launch model/effort wins only until the first successfully delivered turn. No later
+model selection can overlap prompt dispatch. Actual Claude Code selector population remains a live
+client interoperability gate, independent of serving a syntactically correct model catalog.
+
+## D09: optional effort and setup timing (review R02/R03)
+
+Only a valid command advertisement seen before dispatch authorizes the optional effort attempt.
+No advertisement is unknown; an advertisement without effort is unavailable. Auto and known
+unsupported pairs skip. Rejected unknown pairs are retained in a bounded 1,280-entry ledger across
+model/process recreation in the driver's fixed version/configuration scope. Effective state resets
+on model/process changes; confirmed support can be applied again. Default diagnostics store only
+status/reason classes, and reading the last status never waits for a private command's RPC.
+
+The independent private fixture interprets a command descriptor as `{name: "/effort"}` and execution
+as `{sessionId, command: {name: "effort", arguments: [value]}}`. These shapes are an explicit reading
+of this repository's incomplete private contract, not a claim of observed live Kiro interoperability.
+Live validation must confirm or amend them before claiming private feature support. A missing or
+unrecognized advertisement leaves ordinary text working without the feature.
+
+Setup has its own bounded context. The transport's RPC ceiling must not accidentally shorten setup
+to a smaller owned-turn timeout; each prompt still receives the explicit owned-turn deadline. A
+delayed-initialize fixture reproduces and verifies this separation. The gateway's overall request
+deadline also includes setup.
+
+## D10: catalog persistence and local file authority (review R11/R12/R14)
+
+Catalog cache schema 1 records a digest of executable path/version, profile/agent/capability digests,
+and initial model/effort configuration. Compatible fresh data is used for 24 hours; stale data returns
+immediately during a single bounded refresh. Failures preserve the last good catalog and back off
+for one minute. Cold or incompatible caches require discovery. Shutdown cancels and joins refresh.
+Last-model records are separate, saved only for interactive use, and restored only through the
+current compatible catalog. Launcher integration will choose explicit launch configuration before
+that saved preference and will never write global client model settings.
+
+Product record directories are 0700; files are atomically replaced at 0600 after fsync. Reads are
+bounded, refuse links, special files, foreign owners and group/other access, and stay within an open
+directory root. Directory path normalization precedes the symlink check. Individual records cannot
+exceed 4 MiB; catalog and last-model readers impose smaller limits. Files contain metadata/digests,
+not conversation bodies. Exclusive session leases and crash recovery remain Phase 5 work.
 
 Other Phase 0 proposals remain pending until adopted with their relevant implementation and tests.

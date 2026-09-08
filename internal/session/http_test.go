@@ -23,7 +23,7 @@ func TestHTTPThroughIndependentACPProcess(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			payload, _ := json.Marshal(map[string]any{"model": "claude-dax-fixture", "max_tokens": 128, "stream": stream, "messages": []any{map[string]any{"role": "user", "content": "synthetic"}}})
+			payload, _ := json.Marshal(map[string]any{"model": fixtureClientID, "max_tokens": 128, "stream": stream, "messages": []any{map[string]any{"role": "user", "content": "synthetic"}}})
 			r := httptest.NewRequest("POST", "/v1/messages", strings.NewReader(string(payload)))
 			r.Header.Set("x-api-key", tokens.Model)
 			w := httptest.NewRecorder()

@@ -192,6 +192,11 @@ timeouts are independent.
 
 Call `session/set_model` with `sessionId` and exact backend `modelId`. Selection occurs only while the
 session is idle. Successful selection updates current model state and clears cached effort state.
+When the session instead advertises a public `configOptions` select control in the `model` category,
+use its exact ID with `session/set_config_option` and validate the returned complete configuration
+state. Only that model selector may be changed. The proxy retains the idle-only transition policy
+even though the public generic configuration API permits some changes during generation. An
+inconsistent selected value fails the turn; there is no approximate-model fallback.
 
 ### Cancellation
 
@@ -205,8 +210,10 @@ Private methods are optional and isolated behind a capability adapter.
 ### Command availability
 
 `_kiro.dev/commands/available` is a notification containing a session ID and command descriptors. The
-presence of `/effort` allows an effort attempt. Its absence means the gateway continues without effort
-synchronization.
+presence of `/effort` allows an effort attempt. An advertised list without `/effort` means unavailable.
+No valid advertisement before prompt dispatch means unknown and no attempt. A previously rejected
+unknown model/effort pair is not probed again within the same version/configuration scope. Model and
+process changes clear effective state; confirmed supported effort may be reapplied to new state.
 
 ### Effort execution
 

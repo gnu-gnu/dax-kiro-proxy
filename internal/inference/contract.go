@@ -4,7 +4,11 @@ package inference
 import (
 	"context"
 	"dax-kiro-proxy/internal/anthropic"
+	"errors"
 )
+
+var ErrRequest = errors.New("request is incompatible with the active backend")
+var ErrBusy = errors.New("session has an active response")
 
 type Kind uint8
 

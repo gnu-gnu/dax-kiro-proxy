@@ -48,6 +48,11 @@ func main() {
 	var parentReplyID json.RawMessage
 	initialized := false
 	session := ""
+	currentModel := "fixture-backend"
+	var calls []string
+	modelOptions := func() []any {
+		return []any{map[string]any{"id": "fixture-select", "name": "Model", "category": "model", "type": "select", "currentValue": currentModel, "options": []any{map[string]any{"value": "fixture-backend", "name": "Fixture"}, map[string]any{"value": "fixture-alternate", "name": "Alternate"}, map[string]any{"value": "auto", "name": "Automatic"}}}}
+	}
 	for {
 		line, err := r.ReadBytes('\n')
 		if err != nil {
@@ -73,6 +78,9 @@ func main() {
 			if mode == "init-hang" {
 				forever()
 			}
+			if mode == "chat-init-delay" {
+				time.Sleep(250 * time.Millisecond)
+			}
 			version := 1
 			if mode == "version" {
 				version = 2
@@ -97,6 +105,7 @@ func main() {
 		}
 		switch q.Method {
 		case "session/new":
+			calls = []string{"session/new"}
 			if !strings.HasPrefix(mode, "chat") {
 				os.Exit(25)
 			}
@@ -112,7 +121,62 @@ func main() {
 				reply(q.ID, map[string]any{})
 				continue
 			}
-			reply(q.ID, map[string]any{"sessionId": session, "models": map[string]any{"currentModelId": "fixture-backend", "availableModels": []any{map[string]any{"modelId": "fixture-backend", "name": "Fixture", "description": "Synthetic model"}}}})
+			if mode == "chat-models" || mode == "chat-effort-reject" || mode == "chat-effort-corrupt" || mode == "chat-config" {
+				write(map[string]any{"jsonrpc": "2.0", "method": "_kiro.dev/commands/available", "params": map[string]any{"sessionId": session, "commands": []any{map[string]any{"name": "/effort"}}}})
+			}
+			if mode == "chat-config" {
+				reply(q.ID, map[string]any{"sessionId": session, "configOptions": modelOptions()})
+				continue
+			}
+			reply(q.ID, map[string]any{"sessionId": session, "models": map[string]any{"currentModelId": currentModel, "availableModels": []any{map[string]any{"modelId": "fixture-backend", "name": "Fixture", "description": "Synthetic model"}, map[string]any{"modelId": "fixture-alternate", "name": "Alternate"}, map[string]any{"modelId": "auto", "name": "Automatic"}}}})
+		case "session/set_model", "session/set_config_option":
+			var params struct {
+				Session string `json:"sessionId"`
+				Model   string `json:"modelId"`
+				Config  string `json:"configId"`
+				Value   string `json:"value"`
+			}
+			if json.Unmarshal(q.Params, &params) != nil || params.Session != session {
+				os.Exit(28)
+			}
+			model := params.Model
+			if q.Method == "session/set_config_option" {
+				if mode != "chat-config" || params.Config != "fixture-select" {
+					os.Exit(29)
+				}
+				model = params.Value
+			} else if mode == "chat-config" {
+				os.Exit(30)
+			}
+			if model != "fixture-backend" && model != "fixture-alternate" && model != "auto" {
+				os.Exit(31)
+			}
+			calls = append(calls, q.Method)
+			currentModel = model
+			if mode == "chat-config" {
+				reply(q.ID, map[string]any{"configOptions": modelOptions()})
+			} else if mode == "chat-model-mismatch" {
+				reply(q.ID, map[string]any{"models": map[string]any{"currentModelId": "fixture-backend", "availableModels": []any{map[string]any{"modelId": "fixture-backend"}, map[string]any{"modelId": "fixture-alternate"}}}})
+			} else {
+				reply(q.ID, map[string]any{})
+			}
+		case "_kiro.dev/commands/execute":
+			var params struct {
+				Session string `json:"sessionId"`
+				Command struct {
+					Name      string   `json:"name"`
+					Arguments []string `json:"arguments"`
+				} `json:"command"`
+			}
+			if json.Unmarshal(q.Params, &params) != nil || params.Session != session || params.Command.Name != "effort" || len(params.Command.Arguments) != 1 || currentModel == "auto" {
+				os.Exit(32)
+			}
+			calls = append(calls, q.Method)
+			if mode == "chat-effort-corrupt" {
+				fmt.Fprintln(os.Stdout, "{broken")
+				continue
+			}
+			reply(q.ID, map[string]any{"success": mode != "chat-effort-reject"})
 		case "fixture/echo":
 			reply(q.ID, json.RawMessage(q.Params))
 		case "fixture/pair":
@@ -127,6 +191,7 @@ func main() {
 			write(map[string]any{"jsonrpc": "2.0", "method": "fixture/accepted", "params": map[string]any{"id": q.ID}})
 			hanging = append(hanging, q.ID)
 		case "session/prompt":
+			calls = append(calls, q.Method)
 			if strings.HasPrefix(mode, "chat") {
 				var p struct {
 					Session string            `json:"sessionId"`
@@ -149,6 +214,10 @@ func main() {
 				}
 				write(map[string]any{"jsonrpc": "2.0", "method": "_fixture/diagnostic", "params": map[string]any{"sessionId": owner}})
 				chunks := []string{"birch ", "stone"}
+				if mode == "chat-models" || mode == "chat-effort-reject" || mode == "chat-effort-corrupt" || mode == "chat-config" {
+					body, _ := json.Marshal(map[string]any{"model": currentModel, "calls": calls})
+					chunks = []string{string(body)}
+				}
 				if mode == "chat-project" {
 					chunks = []string{string(q.Params)}
 				}

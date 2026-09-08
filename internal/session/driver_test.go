@@ -2,6 +2,7 @@ package session_test
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -22,8 +23,11 @@ import (
 )
 
 var fixture string
+var fixtureClientID string
 
 func TestMain(m *testing.M) {
+	digest := sha256.Sum256([]byte("fixture-backend"))
+	fixtureClientID = fmt.Sprintf("claude-dax-fixture-backend-%x", digest[:8])
 	dir, err := os.MkdirTemp("", "dax-session-fixture-")
 	if err != nil {
 		panic(err)
@@ -55,7 +59,7 @@ func driver(t *testing.T, mode string) *session.Driver {
 }
 func sample(t *testing.T) *anthropic.Request {
 	t.Helper()
-	r, err := anthropic.DecodeRequest([]byte(`{"model":"claude-dax-fixture","max_tokens":128,"system":[{"type":"text","text":"context A"},{"type":"text","text":"context B"}],"messages":[{"role":"user","content":"earlier"},{"role":"assistant","content":"previous reply"},{"role":"user","content":[{"type":"text","text":"latest A"},{"type":"text","text":"latest B"}]}]}`))
+	r, err := anthropic.DecodeRequest([]byte(strings.ReplaceAll(`{"model":"claude-dax-fixture","max_tokens":128,"system":[{"type":"text","text":"context A"},{"type":"text","text":"context B"}],"messages":[{"role":"user","content":"earlier"},{"role":"assistant","content":"previous reply"},{"role":"user","content":[{"type":"text","text":"latest A"},{"type":"text","text":"latest B"}]}]}`, "claude-dax-fixture", fixtureClientID)))
 	if err != nil {
 		t.Fatal(err)
 	}

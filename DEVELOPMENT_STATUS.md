@@ -27,6 +27,13 @@ does not redefine completion around an intermediate phase.
 - The gateway race suite separately passed in 1.971s with loopback socket permission. It tests exact
   route credentials, malformed/body-size validation, SSE equivalence, early/late auth markers,
   first/total deadlines, output-byte limits, request admission, disconnects and failed writes.
+- Phase 3 tests first failed on absent catalog/cache/effort/private-file APIs. Regression tests then
+  reproduced contradictory model-selection acceptance, setup shortened by the turn timeout, cached
+  effort status blocked by an RPC, and a trailing-separator directory-symlink bypass before fixes.
+- Passed uncached `go test -race -count=1 ./...`: ACP 6.075s, gateway 2.110s, session 4.732s,
+  catalog 1.878s, effort 2.427s, private files 2.877s; all other packages passed. Use `-count=1` for
+  fixture changes because TestMain invokes an external build of the independent fake child.
+- Passed `go vet ./...` after the Phase 3 implementation.
 
 Commands use `GOTOOLCHAIN=go1.27.1`, `GOMODCACHE="$PWD/.cache/gomod"` and
 `GOCACHE="$PWD/.cache/gobuild"` in this sandbox. No performance comparison with Rust is claimed.
@@ -66,14 +73,32 @@ relay/media/native web, subprocess environment/profile integration, and the laun
 phase requirements. There is no executable live Kiro entry point yet. The initial text driver creates
 fresh state for subsequent full-history requests until reconciliation is implemented in Phase 5.
 
+## Phase 3 acceptance mapping
+
+| Acceptance D and cache/security behavior | Executable evidence |
+| --- | --- |
+| Unique, deterministic model IDs; strict reverse lookup; include omitted current model | TestStableCatalogMappingAndValidation, TestDerivedAliasCollisionIsRejected |
+| Display-only multiplier and validated legacy/public model selectors | TestCreditMultiplierIsOnlyDisplayMetadata, TestSessionCatalogWireShapes |
+| Selection before effort before prompt; inconsistent/unavailable selection rejects | TestModelSelectionThenOptionalEffortThenPrompt, TestUnknownModelAndInconsistentSelectionAreRejected |
+| Initial configuration applies only through first completed turn | TestConfiguredInitialModelWinsOnlyFirstCompletedTurn |
+| Auto/unsupported/unavailable/unknown effort behavior and rejected-probe ledger | TestEffortAvailabilityAndAutomaticModel, TestRejectedProbeIsNotRepeatedAndTransportRemainsFatal, TestAutoAndRepeatedRejectedEffortInProcessPath |
+| Model-switch effective-state reset; optional rejection versus broken transport | TestEffortSuccessAndSwitchOrdering, TestBrokenTransportDuringEffortRemainsFatal |
+| Independent setup/turn time and immediate status reads | TestSetupAndOwnedTurnHaveIndependentDeadlines, TestEffortStatusDoesNotWaitForPrivateCommand |
+| Fresh/stale catalog identities, single-flight refresh, failure/backoff, last model scope | TestCatalogCacheCoalescesAndUsesCompatibleDiskState, TestStaleCatalogReturnsImmediatelyAndFailedRefreshPreservesData, TestFailedCatalogRefreshRetainsLastGoodDataAndBacksOff, TestLastInteractiveModelIsSeparateAndStrictlyValidated |
+| Atomic owner-only files, bounded reads and link/special-file rejection | TestOwnerOnlyAtomicFiles, TestSymlinkPermissionsAndSpecialFilesAreRejected |
+
+The last-model/cache policy modules pass independently; final launcher integration remains Phase 6.
+Private effort wire shapes are explicit specification interpretations pending real Kiro validation
+(decision D09). The unmodified client model-selector UI and all live release behavior remain unverified.
+
 ## Remaining work
 
 | Phase | Completion evidence required | State |
 | --- | --- | --- |
 | 1 | All acceptance A plus applicable G; independent fake child, framing, negotiation, correlation, notifications, stderr, deadlines, process-group cleanup | Passed on local macOS with fake ACP |
 | 2 | Authenticated HTTP text path, exact SSE/non-streaming responses, authentication fallback, disconnect tests | Passed with independent fake ACP; broader B/C requirements tracked below |
-| 3 | Model catalog/mapping/cache/selection and optional effort state | Next |
-| 4 | Restricted Kiro agent proof, MCP relay, schema validation, client-only tool effects and result ownership | Pending |
+| 3 | Model catalog/mapping/cache/selection and optional effort state | Passed independent module/process tests; launcher and live interoperability remain below |
+| 4 | Restricted Kiro agent proof, MCP relay, schema validation, client-only tool effects and result ownership | Next |
 | 5 | Request families/history/pool/persistence/resume and crash tests | Pending |
 | 6 | Media/web capabilities, cached usage/metrics, isolated launcher/profile and client interoperability | Pending |
 | 7 | Full acceptance, fuzz/race/load, license inventory, macOS packaging/install/uninstall and opt-in live gates | Pending |

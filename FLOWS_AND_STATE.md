@@ -155,10 +155,13 @@ Effort synchronization then runs:
 2. skip empty or already successfully applied pairs;
 3. skip Kiro `auto` model selection;
 4. skip known unsupported model/effort pairs;
-5. if private commands were advertised without `/effort`, record unavailable;
-6. otherwise execute the private effort command once for an unknown pair;
+5. if private commands were advertised without `/effort`, record unavailable; without any valid
+   advertisement before dispatch, record unknown and skip;
+6. after `/effort` is advertised, execute the private effort command once for an unknown pair;
 7. cache only a confirmed result or known capability decision;
-8. on rejection/error, warn and continue with the current Kiro effort.
+8. on application rejection, record the attempted pair, warn and continue with current Kiro effort;
+   transport corruption/failure still retires the process. Model switches clear effective state,
+   while the version/configuration-scoped rejected-probe ledger remains bounded and intact.
 
 The status line distinguishes supported/current, unsupported, unavailable, unknown, and configured
 initial states.
