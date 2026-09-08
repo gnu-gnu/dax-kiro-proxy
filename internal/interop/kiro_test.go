@@ -166,3 +166,111 @@ func TestKiroPinnedLoginPreflight(t *testing.T) {
 	}
 	t.Logf("version=%s, identity_verified=true, private_scope_present=%v, bounded_postamble=%v", info.Version, len(info.ProfileScope) == 64, info.HadPostamble)
 }
+
+func TestKiroPublicConfigurationFlags(t *testing.T) {
+	executable := os.Getenv("DAX_INTEROP_KIRO_BINARY")
+	if executable == "" {
+		t.Skip("set DAX_INTEROP_KIRO_BINARY for public command help only")
+	}
+	if !filepath.IsAbs(executable) {
+		t.Fatal("expected an absolute Kiro binary")
+	}
+	runner, err := childproc.New(childproc.Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer runner.Close()
+	root := t.TempDir()
+	command := childproc.Command{Executable: executable, Directory: root, Environment: []string{"HOME=" + os.Getenv("HOME"), "PATH=" + filepath.Dir(executable) + ":/usr/bin:/bin:/usr/sbin:/sbin", "TMPDIR=" + root, "TERM=dumb", "LANG=en_US.UTF-8"}, Args: []string{"--version"}}
+	version, err := runner.Run(t.Context(), command)
+	if err != nil || strings.TrimSpace(string(version.Stdout)) != "kiro-cli "+launcher.SupportedKiroVersion {
+		t.Fatal("unverified Kiro version")
+	}
+	flag := regexp.MustCompile(`(?m)^\s+(?:-[a-zA-Z],\s+)?(--[a-zA-Z][a-zA-Z0-9-]*)`)
+	for _, args := range [][]string{{"chat", "--help"}, {"acp", "--help"}, {"agent", "validate", "--help"}} {
+		command.Args = args
+		result, err := runner.Run(t.Context(), command)
+		if err != nil || result.ExitCode != 0 {
+			t.Fatalf("public command help did not finish: %v", err)
+		}
+		flags := []string{}
+		for _, match := range flag.FindAllSubmatch(result.Stdout, 128) {
+			flags = append(flags, string(match[1]))
+		}
+		t.Logf("version=%s, command=%s, advertised_flags=%v", launcher.SupportedKiroVersion, strings.Join(args[:len(args)-1], " "), flags)
+	}
+}
+
+func TestKiroReadOnlyModelListingShape(t *testing.T) {
+	executable := os.Getenv("DAX_INTEROP_KIRO_BINARY")
+	if executable == "" {
+		t.Skip("set DAX_INTEROP_KIRO_BINARY for the public list-models command; no prompt")
+	}
+	if !filepath.IsAbs(executable) {
+		t.Fatal("expected an absolute Kiro binary")
+	}
+	runner, err := childproc.New(childproc.Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer runner.Close()
+	root := t.TempDir()
+	command := childproc.Command{Executable: executable, Directory: root, Environment: []string{"HOME=" + os.Getenv("HOME"), "PATH=" + filepath.Dir(executable) + ":/usr/bin:/bin:/usr/sbin:/sbin", "TMPDIR=" + root, "TERM=dumb", "LANG=en_US.UTF-8"}, Args: []string{"--version"}}
+	version, err := runner.Run(t.Context(), command)
+	if err != nil || strings.TrimSpace(string(version.Stdout)) != "kiro-cli "+launcher.SupportedKiroVersion {
+		t.Fatal("unverified Kiro version")
+	}
+	command.Args = []string{"chat", "--list-models", "--format", "json"}
+	result, err := runner.Run(t.Context(), command)
+	if err != nil {
+		t.Fatalf("read-only model listing did not finish: %v", err)
+	}
+	var value any
+	if json.Unmarshal(result.Stdout, &value) != nil {
+		t.Logf("version=%s, model_listing_json=false, bytes=%d, output_shape=%v", launcher.SupportedKiroVersion, len(result.Stdout), kiroOutputShape(result.Stdout))
+		return
+	}
+	fieldKinds := func(value any) []string {
+		fields := []string{}
+		if object, ok := value.(map[string]any); ok {
+			for key, item := range object {
+				if !regexp.MustCompile(`^[a-zA-Z_][a-zA-Z_0-9]{0,63}$`).MatchString(key) {
+					key = "unrecognized-field"
+				}
+				kind := "other"
+				switch item.(type) {
+				case nil:
+					kind = "null"
+				case string:
+					kind = "string"
+				case float64:
+					kind = "number"
+				case bool:
+					kind = "boolean"
+				case []any:
+					kind = "array"
+				case map[string]any:
+					kind = "object"
+				}
+				fields = append(fields, key+":"+kind)
+			}
+		}
+		sort.Strings(fields)
+		return fields
+	}
+	items, array := value.([]any)
+	if object, ok := value.(map[string]any); ok {
+		t.Logf("model_listing_root_fields=%v", fieldKinds(object))
+		for _, key := range []string{"models", "data", "availableModels"} {
+			if list, ok := object[key].([]any); ok {
+				items = list
+				break
+			}
+		}
+	}
+	first := []string{}
+	if len(items) > 0 {
+		first = fieldKinds(items[0])
+	}
+	t.Logf("version=%s, model_listing_json=true, root_array=%v, model_count=%d, first_item_fields=%v", launcher.SupportedKiroVersion, array, len(items), first)
+}

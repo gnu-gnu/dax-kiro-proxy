@@ -640,6 +640,22 @@ unexpected validation-time execution cannot perform a client tool. This is evide
 validation exit status, not evidence that malformed tools were effectively enabled or rejected.
 Neither this utility nor its success code may be used as the R06 startup gate.
 
+The follow-up probe checks both pinned binaries, `kiro-cli` and `kiro-cli-chat`. Their public agent
+help advertises create/validate/list/edit. Both still return zero and empty stdout for both candidates.
+For this synthetic validation probe only, a fixed shell wrapper uses quoted positional arguments to
+combine stderr into D23's 64 KiB stdout capture. Only fixed markers, byte counts and line kinds are
+reported; raw diagnostics are never logged. The well-shaped candidate produces no diagnostics. The
+numeric tools control produces 214 bytes with `invalid type`, `expected a sequence` and `error`
+markers. This establishes where the parse failure is reported; it does not establish native-tool,
+hook or inherited-MCP restrictions. Production preflight stderr remains discarded.
+
+The [official 2.x reference](https://kiro.dev/docs/cli/2x-reference/), rechecked 2026-09-08, lists
+`includeMcpJson` among 3.0 additions and does not document `allowedTools`. Those fields in the candidate
+therefore remain unproven for the pinned v2 engine even though the candidate produces no parse error.
+Installed 2.21.1 advertises v2/v3 engine selection; no engine upgrade or 3.0 permission semantics are
+adopted. The read-only `/tools` surface documented for 2.x is a possible effective-policy observation,
+not a model prompt or an already-passed restriction gate.
+
 ## D28: attached client lifetime and terminal ownership (review R07/R12/R14)
 
 An attached client has one owner and one active process slot, an explicit validated command/environment,

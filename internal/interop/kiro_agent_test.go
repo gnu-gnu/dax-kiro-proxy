@@ -6,6 +6,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -53,11 +54,6 @@ func TestKiroAgentValidationExitStatus(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	command.Args = []string{"agent", "validate", "--path", agent.Path}
-	valid, err := runner.Run(t.Context(), command)
-	if err != nil || valid.ExitCode != 0 {
-		t.Fatalf("literal relay alias candidate syntax failed: %v", err)
-	}
 	data, err := os.ReadFile(agent.Path)
 	if err != nil {
 		t.Fatal(err)
@@ -68,13 +64,50 @@ func TestKiroAgentValidationExitStatus(t *testing.T) {
 	}
 	fields["tools"] = json.RawMessage(`42`)
 	malformed, _ := json.Marshal(fields)
-	if os.WriteFile(agent.Path, malformed, 0600) != nil {
-		t.Fatal("cannot write negative syntax control")
+	for _, name := range []string{"kiro-cli", "kiro-cli-chat"} {
+		command.Executable = filepath.Join(filepath.Dir(executable), name)
+		command.Args = []string{"--version"}
+		version, err := runner.Run(t.Context(), command)
+		if err != nil || strings.TrimSpace(string(version.Stdout)) != name+" "+launcher.SupportedKiroVersion {
+			t.Fatal("candidate probe requires both pinned public binaries")
+		}
+		command.Args = []string{"agent", "--help"}
+		help, err := runner.Run(t.Context(), command)
+		if err != nil {
+			t.Fatalf("public agent help did not finish: %v", err)
+		}
+		commands := []string{}
+		for _, subcommand := range []string{"create", "validate", "list", "edit", "delete", "show"} {
+			if regexp.MustCompile(`(?m)^\s+` + subcommand + `\s`).Match(help.Stdout) {
+				commands = append(commands, subcommand)
+			}
+		}
+		t.Logf("binary=%s, advertised_agent_commands=%v", name, commands)
+		results := []childproc.Result{}
+		for index, candidate := range [][]byte{data, malformed} {
+			if os.WriteFile(agent.Path, candidate, 0600) != nil {
+				t.Fatal("cannot write owned validation fixture")
+			}
+			command.Args = []string{"agent", "validate", "--path", agent.Path}
+			// Only this synthetic validation probe combines stderr into the runner's bounded capture.
+			// Positional arguments stay quoted; no path/config text becomes shell code. Only fixed
+			// markers and byte/line counts leave the test, never the captured diagnostic prose.
+			observed := command
+			observed.Executable = "/bin/sh"
+			observed.Args = append([]string{"-c", `exec "$@" 2>&1`, "dax-validation-probe", command.Executable}, command.Args...)
+			result, err := runner.Run(t.Context(), observed)
+			if err != nil && (!errors.Is(err, childproc.ErrExit) || errors.Is(err, childproc.ErrCleanup) || result.ExitCode < 0) {
+				t.Fatalf("candidate validation command did not finish cleanly: %v", err)
+			}
+			results = append(results, result)
+			markers := []string{}
+			for _, marker := range []string{"invalid type", "expected a sequence", "unknown field", "unknown tool", "validation failed", "validation succeeded", "successfully validated", "valid configuration", "not found", "error"} {
+				if strings.Contains(strings.ToLower(string(result.Stdout)), marker) {
+					markers = append(markers, marker)
+				}
+			}
+			t.Logf("binary=%s, negative_control=%v, exit=%d, bounded_output_bytes=%d, output_shape=%v, fixed_validation_markers=%v", name, index == 1, result.ExitCode, len(result.Stdout), kiroOutputShape(result.Stdout), markers)
+		}
+		t.Logf("binary=%s, version=%s, exit_distinguishes_control=%v, execution_restriction_verified=%v", name, launcher.SupportedKiroVersion, results[0].ExitCode != results[1].ExitCode, agent.ExecutionVerified)
 	}
-	command.Args = []string{"agent", "validate", "--path", agent.Path}
-	invalid, err := runner.Run(t.Context(), command)
-	if err != nil && (!errors.Is(err, childproc.ErrExit) || errors.Is(err, childproc.ErrCleanup) || invalid.ExitCode <= 0) {
-		t.Fatalf("negative syntax observation did not finish cleanly: %v", err)
-	}
-	t.Logf("version=%s, candidate_exit=%d, invalid_tool_list_exit=%d, exit_distinguishes_control=%v, execution_restriction_verified=%v", launcher.SupportedKiroVersion, valid.ExitCode, invalid.ExitCode, invalid.ExitCode != valid.ExitCode, agent.ExecutionVerified)
 }

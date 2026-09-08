@@ -267,6 +267,28 @@ Anthropic 8.204s, gateway 2.262s, launcher 1.570s, session 8.550s and status 1.3
 packages passed; installed-client tests are separately opt-in and were verified above. `go vet ./...`
 and `git diff --check` passed after the continuation changes.
 
+### Follow-up public Kiro configuration and catalog observations
+
+The main and helper CLI validation observation passed in 10.224s (8.30s test). Both 2.21.1 binaries
+advertise create/validate/list/edit and return zero for the generated candidate and a numeric tools
+negative control. A bounded, test-only combined stdout/stderr capture distinguishes the control:
+214 bytes containing fixed parse-error markers; the candidate has no diagnostic output. No diagnostic
+prose, account data or unrestricted stderr was retained. D27 records that the syntax failure is
+reported on stderr, while effective execution restrictions remain unverified.
+
+The public help-only configuration probe passed in 6.686s (4.80s test). Chat advertises model/session
+listing, model/agent/effort, legacy/TUI and engine choices; ACP advertises agent/model/effort/engine and
+auth-method options. The probe records only flag names. No trust flag, alternate engine, cloud mode,
+model prompt, login or configuration mutation command was invoked. The current 2.x reference's
+version claims for candidate includeMcpJson/allowedTools fields still require black-box resolution.
+
+The public `chat --list-models --format json` observation passed in 4.924s (3.08s test), without a chat
+prompt or ACP session. It returned a JSON object with `default_model` (string) and `models` (array),
+with 19 entries at observation time. The first item's field types were model_id/model_name/description/
+rate_unit strings and context_window_tokens/rate_multiplier numbers. Only names, types and counts
+were recorded, not account values or model output. This identifies a possible finite startup catalog
+source; strict decoding, unit semantics and cache integration remain implementation work.
+
 ### Phase 6 owned HTTP server
 
 New server tests first failed on absent APIs. D29 adds connection admission before HTTP parsing,
