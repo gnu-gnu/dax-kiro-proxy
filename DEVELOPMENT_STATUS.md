@@ -263,6 +263,48 @@ through an alternate route, and no answer-mcp.md is claimed. The two earlier com
 remain the only successful external advisory invocations recorded above. Local observations continue
 independently while that specific transmission is pending.
 
+### Synthetic HOME identity and retained dependency notices
+
+TestKiroOwnedHomeHelperIdentity compares an account-HOME baseline, a synthetic-HOME main identity,
+a separate synthetic-HOME helper identity, and the original baseline again. Every case uses an
+owned KIRO_HOME, explicit environment, pinned main/helper versions and the same ephemeral HMAC key.
+The twelve-command installed run failed its continuity gate in 9.302s (test 9.08s): both synthetic
+identities exited 1 with 17 bounded stdout bytes; the before/after account identities each exited 0
+with 251 bytes and matched. All process groups were gone. No account values/digests, credentials,
+agent/session data or model content were logged.
+
+This rules out treating D37's successful helper configuration commands as authentication proof.
+The two synthetic HOME cases remain failed live checks; the test is not changed to claim successful
+identity continuity from their failure. D38 records the distinction and retains the production HOME,
+executable and policy gate. No login/logout, credential copying or model prompt was used. The first
+local compile exposed a test cleanup call incorrectly used as an error return; it was corrected to
+the existing runner's void Close API and explicit active-process check before the installed run.
+
+TestKiroPinnedACPInitializationOnly now gives the same owned KIRO_HOME to preflight and ACP while
+retaining the existing account HOME. Its installed race run passed in 8.459s (test 6.62s; ACP start
+through cleanup 4.112s). It negotiated version 1 with Kiro 2.21.1/v2, reporting loadSession, image
+and HTTP MCP true; audio, embedded context and SSE MCP false. The group was gone. This is actual
+bounded initialization evidence and supersedes the earlier preflight failure for this environment.
+It sent no session/new or session/prompt and does not establish effective agent/tool restrictions.
+The launch gate remains closed, and no production timeout, executable, HOME or cache identity changed.
+
+Dependency review obtained CLDR 32's exact Unicode-DFS-2016 notice from its official release archive
+and the exact LLVM compiler-rt license at the revision named by the installed Go race runtime. Both
+texts were read in full, retained under third_party/notices with runtime/test scopes, and checked
+byte-for-byte against the downloaded sources. DEPENDENCY_REVIEW.md records their URLs, sizes,
+SHA-256 digests and remaining subcomponent/artifact limitations. The CLDR archive remains ignored;
+no upstream tool implementation, locale corpus or fixture is incorporated into this project.
+
+The official JSON Schema source README clarifies an AFL-or-BSD alternative, including at the
+2020-12 release tag. Matching that authority and its copyright notice to all nineteen embedded
+metaschemas remains open. Unicode 17 notices, full artifact/toolchain attribution, advisory review,
+owner rights and project-license selection are also unfinished. Retaining two dependency notices
+does not clear release or change any runtime dependency.
+
+The final ordinary interop race suite passed in 1.323s with installed-client opt-ins unset;
+go vet ./... and git diff --check passed. The separate installed initialize-only race result above
+is positive evidence; the synthetic-HOME identity failures remain explicitly failed live gates.
+
 ### Request constraints and negative client recovery evidence
 
 D33 now inventories accepted request fields and the remaining R16 gaps. Known unmapped stop,

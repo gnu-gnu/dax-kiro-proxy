@@ -111,6 +111,10 @@ func TestKiroPinnedACPInitializationOnly(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer os.RemoveAll(root)
+	configuration := filepath.Join(root, "kiro-home")
+	if os.Mkdir(configuration, 0700) != nil {
+		t.Fatal("cannot create owned Kiro initialization configuration root")
+	}
 	runner, err := childproc.New(childproc.Config{})
 	if err != nil {
 		t.Fatal(err)
@@ -120,7 +124,11 @@ func TestKiroPinnedACPInitializationOnly(t *testing.T) {
 	if _, err := rand.Read(key[:]); err != nil {
 		t.Fatal(err)
 	}
-	info, err := launcher.CheckKiro(t.Context(), runner, launcher.KiroConfig{Executable: executable, Home: os.Getenv("HOME"), Directory: root, ScopeKey: key})
+	observed := kiroHomeIdentityRunner(func(ctx context.Context, command childproc.Command) (childproc.Result, error) {
+		command.Environment = append(append([]string(nil), command.Environment...), "KIRO_HOME="+configuration)
+		return runner.Run(ctx, command)
+	})
+	info, err := launcher.CheckKiro(t.Context(), observed, launcher.KiroConfig{Executable: executable, Home: os.Getenv("HOME"), Directory: root, ScopeKey: key})
 	if err != nil {
 		t.Fatalf("initialize probe preflight failed: %v", err)
 	}
@@ -136,7 +144,7 @@ func TestKiroPinnedACPInitializationOnly(t *testing.T) {
 	defer cancel()
 	started := time.Now()
 	client, err := acp.Start(ctx, acp.Config{Executable: executable, Directory: root, Args: []string{"acp", "--agent", agent.Name, "--agent-engine", "v2"},
-		Environment: []string{"HOME=" + os.Getenv("HOME"), "PATH=" + filepath.Dir(executable) + ":/usr/bin:/bin:/usr/sbin:/sbin", "TMPDIR=" + root, "TERM=dumb", "LANG=en_US.UTF-8"},
+		Environment: []string{"HOME=" + os.Getenv("HOME"), "KIRO_HOME=" + configuration, "PATH=" + filepath.Dir(executable) + ":/usr/bin:/bin:/usr/sbin:/sbin", "TMPDIR=" + root, "TERM=dumb", "LANG=en_US.UTF-8"},
 		ClientInfo:  acp.Info{Name: "dax-initialize-observation", Version: "1"}, Auth: kiroauth.Classifier{}, Limits: acp.Limits{RequestTimeout: 5 * time.Second}})
 	if err != nil {
 		t.Fatalf("pinned ACP initialize failed: %s", kiroSetupFailure(err))
@@ -149,5 +157,5 @@ func TestKiroPinnedACPInitializationOnly(t *testing.T) {
 	if !errors.Is(syscall.Kill(-pid, 0), syscall.ESRCH) {
 		t.Fatal("initialize-only process group survived cleanup")
 	}
-	t.Logf("version=%s, protocol=1, initialized=true, session_created=false, prompt_sent=false, load_session=%v, image=%v, audio=%v, embedded_context=%v, mcp_http=%v, mcp_sse=%v, cleanup_joined=true, elapsed_ms=%d", info.Version, caps.LoadSession, caps.Prompt.Image, caps.Prompt.Audio, caps.Prompt.EmbeddedContext, caps.MCP.HTTP, caps.MCP.SSE, time.Since(started).Milliseconds())
+	t.Logf("version=%s, protocol=1, initialized=true, owned_configuration_root=true, session_created=false, prompt_sent=false, load_session=%v, image=%v, audio=%v, embedded_context=%v, mcp_http=%v, mcp_sse=%v, cleanup_joined=true, elapsed_ms=%d", info.Version, caps.LoadSession, caps.Prompt.Image, caps.Prompt.Audio, caps.Prompt.EmbeddedContext, caps.MCP.HTTP, caps.MCP.SSE, time.Since(started).Milliseconds())
 }

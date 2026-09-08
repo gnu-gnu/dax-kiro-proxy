@@ -1103,3 +1103,33 @@ commands, without converting a slash command into a model prompt. Its exact payl
 configuration behavior and attempted native-tool denial still need independent evidence. Neither
 the newer documentation nor these finite CLI results establish v3 engine or 3.x permission support.
 Public documentation was rechecked 2026-09-09; no previous implementation was consulted.
+
+## D38: main/helper identity failure under synthetic HOME (review R06/R14)
+
+D37's helper-only configuration commands work without establishing an authenticated HOME. A
+separate identity comparison now verifies both pinned binary versions, a baseline using the account
+HOME and an owned KIRO_HOME, synthetic-HOME main and helper identity invocations, then the original
+baseline again. Only exact --version and whoami --format json commands are admitted. At most twelve
+commands run, each with five-second timeout, 64 KiB output capture and bounded group cleanup, under
+a seventy-second whole-probe deadline. Nothing starts an agent, ACP session or model prompt.
+
+One ephemeral HMAC key compares normalized identities without logging values or digests. The account
+baseline succeeded before and after with equal identities. Both synthetic-HOME identities returned
+exit 1 and failed verification, including the direct helper invocation. Thus changing to the helper
+did not repair this observed identity-continuity failure. It is not evidence that the user's actual
+account is logged out, that configuration listing requires login, or where credentials are stored.
+
+The installed opt-in identity test remains a failed continuity gate for the two synthetic HOME
+cases, rather than converting their failed verification into successful authentication evidence.
+The command wrapper redirects only the test's explicit helper whoami call; production preflight
+still uses its original main executable and HOME contract. No credentials are copied or directly
+modified, no login/logout runs, and no production policy restriction is relaxed. Installed CLIs may
+maintain their own account/cache state. R06 still requires effective configuration/tool proof with
+an authenticated setup; D36's account-HOME plus owned KIRO_HOME observations remain separate evidence.
+
+The account-HOME initialize-only probe now supplies one owned KIRO_HOME to both its preflight and
+ACP child. It successfully negotiates ACP version 1 with pinned Kiro 2.21.1/v2, advertising session
+loading, images and HTTP MCP, while audio, embedded context and SSE MCP remain false. Cleanup joins
+the process group. No session/new or session/prompt is sent. This establishes that initialization
+works in that specific environment, not that the selected agent is activated or inherited effects
+are excluded. Production policy/capability cache identities are not upgraded from this observation.
