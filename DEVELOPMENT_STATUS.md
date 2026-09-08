@@ -166,6 +166,30 @@ longer load/fuzz and clean-host release gates remain unverified. No new external
 
 ## Remaining work
 
+### Phase 6 temporary client settings
+
+The profile tests first failed on the missing launcher component, then passed in 2.180s after its
+implementation. They cover user-scope permissions/hooks preservation, explicit environment routing,
+bounded JSON snapshots, invalid versions/endpoints/credentials, owner-only files, defensive copies,
+missing settings and concurrent cleanup. D24 defines the pinned settings/environment contract and
+remaining asset/interactive integration work.
+
+The installed unmodified Claude 2.1.263 probe uses only new temporary settings, synthetic local HTTP
+servers and owned harmless SessionStart hooks. It observed two model-envelope requests, one catalog
+request, both user/project hooks, local env precedence and zero requests to the conflicting provider
+endpoint. A user-level full Read deny remained effective despite project-level Read allowance; the
+matching tool result was an error, then the client finished normally. All four source settings files
+were unchanged and the runtime removed. No Kiro or external model request was made.
+
+The first probe's path-specific Read pattern did not deny the tool; that independently authored test
+was corrected to the unambiguous whole-tool Read rule without changing product permission behavior.
+The corrected probe passed in 2.526s. Its actual continuation roles were user, system, assistant,
+user, system. D15's existing result-only continuation currently rejects that trailing system update;
+this newly observed shape still requires a semantic decision and regression coverage before real
+client tool interoperability can be claimed.
+The completed profile race suite, including link/replaced-root cleanup, passed in 1.983s.
+`go vet ./...` and `git diff --check` passed at this checkpoint.
+
 ### Phase 6 finite launcher subprocess runner
 
 Tests first failed because the CLI runner did not exist. `go test -race -count=1 ./internal/childproc`

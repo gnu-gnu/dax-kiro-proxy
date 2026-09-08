@@ -523,3 +523,38 @@ cancels and joins admitted work, and closed/overloaded runners cannot launch mor
 This runner covers finite preflight checks, not interactive terminal ownership or live Kiro tool
 restriction. Its independent child emits synthetic output/environment flags and creates its own
 TERM-ignoring descendant. No Kiro model or client tool effect is used by these tests.
+
+## D24: temporary client settings and owned routing (review R14)
+
+The initial client adapter is pinned to observed Claude Code 2.1.263. Unsupported versions reject
+until their contract is checked; a caller must verify the executable's reported version before using
+the adapter. The client keeps the user's project as cwd. A newly created 0700 runtime contains a
+private client configuration directory, scratch directory and 0600 host settings overlay. Cleanup
+joins repeated callers, refuses a replaced runtime root and does not traverse links into user data.
+
+Only the named user settings file is read, as an owned regular file without writable group/other
+permissions or a final symlink/hardlink, at most 2 MiB. Missing settings mean an empty user layer;
+malformed/duplicate JSON and invalid env values fail preparation. Its temporary snapshot preserves
+permissions, hooks and other compatible settings at user scope. Old model selection, credential
+helpers and provider/routing environment entries are removed from the snapshot. The source is never
+written. Project/local settings remain loaded by the client, and the host overlay omits permissions,
+hooks and availableModels. No safe/restricted/empty-settings-source/strict-MCP flags are added.
+
+The initial environment permits only named OS/terminal/tool-socket variables, with HOME, TMPDIR and
+CLAUDE_CONFIG_DIR supplied explicitly. The host sets the literal loopback HTTP URL, one ephemeral
+model token in both supported auth variables, provider-host guard, discovery and no automatic retry
+or nonstreaming fallback. HTTP proxy variables are cleared; loopback bypass, telemetry opt-out and
+automatic-update opt-out are explicit. No remote endpoint, URL credential or unknown model alias is
+accepted by this initial adapter. A separate UI credential is not part of the model connection.
+
+The public [settings precedence](https://code.claude.com/docs/en/settings) and
+[CLI reference](https://code.claude.com/docs/en/cli-reference) distinguish a temporary overlay from
+disabling user/project sources. The [environment reference](https://code.claude.com/docs/en/env-vars)
+documents the host provider guard and explicit telemetry opt-out; checked 2026-09-08. The unmodified
+client probe verifies user/project hooks, local env precedence, user Read denial despite project
+allowance, ignored conflicting project provider routes and byte-for-byte settings preservation.
+
+This is the settings/environment component, not complete launcher acceptance. User plugin/skill/MCP
+assets and global config preservation, managed deployments, interactive readiness/terminal ownership,
+status-line integration and actual Kiro restrictions remain separate gates. The adapter must not be
+advertised as preserving untested assets or as a bypass of organizational permission/model policy.
