@@ -49,10 +49,10 @@ func (b *statusProbeBackend) Start(context.Context, *anthropic.Request) (inferen
 // trusted through the documented per-project config key. Only first-run theme, the owned local
 // API key and introductory notes receive input. No login, user prompt or tool input is submitted.
 func TestClaudeStatuslineRefreshWithoutModelTurn(t *testing.T) {
-	observeClaudeStatusUI(t, nil)
+	observeClaudeStatusUI(t, nil, false)
 }
 
-func observeClaudeStatusUI(t *testing.T, startup *startupObservation) {
+func observeClaudeStatusUI(t *testing.T, startup *startupObservation, completion bool) {
 	t.Helper()
 	clientExecutable := os.Getenv("DAX_INTEROP_CLAUDE_BINARY")
 	if clientExecutable == "" {
@@ -93,11 +93,16 @@ func observeClaudeStatusUI(t *testing.T, startup *startupObservation) {
 	model, _ := models.ClientID("status-fixture")
 	backend := &statusProbeBackend{catalog: models}
 	queue := status.NewTurnQueue()
-	if !queue.Push(status.TurnRecord{Scope: strings.Repeat("a", 64), Model: model, SessionState: "created", ElapsedMS: 1500, Effort: kirofeature.Status{State: kirofeature.Unknown}}) {
+	if !completion && !queue.Push(status.TurnRecord{Scope: strings.Repeat("a", 64), Model: model, SessionState: "created", ElapsedMS: 1500, Effort: kirofeature.Status{State: kirofeature.Unknown}}) {
 		t.Fatal("cannot prepare synthetic status record")
 	}
 	tokens, _ := gateway.NewTokens()
-	handler, err := gateway.New(gateway.Config{Tokens: tokens, Backend: backend, Metrics: queue, LaunchModel: model})
+	var modelBackend inference.Backend = backend
+	completionBackend := &completionDisplayBackend{statusProbeBackend: backend, queue: queue}
+	if completion {
+		modelBackend = completionBackend
+	}
+	handler, err := gateway.New(gateway.Config{Tokens: tokens, Backend: modelBackend, Metrics: queue, LaunchModel: model})
 	if err != nil {
 		t.Fatal("cannot prepare local status gateway")
 	}
@@ -109,6 +114,10 @@ func observeClaudeStatusUI(t *testing.T, startup *startupObservation) {
 	var completed sync.Once
 	var messageRequests atomic.Int32
 	var noticeRequests atomic.Int32
+	var metricRequests atomic.Int32
+	var secondInput atomic.Bool
+	metricsShown := make(chan struct{})
+	var metricsRendered sync.Once
 	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if startup != nil && startup.handle(w, r) {
 			return
@@ -118,6 +127,9 @@ func observeClaudeStatusUI(t *testing.T, startup *startupObservation) {
 		}
 		if r.Method == "POST" && r.URL.Path == "/dax-kiro-proxy/hooks/model-capabilities" && r.Header.Get("x-api-key") == tokens.UI {
 			noticeRequests.Add(1)
+		}
+		if r.Method == "POST" && r.URL.Path == "/dax-kiro-proxy/hooks/turn-metrics" && r.Header.Get("x-api-key") == tokens.UI {
+			metricRequests.Add(1)
 		}
 		if r.Method == "GET" && r.URL.Path == "/dax-kiro-proxy/status/usage" && r.Header.Get("x-api-key") == tokens.UI {
 			if startup != nil {
@@ -160,6 +172,10 @@ func observeClaudeStatusUI(t *testing.T, startup *startupObservation) {
 	command := profile.Command()
 	command.Args = append(command.Args, "--tools", "", "--strict-mcp-config", "--mcp-config", emptyMCP)
 	command.Environment = append(command.Environment, "CLAUDE_CODE_SKIP_PROMPT_HISTORY=1")
+	if completion {
+		command.Environment = append(command.Environment, "CLAUDE_CODE_DISABLE_THINKING=1", "CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS=1")
+		command.Args = append(command.Args, "--system-prompt", "Independent local rendering exercise.", "First independent local question.")
+	}
 	quote := func(s string) string { return "'" + strings.ReplaceAll(s, "'", "'\\''") + "'" }
 	pidPath, wrapper := filepath.Join(root, "client.pid"), filepath.Join(root, "record-client.sh")
 	script := "#!/bin/sh\nset -euC\numask 077\nprintf '%s' \"$$\" > " + quote(pidPath) + "\n/bin/stty rows 40 cols 160\nexec " + quote(clientExecutable) + " \"$@\"\n"
@@ -186,7 +202,19 @@ func observeClaudeStatusUI(t *testing.T, startup *startupObservation) {
 		if startup != nil {
 			observe = startup.observe
 		}
-		result, answers, err := runObservedStatusTerminal(ctx, terminalOwner, command, observe)
+		var nextInput func(string) string
+		if completion {
+			nextInput = func(plain string) string {
+				if strings.Contains(plain, "kiro turn#2 status-fixture") && strings.Contains(plain, "kiro last status-fixture") {
+					metricsRendered.Do(func() { close(metricsShown) })
+				}
+				if strings.Contains(plain, "kiro turn#1 status-fixture") && secondInput.CompareAndSwap(false, true) {
+					return "Second independent local question.\r"
+				}
+				return ""
+			}
+		}
+		result, answers, err := runObservedStatusTerminal(ctx, terminalOwner, command, observe, nextInput)
 		finished <- outcome{result, answers, err}
 	}()
 	var got outcome
@@ -198,6 +226,14 @@ func observeClaudeStatusUI(t *testing.T, startup *startupObservation) {
 	case got = <-finished:
 		ranToExit = true
 	case <-ctx.Done():
+	}
+	if completion && !ranToExit {
+		select {
+		case <-metricsShown:
+		case got = <-finished:
+			ranToExit = true
+		case <-ctx.Done():
+		}
 	}
 	store, openErr := privatefs.Open(root)
 	var raw []byte
@@ -231,7 +267,11 @@ func observeClaudeStatusUI(t *testing.T, startup *startupObservation) {
 	text := terminalEscapes.ReplaceAllString(string(got.result.Stdout), " ")
 	normalized := strings.ToLower(strings.Join(strings.Fields(text), " "))
 	visible := strings.Contains(normalized, "kiro last status-fixture")
+	if completion {
+		visible = visible || strings.Contains(strings.ToLower(statusTerminalScreen(got.result.Stdout)), "kiro last status-fixture")
+	}
 	noticeVisible := strings.Contains(normalized, "kiro launch status-fixture.")
+	metricsVisible := strings.Contains(normalized, "kiro turn#1 status-fixture") && strings.Contains(normalized, "kiro turn#2 status-fixture")
 	markers := map[string]bool{}
 	for _, marker := range []string{"welcome", "theme", "log in", "login", "trust", "security notes", "claude can make mistakes", "enter to continue", "custom api", "terminal", "continue", "model", "error"} {
 		markers[marker] = strings.Contains(normalized, marker)
@@ -246,7 +286,22 @@ func observeClaudeStatusUI(t *testing.T, startup *startupObservation) {
 	if noticeRequests.Load() != 1 || !noticeVisible {
 		t.Error("installed client did not display exactly one startup model notice")
 	}
-	if count < 2 || count > 10 || elapsed == 0 || !visible || messageRequests.Load() != 0 || backend.starts.Load() != 0 || !groupGone || runner.Active() != 0 || terminalOwner.Active() != 0 || errors.Is(got.err, childproc.ErrCleanup) || errors.Is(got.err, childproc.ErrIO) || errors.Is(got.err, childproc.ErrOutputLimit) || fileFingerprint(t, settings) != before {
+	wantModels, wantMetrics := int32(0), int32(0)
+	if completion {
+		wantModels, wantMetrics = 2+completionBackend.titleTurns.Load(), 2
+	}
+	t.Logf("completion_control=%v, metric_requests=%d, main_turns=%d, title_turns=%d, both_completion_notices_visible=%v, second_user_input=%v, unexpected_model_input=%v", completion, metricRequests.Load(), completionBackend.mainTurns.Load(), completionBackend.titleTurns.Load(), metricsVisible, secondInput.Load(), completionBackend.badInput.Load())
+	if completion {
+		completionBackend.mu.Lock()
+		t.Logf("completion_input_observations=%+v, status_unavailable_visible=%v, last_prefix_visible=%v", completionBackend.observations, strings.Contains(normalized, "status unavailable"), strings.Contains(normalized, "kiro last"))
+		completionBackend.mu.Unlock()
+		compact := strings.Join(strings.Fields(normalized), "")
+		t.Logf("compact_last_visible=%v, last_word_count=%d, empty_turn_count=%d, usage_unavailable_count=%d, normalized_effort_count=%d", strings.Contains(compact, "kirolaststatus-fixture"), strings.Count(normalized, "last"), strings.Count(normalized, "no completed turn"), strings.Count(normalized, "usage unavailable"), strings.Count(normalized, "effort unknown"))
+	}
+	if completion && (!metricsVisible || !secondInput.Load() || completionBackend.badInput.Load() || completionBackend.mainTurns.Load() != 2 || completionBackend.titleTurns.Load() < 1 || completionBackend.titleTurns.Load() > 2 || len(queue.Drain().Records) != 0) {
+		t.Error("interactive completion notice or later input contract failed")
+	}
+	if count < 2 || count > 10 || elapsed == 0 || !visible || messageRequests.Load() != wantModels || backend.starts.Load() != wantModels || metricRequests.Load() != wantMetrics || !groupGone || runner.Active() != 0 || terminalOwner.Active() != 0 || errors.Is(got.err, childproc.ErrCleanup) || errors.Is(got.err, childproc.ErrIO) || errors.Is(got.err, childproc.ErrOutputLimit) || fileFingerprint(t, settings) != before {
 		t.Fatal("installed client status refresh or terminal cleanup was not established")
 	}
 	if startup != nil {
@@ -258,7 +313,7 @@ var terminalEscapes = regexp.MustCompile("\\x1b\\[[0-?]*[ -/]*[@-~]|\\x1b\\][^\\
 
 // Output stays in bounded memory. Setup input requires the exact recognized screen and selected
 // item. The API key belongs solely to this test. No login, directory or tool approval is sent.
-func runObservedStatusTerminal(ctx context.Context, owner *childproc.Attached, command childproc.Command, observe func(string)) (childproc.Result, int, error) {
+func runObservedStatusTerminal(ctx context.Context, owner *childproc.Attached, command childproc.Command, observe func(string), nextInput func(string) string) (childproc.Result, int, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	in, input, err := os.Pipe()
@@ -300,6 +355,22 @@ func runObservedStatusTerminal(ctx context.Context, owner *childproc.Attached, c
 				return
 			}
 			raw = append(raw, buffer[:n]...)
+			if nextInput != nil {
+				plain := strings.ToLower(strings.Join(strings.Fields(terminalEscapes.ReplaceAllString(string(raw), " ")), " "))
+				plain += " " + strings.ToLower(strings.Join(strings.Fields(statusTerminalScreen(raw)), " "))
+				if keys := nextInput(plain); keys != "" {
+					if len(keys) > 256 || input.SetWriteDeadline(time.Now().Add(200*time.Millisecond)) != nil {
+						captureErr = childproc.ErrIO
+						cancel()
+						return
+					}
+					if count, err := input.Write([]byte(keys)); err != nil || count != len(keys) {
+						captureErr = childproc.ErrIO
+						cancel()
+						return
+					}
+				}
+			}
 			if observe != nil {
 				observe(strings.ToLower(strings.Join(strings.Fields(terminalEscapes.ReplaceAllString(string(raw), " ")), " ")))
 			}

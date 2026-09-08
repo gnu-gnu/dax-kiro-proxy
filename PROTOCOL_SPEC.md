@@ -34,7 +34,11 @@ The turn-metrics hook accepts an empty body or empty JSON object, at most 4 KiB,
 `{records: [...], dropped: N}`. Unsupported bodies do not drain records. Status returns normalized
 account-usage availability/state and optional `latest_turn`, which remains available after draining
 the queue or when account usage is unavailable. Neither route accepts a prompt or invokes a model.
-Decision D21 defines the cache, record bounds and delivery policy.
+Decision D21 defines the cache, record bounds and delivery policy. Before draining, the handler
+waits at most 200ms for final-response deliveries already registered when this hook arrived to
+finish their bookkeeping. Later deliveries do not extend that wait. Cancellation or expiry returns
+a fixed 503 without draining; status and model-capabilities reads do not wait. Decision D50 records
+this synchronization, which does not promise acknowledged or exactly-once display.
 
 The model-capabilities POST accepts the same empty body/object and 4 KiB limit. It returns a version-1
 object with exactly `version`, `model`, `image_input`, `pdf_input`, `native_web_search`, `effort`,
@@ -67,6 +71,18 @@ The helper emits at most 1 KiB of JSON containing only a fixed-format `systemMes
 model context, a new user prompt or permission/control output. Unavailable/malformed responses produce
 a fixed unavailable notice; invalid private configuration and caller cancellation fail silently.
 Neither a notice nor an optional hook's absence changes the separate initialization/policy gates.
+
+`turn-metrics --config ABSOLUTE_PATH` uses that same private configuration and HTTP/process bounds.
+The launcher adds a synchronous `Stop` command hook with a three-second timeout and the existing
+cleared environment. Its sole request is the exact UI-authenticated turn-metrics POST with `{}`.
+It validates all retained records and emits at most 9 KiB of JSON containing only `systemMessage`.
+Each line identifies one completed foreground turn with normalized model, effort, session state,
+local duration and available numeric metadata/labeled estimates. Identity digests and arbitrary
+upstream text are excluded. Up to 32 retained records are shown; a nonempty page also reports its
+cumulative eviction count. Empty, unavailable or malformed pages emit `{}` with no notice. Invalid
+configuration or caller cancellation fails silently. It emits no model context, user prompt,
+permission decision or continuation control; source hooks and effective hook-disable policy remain
+under client control. A tool handoff alone is not a completion.
 
 ### Message request validation
 

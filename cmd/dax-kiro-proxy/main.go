@@ -24,7 +24,9 @@ import (
 	"dax-kiro-proxy/internal/relay/mcp"
 	"dax-kiro-proxy/internal/schemacheck/worker"
 	"dax-kiro-proxy/internal/startupnotice"
+	"dax-kiro-proxy/internal/status"
 	"dax-kiro-proxy/internal/statusline"
+	"dax-kiro-proxy/internal/turnnotice"
 )
 
 func main() {
@@ -41,7 +43,7 @@ func main() {
 	// A UI helper owns no child process or durable state. Its whole-process deadline also
 	// bounds a stalled inherited stdout or filesystem call, which context alone cannot interrupt.
 	var displayDeadline *time.Timer
-	if len(os.Args) == 4 && (os.Args[1] == "statusline" || os.Args[1] == "model-notice") && os.Args[2] == "--config" {
+	if len(os.Args) == 4 && (os.Args[1] == "statusline" || os.Args[1] == "model-notice" || os.Args[1] == "turn-metrics") && os.Args[2] == "--config" {
 		displayDeadline = time.AfterFunc(2*time.Second, func() { os.Exit(1) })
 	}
 	files := childproc.AttachedIO{Stdin: os.Stdin, Stdout: os.Stdout, Stderr: os.Stderr, Foreground: true}
@@ -49,6 +51,7 @@ func main() {
 		defaults: defaultOptions, inspect: launcher.Inspect, run: launcher.Run,
 		statusline: statusline.Display,
 		notice:     startupnotice.Output,
+		metrics:    turnnotice.Output,
 		schema:     func() error { return worker.Run(os.Stdin, os.Stdout) },
 		relay: func(ctx context.Context, path string) error {
 			config, err := relay.LoadChildConfig(path)
@@ -80,6 +83,7 @@ type commandServices struct {
 	relay      func(context.Context, string) error
 	statusline func(context.Context, string) (string, error)
 	notice     func(context.Context, string) (string, error)
+	metrics    func(context.Context, string) (string, error)
 }
 
 const helpText = `usage: dax-kiro-proxy <doctor|models|run> [options]
@@ -115,16 +119,20 @@ func execute(ctx context.Context, args []string, files childproc.AttachedIO, out
 		}
 		return 0
 	}
-	if len(args) == 3 && (args[0] == "statusline" || args[0] == "model-notice") && args[1] == "--config" {
+	if len(args) == 3 && (args[0] == "statusline" || args[0] == "model-notice" || args[0] == "turn-metrics") && args[1] == "--config" {
 		display := services.statusline
+		limit := 1024
 		if args[0] == "model-notice" {
 			display = services.notice
+		}
+		if args[0] == "turn-metrics" {
+			display, limit = services.metrics, status.MaxMetricsOutput
 		}
 		if display == nil {
 			return 1
 		}
 		line, err := display(ctx, args[2])
-		if err != nil || len(line) > 1024 {
+		if err != nil || len(line) > limit {
 			return 1
 		}
 		n, err := io.WriteString(out, line)

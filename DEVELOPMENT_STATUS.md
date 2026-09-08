@@ -22,6 +22,9 @@ does not redefine completion around an intermediate phase.
 - D49 adds a bounded startup model notice using the prepared alias and UI-only credentials. Actual
   Claude displays it, keeps existing hooks/Read denial, and excludes it from the exercised model
   inputs. Disabling hooks preserves conversation completion. Feature/policy verification remains open.
+- D50 adds synchronous Stop completion notices and a bounded wait for terminal-response bookkeeping.
+  Actual Claude separates one title request from two foreground turns and displays two completion
+  notices plus the updated status. This uses a local synthetic responder, not a Kiro model call.
 - The original fourteen repository Markdown documents were read in README order, with README and
   AGENTS first. LIVE_KIRO_TEST_PLAN.md now adds the concrete scope of a separately opted-in test.
 - Specification-only baseline committed as `7b108dd`.
@@ -99,9 +102,9 @@ CLIs may maintain their own account/cache metadata; no claim of globally untouch
 The built-in Kiro policy adapter remains unavailable. Run cannot start actual model traffic, and
 doctor explicitly reports that fact. A package-private fake adapter tests the complete runtime path;
 no trust flag or user-supplied verification record can select it. Client initialization timing and
-complete interactive behavior, asset preservation, verified capabilities, turn-metrics client hooks,
-R16 request controls, real policy/load proof and release work remain open. D47/D49 add the separate
-status display and startup model notice below.
+complete interactive behavior, asset preservation, verified capabilities, R16 request controls,
+real policy/load proof and release work remain open. D47/D49/D50 add the separate status display,
+startup model notice and turn-completion hook below.
 
 The user subsequently explicitly authorized an independent local Claude CLI consultation and asked
 that Claude save its answer to a file for review. That authorization superseded the earlier automatic
@@ -753,6 +756,75 @@ statusline 2.148s. The complete normalized log and exit 0 are retained under
 formatting and diff checks also passed. This validates the local notice implementation and affected
 regressions; the full product and live/release gates remain unfinished.
 
+### Foreground completion hooks and delivery bookkeeping
+
+D50 adds the synchronous Stop helper using the existing private UI credential and exact metrics
+route. It emits only bounded systemMessage JSON, displays all retained foreground completions,
+and emits no notice for empty/unavailable/malformed data. HTTP terminal delivery now registers
+bookkeeping before final output; metrics draining waits at most 200ms for its initial snapshot.
+Failures preserve queued records, and status/model notices stay independent. There is no
+acknowledgement or guarantee of exactly-once visible display after a drain.
+
+The new formatter, helper and command tests first failed on absent APIs. Independent held-finalizer
+tests then reproduced premature JSON/SSE draining and failure-path record consumption before the
+gateway fix. Focused delivery tests passed in 2.088s, including overlapping finalizations, canceled
+waits, invalid auth/body, status availability and failed terminal output. The direct compiled helper
+tests exercise 32 records above the old 1 KiB limit, literal hostile paths, cleared environments and
+the two-second main deadline with unread stdin/blocked stdout.
+
+Initial installed-Claude completion probes failed: two title/foreground request pairs were counted
+as four main requests, and the first Stop drain included a false title completion. A synthetic
+count_tokens endpoint was never called and did not change this outcome; no production counting
+adapter was added. Bounded field/shape observations identified title-only JSON Schema and system
+purpose signals, with thinking omitted by the documented test option. The independent classifier
+test reproduced omission being classified as main before the fix. Classification now accepts omitted
+thinking only with every other title condition; null/adaptive declarations, loose title wording,
+ordinary structured output and tools stay main. The manager's fake-process metrics suite includes
+an omitted-thinking title case. No client prompt/template was copied as a fixture.
+
+After this correction, actual Claude 2.1.263 sent one title and two foreground requests, made two
+Stop metric requests, and displayed both completion notices with no notice text in the later model
+input. The remaining status assertion still failed because stripping terminal escapes misses words
+assembled through cursor edits. A bounded 160x40 text-cell observer now reconstructs those updates;
+independent cursor-edit, erasure, control-string and wide-character cases passed in 1.711s. This is
+limited text observation, not a general terminal emulator or full interactive-readiness proof.
+
+The installed two-turn control then passed in 8.987s (7.17s test), with one startup notice, one catalog
+request, three status requests and a 4,627ms refresh interval. The updated last-model status was
+observed as well as both foreground notices. Client PID/group disappeared, all process owners were
+idle and source settings were unchanged. Client exit 143 is the intentional harness termination;
+the test exited 0. Its normalized log/exit status are retained privately under
+.cache/interop-observations/turn-metrics-screen.xmzu0D. Earlier failed controls remain recorded under
+turn-metrics-count.J9uqNj, turn-metrics-purpose.Rta7F0, turn-metrics-title.Ut8KGd and
+turn-metrics-display.FSLL5K. No Kiro prompt or external inference was used in these controls.
+
+The earlier local Claude consultation on generic Stop/HTTP timing completed, saved its answer and
+was reviewed; D50 records what was adopted and the narrower wait policy. This consultation is
+separate from product Kiro traffic. The test observer additionally uses reviewed x/text/width at
+the existing version, with its generated-data scope recorded in DEPENDENCY_REVIEW.md. Production
+execution-policy, actual Kiro/private metadata, R16 compatibility and release gates remain open.
+
+The complete uncached `go test -race -p 1 -count=1 -timeout=3m ./...` passed with both installed-CLI
+opt-ins empty and Kiro credit opt-in 0. Results include ACP 5.146s, gateway 3.337s, interop 21.471s,
+launcher 21.410s, session 16.318s, status 1.430s and turnnotice 1.562s; all other packages passed.
+The private normalized log and exit 0 are under
+.cache/interop-observations/turn-metrics-regression.O5QJfs. Offline go mod tidy using the installed
+Go binary only reclassifies the existing x/text requirement as direct; versions/checksums are
+unchanged. An initial invocation through the older bootstrap Go with GOSUMDB=off stopped at
+toolchain verification before tidy; the direct installed binary completed it without fetching.
+Whole-repository go vet passed afterward.
+
+Six installed-Claude controls then passed together in 30.157s under the race detector, with Kiro
+credit opt-in 0. The two-turn display again separated one title and two foreground requests, showed
+both completion notices and the updated status, and excluded notice text from later input. Enabled
+user/project Stop hooks ran alongside one metrics hook; disableAllHooks suppressed them all while
+the same two-request conversation and Read denial completed. Idle and held-startup controls retained
+visible status, one startup notice, zero model turns and bounded cleanup. The prepared one-prompt
+Read-denial harness also passed against fake ACP in 3.13s: one exposed Read, one matching denial,
+one final completion, unchanged canary and no surviving relay/group. No actual Kiro prompt was sent.
+The private normalized log and exit 0 are under
+.cache/interop-observations/turn-metrics-client-regression.xLl3b1.
+
 ### Request constraints and negative client recovery evidence
 
 D33 now inventories accepted request fields and the remaining R16 gaps. Known unmapped stop,
@@ -959,9 +1031,9 @@ limits. A suspended usage fetch joins, and an arbitrary synthetic cleanup error 
 fixed class while other cleanup continues. Source settings and caller descriptors remain unchanged.
 
 At this checkpoint this was an internal runtime stage. D34/D35 subsequently connected catalog,
-last-model and public CLI startup; D47/D49 add status credentials/display and startup notices. Kiro
-restriction proof, client assets, complete interactive readiness, verified capabilities and
-turn-metrics client hooks remain unfinished.
+last-model and public CLI startup; D47/D49/D50 add status credentials/display, startup notices and
+turn-completion hooks. Kiro restriction proof, client assets, complete interactive readiness and
+verified capabilities remain unfinished.
 The independent runtime fixture contains no upstream capture and performs no
 actual client tool effect, installed-client invocation or Kiro model request. No dependency was added.
 

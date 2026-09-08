@@ -113,7 +113,11 @@ func PrepareClient(cfg ClientConfig) (*ClientProfile, error) {
 		command := "/usr/bin/env -i PATH=/usr/bin:/bin " + quote(cfg.StatusExecutable) + " statusline --config " + quote(filepath.Join(path, "statusline.json"))
 		host["statusLine"] = map[string]any{"type": "command", "command": command, "refreshInterval": 5}
 		noticeCommand := "/usr/bin/env -i PATH=/usr/bin:/bin " + quote(cfg.StatusExecutable) + " model-notice --config " + quote(filepath.Join(path, "statusline.json"))
-		host["hooks"] = map[string]any{"SessionStart": []any{map[string]any{"matcher": "startup", "hooks": []any{map[string]any{"type": "command", "command": noticeCommand, "timeout": 3}}}}}
+		metricsCommand := "/usr/bin/env -i PATH=/usr/bin:/bin " + quote(cfg.StatusExecutable) + " turn-metrics --config " + quote(filepath.Join(path, "statusline.json"))
+		host["hooks"] = map[string]any{
+			"SessionStart": []any{map[string]any{"matcher": "startup", "hooks": []any{map[string]any{"type": "command", "command": noticeCommand, "timeout": 3}}}},
+			"Stop":         []any{map[string]any{"hooks": []any{map[string]any{"type": "command", "command": metricsCommand, "timeout": 3}}}},
+		}
 	}
 	overlay, _ := json.Marshal(host)
 	if root.Write("host-settings.json", overlay) != nil {

@@ -35,9 +35,13 @@ func Classify(r *anthropic.Request) Kind {
 	if systemBytes > 32<<10 || len(r.Extra["thinking"]) > 1024 || len(r.Extra["output_config"]) > 64<<10 {
 		return Main
 	}
-	thinking, err := ndjson.Object(r.Extra["thinking"])
-	if err != nil || !stringIs(thinking["type"], "disabled") {
-		return Main
+	// The public client's force-disable option omits thinking even on title requests. Omission
+	// is accepted only alongside every schema/purpose signal below; explicit reasoning is not.
+	if raw, declared := r.Extra["thinking"]; declared {
+		thinking, err := ndjson.Object(raw)
+		if err != nil || !stringIs(thinking["type"], "disabled") {
+			return Main
+		}
 	}
 	output, err := ndjson.Object(r.Extra["output_config"])
 	if err != nil {

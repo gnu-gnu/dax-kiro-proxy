@@ -275,6 +275,13 @@ subsequent startup composition makes x/image reachable from the command too: a f
 version or license selection changed. These are package graphs, not proof of final linked symbols or
 a future completed launcher's shipped contents.
 
+D50's independent terminal observer also imports x/text/width v0.41.0 for text-cell widths, under
+the same reviewed BSD-3-Clause LICENSE and PATENTS grant. This is test-only use; no module/version
+was added and no upstream test corpus was imported. Offline go mod tidy moves the existing x/text
+requirement from indirect to direct because this test imports it. Its Go 1.27 package selection includes
+tables17.0.0.go, adding that generated Unicode data to the test artifact inventory. The existing
+Unicode notice/release review below still applies; this observation does not close it.
+
 The installed Go binary was invoked directly with GOTOOLCHAIN=local, GOPROXY=off, GOSUMDB=off and the
 repository's existing module/build caches for these offline inspections. `go mod verify` reported
 `all modules verified`. This compares cached module contents with retained hashes; it is not a fresh

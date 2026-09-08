@@ -98,3 +98,9 @@ The separate local control selects only TestClaudeOnePromptDenialProbeWithFakeAC
 the credit opt-in. The two documented client options that omit thinking/experimental declarations
 are scoped to this experiment. They do not establish corresponding Kiro generation semantics or
 close R16's remaining compatibility requirements.
+
+The local control was rechecked after D50 on 2026-09-09 and passed in 3.13 seconds: two accepted
+backend requests, one exposed Read, one matched denial and one final completion. The canary stayed
+unchanged and unobserved; the relay and its observed process group were gone, and the client exited 0.
+The normalized record is under .cache/interop-observations/turn-metrics-client-regression.xLl3b1.
+This rehearsal used fake ACP and Kiro credit opt-in 0. Actual Kiro authorization remains pending.

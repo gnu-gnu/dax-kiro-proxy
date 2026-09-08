@@ -51,7 +51,7 @@ func TestToolHandoffPublishesOnlyAfterOwnedTurnCompletes(t *testing.T) {
 }
 
 func TestForegroundMetricsRequireFinalDeliveryAndReplaceRepeatedMetadata(t *testing.T) {
-	for _, kind := range []string{"main", "title", "subagent", "background", "undelivered", "cancelled", "no-private-fields"} {
+	for _, kind := range []string{"main", "title", "title-thinking-omitted", "subagent", "background", "undelivered", "cancelled", "no-private-fields"} {
 		t.Run(kind, func(t *testing.T) {
 			mode := "pool-metadata"
 			if kind == "no-private-fields" {
@@ -66,10 +66,13 @@ func TestForegroundMetricsRequireFinalDeliveryAndReplaceRepeatedMetadata(t *test
 			}
 			defer m.Close()
 			r := mainRequest(t, "synthetic-identity-must-not-be-in-metrics")
-			if kind == "title" {
+			if kind == "title" || kind == "title-thinking-omitted" {
 				r.System = []anthropic.Block{{Type: "text", Text: "Create a title for this conversation."}}
 				r.Extra["thinking"] = json.RawMessage(`{"type":"disabled"}`)
 				r.Extra["output_config"] = json.RawMessage(`{"format":{"type":"json_schema","schema":{"type":"object","properties":{"title":{"type":"string"}},"required":["title"]}}}`)
+				if kind == "title-thinking-omitted" {
+					delete(r.Extra, "thinking")
+				}
 			}
 			if kind == "background" {
 				r.Identity.ParentAgent = "synthetic-parent"

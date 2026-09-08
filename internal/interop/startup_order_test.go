@@ -444,5 +444,5 @@ func TestStartupObserverRejectsInvalidEvidence(t *testing.T) {
 }
 
 func TestClaudeStartupHookOrderingWithoutModelTurn(t *testing.T) {
-	observeClaudeStatusUI(t, newStartupObservation(t))
+	observeClaudeStatusUI(t, newStartupObservation(t), false)
 }

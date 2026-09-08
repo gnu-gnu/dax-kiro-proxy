@@ -74,6 +74,10 @@ func (h *Handler) ui(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	page := status.MetricsPage{Records: []status.TurnRecord{}}
+	if err := h.awaitDeliveries(r.Context()); err != nil {
+		writeError(w, 503, "api_error", "Turn metrics temporarily unavailable")
+		return
+	}
 	if h.cfg.Metrics != nil {
 		page = h.cfg.Metrics.Drain()
 	}

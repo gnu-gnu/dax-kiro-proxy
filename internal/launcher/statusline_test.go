@@ -15,9 +15,12 @@ import (
 	"dax-kiro-proxy/internal/childproc"
 	"dax-kiro-proxy/internal/gateway"
 	"dax-kiro-proxy/internal/inference"
+	"dax-kiro-proxy/internal/kirofeature"
 	"dax-kiro-proxy/internal/launcher"
 	"dax-kiro-proxy/internal/startupnotice"
+	"dax-kiro-proxy/internal/status"
 	"dax-kiro-proxy/internal/statusline"
+	"dax-kiro-proxy/internal/turnnotice"
 )
 
 type statusOnlyBackend struct{ t *testing.T }
@@ -34,7 +37,8 @@ func (b statusOnlyBackend) Start(context.Context, *anthropic.Request) (inference
 func TestStatuslineProfileOwnsOnlyUICredentialAndPreservesSource(t *testing.T) {
 	cfg := profileConfig(t)
 	tokens, _ := gateway.NewTokens()
-	server, err := gateway.StartServer(t.Context(), gateway.ServerConfig{Gateway: gateway.Config{Tokens: tokens, Backend: statusOnlyBackend{t}, LaunchModel: cfg.Model}})
+	queue := status.NewTurnQueue()
+	server, err := gateway.StartServer(t.Context(), gateway.ServerConfig{Gateway: gateway.Config{Tokens: tokens, Backend: statusOnlyBackend{t}, LaunchModel: cfg.Model, Metrics: queue}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -73,12 +77,16 @@ func TestStatuslineProfileOwnsOnlyUICredentialAndPreservesSource(t *testing.T) {
 	if json.Unmarshal(data, &overlay) != nil || overlay.StatusLine.Type != "command" || overlay.StatusLine.RefreshInterval != 5 || !strings.HasPrefix(overlay.StatusLine.Command, "/usr/bin/env -i PATH=/usr/bin:/bin ") {
 		t.Fatal("missing isolated five-second status command")
 	}
-	if len(overlay.Hooks) != 1 || len(overlay.Hooks["SessionStart"]) != 1 || overlay.Hooks["SessionStart"][0].Matcher != "startup" || len(overlay.Hooks["SessionStart"][0].Hooks) != 1 {
+	if len(overlay.Hooks) != 2 || len(overlay.Hooks["SessionStart"]) != 1 || overlay.Hooks["SessionStart"][0].Matcher != "startup" || len(overlay.Hooks["SessionStart"][0].Hooks) != 1 || len(overlay.Hooks["Stop"]) != 1 || overlay.Hooks["Stop"][0].Matcher != "" || len(overlay.Hooks["Stop"][0].Hooks) != 1 {
 		t.Fatal("startup notice changed unrelated hook events")
 	}
 	hook := overlay.Hooks["SessionStart"][0].Hooks[0]
 	if hook.Type != "command" || hook.Timeout != 3 || !strings.Contains(hook.Command, " model-notice --config ") || strings.Contains(hook.Command, tokens.UI) || strings.Contains(hook.Command, tokens.Model) {
 		t.Fatal("startup notice command has unexpected authority or bounds")
+	}
+	completion := overlay.Hooks["Stop"][0].Hooks[0]
+	if completion.Type != "command" || completion.Timeout != 3 || !strings.Contains(completion.Command, " turn-metrics --config ") || strings.Contains(completion.Command, tokens.UI) || strings.Contains(completion.Command, tokens.Model) {
+		t.Fatal("completion hook has unexpected authority or bounds")
 	}
 	config := filepath.Join(p.Path(), "statusline.json")
 	data, err = os.ReadFile(config)
@@ -103,6 +111,14 @@ func TestStatuslineProfileOwnsOnlyUICredentialAndPreservesSource(t *testing.T) {
 	if err != nil || result.ExitCode != 0 || json.Unmarshal(result.Stdout, &notice) != nil || len(notice) != 1 || !strings.HasPrefix(notice["systemMessage"], "Kiro launch fixture.") {
 		t.Fatal("configured startup hook failed or emitted context/control output")
 	}
+	for range 32 {
+		queue.Push(status.TurnRecord{Scope: strings.Repeat("a", 64), Model: cfg.Model, SessionState: "created", Effort: kirofeature.Status{State: kirofeature.Unknown}})
+	}
+	result, err = runner.Run(t.Context(), childproc.Command{Executable: "/bin/sh", Args: []string{"-c", completion.Command}, Directory: cfg.Project, Environment: []string{"ANTHROPIC_API_KEY=private-environment-sentinel", "HTTP_PROXY=http://outside.invalid"}})
+	notice = nil
+	if err != nil || result.ExitCode != 0 || json.Unmarshal(result.Stdout, &notice) != nil || len(notice) != 1 || !strings.HasPrefix(notice["systemMessage"], "Kiro turn#1 fixture") || len(queue.Drain().Records) != 0 || strings.Count(notice["systemMessage"], "Kiro turn#") != 32 || len(result.Stdout) <= 1024 || len(result.Stdout) > status.MaxMetricsOutput {
+		t.Fatal("configured completion hook failed or emitted context/control output")
+	}
 	if _, err := os.Lstat(filepath.Join(cfg.Project, "unexpected-status-effect")); !errors.Is(err, os.ErrNotExist) {
 		t.Fatal("status command interpreted a literal path as shell code")
 	}
@@ -118,7 +134,7 @@ func TestStatuslineProfileOwnsOnlyUICredentialAndPreservesSource(t *testing.T) {
 }
 
 func TestStatuslineCommandDeadlineCoversBlockedStdoutAndUnreadStdin(t *testing.T) {
-	for _, command := range []string{"statusline", "model-notice"} {
+	for _, command := range []string{"statusline", "model-notice", "turn-metrics"} {
 		t.Run(command, func(t *testing.T) { checkUICommandDeadline(t, command) })
 	}
 }
@@ -215,6 +231,13 @@ func TestRuntimeGeneratesAndRemovesStatusCredential(t *testing.T) {
 	notice, err := startupnotice.Output(t.Context(), path)
 	if err != nil || !strings.Contains(notice, "Kiro launch fixture-backend.") || owner.starts.Load() != 1 || owner.lists.Load() != 0 {
 		t.Error("runtime notice changed model state or omitted prepared launch selection", err)
+	}
+	completed, err := turnnotice.Output(t.Context(), path)
+	if err != nil || !strings.Contains(completed, "Kiro turn#1 fixture-backend") || owner.starts.Load() != 1 || owner.lists.Load() != 0 {
+		t.Error("runtime completion hook omitted final delivered metrics", err)
+	}
+	if again, err := turnnotice.Output(t.Context(), path); err != nil || again != "{}\n" {
+		t.Error("runtime completion hook replayed a completed turn", err)
 	}
 	cancel()
 	select {

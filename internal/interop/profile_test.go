@@ -20,7 +20,9 @@ import (
 	"dax-kiro-proxy/internal/anthropic"
 	"dax-kiro-proxy/internal/childproc"
 	"dax-kiro-proxy/internal/gateway"
+	"dax-kiro-proxy/internal/kirofeature"
 	"dax-kiro-proxy/internal/launcher"
+	"dax-kiro-proxy/internal/status"
 )
 
 // All files, hooks and endpoints here are independently authored and owned by this test. The
@@ -80,16 +82,17 @@ func observeClientProfileHooks(t *testing.T, disabled bool) {
 		t.Fatal("cannot write independent denied input")
 	}
 	userMarker, projectMarker, helperMarker := filepath.Join(root, "user-hook"), filepath.Join(root, "project-hook"), filepath.Join(root, "credential-helper")
-	hook := func(command string) any {
-		return map[string]any{"SessionStart": []any{map[string]any{"hooks": []any{map[string]any{"type": "command", "command": command, "timeout": 2}}}}}
+	userStop, projectStop := filepath.Join(root, "user-stop"), filepath.Join(root, "project-stop")
+	hook := func(command, stopped string) any {
+		return map[string]any{"SessionStart": []any{map[string]any{"hooks": []any{map[string]any{"type": "command", "command": command, "timeout": 2}}}}, "Stop": []any{map[string]any{"hooks": []any{map[string]any{"type": "command", "command": stopped, "timeout": 2}}}}}
 	}
 	quote := func(s string) string { return "'" + strings.ReplaceAll(s, "'", "'\\''") + "'" }
 	userPath := filepath.Join(home, ".claude", "settings.json")
 	projectPath := filepath.Join(project, ".claude", "settings.json")
 	localPath := filepath.Join(project, ".claude", "settings.local.json")
 	globalPath := filepath.Join(home, ".claude.json")
-	writeProbeJSON(userPath, map[string]any{"permissions": map[string]any{"defaultMode": "manual", "deny": []string{"Read"}}, "hooks": hook("/usr/bin/touch " + quote(userMarker)), "disableAllHooks": disabled, "env": map[string]string{"ANTHROPIC_BASE_URL": wrong.URL, "ANTHROPIC_API_KEY": "synthetic-user-key", "DAX_PROFILE_LAYER": "user"}, "apiKeyHelper": "/usr/bin/touch " + quote(helperMarker)})
-	writeProbeJSON(projectPath, map[string]any{"permissions": map[string]any{"allow": []string{"Read"}}, "hooks": hook("test \"$DAX_PROFILE_LAYER\" = local && /usr/bin/touch " + quote(projectMarker)), "env": map[string]string{"DAX_PROFILE_LAYER": "project", "ANTHROPIC_BASE_URL": wrong.URL, "ANTHROPIC_API_KEY": "synthetic-project-key", "CLAUDE_CODE_USE_BEDROCK": "1", "ANTHROPIC_BEDROCK_BASE_URL": wrong.URL}})
+	writeProbeJSON(userPath, map[string]any{"permissions": map[string]any{"defaultMode": "manual", "deny": []string{"Read"}}, "hooks": hook("/usr/bin/touch "+quote(userMarker), "/usr/bin/touch "+quote(userStop)), "disableAllHooks": disabled, "env": map[string]string{"ANTHROPIC_BASE_URL": wrong.URL, "ANTHROPIC_API_KEY": "synthetic-user-key", "DAX_PROFILE_LAYER": "user"}, "apiKeyHelper": "/usr/bin/touch " + quote(helperMarker)})
+	writeProbeJSON(projectPath, map[string]any{"permissions": map[string]any{"allow": []string{"Read"}}, "hooks": hook("test \"$DAX_PROFILE_LAYER\" = local && /usr/bin/touch "+quote(projectMarker), "/usr/bin/touch "+quote(projectStop)), "env": map[string]string{"DAX_PROFILE_LAYER": "project", "ANTHROPIC_BASE_URL": wrong.URL, "ANTHROPIC_API_KEY": "synthetic-project-key", "CLAUDE_CODE_USE_BEDROCK": "1", "ANTHROPIC_BEDROCK_BASE_URL": wrong.URL}})
 	writeProbeJSON(localPath, map[string]any{"env": map[string]string{"DAX_PROFILE_LAYER": "local", "ANTHROPIC_BASE_URL": wrong.URL, "CLAUDE_CODE_USE_VERTEX": "1", "ANTHROPIC_VERTEX_BASE_URL": wrong.URL}})
 	writeProbeJSON(globalPath, map[string]any{})
 	protected := []string{userPath, projectPath, localPath, globalPath}
@@ -106,15 +109,20 @@ func observeClientProfileHooks(t *testing.T, disabled bool) {
 	var systemDigests [][32]byte
 	repeatedSystem := true
 	uiBackend := &statusProbeBackend{}
-	ui, err := gateway.New(gateway.Config{Tokens: tokens, Backend: uiBackend, LaunchModel: model})
+	metrics := status.NewTurnQueue()
+	ui, err := gateway.New(gateway.Config{Tokens: tokens, Backend: uiBackend, LaunchModel: model, Metrics: metrics})
 	if err != nil {
 		t.Fatal("cannot prepare independent local UI routes")
 	}
 	var noticeRequests atomic.Int32
+	var metricRequests atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if strings.HasPrefix(r.URL.Path, "/dax-kiro-proxy/") {
 			if r.Method == "POST" && r.URL.Path == "/dax-kiro-proxy/hooks/model-capabilities" && r.Header.Get("x-api-key") == tokens.UI {
 				noticeRequests.Add(1)
+			}
+			if r.Method == "POST" && r.URL.Path == "/dax-kiro-proxy/hooks/turn-metrics" && r.Header.Get("x-api-key") == tokens.UI {
+				metricRequests.Add(1)
 			}
 			ui.ServeHTTP(w, r)
 			return
@@ -165,7 +173,7 @@ func observeClientProfileHooks(t *testing.T, disabled bool) {
 		}
 		mu.Lock()
 		messages++
-		noticeInModelBody = noticeInModelBody || bytes.Contains(body, []byte("Kiro launch ")) || bytes.Contains(body, []byte("Kiro model capabilities unavailable."))
+		noticeInModelBody = noticeInModelBody || bytes.Contains(body, []byte("Kiro launch ")) || bytes.Contains(body, []byte("Kiro model capabilities unavailable.")) || bytes.Contains(body, []byte("Kiro turn#"))
 		round := messages
 		decoded, decodeErr := anthropic.DecodeRequest(body)
 		if decodeErr == nil {
@@ -218,6 +226,7 @@ func observeClientProfileHooks(t *testing.T, disabled bool) {
 			writeObservedMessage(w, request.Stream, model, []map[string]any{{"type": "tool_use", "id": "toolu_owned_profile", "name": "Read", "input": map[string]string{"file_path": denied}}}, "tool_use")
 		} else {
 			writeObservedMessage(w, request.Stream, model, []map[string]any{{"type": "text", "text": answer}}, "end_turn")
+			metrics.Push(status.TurnRecord{Scope: strings.Repeat("d", 64), Model: model, SessionState: "created", Effort: kirofeature.Status{State: kirofeature.Unknown}})
 		}
 	}))
 	defer server.Close()
@@ -243,10 +252,13 @@ func observeClientProfileHooks(t *testing.T, disabled bool) {
 		projectHook = true
 	}
 	_, helperErr := os.Stat(helperMarker)
+	_, userStopErr := os.Stat(userStop)
+	_, projectStopErr := os.Stat(projectStop)
 	mu.Lock()
 	defer mu.Unlock()
 	t.Logf("client=%s, messages=%d, models=%d, wrong_route=%d, user_hook=%v, project_hook_with_local_env=%v, tool_denied=%v, advertised_tools=%d, continuation_roles=%v, trailing_system_repeats_prior=%v, decoder_accepts=%v, exit=%d", launcher.SupportedClientVersion, messages, models, wrongRoute.Load(), userHook, projectHook, toolError, advertisedTools, continuationRoles, repeatedSystem, continuationDecoded, result.ExitCode)
 	t.Logf("hooks_disabled=%v, startup_notice_requests=%d, notice_in_model_body=%v, ui_model_starts=%d, ui_model_lists=%d", disabled, noticeRequests.Load(), noticeInModelBody, uiBackend.starts.Load(), uiBackend.lists.Load())
+	t.Logf("metric_requests=%d, user_stop_hook=%v, project_stop_hook=%v", metricRequests.Load(), userStopErr == nil, projectStopErr == nil)
 	if runErr != nil || !bytes.Contains(result.Stdout, []byte(answer)) {
 		t.Fatalf("client fixture did not finish: safe_error=%v, stdout_bytes=%d", runErr, len(result.Stdout))
 	}
@@ -254,7 +266,7 @@ func observeClientProfileHooks(t *testing.T, disabled bool) {
 	if disabled {
 		expectedNotices = 0
 	}
-	if messages != 2 || !continuationDecoded || !toolError || !routeTokenOK || wrongRoute.Load() != 0 || userHook == disabled || projectHook == disabled || !os.IsNotExist(helperErr) || noticeRequests.Load() != expectedNotices || noticeInModelBody || uiBackend.starts.Load() != 0 || uiBackend.lists.Load() != 0 {
+	if messages != 2 || !continuationDecoded || !toolError || !routeTokenOK || wrongRoute.Load() != 0 || userHook == disabled || projectHook == disabled || (userStopErr == nil) == disabled || (projectStopErr == nil) == disabled || !os.IsNotExist(helperErr) || noticeRequests.Load() != expectedNotices || metricRequests.Load() != expectedNotices || noticeInModelBody || uiBackend.starts.Load() != 0 || uiBackend.lists.Load() != 0 || len(metrics.Drain().Records) != int(1-expectedNotices) {
 		t.Fatal("isolated client profile contract was not preserved")
 	}
 	if err := p.Close(); err != nil {

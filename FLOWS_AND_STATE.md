@@ -106,8 +106,11 @@ never replayed.
 ## 6. Request classification
 
 Session-title requests are detected from a combination of output JSON schema shape, title-specific
-system instruction, absence of tools, and disabled thinking. Detection must not rely on a single loose
-substring.
+system instruction, absence of tools, and either an explicit disabled-thinking declaration or an
+omitted thinking field. Omission alone is not a title signal; every schema and purpose condition is
+still required. Explicit enabled/adaptive, null or malformed thinking does not match. D50 records
+the installed-client observation behind accepting omission. Detection must not rely on a single
+loose substring or infer a backend's reasoning behavior from classification.
 
 Local usage/diagnostic commands require exact recognized request shapes. They bypass Kiro and are
 removed from later history. All other requests are main agent or tool follow-up based on the newest user

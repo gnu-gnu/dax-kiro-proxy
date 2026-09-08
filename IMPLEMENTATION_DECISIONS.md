@@ -295,9 +295,10 @@ Tool follow-ups, retries and resume retain the main binding. The first-user anch
 history reconciliation instead of changing the explicit lookup key after client truncation. Fallback
 keys include a random launcher instance, stable system and first-user digests; they never persist.
 Title keys additionally include their input anchor. The title classifier requires all of: no tools,
-disabled thinking, a JSON object schema with only a required string title, and title/conversation
-intent in the system. Classification examines bounded system/configuration inputs, not one loose
-substring. Actual-client title templates remain an interoperability gate.
+disabled thinking (or omission as subsequently verified by D50), a JSON object schema with only a
+required string title, and title/conversation intent in the system. Classification examines bounded
+system/configuration inputs, not one loose substring. Broader actual-client title templates remain
+an interoperability gate.
 
 History uses domain-separated HMAC-SHA-256 with a private 32-byte scope key. Records contain ordered
 assistant/user digest pairs and message-role anchors, never text. Text shorthand and text blocks are
@@ -476,7 +477,7 @@ UI-authenticated turn-metrics POST accepts only an empty body/object within 4 Ki
 it is best-effort diagnostics, so a failed response after draining may lose records. The latest
 snapshot survives draining and remains in usage status when account usage is unavailable. UI request
 admission and read/write deadlines are separate from model admission. No provider usage is changed.
-The launcher/client hook adapter remains separate implementation work; D22 defines local estimates.
+D50 adds the launcher/client hook adapter and bounded finalization wait; D22 defines local estimates.
 
 The public [Claude gateway attribution contract](https://code.claude.com/docs/en/llm-gateway-protocol),
 checked 2026-09-08, identifies first-level subagents through the agent header; the parent-agent header
@@ -1062,8 +1063,8 @@ confirm their request-shape effects for Claude 2.1.263; beta suppression still l
 values in the tested profile. These are test inputs, not launcher defaults. Thinking omission does
 not prove a model's internal reasoning stops, and beta suppression is not a universal capability
 negotiation mechanism. No structured-output request was exercised. The existing title classifier
-requires an explicit disabled-thinking declaration, so omission cannot be adopted without separately
-checking actual title and foreground paths. Tool, permission, compaction and output-constraint
+initially required an explicit disabled-thinking declaration; D50 separately checks actual title and
+foreground paths before accepting omission with every other signal. Tool, permission, compaction and output-constraint
 semantics remain separate gates.
 
 Advisory Claude output is checked against the specifications and observations before use. A
@@ -1640,5 +1641,60 @@ request bodies in either control contained the notice. These checks use independ
 responders, not Kiro prompting or external inference; source settings remain unchanged.
 
 No dependency or execution-policy authority changes. This completes the initial startup-notice
-contract only. Full interactive readiness, real feature/usage adapters, turn-metrics client hooks,
-R06/R16 and release gates remain open.
+contract only. D50 subsequently adds turn-metrics client hooks. Full interactive readiness, real
+feature/usage adapters, R06/R16 and release gates remain open.
+
+## D50: foreground completion display and final-delivery synchronization (review R14/R15)
+
+The launcher adds a synchronous Stop command invoking turn-metrics with the existing private UI
+configuration. Its cleared environment, quoted paths, three-second client timeout and two-second
+helper-main deadline match D49. The shared UI reader enumerates the exact metrics POST with {},
+retaining its 750ms HTTP, 250/300ms connect/header, 8 KiB header and 64 KiB response bounds. No
+client stdin, transcript, model token, provider credential, subprocess, proxy or redirect is used.
+Source Stop hooks and the effective disableAllHooks setting remain under client-controlled merging.
+
+The formatter validates exact field names, record shapes, ascending sequence numbers, model labels,
+effort states and bounded numeric metadata/estimates. Unknown text, null required values, duplicate
+keys, unrecognized units, invalid estimates and identity digests cannot enter display. Each retained
+completion is shown with its sequence, model, effort, session state and local elapsed time; available
+model multiplier, context, Kiro duration/metering and labeled local estimates are optional. Labels
+longer than 40 ASCII bytes are shortened for display only. All 32 retained records fit within the
+9 KiB JSON limit, including maximal numeric widths. Eviction counts are cumulative runtime totals,
+shown only with a nonempty page. Empty/unavailable/malformed pages emit {}. Output contains only
+systemMessage, never additionalContext, a new prompt, decision/reason or continuation control.
+
+The public [hook contract](https://code.claude.com/docs/en/hooks), checked 2026-09-09, makes Stop a
+main-response lifecycle event and distinguishes synchronous display from asynchronous later-context
+delivery. A Stop callback does not establish that another process has completed bookkeeping after
+its final HTTP flush. The gateway therefore registers a pending delivery before terminal JSON/SSE
+output and releases it only after Finish or Cancel returns. Registration remains bounded by model
+admission. A metrics request snapshots existing registrations and waits at most 200ms outside the
+lock; new deliveries cannot extend it. Failure returns a fixed 503 without draining old records.
+Authentication/body rejection still precedes waiting, and status/model notice never wait. Successful
+final delivery remains the only publication point; tool handoff, cancellation and failed writes do
+not become completions. No request identity, polling loop or wait goroutine is added.
+
+This remains best-effort diagnostic delivery. Drain has no acknowledgement: a later HTTP/helper/UI
+failure may lose a record, and concurrent Stop readers can divide records differently. A timeout
+leaves records for a later caller but does not initiate a retry or model turn. No exactly-once user
+visibility, client readiness barrier or provider-billed accounting is claimed.
+
+An installed-client observation found an independent compatibility gap: with the documented
+CLAUDE_CODE_DISABLE_THINKING test option, both title and main requests omit thinking. The earlier
+classifier treated both as main. The corrected classifier permits omission only with every existing
+tool/schema/system-purpose condition; explicit enabled/adaptive, null or malformed declarations
+remain main. The observation uses a title-only string JSON Schema and separate fixed foreground
+system input, not copied client prompt text. The synthetic title responder returns independently
+authored valid JSON and publishes no foreground metric. This does not implement general structured
+output enforcement, disable Kiro reasoning or change production client options.
+
+A generic public Stop/HTTP timing question was submitted through the explicitly authorized local
+Claude CLI; answer.md and result.json were saved privately and reviewed. Exit 0, one successful
+turn and no tools were recorded under .cache/claude-consult/work/turn-metrics-review-9wf8y8gr.
+The accepted advice preserves display-only synchronous output and tests the final-flush race.
+The chosen snapshot wait and no-drain-on-timeout policy are recorded here rather than adopting
+the answer's optional partial drain. No repository source, previous implementation or separately
+blocked MCP observation payload was sent. Public documents and independent tests remain authority.
+
+No dependency or live-policy authority is added. Real Kiro metadata/usage, full interactive/client
+compatibility, R06/R16 and release work remain separate unfinished gates.

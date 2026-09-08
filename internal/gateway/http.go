@@ -13,6 +13,7 @@ import (
 	"net"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"dax-kiro-proxy/internal/acp"
@@ -64,9 +65,11 @@ type Config struct {
 }
 
 type Handler struct {
-	cfg      Config
-	active   chan struct{}
-	uiActive chan struct{}
+	cfg        Config
+	active     chan struct{}
+	uiActive   chan struct{}
+	deliveryMu sync.Mutex
+	deliveries map[chan struct{}]struct{}
 }
 
 func New(cfg Config) (*Handler, error) {
@@ -268,7 +271,11 @@ func (h *Handler) messages(ctx context.Context, w http.ResponseWriter, r *http.R
 		return
 	}
 	finished := false
+	var deliveryDone func()
 	defer func() {
+		if deliveryDone != nil {
+			defer deliveryDone()
+		}
 		if finished {
 			turn.Finish()
 		} else {
@@ -426,6 +433,9 @@ func (h *Handler) messages(ctx context.Context, w http.ResponseWriter, r *http.R
 					blocks = append(blocks, tool.Block())
 				}
 			}
+		}
+		if event.StopReason != "tool_use" && h.cfg.Metrics != nil {
+			deliveryDone = h.beginDelivery()
 		}
 		if request.Stream {
 			err = stream.End(event.StopReason)

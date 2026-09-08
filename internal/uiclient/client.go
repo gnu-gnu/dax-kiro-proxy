@@ -30,6 +30,7 @@ type Operation uint8
 const (
 	Usage Operation = iota
 	ModelCapabilities
+	TurnMetrics
 )
 
 type View struct {
@@ -107,6 +108,8 @@ func Read(ctx context.Context, path string, operation Operation) (View, error) {
 	case Usage:
 	case ModelCapabilities:
 		method, route, body = http.MethodPost, "/dax-kiro-proxy/hooks/model-capabilities", "{}"
+	case TurnMetrics:
+		method, route, body = http.MethodPost, "/dax-kiro-proxy/hooks/turn-metrics", "{}"
 	default:
 		return View{}, ErrConfig
 	}

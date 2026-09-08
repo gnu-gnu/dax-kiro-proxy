@@ -106,6 +106,9 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
 ## F. Session continuity
 
 - Simultaneous title and main requests receive separate Kiro sessions.
+- The combined title classifier accepts explicit disabled thinking or omission with all other
+  title signals present. Ordinary structured output, loose title mentions, tools and explicit
+  enabled/adaptive, null or malformed thinking cannot capture the main family.
 - Main turns 1, 2, and 3 reuse one session and send only new deltas.
 - Strictly extending persisted history uses `session/load` and sends only the newest delta.
 - Load replay notifications are not emitted to the current client response.
@@ -187,6 +190,17 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
 - Only final delivered responses publish completion metrics; a tool handoff or canceled/undelivered
   final response cannot do so. UI hook authentication/body rejection consumes no queued record, and
   draining records preserves the latest model-only status when account usage is unavailable.
+- A completion hook racing terminal-delivery bookkeeping waits at most 200ms for its initial
+  pending-delivery snapshot. Overlapping finalizations remain independent; timeout/cancellation
+  consumes no queued record, failed writes publish nothing and release their wait registration.
+  Status/model-capabilities reads remain independent, and later model arrivals cannot extend the wait.
+- The synchronous `Stop` helper reads only the private UI configuration and exact metrics route,
+  and emits at most 9 KiB of `systemMessage` JSON for all retained records. An empty/unavailable or
+  malformed page emits no notice, model context, prompt or continuation/permission decision.
+  The installed client must show two distinct foreground completions without title metrics or
+  notice text in the next model input. Existing user/project Stop hooks and Read denial remain
+  effective; disabling hooks preserves conversation and tool refusal. Blocked output, unread stdin,
+  late invocation and source-setting cleanup retain the UI-helper bounds.
 - Token estimates are deterministic, cache their computation within a bounded cache, exclude declared
   media/thinking content, and never claim actual provider cache hits.
 

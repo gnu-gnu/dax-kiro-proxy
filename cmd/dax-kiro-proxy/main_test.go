@@ -52,13 +52,14 @@ func TestHelpVersionAndExactInternalDispatch(t *testing.T) {
 			t.Fatalf("command %q exited %d", args, code)
 		}
 	}
-	for _, command := range []string{"schema-worker", "relay", "statusline", "model-notice"} {
+	for _, command := range []string{"schema-worker", "relay", "statusline", "model-notice", "turn-metrics"} {
 		called := false
 		services := commandServices{schema: func() error { called = true; return nil }, relay: func(_ context.Context, path string) error { called = path == "/owned/config"; return nil }}
 		services.statusline = func(_ context.Context, path string) (string, error) { called = path == "/owned/config"; return "", nil }
 		services.notice = func(_ context.Context, path string) (string, error) { called = path == "/owned/config"; return "", nil }
+		services.metrics = func(_ context.Context, path string) (string, error) { called = path == "/owned/config"; return "", nil }
 		args := []string{command}
-		if command == "relay" || command == "statusline" || command == "model-notice" {
+		if command == "relay" || command == "statusline" || command == "model-notice" || command == "turn-metrics" {
 			args = append(args, "--config", "/owned/config")
 		}
 		code, out, diagnostics := invoke(t, t.Context(), args, services)
