@@ -6,14 +6,30 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D52 establishes an active MCP inclusion/exclusion comparison on Kiro 2.21.1/v2: true starts the
+  owned global/workspace settings/mcp.json servers, false excludes both, and the candidate retains
+  only its relay. All observed processes and private relay artifacts are removed. This closes the
+  missing initial-session positive control for those paths, not resource/reload/load restrictions.
+- D53's one native-effect model probe did not complete: no assistant text arrived, so unchanged
+  files, absent canary and successful cleanup cannot count as a restriction pass. Fixed error/timer
+  diagnostics were added and independently tested after that attempt. It has not been repeated.
+- D52's installed inclusion/exclusion comparison passed in 43.20s, while D53's model attempt failed
+  in 37.64s. Those results are retained separately. The new native observer's first build failed on
+  missing probe APIs; its final ten fake controls passed in 3.196s under race instrumentation.
+  The final uncached ACP and interop race suites passed in 6.074s and 21.134s with all installed-model
+  opt-ins disabled. Request validation, title classification and optional effort race suites also
+  passed in 8.299s, 1.360s and 1.336s. Whole-repository go vet, formatting and whitespace checks passed.
+- Development run now has a distinct documented gate from internal alpha and release. The initial
+  compatibility claim is the exercised Claude Code Messages subset; optional web/usage and full API
+  parity are not prerequisites for development launch. The production policy gate remains closed.
 - D51 is the first approved real Kiro model-turn result: one client Read request, its exact Claude
   hook denial and the matching final completion passed through the prepared ACP/relay path. Cleanup
   and canary checks passed. Native/inherited execution restrictions and the production run gate stay
   unverified; this result does not close R06 or the complete live/release requirements.
-- D42 implements authenticated relay group membership and bounded lifetime. D43 observes five
-  explicitly registered relays successfully, but standalone MCP-file controls do not activate by
-  default, so the inheritance-exclusion comparison remains unverified. Native execution restrictions
-  and the complete live/release gates remain open. Detailed results and failed attempts appear below.
+- D42 implements authenticated relay group membership and bounded lifetime. D43 observed five
+  explicitly registered relays, but its omitted-field standalone MCP control did not activate.
+  D52's explicit true control resolves that initial comparison for two paths. Native execution
+  restrictions and complete live/release gates remain open. Historical attempts appear below.
 - D44's first-session controls keep the launch agent's inventory when a separate session workspace
   contains a same-named conflicting agent. Reload, inherited effects and native denial remain open.
 - D46 verifies agreement of all 19 CLI/ACP model identities and client aliases, including auto, in

@@ -103,6 +103,13 @@ telemetry is sent by default.
 
 ## 8. Delivery phases
 
+Phase numbers describe component work; they do not require every Phase 6 feature or every Phase 7
+release check before development launch. The current priority is execution isolation, real client
+tool round trips, client-environment preservation, then the declared request compatibility policy.
+Optional media/web/account metadata and release soak/packaging work follow. ACCEPTANCE_SPEC.md
+defines separate development, internal-alpha and release gates. Core safety and bounded cleanup
+requirements apply at every stage; unverified launch/load capabilities cannot be enabled by a flag.
+
 ### Phase 0 — language and provenance gate
 
 - complete `CLEAN_ROOM_BOUNDARY.md` checklist;

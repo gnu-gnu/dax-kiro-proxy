@@ -258,6 +258,7 @@ type inventoryVariant struct {
 	sources     *mcpScopeProbe
 	directories *inventoryDirectoryProbe
 	catalog     bool
+	native      *nativeEffectProbe
 }
 
 func observePinnedInventory(t *testing.T, executable string, declaredTools, listedTools []string, relayExecutable string, variant inventoryVariant) {
@@ -268,8 +269,15 @@ func observePinnedInventory(t *testing.T, executable string, declaredTools, list
 	if variant.catalog && (variant.sources != nil || variant.directories != nil || relayExecutable != "" || len(declaredTools) != 0) {
 		t.Fatal("catalog comparison requires the separate empty-agent inventory setup")
 	}
+	if variant.native != nil && (variant.sources != nil || variant.directories != nil || variant.catalog || relayExecutable == "") {
+		t.Fatal("native-effect experiment requires its own relay-only inventory setup")
+	}
 	scope := variant.sources
-	ctx, cancel := context.WithTimeout(t.Context(), time.Minute)
+	totalLimit, requestLimit := time.Minute, 15*time.Second
+	if variant.native != nil {
+		totalLimit, requestLimit = 2*time.Minute, 45*time.Second
+	}
+	ctx, cancel := context.WithTimeout(t.Context(), totalLimit)
 	defer cancel()
 	root, err := os.MkdirTemp("/private/tmp", "dax-kiro-inventory-")
 	if err != nil {
@@ -327,8 +335,17 @@ func observePinnedInventory(t *testing.T, executable string, declaredTools, list
 	if variant.directories != nil {
 		sessionDirectory = variant.directories.prepare(t, root, cwd, name)
 	}
+	if variant.native != nil {
+		sessionDirectory = variant.native.prepare(t, root)
+	}
 	if os.WriteFile(filepath.Join(configuration, "settings", "cli.json"), []byte(`{"chat.disableInheritingDefaultResources":true}`), 0600) != nil {
 		t.Fatal("cannot write owned inventory configuration")
+	}
+	nativePolicies := map[string][]byte{}
+	if variant.native != nil {
+		for _, path := range []string{filepath.Join(cwd, ".kiro", "agents", name+".json"), filepath.Join(configuration, "settings", "cli.json")} {
+			nativePolicies[path] = readOwnedInventoryAgent(t, path)
+		}
 	}
 	runner, err := childproc.New(childproc.Config{Timeout: 15 * time.Second})
 	if err != nil {
@@ -347,7 +364,7 @@ func observePinnedInventory(t *testing.T, executable string, declaredTools, list
 		if len(command.Args) > 0 && command.Args[0] == "whoami" {
 			stage = "identity"
 		}
-		if variant.catalog && len(command.Args) == 4 && command.Args[0] == "chat" && command.Args[1] == "--list-models" && command.Args[2] == "--format" && command.Args[3] == "json" {
+		if (variant.catalog || variant.native != nil) && len(command.Args) == 4 && command.Args[0] == "chat" && command.Args[1] == "--list-models" && command.Args[2] == "--format" && command.Args[3] == "json" {
 			stage, limit = "catalog", 15*time.Second
 		}
 		bounded, stop := context.WithTimeout(ctx, limit)
@@ -364,7 +381,7 @@ func observePinnedInventory(t *testing.T, executable string, declaredTools, list
 	if err != nil {
 		t.Fatalf("inventory preflight failed: %v", err)
 	}
-	if variant.catalog {
+	if variant.catalog || variant.native != nil {
 		required.Catalog, err = launcher.ReadKiroCatalog(ctx, observed, kiroConfig)
 		if err != nil {
 			t.Fatal("read-only CLI catalog preflight failed")
@@ -372,9 +389,11 @@ func observePinnedInventory(t *testing.T, executable string, declaredTools, list
 	}
 	started := time.Now()
 	diagnostics := new(inventoryErrorObserver)
-	client, err := acp.Start(ctx, acp.Config{Executable: executable, Directory: cwd, Args: []string{"acp", "--agent", name, "--agent-engine", "v2"},
+	initialization, stopInitialization := context.WithTimeout(ctx, 15*time.Second)
+	client, err := acp.Start(initialization, acp.Config{Executable: executable, Directory: cwd, Args: []string{"acp", "--agent", name, "--agent-engine", "v2"},
 		Environment: []string{"HOME=" + os.Getenv("HOME"), "KIRO_HOME=" + configuration, "PATH=" + filepath.Dir(executable) + ":/usr/bin:/bin:/usr/sbin:/sbin", "TMPDIR=" + scratch, "TERM=dumb", "LANG=en_US.UTF-8"},
-		ClientInfo:  acp.Info{Name: "dax-readonly-inventory", Version: "1"}, Auth: diagnostics, Limits: acp.Limits{RequestTimeout: 15 * time.Second}})
+		ClientInfo:  acp.Info{Name: "dax-readonly-inventory", Version: "1"}, Auth: diagnostics, Limits: acp.Limits{RequestTimeout: requestLimit}})
+	stopInitialization()
 	if err != nil {
 		t.Fatalf("inventory ACP initialization failed: %s", kiroSetupFailure(err))
 	}
@@ -385,7 +404,22 @@ func observePinnedInventory(t *testing.T, executable string, declaredTools, list
 	if scope != nil {
 		scope.bind(t, client.PID())
 	}
-	report, callErr := readOnlyToolsInventoryAfter(ctx, client, sessionDirectory, 3*time.Second, required)
+	inventoryContext := ctx
+	if variant.native != nil {
+		var stopInventory context.CancelFunc
+		inventoryContext, stopInventory = context.WithTimeout(ctx, 20*time.Second)
+		defer stopInventory()
+	}
+	report, callErr := readOnlyToolsInventoryAfter(inventoryContext, client, sessionDirectory, 3*time.Second, required)
+	var nativeErr error
+	if variant.native != nil {
+		if callErr != nil || !report.Success || !report.AliasMatched || report.DataSizes["tools"] != 1 || len(report.ListedNativeNames) != 0 || !report.ModelCatalog.CLIAuto || !report.ModelCatalog.ACPAuto {
+			variant.native.report.Failure = "inventory"
+			nativeErr = errors.New("native-effect inventory and exact model prerequisites were not established")
+		} else {
+			nativeErr = variant.native.exercise(ctx, client, report.session, 45*time.Second)
+		}
+	}
 	closeErr := client.Close()
 	groupGone := errors.Is(syscall.Kill(-client.PID(), 0), syscall.ESRCH)
 	runner.Close()
@@ -394,6 +428,18 @@ func observePinnedInventory(t *testing.T, executable string, declaredTools, list
 	}
 	if variant.directories != nil {
 		variant.directories.check(t)
+	}
+	if variant.native != nil {
+		variant.native.report.FilesUnchanged = variant.native.filesUnchanged()
+		policyUnchanged := true
+		for path, before := range nativePolicies {
+			policyUnchanged = policyUnchanged && string(readOwnedInventoryAgent(t, path)) == string(before)
+		}
+		t.Logf("native_policy_files_unchanged=%v", policyUnchanged)
+		t.Logf("native_effect_experiment=%+v", variant.native.report)
+		if nativeErr != nil || !variant.native.report.FilesUnchanged || !policyUnchanged {
+			t.Error("native-effect restriction or completion was not established")
+		}
 	}
 	if broker != nil {
 		peer, verified := socket.PeerPID()
@@ -415,8 +461,9 @@ func observePinnedInventory(t *testing.T, executable string, declaredTools, list
 			t.Error("relay observation retained tool work or private artifacts")
 		}
 	}
-	t.Logf("version=%s, engine=v2, owned_configuration_root=true, session_created=%v, advertised=%v, command_count=%d, tools_available=%v, query_sent=%v, query_success=%v, prompt_sent=false, result_bytes=%d, result_kinds=%v, other_result_fields=%d, notifications=%d, notification_kinds=%v, text_bytes=%d, native_name_presence=%v, execution_restriction_verified=false, cleanup_joined=%v, elapsed_ms=%d", info.Version,
-		report.SessionCreated, report.Advertised, report.Commands, report.ToolsAvailable, report.QuerySent, report.Success, report.ResultBytes, report.ResultKinds, report.UnknownResultFields, report.Notifications, report.NotificationKinds, report.TextBytes, report.NativeNames,
+	promptSent := variant.native != nil && variant.native.report.PromptSent
+	t.Logf("version=%s, engine=v2, owned_configuration_root=true, session_created=%v, advertised=%v, command_count=%d, tools_available=%v, query_sent=%v, query_success=%v, prompt_sent=%v, result_bytes=%d, result_kinds=%v, other_result_fields=%d, notifications=%d, notification_kinds=%v, text_bytes=%d, native_name_presence=%v, execution_restriction_verified=false, cleanup_joined=%v, elapsed_ms=%d", info.Version,
+		report.SessionCreated, report.Advertised, report.Commands, report.ToolsAvailable, report.QuerySent, report.Success, promptSent, report.ResultBytes, report.ResultKinds, report.UnknownResultFields, report.Notifications, report.NotificationKinds, report.TextBytes, report.NativeNames,
 		closeErr == nil && groupGone && runner.Active() == 0, time.Since(started).Milliseconds())
 	t.Logf("declared_tool_count=%d, data_kinds=%v, data_container_sizes=%v, tool_entry_kinds=%v, listed_native_names=%v", len(declaredTools), report.DataKinds, report.DataSizes, report.ToolEntryKinds, report.ListedNativeNames)
 	if variant.catalog {

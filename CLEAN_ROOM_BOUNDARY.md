@@ -77,3 +77,10 @@ Before implementation starts, record a commit containing only these specificatio
 implementation, retain dependency lock files, license reports, public documentation links, design
 decisions, and black-box test evidence. Do not retain the analysis clone or local path to the previous
 repository as part of the project.
+
+On 2026-09-09 the user supplied a review describing the earlier implementation and citing its source
+locations. That description was visible in the conversation; the cited repository was not opened or
+searched. This exposure is recorded explicitly. The user's delivery priorities are treated as product
+direction and checked against this repository's requirements and public documentation. No cited
+source, test, fixture, identifier or prose is imported. New implementation and tests still require
+independent design and evidence; this note does not establish legal clearance.

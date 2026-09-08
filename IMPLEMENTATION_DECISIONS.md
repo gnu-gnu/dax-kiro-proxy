@@ -1723,3 +1723,101 @@ subagent denial, inherited configuration exclusion, reload/load restrictions and
 tool execution require their own evidence. R16 reasoning/output constraints and other models/media/
 web behavior are unchanged. Therefore the candidate remains execution-unverified and production
 run still fails closed with ErrPolicyUnverified. No dependency or implementation policy changed.
+
+## D52: development admission, declared subset and active MCP inclusion control (review R06/R16)
+
+The user's revised priority is effective Kiro restriction, real client tool approval/denial/hook
+round trips, client-environment preservation, then request compatibility; optional metadata/web and
+release soak follow. ACCEPTANCE_SPEC.md separates development run, internal alpha and release.
+Ordinary launch already rejects solely because the built-in execution policy is unverified. No
+development gate is added for full Anthropic parity or optional features, and no trust override is
+introduced. Unverified reachable execution/load paths still require restriction or disabling.
+
+The first product contract is the pinned Claude Code Messages subset. PRODUCT_SPEC.md documents
+positive max_tokens, top-level thinking and context_management as accepted but non-enforced hints,
+effort as best effort, and auxiliary title classification separately from general schema enforcement.
+The current parser and its explicit safety/control rejections are unchanged. In particular, zero
+max_tokens continues to reject: the public
+[Messages reference](https://platform.claude.com/docs/en/api/messages/create) defines it as a
+no-generation cache operation. Positive values are documented absolute output limits in that API;
+accepting them here does not enforce that limit. Do not truncate only the client-visible result while
+retaining unseen backend history. D33 remains an implementation inventory, not full API parity.
+
+Prefer an ephemeral client overlay, but preserve mandatory routing and existing settings/permissions.
+The public [settings precedence](https://code.claude.com/docs/en/settings) allows per-session settings
+while preserving omitted lower-scope values; managed settings and individual environment/setting
+pairs have their own precedence. This is insufficient to replace the current private profile without
+installed-client tests. Optional product UI integration must yield to incompatible user choices.
+
+The earlier D43 default control omitted includeMcpJson and activated no standalone MCP source.
+A new comparison sets true, then false while retaining references to all seeded servers, then uses the
+relay-only candidate with false. It requires an activated standalone source in the true arm before
+either exclusion arm can count. Started sources must attach, initialize and list their exact alias;
+false arms reject startup or initialization as well as listed tools. All input fixtures are newly
+generated from this repository, not taken from the user-supplied earlier-implementation description.
+
+On Kiro 2.21.1/v2, explicit true starts the owned global settings/mcp.json and workspace
+.kiro/settings/mcp.json servers. Both initialize twice, list their fresh aliases and join the owned
+group; the primary relay makes three total listed tools. Explicit false starts/lists neither even
+while their tool references remain allowed. The final candidate also lists only its primary relay.
+The two flat-path controls remain inactive and cannot establish exclusion for those paths. Every
+observed relay PID and ACP group is gone after Close; pending work and private relay configuration
+are removed. The three cases pass in 43.20s (44.495s package under race), exit 0, retained privately in
+.cache/interop-observations/mcp-inclusion.Nmcz83. No prompt or model credits were used.
+
+This establishes initial-session exclusion for the two activated paths and supersedes D43's missing
+positive control for them. It does not establish resource inheritance, later reload/load, other search
+paths or native-effect denial. The [2.x reference](https://kiro.dev/docs/cli/2x-reference/) and
+[current agent reference](https://kiro.dev/docs/cli/custom-agents/configuration-reference/) describe
+includeMcpJson as new in 3.0, but this installed v2 comparison directly shows a true/false effect.
+Neither the newer documentation nor the previous omission observation defines the binary's default.
+
+A separately authorized local Claude CLI consultation received only a public-document test-design
+question, with tools/MCP/hooks disabled and a 60-second deadline. It exited 0 and saved answer.md and
+normalized result.json in .cache/claude-consult/work/inclusion-review-ky5ve6n5; both were read. The
+review supports an explicit true/false comparison, separate startup/initialize/list observations and
+not treating an inactive positive control as exclusion proof. Its repeated randomized campaigns and
+adaptive quiescence suggestion were not adopted for this bounded first observation. There is one
+fresh setup per arm with the existing fixed readiness/window bounds. The earlier blocked MCP payload
+was not sent. Public references and independent observations remain implementation authority.
+
+## D53: bounded native-effect observer and incomplete live attempt (review R06)
+
+The independent native-control ACP fixture precedes the live test. It requires empty advertised
+client capabilities, one session/inventory/model selection/prompt, rejects a second prompt, and
+checks the proxy's negative permission response and disabled filesystem/terminal methods. Separate
+contamination controls create one owned marker or emit the owned canary across chunks. A terminal
+response racing the final canary must not hide it. Foreign-session updates, tool status, absent text,
+cancelled completion, remote error and a silent prompt cannot pass the observer. Fixtures use only
+newly authored temporary data and public protocol fields; no client tool is executed by the fake.
+
+The test-only inventory report now retains its session ID in memory so the separately marked live
+experiment can use the same observed session. Existing read-only modes still send no prompt. The
+live branch first requires exactly its fresh effect-free relay alias, no other listed tool, matching
+CLI/ACP catalogs and exact auto selection. It then sends the single prompt in LIVE_KIRO_TEST_PLAN.md.
+The broker never opens client tool admission. Native effects are requested only in a separate owned
+workspace. The canary, workspace identity, directory entries, candidate/settings bytes and process
+cleanup are checked, including a second file check after ACP Close. Directory enumeration reads at
+most two entries; notification counts/bytes and retained text boundaries are bounded.
+
+One live attempt ran after the user's instruction to continue the execution-gate work, using the
+separate credit opt-in. Version/account/catalog checks, relay attachment/inventory and model selection
+succeeded. A prompt was sent, but no assistant text or successful completion was observed. The run
+failed in 37.64s (37.967s package), exit 1, retained privately under
+.cache/interop-observations/native-effects.pCXJnE. It observed one 99-byte notification, zero text,
+zero tool-status events, no canary, unchanged workspace/canary and candidate/settings, no pending
+relay work and no surviving observed relay PID or ACP group. No automatic repeat ran.
+
+Elapsed timing is consistent with the 20-second first-text bound, but that first report did not
+retain its timer/error classification; a specific underlying backend cause cannot be recovered from
+it. Absence of an effect during an incomplete turn is not a passing execution-restriction test.
+The observer now retains only fixed failure classes, prompt elapsed milliseconds and a numeric
+remote error code. Independent silent-prompt and remote-error controls verify the distinction without
+another Kiro call or storing diagnostic prose. An atomic attempt claim prevents another exercise
+from spending a second prompt, including after a failed first attempt.
+
+Initialization stays at 15 seconds and live inventory setup is bounded at 20; model selection is 5,
+first assistant text 20 and the sole model prompt at most 45 seconds within a two-minute caller.
+Existing read-only cases retain their prior request/whole-probe bounds. No production timeout or
+policy changed. D52's MCP exclusion result remains valid; native restriction, resources/reload/load
+and client-approved effects remain unfinished. Production run still returns ErrPolicyUnverified.

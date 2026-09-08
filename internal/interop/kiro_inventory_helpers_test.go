@@ -22,9 +22,12 @@ var (
 	errInventoryLimit   = errors.New("inventory observation limit exceeded")
 )
 
-// This report contains only bounded field names, kinds, counts and Boolean observations. Name presence is not
-// permission status or evidence that a native tool was denied. It never enables production policy.
+// Live diagnostics select only bounded field names, kinds, counts and Boolean observations.
+// Name presence is not permission status or evidence that a native tool was denied. The in-memory
+// session identifier is excluded from live diagnostics. This report never enables production policy.
 type inventoryReport struct {
+	// Kept only in memory for a separately opted-in prompt experiment, never in live diagnostics.
+	session                                                            string
 	SessionCreated, Advertised, ToolsAvailable, QuerySent, Success     bool
 	Commands, Notifications, NotificationBytes, ResultBytes, TextBytes int
 	UnknownResultFields                                                int
@@ -92,6 +95,7 @@ func readOnlyToolsInventoryAfter(ctx context.Context, client *acp.Client, cwd st
 		return report, errInventoryShape
 	}
 	report.SessionCreated = true
+	report.session = session
 	if required.Catalog != nil {
 		report.ModelCatalog, err = compareInventoryCatalog(raw, required.Catalog)
 		if err != nil {

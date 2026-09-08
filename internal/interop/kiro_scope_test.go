@@ -51,6 +51,29 @@ func TestKiroPinnedMCPFileScopeObservation(t *testing.T) {
 	}
 }
 
+// Omitting a setting cannot establish its true behavior. This comparison requires an active
+// standalone-file source with explicit inclusion before either exclusion case may count.
+func TestKiroPinnedMCPExplicitInclusion(t *testing.T) {
+	executable := os.Getenv("DAX_INTEROP_KIRO_BINARY")
+	if executable == "" {
+		t.Skip("set DAX_INTEROP_KIRO_BINARY for explicit MCP inclusion/exclusion; no model prompt")
+	}
+	for _, mode := range []string{"flag-true", "flag-false", "candidate"} {
+		if !t.Run(mode, func(t *testing.T) {
+			probe := &mcpScopeProbe{mode: mode}
+			for _, name := range []string{"dax_scope_global_flat", "dax_scope_global_settings", "dax_scope_project_flat", "dax_scope_project_settings"} {
+				probe.relays = append(probe.relays, scopeRelay{name: name, executable: buildRelayObserver(t)})
+			}
+			observePinnedInventory(t, executable, nil, nil, buildRelayObserver(t), inventoryVariant{sources: probe})
+			if mode == "flag-true" && probe.started == 0 {
+				t.Fatal("explicit inclusion activated no standalone source; exclusion remains unverified")
+			}
+		}) {
+			return
+		}
+	}
+}
+
 func (p *mcpScopeProbe) prepare(t *testing.T, ctx context.Context, root, configuration, cwd, agentPath string, required *inventoryPrerequisite) []string {
 	t.Helper()
 	store, err := privatefs.New(filepath.Dir(agentPath))
@@ -109,9 +132,12 @@ func (p *mcpScopeProbe) prepare(t *testing.T, ctx context.Context, root, configu
 	fields["tools"], _ = json.Marshal(refs)
 	fields["allowedTools"], _ = json.Marshal(refs)
 	fields["mcpServers"], _ = json.Marshal(servers)
-	if p.mode == "default" {
+	switch p.mode {
+	case "default":
 		delete(fields, "includeMcpJson")
-	} else {
+	case "flag-true":
+		fields["includeMcpJson"] = json.RawMessage(`true`)
+	default:
 		fields["includeMcpJson"] = json.RawMessage(`false`)
 	}
 	encoded, err := json.Marshal(fields)
@@ -168,8 +194,11 @@ func (p *mcpScopeProbe) check(t *testing.T, group int, report inventoryReport) {
 		if p.mode == "explicit" && (!started || !verified || report.MCPMatches[item.name] == 0 || !report.ToolMatches[item.name]) {
 			t.Error("explicit scope positive control did not activate")
 		}
-		if p.mode == "candidate" && (started || report.MCPMatches[item.name] != 0 || report.ToolMatches[item.name]) {
-			t.Error("candidate did not exclude an inherited scope server")
+		if p.mode == "flag-true" && started && (report.MCPMatches[item.name] == 0 || !report.ToolMatches[item.name]) {
+			t.Error("included source did not complete initialization and tool enumeration")
+		}
+		if (p.mode == "flag-false" || p.mode == "candidate") && (started || report.MCPMatches[item.name] != 0 || report.ToolMatches[item.name]) {
+			t.Error("explicit false did not exclude an inherited scope server")
 		}
 	}
 	p.close(t)

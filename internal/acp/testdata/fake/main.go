@@ -46,6 +46,10 @@ func main() {
 		inventoryFixture(mode)
 		return
 	}
+	if strings.HasPrefix(mode, "native-control-") {
+		nativeControlFixture(mode)
+		return
+	}
 	if strings.HasPrefix(mode, "pool-") {
 		poolFixture(mode)
 		return

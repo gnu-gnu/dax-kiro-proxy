@@ -117,7 +117,34 @@ context/visible output tokens.
 
 ## Compatibility posture
 
+The initial compatibility target is the Messages subset exercised by the pinned Claude Code client,
+not full Anthropic API parity. D33 inventories implemented behavior; D52 records the delivery policy.
+
+| Area | Initial contract |
+| --- | --- |
+| Conversation, streaming, exact model selection, client tools/results and cancellation | Preserve the supported semantics and client execution authority; unsupported content/tool constraints still reject |
+| Effort | Best effort after model selection; skip auto and degrade on optional capability absence or application rejection |
+| Images and documents | Support only validated shapes and negotiated capabilities |
+| Positive max_tokens, top-level thinking and context_management | Accepted compatibility hints with no provider token cap, reasoning-budget/block conversion or context-edit guarantee |
+| JSON Schema output declarations | Narrow auxiliary-title classification only; no general output-schema enforcement |
+
+The accepted max_tokens range is 1..1,048,576. Zero is outside this subset and rejects before model
+work. Do not cut off visible output to simulate a token budget while retaining a longer committed
+backend conversation. Gateway byte/deadline limits are resource bounds, not provider token limits.
+Acceptance of a top-level reasoning hint does not permit fabricated reasoning signatures or override
+the validation of history blocks. Context hints do not authorize altering the client's tool results.
+These limitations must remain visible in product documentation; acceptance alone is not semantic
+support. Unknown models, invalid tool schemas, unsupported server tools, mismatched results and
+active/pending history divergence fail before changing their associated state. Proven idle divergence
+can still recreate a session under the existing history policy. D33's other explicit rejections remain.
+
 Public ACP and Anthropic behavior form the stable core. Kiro methods beginning with a private namespace
 are optional, version-sensitive capabilities. Their absence must reduce metadata or effort features,
 not break ordinary text/tool turns. The implementation records the detected Kiro CLI executable,
 version, and capabilities in caches so incompatible cache entries are not reused.
+
+Prefer a temporary overlay for product-owned client integration. Preserve the client's existing
+permissions, hooks and assets without modifying source settings. Optional product hooks/status must
+yield when explicit client settings, safe mode or an existing status command prevent a compatible
+overlay. Mandatory local routing and credential separation must still hold. Replacing the current
+private profile requires independent installed-client precedence and preservation tests first.

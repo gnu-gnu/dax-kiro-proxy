@@ -4,8 +4,8 @@ This repository is the implementation boundary for a new, standalone Kiro ACP pr
 Implementation is proceeding in Go from these specifications. It contains no source code copied from,
 derived line-by-line from, or linked to another repository.
 
-The intended product presents an Anthropic Messages-compatible loopback gateway to a client such as
-Claude Code and uses the locally installed Kiro CLI through Agent Client Protocol (ACP) as its model
+The intended product presents a loopback gateway for a documented Claude Code Messages subset
+and uses the locally installed Kiro CLI through Agent Client Protocol (ACP) as its model
 backend. The client remains responsible for executing tools and enforcing its own permission and hook
 policies.
 
@@ -25,7 +25,7 @@ Read these documents before implementation:
 10. `DEPENDENCY_REVIEW.md` — candidate licenses, provenance checklist, and outstanding review work.
 11. `IMPLEMENTATION_DECISIONS.md` — adopted wire, lifecycle, and resource policies.
 12. `DEVELOPMENT_STATUS.md` — implementation evidence and remaining acceptance gates.
-13. `LIVE_KIRO_TEST_PLAN.md` — concrete opt-in client-denial experiment and its limits.
+13. `LIVE_KIRO_TEST_PLAN.md` — bounded opt-in client-denial/native-effect experiments and their limits.
 
 `AGENTS.md` makes this reading order mandatory for coding agents.
 
@@ -62,6 +62,11 @@ tested with independent fake processes. One explicitly approved live Kiro Read-d
 passes: the client refuses the tool, Kiro receives that refusal and completes the turn. Broader Kiro
 execution restrictions and the complete product acceptance gates remain unfinished. This development
 build is not a release or installation procedure.
+
+Development launch and release readiness are separate milestones in ACCEPTANCE_SPEC.md. The next
+priority is effective Kiro isolation and real client tool approval/denial/hook round trips, followed
+by client-environment preservation and the documented request subset. Optional web/account-usage
+features, full Anthropic API coverage and release soak tests are not development-launch prerequisites.
 
 ## Naming
 

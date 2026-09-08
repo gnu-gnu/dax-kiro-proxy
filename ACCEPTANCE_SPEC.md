@@ -41,9 +41,12 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
 ## C. Anthropic compatibility
 
 - Non-streaming text produces a valid assistant message and end-turn stop reason.
-- The D33 request inventory's remaining token/reasoning/context/structured-output constraints must
-  have explicit, truthful mappings or compatible rejection behavior before full compatibility is
-  claimed. Passing negative client observations is not proof of automatic capability recovery.
+- Validate the declared PRODUCT_SPEC.md/D33/D52 Messages subset against the pinned client. Distinguish
+  implemented semantics, accepted non-enforced hints and explicit rejections. No general Anthropic
+  parity, provider token cap, reasoning equivalence, context edit or JSON Schema guarantee follows
+  from accepting a field. Zero max_tokens rejects before model work. Negative client observations
+  are not proof of automatic capability recovery, and visible output is never truncated merely to
+  claim enforcement of an unmapped token cap while retaining unseen backend history.
 - Streaming text produces the exact ordered event classes and reconstructs the non-streaming text.
 - Inline image/document shapes, MIME/header/dimension/count/byte limits and negotiated capabilities
   are enforced; historical images stay native and proven deltas do not resend them. URL/file sources
@@ -204,7 +207,25 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
 - Token estimates are deterministic, cache their computation within a bounded cache, exclude declared
   media/thinking content, and never claim actual provider cache hits.
 
-## I. Live release gates
+## I. Staged live gates
+
+| Stage | Required evidence |
+| --- | --- |
+| Development run | Applicable independent transport/security/tool/cleanup checks; pinned Kiro restricted inventory and attempted native-effect denial; effective exclusion of inherited configuration; client-approved file/shell effects, client denials and hook vetoes; source settings preserved and owned processes/artifacts removed |
+| Internal alpha | Development evidence plus live cancellation, process-loss recovery, authentication expiry, model selection and safe restart/resume for each enabled path |
+| Release candidate | Full acceptance for the supported product, parallel soak and FD/process/memory checks, dependency/rights review, and clean macOS install/uninstall |
+
+An inactive inheritance positive control cannot establish effective exclusion. A client-hook denial
+alone does not establish native-tool restrictions or approved execution. Bind evidence to the tested
+CLI/engine and effective execution policy; keep unverified paths disabled. Unknown/new versions must
+not inherit verification automatically. No trust override may stand in for this evidence.
+
+Optional private metadata, account usage, native web support and full Anthropic option parity are
+not conditions for development run. Their absence must not interrupt supported ordinary turns.
+Required core security/cancellation/cleanup behavior is not postponed to soak testing. These stages
+do not mark an unfinished product complete, and credit-consuming tests remain separately opt-in.
+
+### Live release checks
 
 On a clean supported macOS machine:
 
