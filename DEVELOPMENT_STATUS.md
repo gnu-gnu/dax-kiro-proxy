@@ -131,6 +131,20 @@ credit-consuming live opt-in gates remain open.
 
 ## Remaining work
 
+### Actual client envelope observation
+
+The opt-in `TestClaudeClientGatewayContract` passed against installed unmodified Claude Code 2.1.263
+using a synthetic local gateway (1.363s overall, 0.63s test). One message and one catalog request were
+observed; the session header matched and both synthetic models appeared in the discovery cache.
+Only field names/types/counts/Boolean outcomes were recorded. Global client settings were unchanged,
+the private runtime was removed, and no model credits or client tool effects were used.
+
+Two earlier attempts reproduced rejection of a trailing per-message system update. The decoder now
+accepts only text in that role, finds the latest user correctly and preserves update order in ACP
+projection. The parser/projection/catalog/session race suites then passed. Gateway header validation
+and pending-tool cross-header rejection have independent regression tests. Decision D14 records
+the exact scope: interactive UI and actual-client tool continuation remain unverified.
+
 | Phase | Completion evidence required | State |
 | --- | --- | --- |
 | 1 | All acceptance A plus applicable G; independent fake child, framing, negotiation, correlation, notifications, stderr, deadlines, process-group cleanup | Passed on local macOS with fake ACP |

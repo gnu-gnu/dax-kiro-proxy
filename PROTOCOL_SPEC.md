@@ -40,6 +40,13 @@ System content may be a string or an ordered array of text blocks. Message order
 order are preserved. The latest user message provides the current prompt and any tool results. Earlier
 messages provide reconciliation history rather than being blindly replayed on every turn.
 
+Claude Code may also send text-only per-message `system` entries, including after the latest user
+message. Preserve those role boundaries and ordering; they do not replace the latest user input.
+Assistant prefill remains unsupported. Authenticated `x-claude-code-session-id`,
+`x-claude-code-agent-id` and `x-claude-code-parent-agent-id` headers supply opaque conversation
+identity. Each optional value is 1-128 visible ASCII bytes excluding comma; duplicates are rejected.
+The body cannot override this identity. See decision D14 for source and observation evidence.
+
 Malformed model selection is a 400. Malformed effort should be ignored with a warning unless future
 public API requirements say otherwise. Backend failures are normally 502. Recognized Kiro auth expiry
 is the special successful fallback described below.
@@ -66,6 +73,9 @@ against built-in client models. Reverse mapping accepts only entries in the curr
 
 The catalog is invalid if it is empty, repeats a backend model ID, or produces duplicate client-facing
 IDs. The current backend model is included if Kiro identifies it but omits it from the available list.
+
+Use `display_name` for the human-readable model name consumed by Claude Code gateway discovery.
+Discovery requires the client's explicit gateway discovery configuration, as recorded in D14.
 
 ## 3. Anthropic response and SSE mapping
 

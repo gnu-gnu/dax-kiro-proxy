@@ -21,8 +21,12 @@ func Full(r *anthropic.Request) ([]Text, error) {
 	if !r.ClientContent() || len(r.Messages) == 0 {
 		return nil, anthropic.ErrRequest
 	}
+	latest := r.LatestUserIndex()
+	if latest < 0 {
+		return nil, anthropic.ErrRequest
+	}
 	var parts []Text
-	if len(r.System) > 0 || len(r.Messages) > 1 {
+	if len(r.System) > 0 || latest > 0 {
 		data := struct {
 			System  []string         `json:"system"`
 			History []historyMessage `json:"history"`
@@ -30,7 +34,7 @@ func Full(r *anthropic.Request) ([]Text, error) {
 		for _, b := range r.System {
 			data.System = append(data.System, b.Text)
 		}
-		for _, m := range r.Messages[:len(r.Messages)-1] {
+		for _, m := range r.Messages[:latest] {
 			item := historyMessage{Role: m.Role, Content: []string{}}
 			for _, b := range m.Content {
 				if b.Type == "text" {
@@ -47,11 +51,22 @@ func Full(r *anthropic.Request) ([]Text, error) {
 		}
 		parts = append(parts, Text{"text", "Conversation context follows as JSON; preserve its role and content order."}, Text{"text", string(encoded)}, Text{"text", "Current user content follows."})
 	}
-	for _, b := range r.Messages[len(r.Messages)-1].Content {
+	for _, b := range r.Messages[latest].Content {
 		if b.Type != "text" {
 			return nil, anthropic.ErrRequest
 		}
 		parts = append(parts, Text{"text", b.Text})
+	}
+	for _, message := range r.Messages[latest+1:] {
+		update := historyMessage{Role: message.Role, Content: []string{}}
+		for _, b := range message.Content {
+			update.Content = append(update.Content, b.Text)
+		}
+		encoded, err := json.Marshal(update)
+		if err != nil {
+			return nil, anthropic.ErrRequest
+		}
+		parts = append(parts, Text{"text", "Client system update follows as JSON."}, Text{"text", string(encoded)})
 	}
 	return parts, nil
 }

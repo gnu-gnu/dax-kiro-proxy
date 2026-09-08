@@ -97,11 +97,12 @@ func (r *Request) ToolPolicy() (disabled bool, err error) {
 }
 
 func (r *Request) LatestToolResults() ([]ToolResult, error) {
-	if len(r.Messages) == 0 {
+	latest := r.LatestUserIndex()
+	if latest < 0 {
 		return nil, ErrRequest
 	}
 	var results []ToolResult
-	for _, b := range r.Messages[len(r.Messages)-1].Content {
+	for _, b := range r.Messages[latest].Content {
 		if b.Type == "tool_result" {
 			v, err := DecodeToolResult(b.Raw)
 			if err != nil {

@@ -105,6 +105,11 @@ func TestToolHandoffSurvivesHTTPContextAndResumesSamePrompt(t *testing.T) {
 	if _, err := d.Start(context.Background(), &changed); !errors.Is(err, inference.ErrRequest) {
 		t.Fatal("model changed while waiting for tools")
 	}
+	changed = *next
+	changed.Identity.Session = "different-client-session"
+	if _, err := d.Start(context.Background(), &changed); !errors.Is(err, inference.ErrRequest) {
+		t.Fatal("tool result crossed client conversation headers")
+	}
 	resumed, err := d.Start(context.Background(), next)
 	if err != nil {
 		t.Fatal(err)

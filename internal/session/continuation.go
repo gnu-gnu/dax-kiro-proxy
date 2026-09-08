@@ -153,11 +153,12 @@ func compatibility(r *anthropic.Request, registry *toolregistry.Registry) ([32]b
 	}
 	encoded, err := json.Marshal(struct {
 		Version                 int
+		Identity                anthropic.ClientIdentity
 		Model, Effort, Registry string
 		System                  []string
 		Metadata                json.RawMessage
 		ToolsDisabled           bool
-	}{1, r.Model, r.Effort, fingerprint, system, metadata, disabled})
+	}{2, r.Identity, r.Model, r.Effort, fingerprint, system, metadata, disabled})
 	if err != nil {
 		return [32]byte{}, err
 	}

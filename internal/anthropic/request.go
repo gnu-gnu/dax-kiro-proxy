@@ -22,7 +22,15 @@ type Message struct {
 	Role    string
 	Content []Block
 }
+
+// ClientIdentity comes from authenticated gateway headers, never from the request body.
+// Values are opaque identifiers; their format is not assumed to be a UUID.
+type ClientIdentity struct {
+	Session, Agent, ParentAgent string
+}
+
 type Request struct {
+	Identity  ClientIdentity
 	Model     string
 	MaxTokens int64
 	Stream    bool
@@ -76,16 +84,23 @@ func DecodeRequest(body []byte) (*Request, error) {
 			return nil, ErrRequest
 		}
 		var message Message
-		if !stringField(m["role"], &message.Role) || (message.Role != "user" && message.Role != "assistant") {
+		if !stringField(m["role"], &message.Role) || (message.Role != "user" && message.Role != "assistant" && message.Role != "system") {
 			return nil, ErrRequest
 		}
 		message.Content, err = content(m["content"])
 		if err != nil || len(message.Content) == 0 {
 			return nil, ErrRequest
 		}
+		if message.Role == "system" {
+			for _, b := range message.Content {
+				if b.Type != "text" {
+					return nil, ErrRequest
+				}
+			}
+		}
 		r.Messages = append(r.Messages, message)
 	}
-	if r.Messages[len(r.Messages)-1].Role != "user" {
+	if r.LatestUserIndex() < 0 {
 		return nil, ErrRequest
 	}
 	if raw, ok := fields["tools"]; ok {
@@ -125,6 +140,21 @@ func DecodeRequest(body []byte) (*Request, error) {
 		}
 	}
 	return r, nil
+}
+
+// LatestUserIndex excludes trailing per-message system context. Assistant prefill remains unsupported.
+func (r *Request) LatestUserIndex() int {
+	for i := len(r.Messages) - 1; i >= 0; i-- {
+		switch r.Messages[i].Role {
+		case "system":
+			continue
+		case "user":
+			return i
+		default:
+			return -1
+		}
+	}
+	return -1
 }
 func content(raw json.RawMessage) ([]Block, error) {
 	if len(raw) == 0 {

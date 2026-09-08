@@ -206,6 +206,11 @@ func (h *Handler) messages(ctx context.Context, w http.ResponseWriter, r *http.R
 		writeError(w, 400, "invalid_request_error", "Invalid Messages request")
 		return
 	}
+	request.Identity, err = clientIdentity(r.Header)
+	if err != nil {
+		writeError(w, 400, "invalid_request_error", "Invalid client conversation identifier")
+		return
+	}
 	if !request.ClientContent() {
 		writeError(w, 400, "invalid_request_error", "Content or tools are unsupported by the current adapter")
 		return
@@ -380,6 +385,30 @@ func (h *Handler) messages(ctx context.Context, w http.ResponseWriter, r *http.R
 		finished = err == nil && r.Context().Err() == nil
 		return
 	}
+}
+
+func clientIdentity(headers http.Header) (anthropic.ClientIdentity, error) {
+	var identity anthropic.ClientIdentity
+	for name, target := range map[string]*string{
+		"x-claude-code-session-id":      &identity.Session,
+		"x-claude-code-agent-id":        &identity.Agent,
+		"x-claude-code-parent-agent-id": &identity.ParentAgent,
+	} {
+		values := headers.Values(name)
+		if len(values) == 0 {
+			continue
+		}
+		if len(values) != 1 || len(values[0]) == 0 || len(values[0]) > 128 {
+			return anthropic.ClientIdentity{}, anthropic.ErrRequest
+		}
+		for _, c := range []byte(values[0]) {
+			if c < 0x21 || c > 0x7e || c == ',' {
+				return anthropic.ClientIdentity{}, anthropic.ErrRequest
+			}
+		}
+		*target = values[0]
+	}
+	return identity, nil
 }
 
 func validToolBatch(request *anthropic.Request, tools []anthropic.ToolUse) bool {

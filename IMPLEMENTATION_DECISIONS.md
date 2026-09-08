@@ -256,3 +256,27 @@ and exact enforcement of other provider-specific generation controls remain R14/
 The current executable has only internal `schema-worker` and `relay --config` commands. It is not a
 finished launcher or an approved live Kiro profile. R06 execution restriction and all live release
 gates remain open. Other Phase 0 proposals remain pending until implemented and tested.
+
+## D14: observed Claude gateway envelope and identity (review R10/R14)
+
+The public [Claude gateway protocol](https://code.claude.com/docs/en/llm-gateway-protocol), checked
+2026-09-08, documents session/agent attribution headers and discovery using `data[].id`,
+`display_name` and `description`. The launcher must enable gateway discovery explicitly. Header
+identifiers are opaque bounded strings, not assumed UUIDs; repeated, empty, whitespace, comma,
+non-ASCII and overlong values reject before backend dispatch. Identity participates in pending-tool
+compatibility, so a result cannot change its conversation headers. These headers do not authorize
+requests; model authentication still precedes their use.
+
+An unmodified installed Claude Code 2.1.263 ran in print mode against an independently written local
+fixture gateway. It sent one model request with the expected session header and discovered both
+synthetic catalog entries. The initial decoder failed on message roles `[user, system]`; a regression
+now preserves text-only system updates after the latest user message. The decoder, gateway and prompt
+projection retain this ordering and reject an all-system request, assistant prefill or tool effects
+inside a system message. This is a Claude adapter extension, not a change to public Anthropic roles.
+
+The opt-in test retains field names, content types, counts and Boolean assertions only. It uses a
+private disposable profile/workspace, synthetic responses, bounded output/deadlines and an owned
+process group; global client configuration fingerprints remain unchanged. It declares a client tool
+but requests no tool effect. No Kiro/model-provider request is involved. Discovery-cache evidence in
+print mode does not establish the interactive selector, multi-turn tool behavior, launch policy or
+R06 restrictions. Those acceptance gates remain open.

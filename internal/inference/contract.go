@@ -26,7 +26,7 @@ type Event struct {
 }
 type Model struct {
 	ID          string `json:"id"`
-	Name        string `json:"name,omitempty"`
+	Name        string `json:"display_name,omitempty"`
 	Description string `json:"description,omitempty"`
 	Object      string `json:"object"`
 	OwnedBy     string `json:"owned_by"`
