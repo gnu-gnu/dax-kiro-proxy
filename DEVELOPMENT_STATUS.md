@@ -267,6 +267,31 @@ Anthropic 8.204s, gateway 2.262s, launcher 1.570s, session 8.550s and status 1.3
 packages passed; installed-client tests are separately opt-in and were verified above. `go vet ./...`
 and `git diff --check` passed after the continuation changes.
 
+### Phase 6 owned HTTP server
+
+New server tests first failed on absent APIs. D29 adds connection admission before HTTP parsing,
+header/idle/body/write bounds, base-context cancellation and bounded drain/forced-close/join stages.
+The first idle-connection test failed because its inner error declaration hid the socket read result;
+the corrected test passed without changing product timeouts. Connection lifecycle tracking also
+checks Go's final connection states, not just closed descriptors.
+
+`go test -race -count=1 ./internal/gateway` passed in 3.347s, including connection capacity/reuse,
+auth/SSE behavior, incomplete headers and unauthorized bodies, oversized headers, idle expiry,
+canceled streaming, eight Close callers and bounded reporting for an intentionally uncooperative
+catalog handler. That fixture is explicitly released and joined after verifying the failure report.
+
+The new HTTP → session → independent ACP shutdown test initially omitted mandatory ClientInfo in its
+fixture configuration and failed before starting ACP. After supplying the fixture identity it passed
+in 3.863s overall (0.28s test). It observes the fake's owned PID through SSE, closes the actual loopback
+server mid-turn, and verifies the handler/socket counts are zero, the driver is unstarted and the
+process group no longer exists. No live Kiro/model or client tool effect was used. `go vet ./...` and
+`git diff --check` passed. Full launcher sequencing and suspended-session cleanup remain separate work.
+
+The complete uncached `go test -race -p 2 -count=1 ./...` then passed with the terminal and HTTP server
+changes together: ACP 4.924s, pool 2.487s, Anthropic 8.453s, childproc 5.427s, gateway 2.963s,
+launcher 2.011s and session 8.227s. All remaining packages passed; installed-client/Kiro tests remain
+separately opt-in. No live model prompt is implied by this suite.
+
 ### Phase 6 attached client and terminal lifecycle
 
 The previous checkpoint's full uncached `go test -race -p 2 -count=1 ./...` passed: ACP 5.071s,

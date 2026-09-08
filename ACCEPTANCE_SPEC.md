@@ -29,6 +29,9 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
 - UI token authorizes only the exact hook/status routes.
 - Missing/wrong auth returns 401 without revealing the valid token.
 - Body over 16 MiB, non-object JSON, and empty/malformed messages are rejected.
+- Accepted TCP connections are bounded before HTTP parsing; excess connections close, partial headers
+  and idle keepalives expire, and oversized headers or incomplete unauthorized bodies cannot retain
+  unbounded resources.
 - Child environments contain no direct provider credential or provider-routing flag capable of bypass.
 - Starting and stopping leaves global and project client settings byte-for-byte unchanged.
 
@@ -110,6 +113,9 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
   recognized authentication expiry after a keepalive still completes one normal assistant message.
 - Repeated caller cancellation cannot interrupt final cleanup or leak an ACP/relay child.
 - Shutdown can be called repeatedly and remains bounded.
+- HTTP server shutdown cancels active request contexts and joins connection/handler cleanup, including
+  the corresponding ACP group. A handler that ignores cancellation must produce a bounded cleanup
+  failure rather than a successful join report; launcher shutdown separately owns suspended sessions.
 - An attached client has explicit descriptors/environment and bounded ownership. Blocked input/output,
   leader exit with descendants and repeated shutdown cannot retain an owned process group. Foreground
   terminal ownership/settings and existing signal handling are restored after success, failure,

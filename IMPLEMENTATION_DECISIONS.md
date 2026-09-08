@@ -682,3 +682,43 @@ Sources checked 2026-09-08: [Go process attributes](https://pkg.go.dev/syscall#S
 [Go signals](https://pkg.go.dev/os/signal),
 [Apple foreground-group contract](https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man3/tcsetpgrp.3.html),
 the installed macOS 15.4 `script(1)` and `termios(4)` manuals, and the reviewed x/sys API documentation.
+
+## D29: owned HTTP server and connection admission (review R07/R12/R14)
+
+`StartServer` owns its listener, HTTP serving lifetime and shutdown. It validates the gateway and
+limits before listening, defaults to an ephemeral loopback address, and retains the explicit
+unsafe-network requirement for any other bind. Listening/name resolution has a five-second setup
+context. The listener admits at most 64 accepted sockets by default (configurable 1–1024) before
+HTTP parsing; excess sockets close immediately. Header reads default to five seconds, request reads
+to the gateway's 15 seconds, and keepalive idle time to 30 seconds. Header memory is limited through
+Go's 64 KiB MaxHeaderBytes setting, with the standard parser's small read allowance. The gateway's
+16 MiB body and separate active model/UI request bounds remain in force. HTTP/1 is selected explicitly;
+no TLS, cleartext HTTP/2, upgrade or hijack route is added.
+
+Per-write/flush deadlines cover health, authentication, catalog, UI and model output. They use the
+gateway's five-second default and refresh at the actual write; neither model deadline is extended.
+The server's default error logger discards raw parser/panic diagnostics instead of sending request
+or internal values to unrestricted stderr. Public server errors contain only fixed failure classes.
+Structured application diagnostics remain a separate launcher feature.
+
+Parent cancellation, explicit Close or a serving failure stops admission and cancels the base request
+context before HTTP draining. A shielded five-second Shutdown window is followed by forced closure
+of all remaining sockets, then a one-second join window. The configurable maxima are ten and five
+seconds respectively. Tracking includes accepted sockets, in-flight handlers and Go's connection
+state lifecycle; closing a descriptor alone is not treated as joined request handling. Close/Wait
+callers share the same recorded result. A backend that ignores cancellation produces a bounded
+cleanup error, never a successful cleanup claim; Go code cannot forcibly terminate an arbitrary
+handler. Production adapters must retain their own cancellation and bounded cleanup contracts. A
+successful tool handoff may have no open HTTP request, so the launcher must also close its session
+manager, relay/schema owners and profile; the HTTP server does not take ownership of those components.
+
+Independent TCP tests cover the auth/SSE contract, pre-header socket capacity and slot reuse, partial
+headers, oversized headers, unauthorized incomplete bodies, keepalive expiry, forced closure of new
+connections, canceled streaming and repeated Close. A deliberately non-cooperative catalog tests
+the bounded error path and is explicitly released by the fixture afterward. A real loopback request
+through the session driver and independent fake ACP emits only its synthetic owned PID before
+suspending. Server Close must return with no handler, no socket, an unstarted session and no surviving
+ACP process group. This is local lifecycle evidence, not live Kiro or complete launcher acceptance.
+
+Primary API source checked 2026-09-08: [Go HTTP server contract](https://pkg.go.dev/net/http#Server),
+including Shutdown, BaseContext, ConnState, Protocols and ResponseController.

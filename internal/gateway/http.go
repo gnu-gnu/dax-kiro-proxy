@@ -574,6 +574,10 @@ func writeJSON(w http.ResponseWriter, status int, value any) {
 
 // Listen rejects arbitrary names before DNS resolution unless the unsafe override is explicit.
 func Listen(address string, unsafeNetwork bool) (net.Listener, error) {
+	return listen(context.Background(), address, unsafeNetwork)
+}
+
+func listen(ctx context.Context, address string, unsafeNetwork bool) (net.Listener, error) {
 	if address == "" {
 		address = "127.0.0.1:0"
 	}
@@ -591,5 +595,5 @@ func Listen(address string, unsafeNetwork bool) (net.Listener, error) {
 			}
 		}
 	}
-	return net.Listen("tcp", net.JoinHostPort(host, port))
+	return (&net.ListenConfig{}).Listen(ctx, "tcp", net.JoinHostPort(host, port))
 }

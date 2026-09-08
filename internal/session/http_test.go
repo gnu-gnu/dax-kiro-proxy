@@ -1,12 +1,18 @@
 package session_test
 
 import (
+	"bufio"
 	"encoding/json"
+	"errors"
+	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 
+	"dax-kiro-proxy/internal/acp"
 	"dax-kiro-proxy/internal/gateway"
 	"dax-kiro-proxy/internal/session"
 )
@@ -63,5 +69,71 @@ func TestHTTPThroughIndependentACPProcess(t *testing.T) {
 				t.Fatal("silent ACP wait did not emit a keepalive")
 			}
 		}
+	}
+}
+
+func TestOwnedHTTPServerShutdownJoinsIndependentACPGroup(t *testing.T) {
+	d, err := session.New(session.Config{Process: acp.Config{Executable: fixture, Directory: t.TempDir(), Args: []string{"chat-slow-pid"}, ClientInfo: acp.Info{Name: "independent-server-fixture", Version: "1"}, Limits: acp.Limits{GracePeriod: 50 * time.Millisecond, TermPeriod: 50 * time.Millisecond, KillPeriod: time.Second}}, TurnTimeout: 5 * time.Second})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer d.Close()
+	tokens, err := gateway.NewTokens()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s, err := gateway.StartServer(t.Context(), gateway.ServerConfig{Gateway: gateway.Config{Tokens: tokens, Backend: d, FirstEventTimeout: 3 * time.Second, TurnTimeout: 5 * time.Second}, ShutdownTimeout: 2 * time.Second})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	transport := &http.Transport{Proxy: nil, DisableKeepAlives: true}
+	defer transport.CloseIdleConnections()
+	client := &http.Client{Transport: transport, Timeout: 4 * time.Second}
+	payload, _ := json.Marshal(map[string]any{"model": fixtureClientID, "max_tokens": 128, "stream": true, "messages": []any{map[string]any{"role": "user", "content": "independent shutdown fixture"}}})
+	r, _ := http.NewRequestWithContext(t.Context(), "POST", s.URL()+"/v1/messages", strings.NewReader(string(payload)))
+	r.Header.Set("x-api-key", tokens.Model)
+	r.Header.Set("Content-Type", "application/json")
+	response, err := client.Do(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("independent ACP request status %d", response.StatusCode)
+	}
+	reader := bufio.NewScanner(response.Body)
+	pid := 0
+	for reader.Scan() {
+		line := reader.Text()
+		if !strings.HasPrefix(line, "data: ") {
+			continue
+		}
+		var event struct {
+			Type  string
+			Delta struct{ Text string }
+		}
+		if json.Unmarshal([]byte(strings.TrimPrefix(line, "data: ")), &event) != nil {
+			t.Fatal("invalid synthetic SSE")
+		}
+		if event.Type == "content_block_delta" {
+			pid, err = strconv.Atoi(strings.TrimPrefix(event.Delta.Text, "owned-pid:"))
+			if err != nil || pid <= 1 {
+				t.Fatal("independent ACP PID was not observed")
+			}
+			break
+		}
+	}
+	if pid <= 1 || d.State() != session.Prompting {
+		t.Fatal("ACP fixture did not remain in its active turn")
+	}
+	if err := s.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if d.State() != session.Unstarted || s.Stats().Handlers != 0 || s.Stats().Connections != 0 {
+		t.Fatal("HTTP shutdown retained a partial ACP session")
+	}
+	if !errors.Is(syscall.Kill(-pid, 0), syscall.ESRCH) {
+		t.Fatal("HTTP shutdown returned before its ACP group was gone")
 	}
 }

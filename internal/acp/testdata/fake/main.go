@@ -300,6 +300,9 @@ func main() {
 				}
 				write(map[string]any{"jsonrpc": "2.0", "method": "_fixture/diagnostic", "params": map[string]any{"sessionId": owner}})
 				chunks := []string{"birch ", "stone"}
+				if mode == "chat-slow-pid" {
+					chunks = []string{fmt.Sprintf("owned-pid:%d", os.Getpid())}
+				}
 				if mode == "chat-models" || mode == "chat-effort-reject" || mode == "chat-effort-corrupt" || mode == "chat-config" {
 					body, _ := json.Marshal(map[string]any{"model": currentModel, "calls": calls})
 					chunks = []string{string(body)}
@@ -320,7 +323,7 @@ func main() {
 				for _, text := range chunks {
 					write(map[string]any{"jsonrpc": "2.0", "method": "session/update", "params": map[string]any{"sessionId": owner, "update": map[string]any{"sessionUpdate": "agent_message_chunk", "content": map[string]any{"type": "text", "text": text}}}})
 				}
-				if mode == "chat-slow" {
+				if mode == "chat-slow" || mode == "chat-slow-pid" {
 					hanging = append(hanging, q.ID)
 					continue
 				}
