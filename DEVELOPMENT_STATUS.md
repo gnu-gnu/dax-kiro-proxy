@@ -166,6 +166,26 @@ longer load/fuzz and clean-host release gates remain unverified. No new external
 
 ## Remaining work
 
+### Post-Phase 5 input and relay hardening
+
+Two failing regressions reproduced an invalid client model canceling an active pooled sibling and
+unsupported system-message lifetime/effort fields disappearing during normalization. Invalid local
+model/projection requests now dispose only their lease. Per-message effort and turn-scoped expiry
+reject explicitly; standing `clear_at: "never"` is accepted. D18 records the public-source correction
+and supported subset. This does not claim complete native Anthropic system-priority semantics.
+
+Relay admission now follows the owned ACP prompt lifetime. It is closed during creation/load/idle
+and atomically checked at prompt completion; pending or validating calls cannot cross into another
+turn. The new `chat-tools-idle` fake attempts a call during session creation, requires its error,
+and then exercises the normal client handoff. The relay API regression initially failed on absent
+lifecycle methods before their implementation.
+
+Passed `go test -race -count=1 ./internal/anthropic ./internal/session ./internal/relay/...`:
+anthropic 1.736s, session 6.800s, broker 2.052s and MCP 3.714s. The added fake-process premature-call,
+active-sibling and continuation checks then passed together in 3.869s. `go vet ./...` passed.
+The installed-client shape observation also records message-level field names; its latest synthetic
+sample contained only role/content and no clear_at field (1.454s overall). No real model/tool effect.
+
 ### Actual client envelope observation
 
 The opt-in `TestClaudeClientGatewayContract` passed against installed unmodified Claude Code 2.1.263

@@ -64,6 +64,8 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
   tools are rejected before prompting.
 - Alias mapping is deterministic, reversible within the session, and collision-safe.
 - Kiro sees only session-declared aliases and explicitly supported native tools.
+- Relay calls during setup/load or idle time never become client tool-use blocks. Prompt completion
+  cannot leave a suspended or validating call to be exposed by another turn.
 - Relay child exposes only initialize, ping, tools/list, and tools/call and performs no effect itself.
 - Wrong secret, unknown alias, duplicate relay call ID, non-object arguments, invalid schema, queue
   overflow, and wrong-session result are rejected.
@@ -91,6 +93,7 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
 - Process compatibility prevents sharing when agent, system policy, tool registry, native tools, or
   launch semantics differ.
 - A process crash invalidates every attached session, fails all waiters, and never replays pending tools.
+- Rejection of a local invalid model or unsupported prompt does not cancel a healthy active sibling.
 
 ## G. Cancellation and load
 

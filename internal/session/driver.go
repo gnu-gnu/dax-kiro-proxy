@@ -225,8 +225,8 @@ func (d *Driver) Start(ctx context.Context, r *anthropic.Request) (inference.Tur
 		}
 	}
 	if err != nil {
-		d.failedStart(p.client)
-		return nil, err
+		d.discardStart(p.client, false)
+		return nil, errors.Join(inference.ErrRequest, err)
 	}
 	d.mu.Lock()
 	if resume != nil {
@@ -241,7 +241,7 @@ func (d *Driver) Start(ctx context.Context, r *anthropic.Request) (inference.Tur
 		selected, err = p.info.Catalog.Resolve(r.Model)
 	}
 	if err != nil {
-		d.failedStart(p.client)
+		d.discardStart(p.client, false)
 		return nil, errors.Join(inference.ErrRequest, err)
 	}
 	if err = p.selectModel(selected.ID); err != nil {
@@ -294,6 +294,14 @@ func (d *Driver) Start(ctx context.Context, r *anthropic.Request) (inference.Tur
 		}
 		return nil, acp.ErrClosed
 	}
+	if broker != nil {
+		if err := broker.BeginTurn(); err != nil {
+			d.mu.Unlock()
+			stop()
+			d.failedStart(client)
+			return nil, acp.ErrProtocol
+		}
+	}
 	d.client = client
 	d.current = t
 	d.state = Prompting
@@ -304,6 +312,11 @@ func (d *Driver) Start(ctx context.Context, r *anthropic.Request) (inference.Tur
 			Session string            `json:"sessionId"`
 			Prompt  []projection.Text `json:"prompt"`
 		}{id, prompt})
+		if t.resultErr == nil && broker != nil {
+			if err := broker.EndTurn(); err != nil {
+				t.resultErr = acp.ErrProtocol
+			}
+		}
 		close(t.done)
 		if t.resultErr != nil {
 			t.abort(t.resultErr)
@@ -314,6 +327,12 @@ func (d *Driver) Start(ctx context.Context, r *anthropic.Request) (inference.Tur
 }
 
 func (d *Driver) failedStart(client backendClient) {
+	d.discardStart(client, true)
+}
+
+// A rejected local request disposes its session without retiring healthy siblings. Ambiguous
+// backend state, cancellation and transport failures still require whole-process retirement.
+func (d *Driver) discardStart(client backendClient, retire bool) {
 	d.mu.Lock()
 	socket, broker := d.socket, d.broker
 	d.socket = nil
@@ -325,13 +344,20 @@ func (d *Driver) failedStart(client backendClient) {
 		broker.Close()
 	}
 	if client != nil {
-		_ = client.Close()
+		if lease, ok := client.(*acppool.Lease); ok && !retire {
+			if err := lease.SetIdle(true); err == nil {
+				_ = lease.ReleaseIdle()
+			}
+		} else {
+			_ = client.Close()
+		}
 	}
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	d.client = nil
 	d.current = nil
 	d.snapshot = history.Snapshot{}
+	d.fresh = false
 	if !d.closed {
 		d.state = Unstarted
 	}

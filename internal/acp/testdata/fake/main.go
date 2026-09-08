@@ -145,6 +145,15 @@ func main() {
 					os.Exit(34)
 				}
 				relayChild = startFixtureRelay(p.MCP[0], p.CWD)
+				if mode == "chat-tools-idle" {
+					relayChild.send(90, "tools/call", map[string]any{"name": relayChild.alias, "arguments": map[string]any{"n": 1}})
+					var outcome struct {
+						IsError bool `json:"isError"`
+					}
+					if json.Unmarshal(relayChild.read(), &outcome) != nil || !outcome.IsError {
+						os.Exit(44)
+					}
+				}
 			}
 			session = "fixture-conversation"
 			if mode == "chat-no-id" {

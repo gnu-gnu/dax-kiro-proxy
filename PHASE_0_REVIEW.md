@@ -2,6 +2,10 @@
 
 Review date: 2026-09-08. Status: review and experiment design complete; Phase 0 exit gate open.
 
+This is the historical review before language selection. The user subsequently selected Go and
+authorized the whole product; LANGUAGE_DECISION_RECORD.md and DEVELOPMENT_STATUS.md supersede the
+selection and implementation status below. Comparative Go/Rust measurements remain unclaimed.
+
 The recommendation is Go, subject to the experiments and final record described in
 [LANGUAGE_DECISION_RECORD.md](LANGUAGE_DECISION_RECORD.md). No production code, spike code, executable
 fixtures, dependency installation, Kiro invocation, or live model test was performed in this review.

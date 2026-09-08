@@ -47,6 +47,10 @@ Assistant prefill remains unsupported. Authenticated `x-claude-code-session-id`,
 identity. Each optional value is 1-128 visible ASCII bytes excluding comma; duplicates are rejected.
 The body cannot override this identity. See decision D14 for source and observation evidence.
 
+Per-message `clear_at` is accepted only as `"never"` on a system message. Turn-scoped instruction
+expiry and per-message `output_config` are currently rejected before backend dispatch; their meaning
+must not disappear during normalization. Decision D18 records this supported subset.
+
 Malformed model selection is a 400. Malformed effort should be ignored with a warning unless future
 public API requirements say otherwise. Backend failures are normally 502. Recognized Kiro auth expiry
 is the special successful fallback described below.
@@ -273,6 +277,10 @@ validates the secret, unique call ID, alias membership, argument schema, queue c
 ownership. It then creates a new client-visible tool call ID and suspends the relay call until the next
 matching client tool result. Results preserve text, base64 image content, and error status; unsupported
 content becomes text.
+
+Tool-call admission is open only for an owned ACP prompt, including its successful HTTP tool handoffs.
+It is closed during session creation/load, idle time and after the prompt reply. Prompt completion
+with any pending or validating relay call is inconsistent and retires the session.
 
 Default limits are 4 MiB per parent-control frame, 8 MiB per MCP stdio frame, 64 pending relay calls,
 and a configurable pending-tool timeout. Socket, secret/config file, and containing directory are

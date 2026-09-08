@@ -50,6 +50,8 @@ type contractObservation struct {
 	ToolCount                            int
 	ToolFields                           []string
 	Roles                                []string
+	MessageFields                        [][]string
+	SystemClearAt                        []string
 	ContentTypes                         [][]string
 	SystemTypes                          []string
 	MaxTokens                            int64
@@ -143,13 +145,33 @@ func TestClaudeClientGatewayContract(t *testing.T) {
 		var messageShapes []struct {
 			Role    string          `json:"role"`
 			Content json.RawMessage `json:"content"`
+			ClearAt string          `json:"clear_at"`
 		}
 		_ = json.Unmarshal(fields["messages"], &messageShapes)
 		observation.Roles = nil
 		observation.ContentTypes = nil
+		observation.SystemClearAt = nil
+		var messageFields []map[string]json.RawMessage
+		_ = json.Unmarshal(fields["messages"], &messageFields)
+		observation.MessageFields = nil
+		for _, message := range messageFields {
+			keys := []string{}
+			for key := range message {
+				keys = append(keys, key)
+			}
+			sort.Strings(keys)
+			observation.MessageFields = append(observation.MessageFields, keys)
+		}
 		for _, m := range messageShapes {
 			observation.Roles = append(observation.Roles, m.Role)
 			observation.ContentTypes = append(observation.ContentTypes, blockTypes(m.Content))
+			if m.Role == "system" {
+				value := m.ClearAt
+				if value != "" && value != "never" && value != "next_user_message" {
+					value = "unrecognized-lifetime"
+				}
+				observation.SystemClearAt = append(observation.SystemClearAt, value)
+			}
 		}
 		observation.SystemTypes = blockTypes(fields["system"])
 		observation.Fields = nil

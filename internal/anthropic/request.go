@@ -87,6 +87,17 @@ func DecodeRequest(body []byte) (*Request, error) {
 		if !stringField(m["role"], &message.Role) || (message.Role != "user" && message.Role != "assistant" && message.Role != "system") {
 			return nil, ErrRequest
 		}
+		// These fields change instruction lifetime or generation policy. Unsupported semantics
+		// must be rejected before they disappear from the normalized conversation.
+		if _, present := m["output_config"]; present {
+			return nil, ErrRequest
+		}
+		if raw, present := m["clear_at"]; present {
+			var lifetime string
+			if message.Role != "system" || !stringField(raw, &lifetime) || lifetime != "never" {
+				return nil, ErrRequest
+			}
+		}
 		message.Content, err = content(m["content"])
 		if err != nil || len(message.Content) == 0 {
 			return nil, ErrRequest

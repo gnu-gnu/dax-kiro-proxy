@@ -20,3 +20,15 @@ func TestClientSystemUpdatesKeepTheLatestUserBoundary(t *testing.T) {
 		}
 	}
 }
+
+func TestUnsupportedSystemLifetimeAndEffortAreNotSilentlyLost(t *testing.T) {
+	for _, field := range []string{`"clear_at":"next_user_message"`, `"clear_at":true`, `"output_config":{"effort":"low"}`} {
+		body := `{"model":"claude-dax-fixture","max_tokens":32,"messages":[{"role":"user","content":"first"},{"role":"system","content":"temporary rule",` + field + `}]}`
+		if _, err := DecodeRequest([]byte(body)); err == nil {
+			t.Fatal("unsupported system instruction semantics were silently dropped")
+		}
+	}
+	if _, err := DecodeRequest([]byte(`{"model":"claude-dax-fixture","max_tokens":32,"messages":[{"role":"user","content":"first"},{"role":"system","content":"standing rule","clear_at":"never"}]}`)); err != nil {
+		t.Fatal("standing instruction lifetime rejected")
+	}
+}

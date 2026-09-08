@@ -163,6 +163,19 @@ func TestToolDisconnectBeforeHandoffDiscardsState(t *testing.T) {
 	}
 }
 
+func TestRelayRejectsToolCallDuringSessionCreation(t *testing.T) {
+	d := toolDriver(t, "chat-tools-idle", time.Second)
+	turn, err := d.Start(context.Background(), toolRequest(t))
+	if err != nil {
+		t.Fatal("session creation did not reject its premature tool call", err)
+	}
+	defer turn.Cancel()
+	_, uses := toolHandoff(t, turn)
+	if len(uses) != 1 {
+		t.Fatal("premature call reached the client or prevented the owned call")
+	}
+}
+
 func TestFirstHTTPDeadlineIsNotResetByToolHandoff(t *testing.T) {
 	d := toolDriver(t, "chat-tools", 2*time.Second)
 	ctx, cancel := context.WithTimeout(context.Background(), 600*time.Millisecond)

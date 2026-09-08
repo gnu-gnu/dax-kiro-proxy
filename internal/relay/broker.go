@@ -102,6 +102,7 @@ type Broker struct {
 	reserved, bytes int
 	number          uint64
 	delivered       bool
+	active          bool
 	wake            chan struct{}
 	ctx             context.Context
 	cancel          context.CancelFunc
@@ -152,6 +153,39 @@ func (b *Broker) signal() {
 	}
 }
 
+// BeginTurn permits calls only while the session owns an ACP prompt. A new broker starts idle.
+func (b *Broker) BeginTurn() error {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	if b.err != nil {
+		return ErrClosed
+	}
+	if b.active || len(b.pending)+b.reserved != 0 {
+		return ErrCall
+	}
+	b.active = true
+	return nil
+}
+
+// EndTurn closes admission atomically with checking that no tool is still suspended or validating.
+// Completion with unfinished tool state is ambiguous and permanently retires this relay.
+func (b *Broker) EndTurn() error {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	if b.err != nil {
+		return ErrClosed
+	}
+	if !b.active {
+		return ErrCall
+	}
+	b.active = false
+	if len(b.pending)+b.reserved != 0 {
+		b.failLocked(ErrCall)
+		return ErrCall
+	}
+	return nil
+}
+
 func (b *Broker) Call(ctx context.Context, call Call) (ToolResult, error) {
 	if call.Owner != b.credentials.Owner || subtle.ConstantTimeCompare([]byte(call.Secret), []byte(b.credentials.Secret)) != 1 {
 		return ToolResult{}, ErrAuth
@@ -172,6 +206,10 @@ func (b *Broker) Call(ctx context.Context, call Call) (ToolResult, error) {
 	if b.err != nil {
 		b.mu.Unlock()
 		return ToolResult{}, ErrClosed
+	}
+	if !b.active {
+		b.mu.Unlock()
+		return ToolResult{}, ErrCall
 	}
 	if len(b.pending)+b.reserved >= b.limits.Pending {
 		b.mu.Unlock()

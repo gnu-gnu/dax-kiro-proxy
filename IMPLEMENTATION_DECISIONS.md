@@ -272,7 +272,9 @@ fixture gateway. It sent one model request with the expected session header and 
 synthetic catalog entries. The initial decoder failed on message roles `[user, system]`; a regression
 now preserves text-only system updates after the latest user message. The decoder, gateway and prompt
 projection retain this ordering and reject an all-system request, assistant prefill or tool effects
-inside a system message. This is a Claude adapter extension, not a change to public Anthropic roles.
+inside a system message. Public Anthropic documentation also describes mid-conversation system
+messages on selected models. ACP has no equivalent role field, so this adapter preserves ordered
+context without claiming the provider's native instruction-priority or prompt-cache semantics.
 
 The opt-in test retains field names, content types, counts and Boolean assertions only. It uses a
 private disposable profile/workspace, synthetic responses, bounded output/deadlines and an owned
@@ -368,3 +370,23 @@ process and performs one fresh full-history attempt. Authentication failure stop
 fallback, and overload does not trigger additional process attempts. If a valid load omits model
 state, the compatible stored catalog is used with an explicit selected-model acknowledgement before
 dispatch. Process/request crash and private-file adversarial coverage remains part of Phase 7.
+
+## D18: instruction semantics and relay admission (review R07/R15/R16)
+
+The public [mid-conversation system message contract](https://platform.claude.com/docs/en/build-with-claude/mid-conversation-system-messages),
+checked 2026-09-08, includes standing and turn-scoped instructions plus optional per-message effort.
+The adapter currently accepts only text and standing `clear_at: "never"` (or its default absence).
+It rejects other lifetime values and per-message `output_config` before normalization, because
+discarding them would change meaning. Tool-addition/removal content is also unsupported. The
+installed-client shape probe did not observe either message-level field; that single sample does not
+establish that the client never sends them. Full lifetime/effort support requires a separate mapping.
+
+A local model/projection rejection before prompt dispatch discards only the affected pooled lease.
+It restores that lease's idle accounting and releases it without signaling its healthy siblings.
+Transport failure, cancellation and ambiguous backend state retain whole-process retirement.
+
+Every relay starts with call admission closed. The driver opens it immediately before dispatch and
+closes it atomically on the ACP prompt reply, before publishing completion to HTTP. Successful tool
+handoffs keep admission open for the same owned prompt. Pending or validating calls at final
+completion close the broker permanently and fail the turn; they cannot spill into another prompt.
+Repeated shutdown still joins the existing cleanup. No client tool effect is performed by these tests.

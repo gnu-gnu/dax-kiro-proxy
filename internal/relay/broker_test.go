@@ -39,7 +39,45 @@ func fixtureBroker(t *testing.T, adjust func(*Limits)) (*Broker, Credentials, st
 		t.Fatal(err)
 	}
 	t.Cleanup(b.Close)
+	if err := b.BeginTurn(); err != nil {
+		t.Fatal(err)
+	}
 	return b, b.Credentials(), r.Tools()[0].Alias
+}
+
+func TestCallsRequireAnActiveTurnAndCannotOutliveItsCompletion(t *testing.T) {
+	b, c, alias := fixtureBroker(t, nil)
+	if err := b.EndTurn(); err != nil {
+		t.Fatal(err)
+	}
+	call := Call{Version: 1, Owner: c.Owner, Secret: c.Secret, ID: "idle-attempt", Alias: alias, Arguments: json.RawMessage(`{"n":1}`)}
+	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	defer cancel()
+	if _, err := b.Call(ctx, call); !errors.Is(err, ErrCall) {
+		t.Fatal("idle relay accepted a tool request")
+	}
+	if s := b.Stats(); s.Pending != 0 || s.Seen != 0 {
+		t.Fatal("idle request reserved tool state")
+	}
+	if err := b.BeginTurn(); err != nil {
+		t.Fatal(err)
+	}
+	done := callFixture(b, c, alias, "during-turn")
+	waitQueued(t, b, 1)
+	if err := b.EndTurn(); err == nil {
+		t.Fatal("prompt completed while a client tool was suspended")
+	}
+	select {
+	case out := <-done:
+		if !out.value.IsError {
+			t.Fatal("unfinished tool did not receive an error")
+		}
+	case <-time.After(time.Second):
+		t.Fatal("unfinished tool leaked beyond the turn")
+	}
+	if err := b.BeginTurn(); err == nil {
+		t.Fatal("ambiguous relay state was reused")
+	}
 }
 
 type resultOutcome struct {

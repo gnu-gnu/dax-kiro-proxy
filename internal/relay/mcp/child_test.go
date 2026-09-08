@@ -58,6 +58,9 @@ func launch(t *testing.T) (*child, *relay.Broker, *relay.Socket, string) {
 		t.Fatal(err)
 	}
 	t.Cleanup(b.Close)
+	if err := b.BeginTurn(); err != nil {
+		t.Fatal(err)
+	}
 	s, err := relay.Listen(b, relay.SocketConfig{BaseDirectory: "/private/tmp"})
 	if err != nil {
 		t.Fatal(err)
