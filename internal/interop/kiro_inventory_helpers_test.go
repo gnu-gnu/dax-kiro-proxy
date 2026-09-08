@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"dax-kiro-proxy/internal/acp"
+	"dax-kiro-proxy/internal/catalog"
 	"dax-kiro-proxy/internal/kiroauth"
 	"dax-kiro-proxy/internal/ndjson"
 )
@@ -40,6 +41,7 @@ type inventoryReport struct {
 	MCPDeclaredNameMatches                                             int
 	MCPMatches                                                         map[string]int
 	ToolMatches                                                        map[string]bool
+	ModelCatalog                                                       inventoryCatalogReport
 }
 
 type inventoryPrerequisite struct {
@@ -48,6 +50,7 @@ type inventoryPrerequisite struct {
 	ObservedTools map[string]string
 	WaitForAllMCP bool
 	SettleWindow  time.Duration
+	Catalog       *catalog.Catalog
 }
 
 // The only dispatched private command is the advertised argument-free tools inventory. There is
@@ -73,6 +76,9 @@ func readOnlyToolsInventoryAfter(ctx context.Context, client *acp.Client, cwd st
 	if !filepath.IsAbs(cwd) || advertisementWait <= 0 || advertisementWait > 5*time.Second || len(required.Alias) > 256 || strings.IndexFunc(required.Alias, func(c rune) bool { return !inventoryNameCharacter(c) }) != -1 {
 		return report, errInventoryShape
 	}
+	if required.Catalog != nil && len(required.Catalog.Models()) == 0 {
+		return report, errInventoryShape
+	}
 	raw, err := client.Call(ctx, "session/new", map[string]any{"cwd": cwd, "mcpServers": []any{}})
 	if err != nil {
 		return report, err
@@ -86,6 +92,12 @@ func readOnlyToolsInventoryAfter(ctx context.Context, client *acp.Client, cwd st
 		return report, errInventoryShape
 	}
 	report.SessionCreated = true
+	if required.Catalog != nil {
+		report.ModelCatalog, err = compareInventoryCatalog(raw, required.Catalog)
+		if err != nil {
+			return report, err
+		}
+	}
 	adCtx, cancel := context.WithTimeout(ctx, advertisementWait)
 	defer cancel()
 	for !report.Advertised || required.WaitForMCP && report.MCPDeclaredNameMatches == 0 || required.WaitForAllMCP && !report.allMCPSeen() {

@@ -81,10 +81,21 @@ func inventoryFixture(mode string) {
 				}
 				write(map[string]any{"jsonrpc": "2.0", "method": "_kiro.dev/commands/available", "params": map[string]any{"sessionId": owner, "commands": commands}})
 			}
-			reply(q.ID, map[string]any{"sessionId": session})
+			result := map[string]any{"sessionId": session}
+			switch mode {
+			case "inventory-catalog", "inventory-catalog-mismatch":
+				last := "fixture-model"
+				if mode == "inventory-catalog-mismatch" {
+					last = "fixture-other-model"
+				}
+				result["models"] = map[string]any{"currentModelId": "auto", "availableModels": []any{map[string]string{"modelId": "auto"}, map[string]string{"modelId": "fixture.model"}, map[string]string{"modelId": last}}}
+			case "inventory-catalog-malformed":
+				result["models"] = nil
+			}
+			reply(q.ID, result)
 			stage++
 		case stage == 2 && q.Method == "_kiro.dev/commands/execute":
-			if mode != "inventory-ready" && mode != "inventory-other-cwd" && mode != "inventory-listed" && mode != "inventory-mcp-ready" && mode != "inventory-mcp-multiple" && mode != "inventory-mcp-late" && mode != "inventory-rejected" && mode != "inventory-bad-result" {
+			if mode != "inventory-ready" && mode != "inventory-other-cwd" && mode != "inventory-catalog" && mode != "inventory-listed" && mode != "inventory-mcp-ready" && mode != "inventory-mcp-multiple" && mode != "inventory-mcp-late" && mode != "inventory-rejected" && mode != "inventory-bad-result" {
 				os.Exit(73)
 			}
 			var p struct {

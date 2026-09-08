@@ -28,6 +28,7 @@
     "Inventory modes accept only initialization, one session/new and one advertised argument-free tools query; optional MCP readiness must match the owned session and exact serverName; no model prompt or tool effect is supported",
     "Independent multi-server inventory cases distinguish exact declared sources, a missing source and a delayed post-reply readiness notification",
     "The other-cwd inventory case requires the exact independently supplied session directory and checks that its inode differs from the fake process working directory",
+    "Catalog inventory cases provide independent matching, mismatching and malformed session model state; no model selector or prompt call is supported",
     "The chat-tools-client-launch case combines an independently supplied relay launch manifest with one Read request and requires the synthetic client-hook denial before its sole ACP prompt completes",
     "MCP tool requests are answered by synthetic test clients or an opt-in unmodified public client with an independently authored denying hook; the fake backend performs no filesystem or shell tool effect"
   ]

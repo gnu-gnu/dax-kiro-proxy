@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"dax-kiro-proxy/internal/acp"
+	"dax-kiro-proxy/internal/catalog"
 	"dax-kiro-proxy/internal/childproc"
 	"dax-kiro-proxy/internal/launcher"
 	"dax-kiro-proxy/internal/relay"
@@ -50,6 +51,9 @@ func TestKiroReadOnlyToolsInventoryProtocol(t *testing.T) {
 	}{
 		{"ready", true, true, nil},
 		{"other-cwd", true, true, nil},
+		{"catalog", true, true, nil},
+		{"catalog-mismatch", false, false, errInventoryCatalog},
+		{"catalog-malformed", false, false, catalog.ErrCatalog},
 		{"listed", true, true, nil},
 		{"mcp-ready", true, true, nil},
 		{"mcp-multiple", true, true, nil},
@@ -82,6 +86,9 @@ func TestKiroReadOnlyToolsInventoryProtocol(t *testing.T) {
 			}
 			defer client.Close()
 			required := inventoryPrerequisite{}
+			if strings.HasPrefix(test.mode, "catalog") {
+				required.Catalog = inventoryFixtureCatalog(t)
+			}
 			if strings.HasPrefix(test.mode, "mcp-") {
 				required = inventoryPrerequisite{WaitForMCP: true, Alias: "fixture_relay_alias"}
 			}
@@ -99,6 +106,9 @@ func TestKiroReadOnlyToolsInventoryProtocol(t *testing.T) {
 			}
 			if test.mode == "ready" && (report.TextBytes == 0 || !report.NativeNames["fs_read"] || report.ResultKinds["output"] != "string") {
 				t.Fatal("preceding diagnostic inventory was not observed before RPC completion")
+			}
+			if test.mode == "catalog" && (!report.ModelCatalog.Decoded || report.ModelCatalog.AliasMatches != 3 || !report.ModelCatalog.ACPAuto) {
+				t.Fatal("the actual session result did not pass the catalog comparison")
 			}
 			if test.mode == "ready" && (report.DataKinds["tools"] != "array" || report.DataSizes["tools"] != 0) {
 				t.Fatal("bounded result shape was not observed")
@@ -247,12 +257,16 @@ func observePinnedToolsInventory(t *testing.T, executable string, declaredTools,
 type inventoryVariant struct {
 	sources     *mcpScopeProbe
 	directories *inventoryDirectoryProbe
+	catalog     bool
 }
 
 func observePinnedInventory(t *testing.T, executable string, declaredTools, listedTools []string, relayExecutable string, variant inventoryVariant) {
 	t.Helper()
 	if variant.directories != nil && (variant.sources != nil || relayExecutable != "") {
 		t.Fatal("directory controls require the separate no-MCP inventory setup")
+	}
+	if variant.catalog && (variant.sources != nil || variant.directories != nil || relayExecutable != "" || len(declaredTools) != 0) {
+		t.Fatal("catalog comparison requires the separate empty-agent inventory setup")
 	}
 	scope := variant.sources
 	ctx, cancel := context.WithTimeout(t.Context(), time.Minute)
@@ -316,7 +330,7 @@ func observePinnedInventory(t *testing.T, executable string, declaredTools, list
 	if os.WriteFile(filepath.Join(configuration, "settings", "cli.json"), []byte(`{"chat.disableInheritingDefaultResources":true}`), 0600) != nil {
 		t.Fatal("cannot write owned inventory configuration")
 	}
-	runner, err := childproc.New(childproc.Config{})
+	runner, err := childproc.New(childproc.Config{Timeout: 15 * time.Second})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -328,20 +342,33 @@ func observePinnedInventory(t *testing.T, executable string, declaredTools, list
 	observed := kiroHomeIdentityRunner(func(ctx context.Context, command childproc.Command) (childproc.Result, error) {
 		command.Environment = append(append([]string(nil), command.Environment...), "KIRO_HOME="+configuration)
 		started := time.Now()
-		result, err := runner.Run(ctx, command)
 		stage := "version"
+		limit := 5 * time.Second
 		if len(command.Args) > 0 && command.Args[0] == "whoami" {
 			stage = "identity"
 		}
+		if variant.catalog && len(command.Args) == 4 && command.Args[0] == "chat" && command.Args[1] == "--list-models" && command.Args[2] == "--format" && command.Args[3] == "json" {
+			stage, limit = "catalog", 15*time.Second
+		}
+		bounded, stop := context.WithTimeout(ctx, limit)
+		defer stop()
+		result, err := runner.Run(bounded, command)
 		t.Logf("preflight_stage=%s, exit=%d, stdout_bytes=%d, deadline=%v, elapsed_ms=%d", stage, result.ExitCode, len(result.Stdout), errors.Is(err, context.DeadlineExceeded), time.Since(started).Milliseconds())
 		if result.PID > 0 && !errors.Is(syscall.Kill(-result.PID, 0), syscall.ESRCH) {
 			return result, errors.New("inventory preflight group survived cleanup")
 		}
 		return result, err
 	})
-	info, err := launcher.CheckKiro(ctx, observed, launcher.KiroConfig{Executable: executable, Home: os.Getenv("HOME"), Directory: cwd, ScopeKey: key})
+	kiroConfig := launcher.KiroConfig{Executable: executable, Home: os.Getenv("HOME"), Directory: cwd, ScopeKey: key}
+	info, err := launcher.CheckKiro(ctx, observed, kiroConfig)
 	if err != nil {
 		t.Fatalf("inventory preflight failed: %v", err)
+	}
+	if variant.catalog {
+		required.Catalog, err = launcher.ReadKiroCatalog(ctx, observed, kiroConfig)
+		if err != nil {
+			t.Fatal("read-only CLI catalog preflight failed")
+		}
 	}
 	started := time.Now()
 	diagnostics := new(inventoryErrorObserver)
@@ -392,6 +419,12 @@ func observePinnedInventory(t *testing.T, executable string, declaredTools, list
 		report.SessionCreated, report.Advertised, report.Commands, report.ToolsAvailable, report.QuerySent, report.Success, report.ResultBytes, report.ResultKinds, report.UnknownResultFields, report.Notifications, report.NotificationKinds, report.TextBytes, report.NativeNames,
 		closeErr == nil && groupGone && runner.Active() == 0, time.Since(started).Milliseconds())
 	t.Logf("declared_tool_count=%d, data_kinds=%v, data_container_sizes=%v, tool_entry_kinds=%v, listed_native_names=%v", len(declaredTools), report.DataKinds, report.DataSizes, report.ToolEntryKinds, report.ListedNativeNames)
+	if variant.catalog {
+		t.Logf("catalog_comparison=%+v, model_selection_sent=false, model_prompt_sent=false", report.ModelCatalog)
+		if !report.ModelCatalog.Decoded || !report.ModelCatalog.CLIAuto || !report.ModelCatalog.ACPAuto {
+			t.Error("the exact auto model was not established in both validated catalogs")
+		}
+	}
 	if closeErr != nil || !groupGone || runner.Active() != 0 {
 		t.Fatal("inventory cleanup did not join all owners")
 	}

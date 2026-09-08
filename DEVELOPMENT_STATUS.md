@@ -12,6 +12,8 @@ does not redefine completion around an intermediate phase.
   and the complete live/release gates remain open. Detailed results and failed attempts appear below.
 - D44's first-session controls keep the launch agent's inventory when a separate session workspace
   contains a same-named conflicting agent. Reload, inherited effects and native denial remain open.
+- D46 verifies agreement of all 19 CLI/ACP model identities and client aliases, including auto, in
+  one owned empty-agent session. No model selection or prompt was sent; live turn gates remain open.
 - The original fourteen repository Markdown documents were read in README order, with README and
   AGENTS first. LIVE_KIRO_TEST_PLAN.md now adds the concrete scope of a separately opted-in test.
 - Specification-only baseline committed as `7b108dd`.
@@ -564,6 +566,34 @@ Final whole-repository vet, changed-file formatting and diff checks passed. Invo
 test with its credit flag explicitly disabled skipped immediately (1.250s package); this verifies
 the opt-in boundary, not a successful live turn. The exact pending experiment is reviewable in
 LIVE_KIRO_TEST_PLAN.md, which is now included in README's mandatory reading order.
+
+### CLI and ACP model identity agreement
+
+D46 adds a comparison against the actual session/new model result, using the existing production
+decoder and alias mapping. New cases first failed on absent comparison APIs. Ten independent data
+cases and three new fake ACP modes then passed with the existing inventory/privacy suite in 3.993s
+under the race detector. They cover exact IDs, normalized-name collisions, reordered public select
+options, selected-but-unlisted current models and malformed/differing catalogs. No synthetic fixture
+supports a model selection or prompt, and disagreement must stop before the read-only tools query.
+
+The first TestKiroPinnedCatalogAgreement attempt failed account preflight at 5.108s, with exit -1
+and no stdout (5.412s package). ACP had not started. One identical bounded retry passed in 16.977s
+(15.71s test): the account check took 1.424s and the finite CLI catalog command 9.257s. Both validated
+catalogs contain 19 entries; all 19 backend IDs and their reversible client aliases agree, auto is
+present in each, and the current selections match. The actual session uses the legacy model shape.
+The empty-agent tools query succeeded with 98 response bytes and no listed tool. All finite-command
+groups and the ACP group were gone. Normalized stdout and terminal exit status for both attempts
+are retained in separate owner-only ignored observation directories.
+
+This closes the observed CLI-to-session catalog identity check for that version/session, not live
+model changes, generation semantics, the interactive model selector or R06. No model prompt, client
+tool effect, credential copying or login/logout was involved. The D45 credit test remains unrun and
+requires its pending explicit opt-in; no production adapter, dependency or permission changed.
+
+Final uncached `go test -race -count=1 -p 1 ./internal/acp ./internal/interop` passed in 5.650s and
+18.594s with installed-CLI opt-ins empty and the credit flag explicitly disabled. Whole-repository
+`go vet ./...`, changed-file formatting and `git diff --check` passed. These fixture results remain
+separate from the successful installed catalog observation and its earlier failed preflight.
 
 ### Request constraints and negative client recovery evidence
 

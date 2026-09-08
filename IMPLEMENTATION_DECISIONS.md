@@ -1433,3 +1433,32 @@ removed private launch/relay artifacts, and absence of the independently recorde
 kernel-observed group after cleanup. Reports retain only fixed names, counts, sizes and Boolean
 outcomes. Native effect attempts and actual successful client file/shell execution remain separate
 tests; this denying control cannot stand in for either requirement.
+
+## D46: CLI and ACP catalog agreement without a model turn (review R14/R16)
+
+The read-only inventory can compare its session/new result against the separately validated public
+CLI catalog. It uses the production session-model decoder, requires exact backend-ID set equality
+and checks every client alias's reverse mapping. The report retains only counts, equality flags,
+the fixed legacy/config-option selector kind and presence of the exact auto model. It retains no
+model descriptions, arbitrary model/selector IDs or session ID. A different current selection is
+reported separately because the CLI default is not an instruction to change an existing session.
+Catalog counts include the public adapter's selected-but-unlisted current model when supplied.
+
+Independent cases cover legacy and public select controls, reordering, different current selections,
+an omitted current entry, normalized-name collisions, missing/additional IDs, duplicate or absent
+model state and the one-MiB response ceiling. The fake ACP permits only initialize, session/new and
+one advertised tools query; catalog disagreement or malformed state must stop before that query.
+It cannot switch a model or submit a prompt. An invalid expected catalog rejects before session work.
+
+The installed Kiro 2.21.1/v2 test uses an empty owned agent and configuration/workspace. Its initial
+attempt stopped at the unchanged five-second account-check deadline before ACP. One identical
+bounded retry passed: both validated catalogs contain 19 models, all 19 IDs and aliases agree,
+both include auto, and their current selections match. ACP uses the legacy model-state shape.
+The tools query reports an empty inventory and cleanup joins the process group. Only the exact
+public catalog-listing command receives fifteen seconds; ordinary version/account checks retain
+five seconds and the entire observation has a one-minute context with separately bounded cleanup.
+
+This establishes catalog decoding and identity agreement for this session/version. It does not
+establish live model selection, generation constraints, execution restrictions or complete client
+selector behavior. No prompt, model change, client tool, credential copy or login/logout runs.
+The production policy gate and the separately pending D45 credit-consuming experiment are unchanged.
