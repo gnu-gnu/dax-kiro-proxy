@@ -298,6 +298,13 @@ default and exact ID/alias round trips. All 19 rate-unit values were outside the
 enum candidates; no raw units or credit multipliers were invented or recorded. Rate interpretation,
 startup cache wiring and live ACP-ID comparison remain separate. `go vet ./...` passed.
 
+The subsequent opt-in initialize-only probe failed its existing-account login preflight in 2.751s
+(2.29s test), before starting ACP. It therefore supplies no initialization, capability or effective
+restriction evidence. It sends neither session/new nor session/prompt even if initialization succeeds;
+its owned candidate has no tools and an effect-free false MCP executable. No login/logout or model
+request was attempted. The failed verification is not interpreted as proof of a particular account
+state. Local fixture work can continue while live initialization remains unverified.
+
 ### Phase 6 owned HTTP server
 
 New server tests first failed on absent APIs. D29 adds connection admission before HTTP parsing,

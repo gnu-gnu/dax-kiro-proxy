@@ -2,10 +2,12 @@ package interop_test
 
 import (
 	"context"
+	"crypto/rand"
 	"errors"
 	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 
@@ -13,6 +15,8 @@ import (
 	"dax-kiro-proxy/internal/catalog"
 	"dax-kiro-proxy/internal/childproc"
 	"dax-kiro-proxy/internal/kiroauth"
+	"dax-kiro-proxy/internal/launcher"
+	"dax-kiro-proxy/internal/toolregistry"
 )
 
 // This probe sends initialize and session/new only with a newly owned HOME/cwd/profile. The finite
@@ -93,4 +97,57 @@ func kiroSetupFailure(err error) string {
 		}
 	}
 	return "unclassified"
+}
+
+// Account-backed initialization stops before session/new or session/prompt. The independently owned
+// candidate has no tools; even an unexpected attempt to start its sole MCP command only runs false.
+func TestKiroPinnedACPInitializationOnly(t *testing.T) {
+	executable := os.Getenv("DAX_INTEROP_KIRO_BINARY")
+	if executable == "" {
+		t.Skip("set DAX_INTEROP_KIRO_BINARY for initialize only with the existing account; no session or prompt")
+	}
+	root, err := os.MkdirTemp("/private/tmp", "dax-kiro-initialize-")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(root)
+	runner, err := childproc.New(childproc.Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer runner.Close()
+	var key [32]byte
+	if _, err := rand.Read(key[:]); err != nil {
+		t.Fatal(err)
+	}
+	info, err := launcher.CheckKiro(t.Context(), runner, launcher.KiroConfig{Executable: executable, Home: os.Getenv("HOME"), Directory: root, ScopeKey: key})
+	if err != nil {
+		t.Fatalf("initialize probe preflight failed: %v", err)
+	}
+	registry, err := toolregistry.Build(t.Context(), nil, nil, syntaxFixtureValidator{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	agent, err := launcher.WriteCandidateAgent(launcher.AgentConfig{Directory: root, Registry: registry, RelayExecutable: "/usr/bin/false", RelayConfig: filepath.Join(root, "unused-control.json")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	defer cancel()
+	started := time.Now()
+	client, err := acp.Start(ctx, acp.Config{Executable: executable, Directory: root, Args: []string{"acp", "--agent", agent.Name, "--agent-engine", "v2"},
+		Environment: []string{"HOME=" + os.Getenv("HOME"), "PATH=" + filepath.Dir(executable) + ":/usr/bin:/bin:/usr/sbin:/sbin", "TMPDIR=" + root, "TERM=dumb", "LANG=en_US.UTF-8"},
+		ClientInfo:  acp.Info{Name: "dax-initialize-observation", Version: "1"}, Auth: kiroauth.Classifier{}, Limits: acp.Limits{RequestTimeout: 5 * time.Second}})
+	if err != nil {
+		t.Fatalf("pinned ACP initialize failed: %s", kiroSetupFailure(err))
+	}
+	defer client.Close()
+	caps, pid := client.Capabilities(), client.PID()
+	if err := client.Close(); err != nil {
+		t.Fatalf("initialize-only cleanup failed: %s", kiroSetupFailure(err))
+	}
+	if !errors.Is(syscall.Kill(-pid, 0), syscall.ESRCH) {
+		t.Fatal("initialize-only process group survived cleanup")
+	}
+	t.Logf("version=%s, protocol=1, initialized=true, session_created=false, prompt_sent=false, load_session=%v, image=%v, audio=%v, embedded_context=%v, mcp_http=%v, mcp_sse=%v, cleanup_joined=true, elapsed_ms=%d", info.Version, caps.LoadSession, caps.Prompt.Image, caps.Prompt.Audio, caps.Prompt.EmbeddedContext, caps.MCP.HTTP, caps.MCP.SSE, time.Since(started).Milliseconds())
 }
