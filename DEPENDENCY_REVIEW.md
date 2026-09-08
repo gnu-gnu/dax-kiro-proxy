@@ -2,8 +2,16 @@
 
 Review date: 2026-09-08. Status: candidate assessment, not distribution clearance.
 
-No project license has been selected. No dependency was installed or imported, no module/lock file was
-created, and no full build/test dependency graph exists yet. Library names below are recommendations
+Implementation update: the user selected Go. The implementation and independent Go fake process
+currently use no external modules. Go 1.27.1 darwin/arm64 was downloaded through the official Go
+toolchain mechanism into the ignored repository cache; its installed LICENSE (BSD-3-Clause) and
+PATENTS grant were read. `go.mod` records Go 1.27.0 with toolchain 1.27.1. The initial host's Go 1.22.0
+was used only to bootstrap the selected toolchain. Runtime/vendor/race-test component inventory is
+still a release task. The following Phase 0 candidate assessment is historical; no Rust dependency
+or JSON Schema library has been adopted yet.
+
+No project license has been selected. At the Phase 0 review no dependency was installed or imported,
+no module/lock file was created, and no full build/test dependency graph existed. Library names below are recommendations
 for the proposed experiments or later phases. A top-level license or manifest declaration does not
 establish the licenses of all transitive, generated, vendored, target-specific, or test components.
 

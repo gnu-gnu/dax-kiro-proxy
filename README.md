@@ -1,7 +1,7 @@
 # dax-kiro-proxy specification repository
 
 This repository is the implementation boundary for a new, standalone Kiro ACP proxy.
-It currently contains specifications only. It intentionally contains no source code copied from,
+Implementation is proceeding in Go from these specifications. It contains no source code copied from,
 derived line-by-line from, or linked to another repository.
 
 The intended product presents an Anthropic Messages-compatible loopback gateway to a client such as
@@ -21,21 +21,20 @@ Read these documents before implementation:
 6. `ACCEPTANCE_SPEC.md` — black-box requirements and release gates.
 7. `LANGUAGE_DECISION.md` — criteria for selecting Go or Rust before implementation.
 8. `PHASE_0_REVIEW.md` — specification findings, proposed resolutions, and remaining gates.
-9. `LANGUAGE_DECISION_RECORD.md` — current Go recommendation and the Go/Rust experiment design.
+9. `LANGUAGE_DECISION_RECORD.md` — confirmed Go selection and the historical Go/Rust experiment design.
 10. `DEPENDENCY_REVIEW.md` — candidate licenses, provenance checklist, and outstanding review work.
+11. `IMPLEMENTATION_DECISIONS.md` — adopted wire, lifecycle, and resource policies.
+12. `DEVELOPMENT_STATUS.md` — implementation evidence and remaining acceptance gates.
 
 `AGENTS.md` makes this reading order mandatory for coding agents.
 
 ## Current phase
 
-The current phase is Phase 0 review and experiment design. The review recommends Go; the language
-record is proposed, not final. Experiments, fixture freeze, owner rights confirmations, and the full
-dependency review remain open. The Phase 0 documents record proposed specification changes and do not
-silently override the original requirements or acceptance criteria.
-
-Do not add production implementation code until the Phase 0 gate is complete and the language decision
-is finalized. Once implementation begins, it must be based only on these documents and independently
-obtained public protocol documentation identified here.
+The user selected Go and authorized implementation through the complete standalone product. The
+specification-only baseline is `7b108dd`. Phase 0 reports retain the historical unmeasured experiment
+design; the explicit language selection supersedes comparative experiments as a selection gate.
+Rights/license and live-release gates remain open. Implementation begins with independent fixtures
+and fake-process transport tests. Consult DEVELOPMENT_STATUS.md for verified progress.
 
 ## Naming
 

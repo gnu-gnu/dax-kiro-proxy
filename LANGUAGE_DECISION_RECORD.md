@@ -1,6 +1,13 @@
-# Language decision record: Go recommended
+# Language decision record: Go selected
 
-Date: 2026-09-08. Status: **proposed; recommendation only, not the final language gate**.
+Date: 2026-09-08. Status: **final language selection by explicit user direction**.
+
+The user instructed "go로 끝까지 진행해" after the recommendation. Go is selected for implementation.
+That direction supersedes the comparative Go/Rust experiment as a prerequisite to selecting a
+language. The experiment design below remains historical/unmeasured; it is not evidence that Go won
+a benchmark. Go functional, race, lifecycle, packaging and release checks still apply. Rights and
+distribution-license confirmation remain separate open release gates and are not inferred from this
+instruction. The specification-only baseline is commit `7b108dd`.
 Decision framework: [LANGUAGE_DECISION.md](LANGUAGE_DECISION.md).
 Specification findings: [PHASE_0_REVIEW.md](PHASE_0_REVIEW.md).
 Candidate libraries and license evidence: [DEPENDENCY_REVIEW.md](DEPENDENCY_REVIEW.md).
@@ -179,5 +186,6 @@ defects remain after a bounded redesign, the schema candidate cannot meet requir
 resource limits, or a Rust-based typed design shows a material tested reliability advantage with an
 acceptable dependency graph. Reevaluate either choice if platform scope or team ownership changes.
 
-Current outcome: **Go is the technical recommendation. Measured winner, final language selection,
-and software license selection remain unclaimed.**
+Current outcome: **Go is selected by the user. Comparative benchmark results and software license
+selection remain unclaimed.** The historical experiment-based selection conditions above are
+superseded by the explicit choice; runtime correctness and release gates remain in force.

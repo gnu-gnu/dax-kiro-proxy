@@ -1,0 +1,18 @@
+{
+  "created": "2026-09-08",
+  "scope": "Independently authored fake ACP process and synthetic protocol cases; no live conversation captures",
+  "public_sources": [
+    "https://www.jsonrpc.org/specification",
+    "https://agentclientprotocol.com/protocol/v1/initialization",
+    "https://agentclientprotocol.com/protocol/v1/prompt-turn",
+    "https://agentclientprotocol.com/protocol/v1/tool-calls"
+  ],
+  "repository_sources": ["PROTOCOL_SPEC.md", "ACCEPTANCE_SPEC.md", "IMPLEMENTATION_DECISIONS.md"],
+  "fixture": "fake/main.go",
+  "constraints": [
+    "No imports from proxy implementation packages",
+    "fixture/* methods are synthetic test controls, not Kiro capabilities",
+    "All text, error strings, IDs and credential sentinels are synthetic",
+    "Descendant processes only exercise lifecycle cleanup; they execute no client tool"
+  ]
+}

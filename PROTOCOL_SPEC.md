@@ -208,8 +208,9 @@ synchronization.
 
 Use `_kiro.dev/commands/execute` with the session ID and a command object whose command name is `effort`
 and whose arguments contain the requested value. Success requires an object with `success` equal to
-true. Any missing command, transport error, negative result, or rejection is nonfatal and recorded as
-the effective sync status.
+true. A missing command, well-formed negative result, or command rejection is nonfatal and recorded as
+the effective sync status. Transport corruption, failed writes, process termination, and ambiguous
+timeouts retain the process-retirement semantics of section 4, even during an optional command.
 
 ### Metadata
 
