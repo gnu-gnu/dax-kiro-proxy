@@ -205,6 +205,64 @@ opt-ins unset; `go vet ./...` and `git diff --check` passed. The explicit failed
 remain failed live gates, not results covered by that skipped run. No production option or dependency
 changed.
 
+### MCP configuration writers and inventory boundaries
+
+The initial TestKiroOwnedMCPConfigurationDiscovery failed in 37.644s: both pinned versions and help
+passed, but the two account-HOME global inventories each returned 37 bytes and the two workspace
+inventories each returned 71 bytes, all exit 0 with none of the six owned standalone-file markers.
+Every process group was gone. This did not establish configuration-root selection or MCP exclusion.
+
+The first fully synthetic-HOME main-binary writer probe failed before writing: mcp add --help exited
+1 with 46 bounded bytes (2.510s run). Direct helper invocation then completed help and the disabled
+workspace writer, producing exactly one matching work/.kiro/settings/mcp.json of 136 bytes. Its
+workspace list still omitted the marker and failed the original assertion (3.403s run, 2.47s test).
+No real-HOME setter, authentication mutation or session was used. The main/helper difference remains
+unexplained; the production launcher is not switched to the helper by these observations.
+
+An enabled control initially failed the probe's requirement for an explicit false field: the writer
+omits disabled in that case. The inspection now accepts its documented false default while still
+rejecting a present non-Boolean value. This is a fixture assertion correction, not permission to
+ignore an explicit disabling constraint.
+
+The final differential setup independently authors a local empty agent, then compares --scope
+workspace with --agent using the same /usr/bin/false server. The four-case run took 9.927s:
+
+| Writer target and state | Matching owned file | Listed agent/server marker | Result of original complete-inventory assertion |
+| --- | --- | --- | --- |
+| Workspace file, disabled | settings/mcp.json, 136 bytes | Absent | Failed |
+| Named agent, disabled | agents/dax-mcp-owned-agent.json, 354 bytes | Both present | Passed |
+| Workspace file, enabled | settings/mcp.json, 112 bytes | Absent | Failed |
+| Named agent, enabled | agents/dax-mcp-owned-agent.json, 330 bytes | Both present | Passed |
+
+The relative files in this table are under the owned work/.kiro directory. Both state variants
+completed their commands and joined all groups. The listed distinction is therefore not explained
+by disabled filtering. It does not prove either file's effective treatment by ACP. The public list
+output is agent-oriented in this observation; merely failing to list a standalone MCP declaration
+cannot serve as inherited-configuration exclusion proof.
+
+TestKiroOwnedMCPWriterInventoryObservation retains the successful named-agent cases and explicit
+negative standalone-file controls. TestKiroOwnedMCPFileInventoryObservation retains the six-marker
+negative A/B observation. Passing these narrowly named observations must not be reported as passing
+R06 or the original complete-inventory assertion. D37 records that boundary. Their settings writes
+are entirely under a synthetic HOME; the account-HOME case admits only finite version/help/list
+commands. Captures are bounded and reports contain fixed markers/counts, not arbitrary user values.
+No model prompt, MCP connect/status command, new dependency or production-policy change is involved.
+
+The final opt-in installed-CLI race run passed in 50.167s: the four writer/list cases took 9.75s and
+the main-binary A/B file observation took 38.71s. Every finite command exited normally and every
+owned process group was gone. This confirms the positive/negative observations above; inherited
+MCP exclusion and effective tool restrictions remain unverified. The ordinary interop race suite
+with installed-client opt-ins unset passed in 1.331s; whole-repository go vet and whitespace checks
+also passed. No broader acceptance or live-model result is inferred from the skipped opt-in cases.
+
+A proposed third Claude consultation was rejected by automatic approval review before transmission.
+The stated reason was external transmission of internal observation/path/configuration information
+without specific approval for that payload and destination. The exact proposed text is saved in
+.cache/claude-consult/work/prompt-mcp.txt; a user approval request is pending. It has not been sent
+through an alternate route, and no answer-mcp.md is claimed. The two earlier completed consultations
+remain the only successful external advisory invocations recorded above. Local observations continue
+independently while that specific transmission is pending.
+
 ### Request constraints and negative client recovery evidence
 
 D33 now inventories accepted request fields and the remaining R16 gaps. Known unmapped stop,

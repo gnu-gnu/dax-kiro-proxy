@@ -1065,3 +1065,41 @@ correlated relay/client-denial/sentinel experiment is a useful restriction test 
 one path cannot discharge R06. No silent constraint deletion, fabricated provider token limit,
 unrestricted payload recording or public verification bypass is authorized by that advice. The
 existing unsupported-control policy and all live startup gates remain in force.
+
+## D37: configured MCP inventory is not effective session inventory (review R06/R14)
+
+Pinned Kiro 2.21.1 exposes mcp add and mcp list through its public main/helper executables. The
+installed add help distinguishes --scope for a standalone configuration from --agent for a named
+agent. Under a completely synthetic HOME, the main executable's add help failed with a nonzero exit;
+the adjacent, version-checked helper completed the same help and writer commands. This observation
+does not change the production executable or establish the reason for the main/helper difference.
+
+The helper writes a workspace-scoped server into work/.kiro/settings/mcp.json. For a separately
+authored local agent, --agent writes its mcpServers entry into that agent's existing JSON file.
+Both disabled and enabled cases use only /usr/bin/false as their server command. The disabled field
+is true for --disabled and omitted without it; the public
+[MCP configuration reference](https://kiro.dev/docs/mcp/configuration/) documents the omitted default
+as false. Only newly produced files inside the owned probe root are inspected, with rooted reads,
+no followed links, and explicit entry/depth/file/byte bounds. No real HOME setter is used.
+
+The same helper's mcp list workspace displays the named agent and its server in both states, but
+does not display the server written into the standalone workspace MCP file in either state. These
+positive and negative controls separate the observed inventory distinction from disabled filtering.
+A separate main-binary observation with the account HOME also omits all six independently seeded
+standalone-file markers across two owned KIRO_HOME roots and two documented filename candidates.
+That absence cannot establish that these files are unused or excluded during session creation.
+
+The tests record the pinned observation, including its negative controls; they do not turn the
+initial failed full-inventory assertion into a passing restriction gate. Named-agent listing is not
+agent activation, MCP initialization, effective tool enumeration or execution denial. In particular,
+this list cannot discharge inherited-MCP exclusion. No session/new, session/prompt, server status or
+connect command is sent, and no real client tool effect is performed. Any unexpectedly invoked
+declared server can only run false. Production startup still returns ErrPolicyUnverified.
+
+The public [ACP extension reference](https://kiro.dev/docs/cli/acp/) describes command availability
+after session creation and a separate commands/execute request. A future bounded /tools inventory
+observation must therefore first establish the owned session's setup inputs and inspect advertised
+commands, without converting a slash command into a model prompt. Its exact payload/result, inherited
+configuration behavior and attempted native-tool denial still need independent evidence. Neither
+the newer documentation nor these finite CLI results establish v3 engine or 3.x permission support.
+Public documentation was rechecked 2026-09-09; no previous implementation was consulted.
