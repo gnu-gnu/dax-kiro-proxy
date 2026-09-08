@@ -47,6 +47,7 @@ func main() {
 	var parentCall json.RawMessage
 	var parentReplyID json.RawMessage
 	initialized := false
+	session := ""
 	for {
 		line, err := r.ReadBytes('\n')
 		if err != nil {
@@ -95,6 +96,23 @@ func main() {
 			continue
 		}
 		switch q.Method {
+		case "session/new":
+			if !strings.HasPrefix(mode, "chat") {
+				os.Exit(25)
+			}
+			var p struct {
+				CWD string            `json:"cwd"`
+				MCP []json.RawMessage `json:"mcpServers"`
+			}
+			if json.Unmarshal(q.Params, &p) != nil || p.CWD == "" || p.MCP == nil {
+				os.Exit(26)
+			}
+			session = "fixture-conversation"
+			if mode == "chat-no-id" {
+				reply(q.ID, map[string]any{})
+				continue
+			}
+			reply(q.ID, map[string]any{"sessionId": session, "models": map[string]any{"currentModelId": "fixture-backend", "availableModels": []any{map[string]any{"modelId": "fixture-backend", "name": "Fixture", "description": "Synthetic model"}}}})
 		case "fixture/echo":
 			reply(q.ID, json.RawMessage(q.Params))
 		case "fixture/pair":
@@ -109,6 +127,54 @@ func main() {
 			write(map[string]any{"jsonrpc": "2.0", "method": "fixture/accepted", "params": map[string]any{"id": q.ID}})
 			hanging = append(hanging, q.ID)
 		case "session/prompt":
+			if strings.HasPrefix(mode, "chat") {
+				var p struct {
+					Session string            `json:"sessionId"`
+					Prompt  []json.RawMessage `json:"prompt"`
+				}
+				if json.Unmarshal(q.Params, &p) != nil || p.Session != session || len(p.Prompt) == 0 {
+					os.Exit(27)
+				}
+				if mode == "chat-auth" {
+					write(map[string]any{"jsonrpc": "2.0", "id": q.ID, "error": map[string]any{"code": 401, "message": "login required"}})
+					continue
+				}
+				if mode == "chat-before" {
+					hanging = append(hanging, q.ID)
+					continue
+				}
+				owner := session
+				if mode == "chat-wrong-session" {
+					owner = "some-other-session"
+				}
+				write(map[string]any{"jsonrpc": "2.0", "method": "_fixture/diagnostic", "params": map[string]any{"sessionId": owner}})
+				chunks := []string{"birch ", "stone"}
+				if mode == "chat-project" {
+					chunks = []string{string(q.Params)}
+				}
+				if mode == "chat-order" {
+					chunks = nil
+					for i := range 32 {
+						chunks = append(chunks, fmt.Sprintf("%d,", i))
+					}
+				}
+				for _, text := range chunks {
+					write(map[string]any{"jsonrpc": "2.0", "method": "session/update", "params": map[string]any{"sessionId": owner, "update": map[string]any{"sessionUpdate": "agent_message_chunk", "content": map[string]any{"type": "text", "text": text}}}})
+				}
+				if mode == "chat-slow" {
+					hanging = append(hanging, q.ID)
+					continue
+				}
+				stop := "end_turn"
+				if mode == "chat-cancelled" {
+					stop = "cancelled"
+				}
+				if mode == "chat-bad-stop" {
+					stop = "invented"
+				}
+				reply(q.ID, map[string]any{"stopReason": stop})
+				continue
+			}
 			hanging = append(hanging, q.ID)
 		case "session/cancel":
 			for _, id := range hanging {

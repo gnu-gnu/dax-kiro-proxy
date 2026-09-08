@@ -40,7 +40,10 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
 - Server web search produces compatible use/result blocks and request count when supported.
 - Provider token usage remains zero when unreported; estimates appear only in labeled local metadata.
 - Recognized auth expiry returns HTTP 200 valid text completion in streaming and non-streaming modes,
-  includes a fallback marker, instructs `kiro-cli login`, and never attempts another provider.
+  includes an initial fallback header before commitment or a declared terminal trailer after stream
+  commitment, instructs `kiro-cli login`, and never attempts another provider. Late expiry finishes
+  the existing message without a second message start or an SSE error; visible login text works even
+  when the client discards trailers.
 
 ## D. Models and effort
 

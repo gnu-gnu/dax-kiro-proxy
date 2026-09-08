@@ -62,4 +62,50 @@ A well-formed private-command rejection or method-not-found response can degrade
 A broken transport cannot. This resolves R03 in favor of the transport integrity invariant. No private
 method names or Kiro-specific payloads are required by the public ACP transport.
 
+## D06: HTTP commitment and turn ownership (review R01/R04/R12)
+
+Authentication failure before HTTP commitment uses status 200, a normal completion and initial
+`X-Dax-Kiro-Proxy-Auth-Fallback: 1`. After stream commitment it appends login text to the current
+message, ends normally, and emits that marker in a predeclared trailer. Trailer handling by a live
+client remains an interoperability observation; visible login text never depends on it. Ordinary
+failures before commitment use 502; ordinary failures after commitment emit a safe SSE error.
+Every failed backend is discarded even when the client receives a successful auth explanation.
+
+The gateway calls Finish only after delivering a complete HTTP response. Cancel covers disconnect,
+timeout, malformed output and partial delivery, and discards backend state. The session owner remains
+responsible for the longer ACP-turn lifetime across a successfully delivered future tool handoff.
+First-event timing starts after prompt dispatch; total-turn timing also bounds setup and will continue
+across tool handoffs. Diagnostics distinguish the two deadlines; empty text is not a usable event.
+
+HTTP routes match exact method/path pairs without path-cleaning redirects. `/health` returns only
+liveness without a token. `/dax-kiro-proxy/status/usage` requires the independent UI token; all model
+routes require the model token. Both secrets are independently generated from 32 random bytes.
+Conflicting or duplicate credential headers are rejected. Query parameters never supply credentials.
+
+Initial limits: 16 active model HTTP requests; 16 MiB request bodies and encoded responses; 15-second
+body read timeout, 5-second write timeout, 90-second first-event and 10-minute total-turn timeouts.
+No provider-billed token estimates are synthesized. Unsupported tool/media adapters are rejected
+explicitly until their respective delivery phases, rather than silently losing those request fields.
+
+## D07: initial text projection and delivery barrier (review R08/R10/R16)
+
+The public ACP adapter uses ordered text parts. A fresh conversation places system text and prior
+role/content arrays in a JSON context block, preceded by an explanatory text block. A separate marker
+introduces the newest user blocks, which retain their order. This is a local projection policy, not
+a claimed ACP system-message field or a substitute for the launcher's execution restrictions.
+
+One stdout consumer drains all notifications already received before exposing a prompt's RPC
+completion. Unknown optional updates do not become visible model text. A wrong/missing session ID on
+a public session update, invalid content/stop reason, or a canceled result makes the state unusable.
+Only `end_turn`, `max_tokens` and `refusal` map directly to terminal client stop reasons. An agent's
+`max_turn_requests` or unknown reason currently fails explicitly rather than fabricating success.
+
+The initial text driver owns one process/session and admits one response at a time. Until Phase 5
+reconciliation is installed, subsequent independent requests retire the previous process and create
+fresh state with full history; they cannot accumulate unrelated histories. It is an intermediate
+internal adapter, with catalog/selection and executable launcher entry points still to come. Its
+owned turn timeout survives HTTP context disposal; successful delivery uses Finish, and Cancel/Close
+join process cleanup independently of caller cancellation. The test driver configures empty MCP
+servers for the text-only fake; no live Kiro launch is authorized by that fixture configuration.
+
 Other Phase 0 proposals remain pending until adopted with their relevant implementation and tests.

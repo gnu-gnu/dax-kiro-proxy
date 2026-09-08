@@ -112,9 +112,13 @@ marker. Estimates must never be inserted into provider usage fields.
 ### Authentication fallback
 
 Recognized Kiro login/token expiry returns HTTP 200 and a normal assistant text completion with
-`end_turn`. Streaming requests receive the complete valid SSE sequence. A product-specific response
-header marks the completion as an authentication fallback. The text tells the user to run
-`kiro-cli login` and retry. No alternate provider is attempted.
+`end_turn`. Before response headers are sent (including buffered responses),
+`X-Dax-Kiro-Proxy-Auth-Fallback: 1` marks the fallback. If a stream has already started, append login
+text to the existing message, finish it with `end_turn`, and send the same marker as a predeclared
+HTTP trailer. Never start a second message or emit an SSE error for recognized auth expiry. Trailers
+are supplemental because a client may discard them; the visible text always tells the user to run
+`kiro-cli login` and retry. No alternate provider is attempted. Ordinary failures before headers use
+HTTP 502; after stream commitment they use an Anthropic SSE error and discard the affected session.
 
 ## 4. ACP process transport
 

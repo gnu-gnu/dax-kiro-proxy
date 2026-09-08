@@ -326,6 +326,23 @@ func (c *Client) Next(ctx context.Context) (Notification, error) {
 	}
 }
 
+// TryNext drains notifications already read from stdout without waiting. A single consumer can
+// use it after an RPC completes to deliver preceding notifications before its terminal result.
+func (c *Client) TryNext() (Notification, bool, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.err != nil {
+		return Notification{}, false, c.err
+	}
+	select {
+	case event := <-c.events:
+		c.eventBytes -= event.size
+		return event, true, nil
+	default:
+		return Notification{}, false, nil
+	}
+}
+
 func (c *Client) writeLoop() {
 	defer close(c.writeDone)
 	for {
