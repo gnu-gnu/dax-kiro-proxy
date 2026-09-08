@@ -10,6 +10,8 @@ does not redefine completion around an intermediate phase.
   explicitly registered relays successfully, but standalone MCP-file controls do not activate by
   default, so the inheritance-exclusion comparison remains unverified. Native execution restrictions
   and the complete live/release gates remain open. Detailed results and failed attempts appear below.
+- D44's first-session controls keep the launch agent's inventory when a separate session workspace
+  contains a same-named conflicting agent. Reload, inherited effects and native denial remain open.
 - All fourteen repository Markdown documents read in README order, with README and AGENTS first.
 - Specification-only baseline committed as `7b108dd`.
 - Go selected by explicit user instruction; comparative experiments remain unmeasured.
@@ -492,6 +494,32 @@ Final uncached `go test -race -count=1 -p 1 ./internal/acp ./internal/interop` p
 18.239s with installed-CLI opt-ins unset. It covers the changed independent protocol fixtures and
 relay observers; the live results above remain separate evidence. Whole-repository `go vet ./...`,
 format checks for the changed Go files and `git diff --check` passed.
+
+### Launch and session directory selection
+
+The independent other-cwd fixture verifies the exact session/new path and a different working
+directory inode, before any installed observation. The protocol race suite passed in 3.954s; the
+subsequent protocol/privacy suite passed in 3.611s after separating the installed inventory variants.
+
+`TestKiroPinnedAgentDirectorySelection` passed on installed Kiro 2.21.1/v2 in 31.129s (29.87s test),
+with exit 0 retained alongside normalized diagnostics in the ignored private observation directory:
+
+| Launch agent tools | Session workspace agent | Listed tools | Test time |
+| --- | --- | --- | --- |
+| fs_read | Same directory and agent | read | 8.30s |
+| fs_read | Separate directory, no agent | read | 7.45s |
+| fs_read | Separate directory, same name, empty tools | read | 7.35s |
+| Empty | Separate directory, same name, fs_read | Empty | 6.76s |
+
+All version/account preflights, session creations and read-only queries succeeded. Nonempty results
+were 814 bytes; the empty result was 98 bytes. The separate-directory cases preserved one or two
+source agent files byte-for-byte. Every ACP group was gone after bounded Close. No model prompt,
+MCP server or client tool effect was requested. D44 records the narrower selection conclusion;
+the public run policy gate remains closed pending the rest of R06.
+
+Final uncached `go test -race -count=1 -p 1 ./internal/acp ./internal/interop` passed in 5.396s and
+18.666s with installed-CLI opt-ins unset. Whole-repository `go vet ./...`, changed-file format checks
+and `git diff --check` passed. No production source or dependency changed at this checkpoint.
 
 ### Request constraints and negative client recovery evidence
 

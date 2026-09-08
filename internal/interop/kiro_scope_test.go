@@ -40,7 +40,7 @@ func TestKiroPinnedMCPFileScopeObservation(t *testing.T) {
 			for _, name := range []string{"dax_scope_global_flat", "dax_scope_global_settings", "dax_scope_project_flat", "dax_scope_project_settings"} {
 				probe.relays = append(probe.relays, scopeRelay{name: name, executable: buildRelayObserver(t)})
 			}
-			observePinnedScopedInventory(t, executable, nil, nil, buildRelayObserver(t), probe)
+			observePinnedInventory(t, executable, nil, nil, buildRelayObserver(t), inventoryVariant{sources: probe})
 		}) {
 			return
 		}

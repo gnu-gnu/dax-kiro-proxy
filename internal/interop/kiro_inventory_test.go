@@ -49,6 +49,7 @@ func TestKiroReadOnlyToolsInventoryProtocol(t *testing.T) {
 		wantErr        error
 	}{
 		{"ready", true, true, nil},
+		{"other-cwd", true, true, nil},
 		{"listed", true, true, nil},
 		{"mcp-ready", true, true, nil},
 		{"mcp-multiple", true, true, nil},
@@ -68,7 +69,13 @@ func TestKiroReadOnlyToolsInventoryProtocol(t *testing.T) {
 		t.Run(test.mode, func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 			defer cancel()
-			client, err := acp.Start(ctx, acp.Config{Executable: executable, Args: []string{"inventory-" + test.mode}, Directory: root,
+			sessionDirectory := root
+			args := []string{"inventory-" + test.mode}
+			if test.mode == "other-cwd" {
+				sessionDirectory = t.TempDir()
+				args = append(args, sessionDirectory)
+			}
+			client, err := acp.Start(ctx, acp.Config{Executable: executable, Args: args, Directory: root,
 				ClientInfo: acp.Info{Name: "independent-inventory-test", Version: "1"}, Limits: acp.Limits{RequestTimeout: 2 * time.Second}})
 			if err != nil {
 				t.Fatal(err)
@@ -86,7 +93,7 @@ func TestKiroReadOnlyToolsInventoryProtocol(t *testing.T) {
 				required.ObservedTools = map[string]string{"dax_session": "fixture_relay_alias", "dax_scope_fixture": "foreign_fixture_alias"}
 				required.SettleWindow = 80 * time.Millisecond
 			}
-			report, err := readOnlyToolsInventoryAfter(ctx, client, root, 80*time.Millisecond, required)
+			report, err := readOnlyToolsInventoryAfter(ctx, client, sessionDirectory, 80*time.Millisecond, required)
 			if !errors.Is(err, test.wantErr) || report.QuerySent != test.query || report.Success != test.success || !report.SessionCreated {
 				t.Fatalf("unexpected read-only observation: report=%+v, error=%v", report, err)
 			}
@@ -234,11 +241,20 @@ func buildNamedRelayObserver(t *testing.T, name string) string {
 
 func observePinnedToolsInventory(t *testing.T, executable string, declaredTools, listedTools []string, relayExecutable string) {
 	t.Helper()
-	observePinnedScopedInventory(t, executable, declaredTools, listedTools, relayExecutable, nil)
+	observePinnedInventory(t, executable, declaredTools, listedTools, relayExecutable, inventoryVariant{})
 }
 
-func observePinnedScopedInventory(t *testing.T, executable string, declaredTools, listedTools []string, relayExecutable string, scope *mcpScopeProbe) {
+type inventoryVariant struct {
+	sources     *mcpScopeProbe
+	directories *inventoryDirectoryProbe
+}
+
+func observePinnedInventory(t *testing.T, executable string, declaredTools, listedTools []string, relayExecutable string, variant inventoryVariant) {
 	t.Helper()
+	if variant.directories != nil && (variant.sources != nil || relayExecutable != "") {
+		t.Fatal("directory controls require the separate no-MCP inventory setup")
+	}
+	scope := variant.sources
 	ctx, cancel := context.WithTimeout(t.Context(), time.Minute)
 	defer cancel()
 	root, err := os.MkdirTemp("/private/tmp", "dax-kiro-inventory-")
@@ -293,6 +309,10 @@ func observePinnedScopedInventory(t *testing.T, executable string, declaredTools
 			declaredTools = scope.prepare(t, ctx, root, configuration, cwd, candidate.Path, &required)
 		}
 	}
+	sessionDirectory := cwd
+	if variant.directories != nil {
+		sessionDirectory = variant.directories.prepare(t, root, cwd, name)
+	}
 	if os.WriteFile(filepath.Join(configuration, "settings", "cli.json"), []byte(`{"chat.disableInheritingDefaultResources":true}`), 0600) != nil {
 		t.Fatal("cannot write owned inventory configuration")
 	}
@@ -338,12 +358,15 @@ func observePinnedScopedInventory(t *testing.T, executable string, declaredTools
 	if scope != nil {
 		scope.bind(t, client.PID())
 	}
-	report, callErr := readOnlyToolsInventoryAfter(ctx, client, cwd, 3*time.Second, required)
+	report, callErr := readOnlyToolsInventoryAfter(ctx, client, sessionDirectory, 3*time.Second, required)
 	closeErr := client.Close()
 	groupGone := errors.Is(syscall.Kill(-client.PID(), 0), syscall.ESRCH)
 	runner.Close()
 	if scope != nil {
 		scope.check(t, client.PID(), report)
+	}
+	if variant.directories != nil {
+		variant.directories.check(t)
 	}
 	if broker != nil {
 		peer, verified := socket.PeerPID()

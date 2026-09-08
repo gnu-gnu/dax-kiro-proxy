@@ -1367,3 +1367,28 @@ listing for these owned inputs. It does not prove every global/workspace search 
 resource inheritance, configuration reload, session loading or native execution denial. Production
 startup continues to reject the unverified policy. No production adapter, dependency or timeout
 changes are made by these test controls.
+
+## D44: launch and session directory selection controls (review R06/R14)
+
+An independent inventory fixture first verifies that session/new receives the exact supplied
+workspace and that its directory inode differs from the process working directory. It admits only
+the existing initialization, one session creation and one advertised tools query; no prompt or
+additional command is supported.
+
+The installed Kiro 2.21.1/v2 comparison uses a fresh owned KIRO_HOME and launch workspace per case.
+The named launch agent has either tools [fs_read] or an empty tools list, with no MCP servers,
+resources or hooks. A separate session workspace can omit that agent or contain a newly authored
+agent with the same name and the opposite tool list. All source agent files are read through the
+bounded private-file adapter and compared byte-for-byte after normal ACP shutdown.
+
+The same-directory positive control lists read. A separate session directory with no agent also
+lists read from the launch agent. When the launch agent has fs_read and the session agent is empty,
+read remains listed. With the lists reversed, the inventory stays empty. Thus the selected launch
+agent determines the first session's observed inventory in these controls; the session directory's
+same-named agent does not replace it. Every case completes the tools query, leaves its source
+configuration unchanged and joins its ACP group.
+
+This supplies direct evidence for D31's separation of process cwd and the original session cwd in
+this initial selection path. It does not establish the same precedence for inherited resources,
+other hooks or MCP sources, later configuration reload, a loaded session, or native tool effects.
+No production configuration or policy gate is changed and no model prompt or tool call is sent.

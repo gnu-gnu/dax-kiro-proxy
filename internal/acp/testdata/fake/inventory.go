@@ -39,6 +39,16 @@ func inventoryFixture(mode string) {
 			if json.Unmarshal(q.Params, &p) != nil || !filepath.IsAbs(p.CWD) || p.Servers == nil || len(p.Servers) != 0 {
 				os.Exit(72)
 			}
+			if mode == "inventory-other-cwd" {
+				if len(os.Args) != 3 || p.CWD != os.Args[2] {
+					os.Exit(77)
+				}
+				launch, launchErr := os.Stat(".")
+				workspace, workspaceErr := os.Stat(p.CWD)
+				if launchErr != nil || workspaceErr != nil || !workspace.IsDir() || os.SameFile(launch, workspace) {
+					os.Exit(77)
+				}
+			}
 			if mode == "inventory-mcp-ready" || mode == "inventory-mcp-foreign" || mode == "inventory-mcp-other-server" || mode == "inventory-mcp-multiple" || mode == "inventory-mcp-multiple-missing" || mode == "inventory-mcp-late" {
 				owner := session
 				server := "dax_session"
@@ -74,7 +84,7 @@ func inventoryFixture(mode string) {
 			reply(q.ID, map[string]any{"sessionId": session})
 			stage++
 		case stage == 2 && q.Method == "_kiro.dev/commands/execute":
-			if mode != "inventory-ready" && mode != "inventory-listed" && mode != "inventory-mcp-ready" && mode != "inventory-mcp-multiple" && mode != "inventory-mcp-late" && mode != "inventory-rejected" && mode != "inventory-bad-result" {
+			if mode != "inventory-ready" && mode != "inventory-other-cwd" && mode != "inventory-listed" && mode != "inventory-mcp-ready" && mode != "inventory-mcp-multiple" && mode != "inventory-mcp-late" && mode != "inventory-rejected" && mode != "inventory-bad-result" {
 				os.Exit(73)
 			}
 			var p struct {

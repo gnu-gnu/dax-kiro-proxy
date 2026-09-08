@@ -27,6 +27,7 @@
     "Effort command shapes remain specification interpretations under D09; the separate read-only tools inventory uses the observed D39 envelope with independently authored data",
     "Inventory modes accept only initialization, one session/new and one advertised argument-free tools query; optional MCP readiness must match the owned session and exact serverName; no model prompt or tool effect is supported",
     "Independent multi-server inventory cases distinguish exact declared sources, a missing source and a delayed post-reply readiness notification",
+    "The other-cwd inventory case requires the exact independently supplied session directory and checks that its inode differs from the fake process working directory",
     "MCP tool requests are answered by synthetic test clients or an opt-in unmodified public client with an independently authored denying hook; the fake backend performs no filesystem or shell tool effect"
   ]
 }
