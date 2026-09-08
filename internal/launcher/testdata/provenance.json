@@ -1,0 +1,15 @@
+{
+  "created": "2026-09-08",
+  "scope": "Independent local HTTP client for launcher lifetime tests; no installed-client captures or external inference",
+  "repository_sources": ["PRODUCT_SPEC.md", "PROTOCOL_SPEC.md", "ACCEPTANCE_SPEC.md", "IMPLEMENTATION_DECISIONS.md"],
+  "fixtures": ["client/main.go"],
+  "constraints": [
+    "Only Go standard-library imports; no proxy implementation imports",
+    "The supplied gateway must use HTTP with a literal loopback IP",
+    "All prompts, tools, arguments, results and settings are independently chosen synthetic values",
+    "The fixture executes no client tool or hook and modifies no user or project file",
+    "Observed stdout contains only its owned process ID, local address, runtime path and fixed state",
+    "Readiness output is a fixture control, not evidence of actual Claude initialization",
+    "Cancellation and finite lifetime are controlled by the product's attached process-group owner"
+  ]
+}

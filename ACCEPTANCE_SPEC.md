@@ -127,6 +127,10 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
 - Prepared policy cleanup occurs once after ACP/router shutdown and before releasing capacity.
   Repeated idle release joins the same cleanup result. A retired cleanup failure remains visible to
   pool shutdown and prevents admission of further launch artifacts.
+- Client runtime exit/cancellation joins HTTP, backend and usage owners, including an ACP turn waiting
+  for tool results after its HTTP response ended. Schema shutdown and profile removal follow these
+  joins. Startup failure also closes transferred owners, preserves caller descriptors/source settings,
+  and reports cleanup failure without disclosing arbitrary adapter error text.
 
 ## H. Usage and diagnostics
 

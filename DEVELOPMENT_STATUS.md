@@ -167,6 +167,30 @@ longer load/fuzz and clean-host release gates remain unverified. No new external
 
 ## Remaining work
 
+### Local client runtime coordination
+
+The new lifecycle tests first failed on missing RunClient APIs. D32 joins the local HTTP server,
+isolated profile, attached client, backend, schema owner and optional usage cache. Model/UI tokens are
+generated within this stage. Its timing fields distinguish actual process launch from still-unverified
+client initialization. Every startup failure path also closes the transferred owners.
+
+The initial focused race suite passed in 6.285s. It composes an independent HTTP client with the actual
+gateway/session/schema/relay implementation and fake ACP: normal text, synthetic tool completion,
+client exit after tool handoff, and repeated cancellation while waiting for tools all clean up. It
+also covers canceled startup, malformed settings, failed exec, conflicting authority and invalid
+limits. A suspended usage fetch joins, and an arbitrary synthetic cleanup error is replaced with a
+fixed class while other cleanup continues. Source settings and caller descriptors remain unchanged.
+
+This is an internal runtime stage, not a complete executable launcher. Kiro restriction preflight,
+catalog/cache/last-model wiring, client assets and interactive readiness, UI hook/status credentials
+and final CLI entry remain unfinished. The new fixture contains no upstream capture and performs no
+actual client tool effect, installed-client invocation or Kiro model request. No dependency was added.
+
+The final complete launcher race suite passed in 7.913s, including preservation of the profile until
+backend shutdown completes and parent cancellation winning a concurrent child exit. `go vet ./...`
+and `git diff --check` passed. The preceding D31 checkpoint's full all-package race suite remains the
+latest broad run; this subsequent change is confined to the launcher and its independent fixtures.
+
 ### Prepared process and session lifetimes
 
 The new pool/session tests first failed on absent APIs. D31 adds capacity admission before launch

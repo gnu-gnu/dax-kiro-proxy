@@ -810,3 +810,44 @@ D27's candidate remains unverified. The independent fake has its own invented la
 MCP binding; it is not a claim about Kiro's config precedence, hooks, allowedTools, inherited MCP or
 session/load behavior. The pinned CLI's first-session agent selection motivates the conservative
 single-session launch path, while actual restricted-policy evidence remains required under R06.
+
+## D32: local client runtime ownership (review R04/R07/R12/R14)
+
+The internal RunClient stage takes exclusive ownership of its already-constructed backend, schema
+pool and optional gateway usage cache on entry, including invalid configuration and startup failure.
+Binary/version, account, model and effective Kiro-policy preflight belong before this stage; passing
+an adapter does not establish it as verified. No live CLI entry point or R06 bypass is enabled.
+
+This local-client stage generates new model/UI credentials, starts its bounded loopback HTTP server,
+prepares D24's isolated client profile using the actual listener URL, and starts the D28 attached
+client with explicit caller-owned descriptors. Conflicting caller-supplied profile routing/credentials
+or HTTP backend/tokens reject. This stage requires loopback operation. The underlying standalone
+server's explicit unsafe-network contract remains separate. No credential or client transcript is
+returned in its result. Results contain only the child PID/exit status and elapsed gateway, profile,
+process-launch and cleanup times. Process launch is not reported as actual client initialization.
+
+Client exit, parent cancellation or premature server termination ends the runtime. Parent cancellation
+keeps its cancellation cause even when the child finishes concurrently. Cleanup cancels server request
+contexts, stops the attached client, closes the backend and cancels usage refresh concurrently. Backend
+closure is unconditional: a completed HTTP tool handoff may still own an ACP prompt and suspended
+relay calls without an open HTTP response. All these owners join before schema shutdown and removal
+of the private client profile. Caller descriptors remain open. Existing component limits bound this
+internal stage; adapters must honor their own finite cancellation and Close contracts.
+
+Cleanup attempts continue when an owner reports a failure. The runtime returns a fixed cleanup error
+instead of exposing an adapter's arbitrary error text. Client startup/exit and parent cancellation
+retain their existing fixed error classes. Cleanup must not be reported successful merely because a
+profile was removed or an HTTP connection closed.
+
+The independent HTTP client fixture uses only standard packages and its explicitly supplied loopback
+gateway. It submits new synthetic requests and, in the completion case, returns a synthetic tool
+result without executing anything. Tests compose the real gateway, session manager, schema worker,
+independent ACP and execution-free MCP child. They cover normal text, final tool completion, client
+exit/cancellation while awaiting a tool result, repeated caller cancellation, startup failures,
+usage cancellation and sanitized cleanup failure. Owned profiles remain present through backend
+shutdown, disappear afterward, and source settings/descriptors are preserved. The fixture's readiness
+line is an invented test control, not a claim about Claude's interactive UI or initialization.
+
+Catalog/cache/last-model selection, effective restricted Kiro launch preparation, complete client
+asset preservation, status-line credentials/hooks, user-facing timing output and final CLI wiring
+remain separate work. No live model request or installed-client run is implied by these tests.
