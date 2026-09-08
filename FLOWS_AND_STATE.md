@@ -34,12 +34,16 @@ hang the launcher indefinitely.
 A session binding key has three layers:
 
 - profile scope: stable identity for the selected Kiro home/profile and authenticated context;
-- explicit client session identifier when present;
-- request family discriminator derived from the first user content so a session-title request cannot
-  capture the main agent session.
+- explicit client session/agent identifiers when present;
+- request family discriminator so session-title work cannot capture the main agent session.
+
+For explicit client identities, main/tool/resume/retry requests use one stable lookup key; first-user
+continuity is checked through the stored history anchors. Rehashing the first visible user on every
+request would split a safely truncated conversation. Title keys include first-user and system digests
+in their separate family. Decisions D15-D17 define the exact normalization, pool and persistence rules.
 
 When the client provides no stable session identifier, use a deterministic fallback derived from the
-profile scope, stable system context, and first user text. The key is an internal digest in logs; raw
+profile scope, launcher instance, stable system context, and first user content. The key is an internal digest in logs; raw
 prompt text is never used as a visible identifier.
 
 Request families include at least main agent, session title, tool follow-up, local command, resume, and
@@ -83,7 +87,11 @@ Default pool policy:
   be attributed correctly;
 - allow established sessions on the same process to issue concurrent JSON-RPC requests.
 
-The limits are configurable and should be benchmarked rather than treated as protocol constants.
+The initial global process cap is four, including starting and retiring groups. These limits are
+configurable and should be benchmarked rather than treated as protocol constants. Without negotiated
+session deletion, a disposed idle session's backend allocation is not recycled within that process.
+Releasing one idle binding preserves active siblings; cancellation or corrupt shared state retires
+the whole group. Idle capacity may be retired to admit a different compatible process configuration.
 
 Retire the process on ambiguous session creation, malformed model/session response, transport failure,
 or a failed load that can leave routing ambiguous. A crash makes all sessions attached to that process
@@ -123,6 +131,12 @@ Rules:
 History is committed only after a successful completed Kiro turn. A request that begins a new turn first
 invalidates the previously persisted idle snapshot so two processes cannot claim the same backend
 session.
+
+Ordered assistant/user digest pairs are accompanied by message-role anchors, including per-message
+system updates. This detects changes that a pair alone would miss. A truncated overlap must include
+both user and assistant content and end at the last delivered assistant. Assistant-only overlap does
+not establish continuity. Pending tool continuation permits only the next matching result message;
+new system or user text cannot be injected into the already-running ACP prompt through that path.
 
 ## 8. Persistent resume flow
 

@@ -71,7 +71,8 @@ readiness. Load repetition, broader fuzzing and live gates remain in Phase 7.
 These pass against independent fake processes. Model discovery/selection, actual session reuse,
 relay/media/native web, subprocess environment/profile integration, and the launcher remain later
 phase requirements. There is no executable live Kiro entry point yet. The initial text driver creates
-fresh state for subsequent full-history requests until reconciliation is implemented in Phase 5.
+fresh state for subsequent full-history requests in its original Phase 2 version. Phase 5 now adds
+the reconciliation and sharing evidence below.
 
 ## Phase 3 acceptance mapping
 
@@ -129,6 +130,40 @@ Syntax acceptance does not prove effective tool suppression. No model request or
 has been run. Real Kiro restricted-profile/negotiation proof (R06), actual Claude model UI (R14), and
 credit-consuming live opt-in gates remain open.
 
+## Phase 5 implementation evidence
+
+History, multi-session fake-process, manager and persistence tests were written before implementation
+and first failed on missing behavior/APIs. A later regression reproduced capacity rejection despite
+an available wholly idle process; admission now retires that idle group and retries once. Shared
+deadline timers also reproduced an incorrect generic HTTP failure; diagnostics check the original
+absolute deadline as well as context cancellation.
+
+| Acceptance F/G behavior | Executable evidence |
+| --- | --- |
+| Main turns 1-3 reuse and only new deltas; safe truncation; duplicate/divergent recreation | TestThreeTurnsAndProvenTruncationSendOnlyNewContent, TestThreeTurnReuseTruncationAndDuplicateRecreation |
+| Key order/cache hints, exact large numbers, changed system/assistant anchors | TestCanonicalizationPreservesArgumentNumbersAndSystemContext, TestDuplicateDivergenceAndUnprovenAssistantOnlyOverlap |
+| Combined title classifier and concurrent title/main sessions | TestTitleRequiresAllSignals, TestManagerIsolatesTitleAndMainAndPreservesThreeTurns |
+| Independent keys share compatible processes; active key/capacity restrictions | TestIndependentClientIDsShareCompatibleProcessAndActiveKeysStayBounded |
+| Temporary creation owner, established routing, concurrent RPC/event ordering | TestEarlyCreationRoutingAndConcurrentResponseBarriers |
+| Ambiguous creation and shared crash fail all attached waiters | TestAmbiguousCreationAndCrashInvalidateAllAttachedSessions |
+| Compatibility, pool limits, idle TTL and repeated shutdown | TestCapacityCompatibilityAndIdleExpiry, TestIdleCapacityCanBeRecycledWithoutEvictingActiveOwners |
+| Load replay suppressed and foreign session requests rejected | TestLoadReplayAndWrongSessionRequestsAreRejected |
+| Strict persistent extension, null response, failed/mismatched/unsupported load and fresh fallback | TestPersistentLoadDiscardReplayAndInvalidateBeforePrompt |
+| Private fixed-slot records, stable keyed digests, exclusive ownership, no raw conversation data | TestMetadataOnlyRecordsStableKeyAndHeldOwnership, TestFixedSlotsBoundStorageAndCollisionCannotCrossOwnership |
+| Durable invalidation, replaced inode/link/mode refusal, abrupt owner exit | TestExclusiveLeaseAndDurableInvalidation, TestLeaseRefusesLinksAndUnsafeFileModes, TestAbruptOwnerExitReleasesLockAndKeepsOnlyIdleData |
+| No title or unstable-identity persistence | TestTitleAndFallbackIdentityNeverPersist |
+
+Passed uncached `go test -race -count=1 ./...`: ACP 6.758s, pool 4.429s, gateway 2.110s, history 2.604s,
+schema worker 3.747s, session 7.780s and store 2.556s; all packages passed. The opt-in installed-client
+test is skipped in the ordinary suite. Subsequent idle-admission, abrupt-exit and title-persistence
+regressions passed in targeted race suites. `go vet ./...` passed before these final regressions;
+final checkpoint checks are recorded with the implementation report.
+
+The new fake `fake/pool.go` imports only standard packages. Its prompt guard exits if an idle JSON
+record still exists when dispatch arrives, proving the actual invalidation-before-prompt ordering.
+It captures only synthetic test input. Live Kiro loading, actual-client title/tool history shapes,
+longer load/fuzz and clean-host release gates remain unverified. No new external dependency was added.
+
 ## Remaining work
 
 ### Actual client envelope observation
@@ -151,7 +186,7 @@ the exact scope: interactive UI and actual-client tool continuation remain unver
 | 2 | Authenticated HTTP text path, exact SSE/non-streaming responses, authentication fallback, disconnect tests | Passed with independent fake ACP; broader B/C requirements tracked below |
 | 3 | Model catalog/mapping/cache/selection and optional effort state | Passed independent module/process tests; launcher and live interoperability remain below |
 | 4 | Restricted Kiro agent proof, MCP relay, schema validation, client-only tool effects and result ownership | Fake-process/HTTP implementation passes; R06 live restriction proof and additional hardening remain |
-| 5 | Request families/history/pool/persistence/resume and crash tests | Pending |
+| 5 | Request families/history/pool/persistence/resume and crash tests | Independent implementation tests pass; live client/Kiro and extended hardening remain |
 | 6 | Media/web capabilities, cached usage/metrics, isolated launcher/profile and client interoperability | Pending |
 | 7 | Full acceptance, fuzz/race/load, license inventory, macOS packaging/install/uninstall and opt-in live gates | Pending |
 

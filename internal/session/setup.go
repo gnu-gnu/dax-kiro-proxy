@@ -2,27 +2,45 @@ package session
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
 
 	"dax-kiro-proxy/internal/acp"
+	"dax-kiro-proxy/internal/acppool"
 	"dax-kiro-proxy/internal/catalog"
+	"dax-kiro-proxy/internal/history"
 	"dax-kiro-proxy/internal/ndjson"
 	"dax-kiro-proxy/internal/relay"
+	"dax-kiro-proxy/internal/sessionstore"
 	"dax-kiro-proxy/internal/toolregistry"
 )
+
+type backendClient interface {
+	Call(context.Context, string, any) (json.RawMessage, error)
+	TryNext() (acp.Notification, bool, error)
+	Activity() <-chan struct{}
+	Done() <-chan struct{}
+	Capabilities() acp.Capabilities
+	Err() error
+	Close() error
+}
 
 type prepared struct {
 	driver  *Driver
 	ctx     context.Context
 	cancel  context.CancelFunc
 	done    chan struct{}
-	client  *acp.Client
+	client  backendClient
 	info    catalog.Session
 	current string
+	reused  bool
+	loaded  bool
 }
 
 func (p *prepared) finishSetup() { p.cancel(); close(p.done) }
 
-func (d *Driver) prepare(ctx context.Context, reuse bool, registry *toolregistry.Registry) (*prepared, error) {
+func (d *Driver) prepare(ctx context.Context, reuse bool, registry *toolregistry.Registry, processStamp [32]byte, resume *sessionstore.Record) (*prepared, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -53,10 +71,11 @@ func (d *Driver) prepare(ctx context.Context, reuse bool, registry *toolregistry
 	d.state = Starting
 	previous := d.client
 	previousSocket, previousBroker := d.socket, d.broker
-	if reuse && d.fresh && previous != nil && fingerprint == d.registryFingerprint {
+	if reuse && previous != nil && previous.Err() == nil && fingerprint == d.registryFingerprint && (d.cfg.Pool == nil || processStamp == d.processCompat) {
 		p.client = previous
 		p.info = d.modelState
 		p.current = p.info.Catalog.Current()
+		p.reused = true
 	}
 	if p.client == nil {
 		d.client = nil
@@ -65,6 +84,12 @@ func (d *Driver) prepare(ctx context.Context, reuse bool, registry *toolregistry
 	}
 	d.mu.Unlock()
 	fail := func(err error) (*prepared, error) { d.failedStart(p.client); p.finishSetup(); return nil, err }
+	if lease, ok := p.client.(*acppool.Lease); ok {
+		if lease.SetIdle(false) != nil {
+			p.client = nil
+			p.reused = false
+		}
+	}
 	if p.client == nil {
 		if previousSocket != nil {
 			previousSocket.Close()
@@ -72,7 +97,7 @@ func (d *Driver) prepare(ctx context.Context, reuse bool, registry *toolregistry
 			previousBroker.Close()
 		}
 		if previous != nil {
-			if err := previous.Close(); err != nil {
+			if err := releaseIdle(previous); err != nil {
 				return fail(err)
 			}
 		}
@@ -94,26 +119,62 @@ func (d *Driver) prepare(ctx context.Context, reuse bool, registry *toolregistry
 			d.mu.Unlock()
 			mcp = append(mcp, map[string]any{"name": "dax_session", "command": d.cfg.RelayExecutable, "args": []string{"relay", "--config", socket.ConfigPath()}, "env": []any{}})
 		}
-		p.client, err = acp.Start(setup, d.cfg.Process)
+		if d.cfg.Pool != nil {
+			scope := sha256.Sum256(append([]byte(d.cfg.PoolScope+"\x00"), processStamp[:]...))
+			var lease *acppool.Lease
+			lease, err = d.cfg.Pool.Acquire(setup, hex.EncodeToString(scope[:]))
+			if err == nil {
+				p.client = lease
+			}
+		} else {
+			var client *acp.Client
+			client, err = acp.Start(setup, d.cfg.Process)
+			if err == nil {
+				p.client = client
+			}
+		}
 		if err != nil {
 			return fail(err)
 		}
-		raw, err := p.client.Call(setup, "session/new", struct {
+		params := struct {
 			CWD string `json:"cwd"`
 			MCP []any  `json:"mcpServers"`
-		}{d.cfg.Process.Directory, mcp})
+		}{d.cfg.Process.Directory, mcp}
+		var raw json.RawMessage
+		if lease, ok := p.client.(*acppool.Lease); ok {
+			id := ""
+			if resume != nil {
+				id = resume.SessionID
+			}
+			raw, err = lease.Create(setup, params, id)
+		} else {
+			raw, err = p.client.Call(setup, "session/new", params)
+		}
 		if err != nil {
 			return fail(err)
 		}
-		p.info, err = catalog.DecodeSession(raw)
+		if resume != nil {
+			p.info, err = loadedSession(raw, resume)
+			p.loaded = err == nil
+		} else {
+			p.info, err = catalog.DecodeSession(raw)
+		}
 		if err != nil {
 			return fail(acp.ErrProtocol)
 		}
 		p.current = p.info.Catalog.Current()
+		if p.loaded {
+			p.current = ""
+		} // Confirm the selected model again when a load omits model state.
 		d.effort.ProcessChanged()
 	}
 	if err := p.drain(); err != nil {
 		return fail(err)
+	}
+	if p.loaded {
+		if err := p.selectModel(resume.CurrentModel); err != nil {
+			return fail(err)
+		}
 	}
 	d.mu.Lock()
 	if d.closed || p.ctx.Err() != nil {
@@ -123,8 +184,85 @@ func (d *Driver) prepare(ctx context.Context, reuse bool, registry *toolregistry
 	d.client = p.client
 	d.modelState = p.info
 	d.registryFingerprint = fingerprint
+	d.processCompat = processStamp
+	if !p.reused {
+		d.processWatch.Add(1)
+	}
 	d.mu.Unlock()
+	if !p.reused {
+		go d.watchIdleProcess(p.client)
+	}
 	return p, nil
+}
+
+func (d *Driver) watchIdleProcess(client backendClient) {
+	defer d.processWatch.Done()
+	<-client.Done()
+	d.mu.Lock()
+	var current *turn
+	if d.client == client {
+		current = d.current
+	}
+	d.mu.Unlock()
+	if current != nil {
+		current.abort(client.Err())
+	}
+	d.mu.Lock()
+	if d.client != client || d.state != Idle {
+		d.mu.Unlock()
+		return
+	}
+	socket, broker := d.socket, d.broker
+	d.client = nil
+	d.socket = nil
+	d.broker = nil
+	d.snapshot = history.Snapshot{}
+	d.fresh = false
+	d.state = Unstarted
+	d.mu.Unlock()
+	if socket != nil {
+		socket.Close()
+	} else if broker != nil {
+		broker.Close()
+	}
+}
+
+func releaseIdle(client backendClient) error {
+	if lease, ok := client.(*acppool.Lease); ok {
+		return lease.ReleaseIdle()
+	}
+	return client.Close()
+}
+
+// CloseIdle can evict an idle binding without canceling an active sibling on the same process.
+func (d *Driver) CloseIdle() error {
+	d.mu.Lock()
+	if d.state == Starting || d.state == Prompting || d.state == WaitingTools {
+		d.mu.Unlock()
+		return ErrBusy
+	}
+	d.closed = true
+	d.state = Closed
+	client, socket, broker := d.client, d.socket, d.broker
+	d.client = nil
+	d.socket = nil
+	d.broker = nil
+	d.mu.Unlock()
+	if socket != nil {
+		socket.Close()
+	} else if broker != nil {
+		broker.Close()
+	}
+	if client != nil {
+		if err := releaseIdle(client); err != nil {
+			return err
+		}
+	}
+	d.processWatch.Wait()
+	if d.cfg.Persistence != nil {
+		return d.cfg.Persistence.Close()
+	}
+	return nil
 }
 
 func (p *prepared) drain() error {

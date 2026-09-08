@@ -3,6 +3,7 @@ package session
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/json"
 	"errors"
 	"path/filepath"
@@ -10,12 +11,15 @@ import (
 	"time"
 
 	"dax-kiro-proxy/internal/acp"
+	"dax-kiro-proxy/internal/acppool"
 	"dax-kiro-proxy/internal/anthropic"
 	"dax-kiro-proxy/internal/catalog"
+	"dax-kiro-proxy/internal/history"
 	"dax-kiro-proxy/internal/inference"
 	"dax-kiro-proxy/internal/kirofeature"
 	"dax-kiro-proxy/internal/projection"
 	"dax-kiro-proxy/internal/relay"
+	"dax-kiro-proxy/internal/sessionstore"
 	"dax-kiro-proxy/internal/toolregistry"
 )
 
@@ -42,12 +46,19 @@ type Config struct {
 	Validator          toolregistry.Validator
 	RelayExecutable    string
 	RelayLimits        relay.Limits
+	HistoryKey         [32]byte
+	Pool               *acppool.Pool
+	PoolScope          string
+	Persistence        *sessionstore.Lease
+	PersistenceProfile string
+	PersistenceLaunch  string
+	PersistenceTTL     time.Duration
 }
 type Driver struct {
 	cfg                 Config
 	mu                  sync.Mutex
 	state               State
-	client              *acp.Client
+	client              backendClient
 	current             *turn
 	closed              bool
 	setupCancel         context.CancelFunc
@@ -62,6 +73,13 @@ type Driver struct {
 	socket              *relay.Socket
 	registryFingerprint string
 	outcome             *terminalOutcome
+	hasher              *history.Hasher
+	snapshot            history.Snapshot
+	reuseCompat         [32]byte
+	processCompat       [32]byte
+	startGate           sync.Mutex
+	processWatch        sync.WaitGroup
+	persistenceFailed   bool
 }
 
 func New(cfg Config) (*Driver, error) {
@@ -80,17 +98,43 @@ func New(cfg Config) (*Driver, error) {
 	if (cfg.Validator != nil) != (cfg.RelayExecutable != "") || cfg.RelayExecutable != "" && !filepath.IsAbs(cfg.RelayExecutable) {
 		return nil, acp.ErrParameters
 	}
+	if len(cfg.PoolScope) > 128 {
+		return nil, acp.ErrParameters
+	}
+	if cfg.Persistence != nil {
+		if cfg.Pool == nil || len(cfg.PersistenceProfile) != 64 || len(cfg.PersistenceLaunch) != 64 {
+			return nil, acp.ErrParameters
+		}
+		if cfg.PersistenceTTL == 0 {
+			cfg.PersistenceTTL = time.Hour
+		}
+		if cfg.PersistenceTTL <= 0 || cfg.PersistenceTTL > 24*time.Hour {
+			return nil, acp.ErrParameters
+		}
+	}
 	// The ACP turn may outlive an individual HTTP tool handoff. Short setup calls use their own ctx.
 	cfg.Process.Limits.RequestTimeout = max(cfg.TurnTimeout, cfg.SetupTimeout)
-	return &Driver{cfg: cfg, state: Unstarted, effort: kirofeature.NewEffort(cfg.UnsupportedEfforts)}, nil
+	if cfg.Pool != nil && !cfg.Pool.MatchesProcess(cfg.Process) {
+		return nil, acp.ErrParameters
+	}
+	if cfg.HistoryKey == ([32]byte{}) {
+		if _, err := rand.Read(cfg.HistoryKey[:]); err != nil {
+			return nil, err
+		}
+	}
+	return &Driver{cfg: cfg, state: Unstarted, effort: kirofeature.NewEffort(cfg.UnsupportedEfforts), hasher: history.New(cfg.HistoryKey)}, nil
 }
 func (d *Driver) State() State { d.mu.Lock(); defer d.mu.Unlock(); return d.state }
 
 func (d *Driver) Start(ctx context.Context, r *anthropic.Request) (inference.Turn, error) {
+	if !d.startGate.TryLock() {
+		return nil, ErrBusy
+	}
+	defer d.startGate.Unlock()
 	if ctx.Err() != nil {
 		return nil, ctx.Err()
 	}
-	if !r.ClientContent() {
+	if r == nil || !r.ClientContent() {
 		return nil, inference.ErrRequest
 	}
 	disabled, err := r.ToolPolicy()
@@ -128,16 +172,66 @@ func (d *Driver) Start(ctx context.Context, r *anthropic.Request) (inference.Tur
 	if waiting || len(results) > 0 {
 		return d.resume(ctx, r, registry, results)
 	}
-	prompt, err := projection.Full(r)
+	stamp, err := reusableCompatibility(r, registry)
+	if err != nil {
+		return nil, inference.ErrRequest
+	}
+	d.mu.Lock()
+	snapshot := d.snapshot
+	if stamp != d.reuseCompat {
+		snapshot = history.Snapshot{}
+	}
+	fresh := d.fresh
+	d.mu.Unlock()
+	plan, err := d.hasher.Plan(snapshot, r)
+	if err != nil {
+		return nil, inference.ErrRequest
+	}
+	processStamp, err := processCompatibility(r, registry)
+	if err != nil {
+		return nil, inference.ErrRequest
+	}
+	resume, err := d.resumeRecord(r, stamp)
 	if err != nil {
 		return nil, err
 	}
-	p, err := d.prepare(ctx, true, registry)
+	if resume != nil {
+		plan, err = d.hasher.Plan(resume.History, r)
+		if err != nil {
+			return nil, err
+		}
+	}
+	// A durable invalidation precedes session/load, model/effort changes, and every new prompt.
+	if d.cfg.Persistence != nil {
+		if err = d.cfg.Persistence.Invalidate(); err != nil {
+			return nil, err
+		}
+	}
+	p, err := d.prepare(ctx, fresh || plan.Mode == history.Extend, registry, processStamp, resume)
+	if err != nil && resume != nil && ctx.Err() == nil && !errors.Is(err, acp.ErrAuthentication) && !errors.Is(err, acp.ErrOverloaded) {
+		p, err = d.prepare(ctx, false, registry, processStamp, nil)
+	}
 	if err != nil {
 		return nil, err
 	}
 	defer p.finishSetup()
+	var prompt []projection.Text
+	if plan.Mode == history.Extend && (p.reused || p.loaded) {
+		prompt, err = projection.Delta(r, plan.Start)
+	} else {
+		plan, err = d.hasher.Plan(history.Snapshot{}, r)
+		if err == nil {
+			prompt, err = projection.Full(r)
+		}
+	}
+	if err != nil {
+		d.failedStart(p.client)
+		return nil, err
+	}
 	d.mu.Lock()
+	if resume != nil {
+		d.initialUsed = true
+	}
 	first := !d.initialUsed
 	d.mu.Unlock()
 	var selected catalog.Backend
@@ -182,20 +276,13 @@ func (d *Driver) Start(ctx context.Context, r *anthropic.Request) (inference.Tur
 	d.mu.Lock()
 	broker, socket := d.broker, d.socket
 	d.mu.Unlock()
-	t := &turn{driver: d, client: client, id: id, model: modelID, owned: owned, cancelOwned: stop, done: make(chan struct{}), released: make(chan struct{}), broker: broker, socket: socket}
+	t := &turn{driver: d, client: client, id: id, model: modelID, owned: owned, cancelOwned: stop, done: make(chan struct{}), released: make(chan struct{}), broker: broker, socket: socket, plan: plan, reuseCompat: stamp}
 	t.compat, err = compatibility(r, registry)
 	if err != nil {
 		stop()
 		d.failedStart(client)
 		return nil, inference.ErrRequest
 	}
-	t.history, err = historyDigest(r.Messages)
-	if err != nil {
-		stop()
-		d.failedStart(client)
-		return nil, inference.ErrRequest
-	}
-	t.messageCount = len(r.Messages)
 	round := &round{turn: t}
 	d.mu.Lock()
 	if d.closed || p.ctx.Err() != nil {
@@ -226,7 +313,7 @@ func (d *Driver) Start(ctx context.Context, r *anthropic.Request) (inference.Tur
 	return round, nil
 }
 
-func (d *Driver) failedStart(client *acp.Client) {
+func (d *Driver) failedStart(client backendClient) {
 	d.mu.Lock()
 	socket, broker := d.socket, d.broker
 	d.socket = nil
@@ -244,6 +331,7 @@ func (d *Driver) failedStart(client *acp.Client) {
 	defer d.mu.Unlock()
 	d.client = nil
 	d.current = nil
+	d.snapshot = history.Snapshot{}
 	if !d.closed {
 		d.state = Unstarted
 	}
@@ -268,7 +356,7 @@ func (d *Driver) Models(ctx context.Context) ([]inference.Model, error) {
 }
 
 func (d *Driver) RefreshModels(ctx context.Context) (*catalog.Catalog, error) {
-	p, err := d.prepare(ctx, false, nil)
+	p, err := d.prepare(ctx, false, nil, [32]byte{}, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -282,6 +370,9 @@ func (d *Driver) RefreshModels(ctx context.Context) (*catalog.Catalog, error) {
 	d.state = Idle
 	d.fresh = true
 	d.mu.Unlock()
+	if lease, ok := p.client.(*acppool.Lease); ok {
+		_ = lease.SetIdle(true)
+	}
 	return p.info.Catalog, nil
 }
 func (d *Driver) EffortStatus() kirofeature.Status { return d.effort.Status() }
@@ -312,6 +403,10 @@ func (d *Driver) Close() error {
 		}
 		if setup != nil {
 			<-setup
+		}
+		d.processWatch.Wait()
+		if d.cfg.Persistence != nil {
+			d.closeErr = errors.Join(d.closeErr, d.cfg.Persistence.Close())
 		}
 	})
 	return d.closeErr

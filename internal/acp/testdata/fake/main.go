@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 )
@@ -22,7 +23,14 @@ type request struct {
 	Error  json.RawMessage `json:"error"`
 }
 
-func write(v any)                     { b, _ := json.Marshal(v); _, _ = os.Stdout.Write(append(b, '\n')) }
+var outputMu sync.Mutex
+
+func write(v any) {
+	outputMu.Lock()
+	defer outputMu.Unlock()
+	b, _ := json.Marshal(v)
+	_, _ = os.Stdout.Write(append(b, '\n'))
+}
 func reply(id json.RawMessage, v any) { write(map[string]any{"jsonrpc": "2.0", "id": id, "result": v}) }
 func forever() {
 	for {
@@ -33,6 +41,10 @@ func main() {
 	mode := "normal"
 	if len(os.Args) > 1 {
 		mode = os.Args[1]
+	}
+	if strings.HasPrefix(mode, "pool-") {
+		poolFixture(mode)
+		return
 	}
 	if mode == "leaf" {
 		signal.Ignore(syscall.SIGTERM)
@@ -262,6 +274,10 @@ func main() {
 				}
 				if mode == "chat-project" {
 					chunks = []string{string(q.Params)}
+				}
+				if mode == "chat-continuity" {
+					body, _ := json.Marshal(map[string]any{"pid": os.Getpid(), "session": session, "promptCount": promptCount, "prompt": p.Prompt})
+					chunks = []string{string(body)}
 				}
 				if mode == "chat-order" {
 					chunks = nil

@@ -100,7 +100,7 @@ a public session update, invalid content/stop reason, or a canceled result makes
 Only `end_turn`, `max_tokens` and `refusal` map directly to terminal client stop reasons. An agent's
 `max_turn_requests` or unknown reason currently fails explicitly rather than fabricating success.
 
-The initial text driver owns one process/session and admits one response at a time. Until Phase 5
+The original Phase 2 text driver owned one process/session and admitted one response at a time. Before Phase 5
 reconciliation is installed, subsequent independent requests retire the previous process and create
 fresh state with full history; they cannot accumulate unrelated histories. It is an intermediate
 internal adapter, with catalog/selection and executable launcher entry points still to come. Its
@@ -160,7 +160,7 @@ Product record directories are 0700; files are atomically replaced at 0600 after
 bounded, refuse links, special files, foreign owners and group/other access, and stay within an open
 directory root. Directory path normalization precedes the symlink check. Individual records cannot
 exceed 4 MiB; catalog and last-model readers impose smaller limits. Files contain metadata/digests,
-not conversation bodies. Exclusive session leases and crash recovery remain Phase 5 work.
+not conversation bodies. D17 now defines the implemented exclusive leases and process-crash recovery.
 
 ## D11: bounded schema validation (review R12/R13)
 
@@ -234,11 +234,11 @@ supervisor enforces tool/turn deadlines and process cleanup while no HTTP reques
 terminal outcome retains only compatibility digest, pending IDs and safe failure class, for at most
 five minutes. A correlated auth-expiry class takes precedence over the secondary relay disconnect.
 
-Until Phase 5 reconciliation, continuation requires the exact previous history plus the delivered
+The original Phase 4 continuation required the exact previous history plus the delivered
 assistant message and a user message containing only that batch's results. Changed system, registry,
 requested model/effort or client metadata is incompatible. An ordinary new prompt while waiting is
 busy; a completed or orphan tool-result request cannot start a fresh model prompt. Stable family
-keys, truncated histories, shared-process routing and persisted resume remain Phase 5 work.
+keys, truncated histories, shared-process routing and persisted resume are now defined by D15-D17.
 
 The HTTP adapter preserves text before tools and emits complete validated JSON argument deltas. It
 buffers a tool batch until the backend confirms its tool-use stop, then writes blocks with sequential
@@ -280,3 +280,91 @@ process group; global client configuration fingerprints remain unchanged. It dec
 but requests no tool effect. No Kiro/model-provider request is involved. Discovery-cache evidence in
 print mode does not establish the interactive selector, multi-turn tool behavior, launch policy or
 R06 restrictions. Those acceptance gates remain open.
+
+## D15: request keys and committed history (review R10/R14)
+
+An explicit profile-scoped client session/agent identity has separate main and title lookup families.
+Tool follow-ups, retries and resume retain the main binding. The first-user anchor is verified during
+history reconciliation instead of changing the explicit lookup key after client truncation. Fallback
+keys include a random launcher instance, stable system and first-user digests; they never persist.
+Title keys additionally include their input anchor. The title classifier requires all of: no tools,
+disabled thinking, a JSON object schema with only a required string title, and title/conversation
+intent in the system. Classification examines bounded system/configuration inputs, not one loose
+substring. Actual-client title templates remain an interoperability gate.
+
+History uses domain-separated HMAC-SHA-256 with a private 32-byte scope key. Records contain ordered
+assistant/user digest pairs and message-role anchors, never text. Text shorthand and text blocks are
+normalized; object key order and content-block cache hints do not change meaning. Argument numbers
+retain their exact spelling, and cache-like keys inside tool arguments are not stripped. Other
+content fields and per-message system updates participate in continuity. At most 8,192 committed
+message anchors are retained; exceeding the next-turn bound causes safe fresh history.
+
+Strict extensions send only the uncommitted suffix, without resending the delivered assistant or
+stable system context. The longest proven truncated overlap must contain user and assistant content;
+an assistant-only match is insufficient. Completed duplicates and idle divergence create fresh
+backend state. Active/pending divergence rejects. Pending tool results additionally require exactly
+the sealed IDs and no new user/system content; successful resolution continues the original prompt.
+Only final successful HTTP completion commits history. Ordinary model/effort changes remain idle-only.
+
+The manager defaults to eight bindings and one-hour lazy idle expiration, with per-key admission and
+short map locks. Idle bindings may be evicted at capacity; active and pending bindings cannot. Family
+classification enums also reserve local-command, resume and retry outcomes for launcher/diagnostics
+integration. This does not yet claim actual-client continuation with changing runtime system updates.
+
+## D16: bounded shared processes and response barriers (review R07/R12)
+
+The default pool has four processes, two lifetime session allocations per process, two retained idle
+processes and a five-minute lazy idle TTL. Starting/retiring groups count toward admission until
+cleanup completes. Each process owns an immutable launch configuration; a borrowed pool must match
+the requested executable, arguments, environment, working directory, classifier and transport limits.
+Behavior compatibility includes system context, the effective registry/native choices and policy
+scope. Title work has a separate process policy family. Models may differ between independent sessions.
+
+A single router owns each process's notification stream. `session/new`/load has a serialized temporary
+owner; an established ID always keeps its existing owner. One unknown early ID may bind to creation,
+but conflicting IDs or an inconsistent response retire the group. Per-lease queues are 64 events/
+16 MiB by default. Every successful RPC crosses a router barrier before returning, so preceding
+notifications cannot be overtaken by the final response. Load replay is discarded through that barrier.
+Process failure wakes all attached leases and pending calls. Driver watchers discard idle state and
+close relay artifacts; shutdown joins routing and owned watchers.
+
+An idle lease can be disposed without stopping an active sibling. Its backend allocation and an ID
+tombstone remain counted because public session deletion is optional and is not negotiated here.
+Cancellation, ambiguous load, malformed state and transport corruption conservatively retire the
+whole process. A full pool can retire its oldest wholly idle group for one bounded admission retry.
+No path evicts an active sibling merely to reuse its slot.
+
+The public [ACP session setup](https://agentclientprotocol.com/protocol/v1/session-setup), checked
+2026-09-08, requires `loadSession` negotiation, historical replay before load completion, and permits
+a null load result. The adapter also accepts object results used for model state. It validates any
+returned ID, checks restored model/selector metadata, and confirms the selected model before a new
+prompt. Unknown optional resume/close methods are not assumed from CLI version alone.
+
+## D17: durable idle ownership (review R11/R12)
+
+Persistence requires an explicit client session ID, a profile fingerprint, a pinned backend version
+and compatible launch/system/tool/model metadata. A 0700 cache holds a random 0600 history key.
+Version-1 idle records hold only key/profile/compatibility/launch digests, backend session ID,
+validated catalog/current model/selector, history anchors and timestamps. The initial idle TTL is one
+hour. No title or fallback-identity record is saved.
+
+The cache has 256 fixed digest slots, each with one retained 0600 advisory-lock inode and at most one
+2 MiB record. Full keys are always compared. A live slot collision returns busy; an inactive collision
+loses cache locality and recreates safely. This bounds retained record data at 512 MiB; atomic writes
+temporarily need another record per concurrent writer. File/link/owner checks apply to records, key
+and lock files. Lock checks reject a replaced inode. Lock files are never unlinked to "unlock" them.
+
+A nonblocking exclusive lease is acquired before reading and held throughout live ownership. Before
+session load, model/effort mutation or any new prompt, the old idle record is removed and the directory
+fsynced. Failure stops dispatch. Successful final delivery writes a new idle record by private atomic
+rename and fsync. A failed cache save retains safe in-memory state and records persistence failure;
+it cannot restore an old snapshot. Closing an idle driver releases the file lease only after its
+backend/relay ownership is disposed. Abrupt-process tests verify OS lease release and that invalidated
+data cannot reappear; they do not simulate a host power failure.
+
+Resume requires a full strict extension of the stored anchors. A fresh relay accompanies load; replay
+never appears in the current HTTP response. Failed, unsupported or inconsistent load retires its
+process and performs one fresh full-history attempt. Authentication failure stops with the account
+fallback, and overload does not trigger additional process attempts. If a valid load omits model
+state, the compatible stored catalog is used with an explicit selected-model acknowledgement before
+dispatch. Process/request crash and private-file adversarial coverage remains part of Phase 7.

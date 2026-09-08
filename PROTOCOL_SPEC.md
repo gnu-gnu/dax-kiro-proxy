@@ -193,6 +193,11 @@ relay MCP server definition. Replay notifications received while loading are dis
 returns a session ID, it must equal the requested ID. A failed or inconsistent load invalidates the
 persistent record and falls back to a new session with full safe history.
 
+Attempt load only when `loadSession` was negotiated. Accept the public `null` result and an object
+result; a returned ID must match. If model state is omitted, use compatible stored catalog metadata
+and explicitly confirm its selected model before dispatch. Replay is drained before the load response
+becomes visible to the session driver. Authentication failure ends recovery with the login fallback.
+
 ### Prompt
 
 Call `session/prompt` with the Kiro session ID and an ordered ACP prompt content array. Content supports

@@ -15,6 +15,18 @@ type historyMessage struct {
 	Content []string `json:"content"`
 }
 
+// Delta projects only the proven uncommitted suffix. The backend already owns the preceding
+// assistant response and stable top-level system context.
+func Delta(r *anthropic.Request, start int) ([]Text, error) {
+	if start < 0 || start > r.LatestUserIndex() {
+		return nil, anthropic.ErrRequest
+	}
+	copy := *r
+	copy.System = nil
+	copy.Messages = r.Messages[start:]
+	return Full(&copy)
+}
+
 // Full is a fresh-session projection. JSON preserves role boundaries without an ambiguous
 // delimiter around user-supplied historical text. The latest user blocks retain their order.
 func Full(r *anthropic.Request) ([]Text, error) {

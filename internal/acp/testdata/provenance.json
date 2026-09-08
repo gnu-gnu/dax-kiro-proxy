@@ -12,7 +12,7 @@
     "https://modelcontextprotocol.io/specification/2025-06-18/server/tools"
   ],
   "repository_sources": ["PROTOCOL_SPEC.md", "ACCEPTANCE_SPEC.md", "IMPLEMENTATION_DECISIONS.md"],
-  "fixtures": ["fake/main.go", "fake/relay.go"],
+  "fixtures": ["fake/main.go", "fake/relay.go", "fake/pool.go"],
   "constraints": [
     "No imports from proxy implementation packages",
     "fixture/* methods are synthetic test controls, not Kiro capabilities",

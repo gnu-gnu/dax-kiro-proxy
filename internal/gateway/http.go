@@ -231,6 +231,8 @@ func (h *Handler) messages(ctx context.Context, w http.ResponseWriter, r *http.R
 			writeError(w, 400, "invalid_request_error", "Requested model or content is incompatible with the current Kiro catalog")
 		} else if errors.Is(err, inference.ErrBusy) {
 			writeError(w, 409, "invalid_request_error", "This conversation already has an active response")
+		} else if errors.Is(err, acp.ErrOverloaded) {
+			writeError(w, 429, "overloaded_error", "Kiro process or session capacity reached")
 		} else if errors.Is(err, acp.ErrAuthentication) {
 			h.fallback(output, request.Stream, "msg_"+id, request.Model, nil, "")
 		} else {
@@ -437,7 +439,8 @@ func validToolBatch(request *anthropic.Request, tools []anthropic.ToolUse) bool 
 }
 
 func failureMessage(err error, first bool, total context.Context) string {
-	if total.Err() != nil {
+	deadline, hasDeadline := total.Deadline()
+	if total.Err() != nil || hasDeadline && !time.Now().Before(deadline) {
 		return "Kiro turn deadline exceeded"
 	}
 	if errors.Is(err, context.DeadlineExceeded) && first {

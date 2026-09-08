@@ -10,7 +10,9 @@ import (
 	"time"
 
 	"dax-kiro-proxy/internal/acp"
+	"dax-kiro-proxy/internal/acppool"
 	"dax-kiro-proxy/internal/anthropic"
+	"dax-kiro-proxy/internal/history"
 	"dax-kiro-proxy/internal/inference"
 	"dax-kiro-proxy/internal/ndjson"
 	"dax-kiro-proxy/internal/relay"
@@ -18,20 +20,21 @@ import (
 
 // A turn owns one ACP prompt. Each round owns exactly one HTTP response, including a tool handoff.
 type turn struct {
-	driver                     *Driver
-	client                     *acp.Client
-	id, model                  string
-	owned                      context.Context
-	cancelOwned                context.CancelFunc
-	done, released             chan struct{}
-	result                     json.RawMessage
-	resultErr                  error
-	settle                     sync.Once
-	broker                     *relay.Broker
-	socket                     *relay.Socket
-	compat, history, assistant [32]byte
-	messageCount               int
-	lastIDs                    []string
+	driver              *Driver
+	client              backendClient
+	id, model           string
+	owned               context.Context
+	cancelOwned         context.CancelFunc
+	done, released      chan struct{}
+	result              json.RawMessage
+	resultErr           error
+	settle              sync.Once
+	broker              *relay.Broker
+	socket              *relay.Socket
+	compat, reuseCompat [32]byte
+	plan                history.Plan
+	pendingHistory      history.Snapshot
+	lastIDs             []string
 }
 type round struct {
 	turn              *turn
@@ -205,10 +208,15 @@ func (r *round) Finish() {
 	r.once.Do(func() {
 		t := r.turn
 		if batch.Number == 0 {
-			t.complete()
+			t.complete(text)
 			return
 		}
-		assistant, ids, err := assistantDigest(text, batch.Calls)
+		content, ids, err := assistantContent(text, batch.Calls)
+		if err != nil {
+			t.abort(acp.ErrProtocol)
+			return
+		}
+		pending, err := t.driver.hasher.Complete(t.plan, content)
 		if err != nil {
 			t.abort(acp.ErrProtocol)
 			return
@@ -220,7 +228,7 @@ func (r *round) Finish() {
 			t.abort(context.Canceled)
 			return
 		}
-		t.assistant = assistant
+		t.pendingHistory = pending
 		t.lastIDs = ids
 		d.state = WaitingTools
 		err = t.broker.Delivered(batch.Number)
@@ -245,7 +253,12 @@ func (t *turn) watch() {
 		t.abort(t.broker.Err())
 	}
 }
-func (t *turn) complete() {
+func (t *turn) complete(text string) {
+	snapshot, err := t.driver.hasher.Complete(t.plan, []anthropic.Block{{Type: "text", Text: text}})
+	if err != nil {
+		t.abort(acp.ErrProtocol)
+		return
+	}
 	t.settle.Do(func() {
 		close(t.released)
 		t.cancelOwned()
@@ -253,10 +266,16 @@ func (t *turn) complete() {
 		d.mu.Lock()
 		defer d.mu.Unlock()
 		if d.current == t {
+			d.snapshot = snapshot
+			d.reuseCompat = t.reuseCompat
 			d.current = nil
 			d.initialUsed = true
 			if !d.closed {
+				d.persistIdle(snapshot, t.reuseCompat)
 				d.state = Idle
+				if lease, ok := t.client.(*acppool.Lease); ok {
+					_ = lease.SetIdle(true)
+				}
 			}
 		}
 	})
@@ -287,6 +306,7 @@ func (t *turn) abort(reason error) {
 			d.outcome = &terminalOutcome{compat: t.compat, ids: append([]string(nil), t.lastIDs...), err: reason, expires: time.Now().Add(5 * time.Minute)}
 		}
 		d.current = nil
+		d.snapshot = history.Snapshot{}
 		d.client = nil
 		d.socket = nil
 		d.broker = nil

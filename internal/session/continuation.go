@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"dax-kiro-proxy/internal/anthropic"
+	"dax-kiro-proxy/internal/history"
 	"dax-kiro-proxy/internal/inference"
 	"dax-kiro-proxy/internal/jsoncanon"
 	"dax-kiro-proxy/internal/ndjson"
@@ -53,26 +54,18 @@ func (d *Driver) resume(ctx context.Context, r *anthropic.Request, registry *too
 	if len(results) == 0 {
 		return nil, ErrBusy
 	}
-	if t.compat != stamp || len(r.Messages) != t.messageCount+2 || len(r.Messages[len(r.Messages)-1].Content) != len(results) {
+	if t.compat != stamp {
 		return nil, inference.ErrRequest
 	}
-	prefix, err := historyDigest(r.Messages[:t.messageCount])
-	if err != nil || prefix != t.history {
-		return nil, inference.ErrRequest
-	}
-	assistant, err := historyDigest(r.Messages[t.messageCount : t.messageCount+1])
-	if err != nil || assistant != t.assistant {
-		return nil, inference.ErrRequest
-	}
-	history, err := historyDigest(r.Messages)
-	if err != nil {
+	plan, err := d.hasher.Plan(t.pendingHistory, r)
+	if err != nil || plan.Mode != history.Extend || plan.Start != len(r.Messages)-1 || len(r.Messages[plan.Start].Content) != len(results) {
 		return nil, inference.ErrRequest
 	}
 	if err := t.broker.Resolve(t.broker.Credentials().Owner, converted); err != nil {
 		return nil, inference.ErrRequest
 	}
-	t.history = history
-	t.messageCount = len(r.Messages)
+	t.plan = plan
+	t.pendingHistory = history.Snapshot{}
 	t.lastIDs = nil
 	d.state = Prompting
 	return &round{turn: t}, nil
@@ -164,36 +157,20 @@ func compatibility(r *anthropic.Request, registry *toolregistry.Registry) ([32]b
 	}
 	return sha256.Sum256(encoded), nil
 }
-func historyDigest(messages []anthropic.Message) ([32]byte, error) {
-	type item struct {
-		Role    string
-		Content []json.RawMessage
-	}
-	normalized := make([]item, 0, len(messages))
-	for _, m := range messages {
-		entry := item{Role: m.Role, Content: make([]json.RawMessage, 0, len(m.Content))}
-		for _, b := range m.Content {
-			var raw []byte
-			var err error
-			if b.Type == "text" {
-				raw, err = json.Marshal(map[string]any{"type": "text", "text": b.Text})
-			} else {
-				raw, err = jsoncanon.Object(b.Raw)
-			}
-			if err != nil {
-				return [32]byte{}, err
-			}
-			entry.Content = append(entry.Content, raw)
-		}
-		normalized = append(normalized, entry)
-	}
-	encoded, err := json.Marshal(normalized)
-	if err != nil || len(encoded) > anthropic.MaxBodyBytes {
-		return [32]byte{}, inference.ErrRequest
-	}
-	return sha256.Sum256(encoded), nil
+func reusableCompatibility(r *anthropic.Request, registry *toolregistry.Registry) ([32]byte, error) {
+	copy := *r
+	copy.Model = ""
+	copy.Effort = ""
+	return compatibility(&copy, registry)
 }
-func assistantDigest(text string, calls []relay.Use) ([32]byte, []string, error) {
+
+func processCompatibility(r *anthropic.Request, registry *toolregistry.Registry) ([32]byte, error) {
+	copy := *r
+	copy.Identity = anthropic.ClientIdentity{}
+	copy.Extra = nil
+	return reusableCompatibility(&copy, registry)
+}
+func assistantContent(text string, calls []relay.Use) ([]anthropic.Block, []string, error) {
 	m := anthropic.Message{Role: "assistant"}
 	ids := make([]string, 0, len(calls))
 	if text != "" {
@@ -202,11 +179,10 @@ func assistantDigest(text string, calls []relay.Use) ([32]byte, []string, error)
 	for _, call := range calls {
 		raw, err := json.Marshal(anthropic.ToolUse{ID: call.ID, Name: call.Name, Input: call.Input}.Block())
 		if err != nil {
-			return [32]byte{}, nil, err
+			return nil, nil, err
 		}
 		m.Content = append(m.Content, anthropic.Block{Type: "tool_use", Raw: raw})
 		ids = append(ids, call.ID)
 	}
-	h, err := historyDigest([]anthropic.Message{m})
-	return h, ids, err
+	return m.Content, ids, nil
 }
