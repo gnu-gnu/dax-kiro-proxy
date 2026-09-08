@@ -145,11 +145,15 @@ func main() {
 				os.Exit(26)
 			}
 			if strings.HasPrefix(mode, "chat-tools") {
-				if mode == "chat-tools-launch" {
-					if len(p.MCP) != 0 || len(os.Args) != 3 {
+				if mode == "chat-tools-launch" || mode == "chat-tools-client-launch" {
+					manifestIndex := 2
+					if mode == "chat-tools-client-launch" {
+						manifestIndex = 3
+					}
+					if len(p.MCP) != 0 || len(os.Args) != manifestIndex+1 {
 						os.Exit(46)
 					}
-					raw, err := os.ReadFile(os.Args[2])
+					raw, err := os.ReadFile(os.Args[manifestIndex])
 					if err != nil || !json.Valid(raw) {
 						os.Exit(47)
 					}
@@ -279,8 +283,12 @@ func main() {
 						write(map[string]any{"jsonrpc": "2.0", "id": q.ID, "error": map[string]any{"code": 401, "message": "login required"}})
 						continue
 					}
-					if mode == "chat-tools-client" {
-						if len(os.Args) != 3 {
+					if mode == "chat-tools-client" || mode == "chat-tools-client-launch" {
+						expectedArgs := 3
+						if mode == "chat-tools-client-launch" {
+							expectedArgs = 4
+						}
+						if len(os.Args) != expectedArgs {
 							os.Exit(45)
 						}
 						relayChild.send(3, "tools/call", map[string]any{"name": relayChild.alias, "arguments": map[string]string{"file_path": os.Args[2]}})

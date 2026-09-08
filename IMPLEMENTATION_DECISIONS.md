@@ -1392,3 +1392,44 @@ This supplies direct evidence for D31's separation of process cwd and the origin
 this initial selection path. It does not establish the same precedence for inherited resources,
 other hooks or MCP sources, later configuration reload, a loaded session, or native tool effects.
 No production configuration or policy gate is changed and no model prompt or tool call is sent.
+
+## D45: bounded client-denial experiment before credit opt-in (review R04/R06/R14)
+
+LIVE_KIRO_TEST_PLAN.md specifies one reviewable live interoperability experiment. Its Kiro variant
+requires DAX_INTEROP_KIRO_CREDIT_OPT_IN=1 and both pinned executable paths; it has not yet been run.
+It is confined to test code and does not change the production run gate or declare the candidate
+execution-verified. A successful single path would not discharge native/inherited/reload/load proof.
+
+The test-only backend admits one initial request and one matching error-result continuation.
+Another ordinary request, an incorrect result ID, a successful result, missing hook-denial evidence
+or a third request rejects before the driver. Concurrent initial requests can admit only one.
+Continuation must contain a result, so a changed driver state cannot turn it into a fresh prompt.
+The output guard permits only one Read call for the owned synthetic file. A different tool/path,
+multiple calls, or a canary in inspected text, arguments or client-result text cancels/rejects.
+The text check keeps only a copied boundary fragment and detects a canary split across chunks.
+
+The public client runs with an owned HOME/project/settings and a newly written denying PreToolUse
+hook. Its local gateway uses the actual bounded server with four connections. The same prepared
+process/relay path is used by the fake control and Kiro experiment; the fake consumes an independent
+launch manifest, while the live branch writes the D27 candidate. Only the latter needs account
+preflight, pinned Kiro/v2 and the exact advertised auto model. The documented client declaration-
+omission options are experiment inputs, not product defaults or a resolution of R16.
+
+The probe appends those two options to its copied child command after ordinary profile environment
+filtering. The initial attempt passed them into the platform-only constructor and they were dropped;
+a new assertion reproduced thinking/context declarations still reaching the test backend. The guard
+now requires both declarations to be absent before dispatch. An explicitly empty, owned MCP file is
+also supplied with the client's strict-MCP option. The product environment allowlist is unchanged.
+
+The existing finite runner, 20-second setup/first-event bounds, 45-second ACP turn, 60-second client
+invocation and three-minute harness bound apply, with separately shielded cleanup. One initial ACP
+turn can contain multiple internal provider calls, including generation after the denied tool;
+these limits do not establish a fixed credit or token budget. There is no automatic live retry.
+
+The independent fake requires the synthetic hook denial before completing its sole ACP prompt.
+Verification also requires one exposed call, its exact returned refusal, final completion, client
+exit 0, unchanged canary/source settings, no observed canary disclosure, zero gateway/pool owners,
+removed private launch/relay artifacts, and absence of the independently recorded relay PID and its
+kernel-observed group after cleanup. Reports retain only fixed names, counts, sizes and Boolean
+outcomes. Native effect attempts and actual successful client file/shell execution remain separate
+tests; this denying control cannot stand in for either requirement.

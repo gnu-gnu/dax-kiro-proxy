@@ -12,7 +12,8 @@ does not redefine completion around an intermediate phase.
   and the complete live/release gates remain open. Detailed results and failed attempts appear below.
 - D44's first-session controls keep the launch agent's inventory when a separate session workspace
   contains a same-named conflicting agent. Reload, inherited effects and native denial remain open.
-- All fourteen repository Markdown documents read in README order, with README and AGENTS first.
+- The original fourteen repository Markdown documents were read in README order, with README and
+  AGENTS first. LIVE_KIRO_TEST_PLAN.md now adds the concrete scope of a separately opted-in test.
 - Specification-only baseline committed as `7b108dd`.
 - Go selected by explicit user instruction; comparative experiments remain unmeasured.
 - Local host: macOS 15.4 (24E248), arm64; Go 1.27.1 downloaded into the ignored repository cache.
@@ -520,6 +521,49 @@ the public run policy gate remains closed pending the rest of R06.
 Final uncached `go test -race -count=1 -p 1 ./internal/acp ./internal/interop` passed in 5.396s and
 18.666s with installed-CLI opt-ins unset. Whole-repository `go vet ./...`, changed-file format checks
 and `git diff --check` passed. No production source or dependency changed at this checkpoint.
+
+### One-turn client-denial experiment preparation
+
+D45 and LIVE_KIRO_TEST_PLAN.md define the proposed credit-consuming experiment. The actual Kiro
+variant remains unrun, explicitly skipped without its separate credit opt-in. The code contains no
+production run override. Its single ACP turn may include multiple internal Kiro model calls; no
+fixed credit maximum is claimed.
+
+The request-budget/denial/output guards first passed their independent race tests in 2.182s. An
+additional regression then showed that client error-result text containing the synthetic canary
+could reach the driver (1.098s failing run). The guard now checks that text before continuation and
+shares its bounded fragment check with model text and tool arguments.
+
+The initial actual-Claude/local-fake control passed in 6.252s (4.27s test) using the public session
+MCP declaration. Moving the control onto the prepared-process path first failed because the fake
+did not support the new launch mode (2.948s package); the client exited 1 before any tool exposure.
+The independent chat-tools-client-launch mode now accepts its own relay launch manifest and
+requires the hook-denial result before the original prompt can finish.
+
+The resulting public-client/fake-ACP control and guard tests passed together in 5.010s (3.59s client
+test). There were exactly two accepted backend requests, one exposed Read, one matching refusal and
+one final completion. The hook marker was present, the canary was unchanged and absent from inspected
+output, the relay PID and observed group were gone, the client exited 0 with 1,765 bounded output
+bytes, and prepared launch/relay artifacts and HTTP/pool owners were released. Source settings stayed
+unchanged. No Kiro, external model or actual client file read was involved in these controls.
+
+The canary fix then passed the uncached ACP/interop/session race suites in 5.350s, 18.587s and
+15.792s. A subsequent actual-client control and all guard cases passed in 4.360s (2.99s client test).
+Client version checking was then explicitly limited to five seconds; its local control passed in
+4.584s (2.71s test). These runs still did not establish that the test-only declaration options had
+survived profile environment filtering.
+
+Review found that the platform allowlist dropped those two options. A new absence assertion failed
+in 2.543s before any backend start, reproducing the test-setup error. The harness now appends them to
+the copied child command, supplies an explicitly empty strict-MCP configuration and retains that
+request assertion. The final public-client/fake-ACP control plus guard suite passed in 4.942s (2.85s
+client test), with the same exact call/refusal/completion counts, intact canary, successful cleanup
+and client exit 0 (1,761 output bytes). The production environment policy remains unchanged.
+
+Final whole-repository vet, changed-file formatting and diff checks passed. Invoking only the live
+test with its credit flag explicitly disabled skipped immediately (1.250s package); this verifies
+the opt-in boundary, not a successful live turn. The exact pending experiment is reviewable in
+LIVE_KIRO_TEST_PLAN.md, which is now included in README's mandatory reading order.
 
 ### Request constraints and negative client recovery evidence
 

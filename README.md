@@ -25,6 +25,7 @@ Read these documents before implementation:
 10. `DEPENDENCY_REVIEW.md` — candidate licenses, provenance checklist, and outstanding review work.
 11. `IMPLEMENTATION_DECISIONS.md` — adopted wire, lifecycle, and resource policies.
 12. `DEVELOPMENT_STATUS.md` — implementation evidence and remaining acceptance gates.
+13. `LIVE_KIRO_TEST_PLAN.md` — concrete opt-in client-denial experiment and its limits.
 
 `AGENTS.md` makes this reading order mandatory for coding agents.
 
