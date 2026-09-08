@@ -143,6 +143,11 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
   for tool results after its HTTP response ended. Schema shutdown and profile removal follow these
   joins. Startup failure also closes transferred owners, preserves caller descriptors/source settings,
   and reports cleanup failure without disclosing arbitrary adapter error text.
+- Public startup rejects invalid binaries/settings, failed login, unknown configured models and an
+  unverified execution policy before launching a model-facing runtime. There is no CLI/config trust
+  override. Diagnostic success reports launch availability separately. Startup cancellation joins
+  catalog refresh before closing its command runner or removing private runtime files; replaced roots
+  are preserved with a cleanup failure. Stable scope keys never regenerate from malformed state.
 
 ## H. Usage and diagnostics
 

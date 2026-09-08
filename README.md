@@ -36,6 +36,30 @@ design; the explicit language selection supersedes comparative experiments as a 
 Rights/license and live-release gates remain open. Implementation begins with independent fixtures
 and fake-process transport tests. Consult DEVELOPMENT_STATUS.md for verified progress.
 
+## Development commands
+
+With Go 1.27.1, build a local development executable:
+
+```sh
+mkdir -p dist
+go build -o ./dist/dax-kiro-proxy ./cmd/dax-kiro-proxy
+./dist/dax-kiro-proxy --help
+./dist/dax-kiro-proxy doctor --json --timing
+./dist/dax-kiro-proxy models
+```
+
+The checks support Kiro CLI 2.21.1 (including its adjacent `kiro-cli-chat` helper) and Claude Code
+2.1.263. They use the installed CLIs' finite version/account/catalog commands, without an ACP session
+or model prompt. `--kiro` and `--client` accept absolute executable paths. Private scope/cache state
+defaults to `~/.dax-kiro-proxy`; `--state-dir` selects a different private directory. Temporary runtime
+files are removed when the command finishes. Source client settings are not modified.
+
+`doctor` succeeding means its checks completed; inspect `launch_available` and `policy` separately.
+The current `run` command stops with exit 3 after successful preflight because effective Kiro execution
+restrictions remain unverified. There is no override. Its full startup/runtime/shutdown composition is
+tested with independent fake processes, but real Kiro prompting and the complete product acceptance
+gates remain unfinished. This development build is not a release or installation procedure.
+
 ## Naming
 
 `dax-kiro-proxy` is the working product and executable name. Names, environment variables, endpoint

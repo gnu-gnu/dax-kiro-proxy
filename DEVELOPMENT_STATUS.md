@@ -38,6 +38,59 @@ does not redefine completion around an intermediate phase.
 Commands use `GOTOOLCHAIN=go1.27.1`, `GOMODCACHE="$PWD/.cache/gomod"` and
 `GOCACHE="$PWD/.cache/gobuild"` in this sandbox. No performance comparison with Rust is claimed.
 
+### Public development commands and owned startup
+
+D35 adds doctor/models/run, pinned executable/settings/account/catalog checks, stable keyed profile
+identity and full internal startup/runtime ownership. New preflight tests first failed on absent APIs.
+The independent successful runtime fixture suite passed in 7.520s: cached catalog/text, completed
+tools, client exit during tool handoff and repeated cancellation all join cleanup. Only final delivered
+responses save the last-model preference. Source settings and caller descriptors remain unchanged.
+
+The actual compiled command boundary passed against independently authored CLIs in 6.461s, including
+JSON doctor/model output and run exit 3 for the unverified policy. No installed Kiro/Claude process,
+external inference or actual client tool was used by these tests. Post-preflight cancellation and
+replaced-runtime regressions passed in 3.467s. The stable-key race suite passed in 3.941s and its
+16-caller cold initialization passed ten repetitions in 1.933s. Concurrent first file creation can
+produce a safe state failure on this host; no key divergence or overwrite was observed.
+
+Command tests reproduced four edge failures before fixing cleanup diagnostics joined with another
+error, empty explicit options, bounded timing writes and pinned version display. The final command
+race suite passed in 1.997s, with command vet and diff checks. Review then reproduced missing parent
+cancellation when the final runner cleanup canceled the caller; both Run and Inspect now preserve
+that cancellation alongside cleanup errors.
+
+The complete uncached `go test -race -p 2 -count=1 ./...` passed: command 1.912s, ACP 5.202s,
+pool 2.803s, Anthropic 7.969s, childproc 5.970s, gateway 3.026s, launcher 13.685s and session 9.725s;
+all remaining packages passed. Installed-client tests stayed opt-in and were skipped in this suite.
+
+A subsequent installed-CLI doctor passed version/account preflight but its catalog command timed
+out. A bounded observer confirmed exit -1, 3,672 output bytes, timeout and successful group cleanup
+at 5.109 seconds. One fifteen-second observation then exited 0 at 8.559 seconds with a valid 19-model
+catalog. No stderr or catalog/account values were logged. D35 now permits fifteen seconds only for
+the exact catalog listing, retaining five seconds for ordinary checks and the original caller limit.
+An independent delayed CLI verifies the separate deadlines and cleanup. Nine command regressions
+also replaced generic catalog/state errors with fixed stage-specific instructions.
+
+The final focused launcher/command race suites passed in 15.164s and 1.857s after these local changes.
+`go vet ./...` and `git diff --check` passed. Rebuilt doctor then completed against unmodified installed
+Kiro 2.21.1 and Claude Code 2.1.263: login verified, 19 catalog models, policy unverified and launch
+unavailable. Its login/catalog phases took 2.661s/8.370s. This supersedes the earlier unknown login
+observation for this check only; it does not prove future credential validity or effective tools.
+No ACP session, model prompt, client tool effect or login/logout command was used. The installed
+CLIs may maintain their own account/cache metadata; no claim of globally untouched CLI state follows.
+
+The built-in Kiro policy adapter remains unavailable. Run cannot start actual model traffic, and
+doctor explicitly reports that fact. A package-private fake adapter tests the complete runtime path;
+no trust flag or user-supplied verification record can select it. Client initialization timing/UI,
+assets/status integration, R16 request controls, real policy/load proof and release work remain open.
+
+Actual Claude Code consultation was prepared using its public
+[CLI isolation options](https://code.claude.com/docs/en/cli-reference) and a bounded
+single-turn prompt containing only this project's independently written constraints/findings. The
+installed help confirmed the options, but automatic approval review rejected external transmission
+pending specific payload/destination approval. No consultation result was obtained; independent local
+implementation continued. This consultation is separate from product Kiro inference routing.
+
 ### Request constraints and negative client recovery evidence
 
 D33 now inventories accepted request fields and the remaining R16 gaps. Known unmapped stop,
@@ -75,7 +128,8 @@ D34 connects the existing catalog cache and last-model policy to the internal la
 Startup selects explicit configuration, then a compatible interactive preference, then Kiro's current
 catalog model, using exact aliases. Model listing uses the prepared cache instead of starting ACP.
 Runtime ownership joins HTTP/client/backend work before closing catalog refresh and removing the
-private client profile. The final executable's verified Kiro preflight/identity wiring remains open.
+private client profile. D35 later connects executable/account/catalog preflight and stable identity;
+effective Kiro restriction verification remains open.
 
 A new regression reproduced loss of the last-used preference after one-launch model/effort options
 were removed. Preference schema 2 now excludes those options while retaining all other identity

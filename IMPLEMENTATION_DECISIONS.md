@@ -965,3 +965,56 @@ HTTP client now optionally requests the cached model list and verifies its selec
 synthetic message. Full runtime tests retain model state through backend closure, save final text/tool
 completion, discard abandoned tool handoffs, close the cache on startup failure and preserve source
 settings. No installed Kiro/model request or client selector UI is exercised by this composition.
+
+## D35: public startup composition with a mandatory policy gate (review R06/R11/R14)
+
+The executable now exposes doctor, models and run, plus help/version. Exact relay, schema-worker and
+terminal-reclaim invocations retain their separate dispatch. Public launch options cannot select a
+backend, supply a policy callback, assert execution verification or bypass the gate. The built-in
+Kiro 2.21.1 adapter always returns ErrPolicyUnverified until R06 supplies effective restriction proof.
+Thus a successful doctor/model command is a diagnostic result; it does not authorize model traffic.
+Run returns exit 3 after successful preflight while this gate is unresolved. This is an intermediate
+product state, not a completed launcher acceptance gate.
+
+Startup validates bounded options and the source settings snapshot, resolves executables from an
+explicit PATH or absolute override, creates one private runtime, checks the pinned client version,
+then performs the existing pinned Kiro version/account checks. A 60-second setup context bounds
+startup. Version/identity commands retain five seconds each; only the exact public catalog-listing
+command receives fifteen seconds. An installed observation produced complete output but did not exit
+within five seconds, then exited normally at 8.559 seconds under the larger observation budget.
+The catalog still requires a successful exit: output from a timed-out process is discarded. Caller
+deadlines remain authoritative, and the existing cache refresh remains bounded at thirty seconds.
+Startup prepares the exact catalog selection
+before checking the policy gate. No listener, client, ACP session or schema worker starts before that
+gate. Diagnostic commands may retain the private catalog and scope key; they do not save last-model
+preferences or modify source client settings. Current account-usage refresh remains unavailable.
+
+A private 32-byte random scope key survives startup under a retained file lock and atomic write.
+Malformed, linked, insecure or changed state rejects without regeneration. Concurrent initialization
+either returns the same key or a bounded state/lock failure. The profile digest includes the keyed
+normalized home and verified account scope. Catalog identity also records the executable/version,
+explicit model/effort, and versioned labels for the still-unverified policy and unknown ACP capability
+scope. Neither label asserts negotiated support. Policy/capability identity must change when evidence
+and an actual adapter are adopted; D27's ephemeral relay paths never enter this stable identity.
+
+The internal composition creates schema and session owners only after an available policy plan.
+The session manager owns its pool, uses the stable history key and the original ACP project cwd,
+and receives the session-scoped preparer. Prepared persistence stays disabled under D31. One metrics
+queue is shared by the manager and HTTP gateway. RunClient receives backend/schema/models ownership
+on entry, including failure; it retains the source profile and D34 delivered-model behavior. The
+outer startup owner joins catalog refresh before closing its finite runner or removing runtime files.
+An observed root replacement causes an explicit cleanup failure and is never recursively removed.
+
+Tests can inject a package-private synthetic policy/service; this path has no production flag,
+configuration record or environment selector. Independent executable fixtures exercise the same
+startup/manager/HTTP/profile/runtime path for text, completed tools, abandoned tools and cancellation.
+The public command is separately executed against fake version/account/catalog CLIs to verify JSON
+diagnostics, model listing and the mandatory rejection. These are not Kiro restriction observations.
+
+Diagnostics contain fixed error classes, validated model aliases and bounded named phase durations.
+Usage/configuration errors return 2, unverified policy 3, cancellation 130 and ordinary preflight
+failures 1; actual client exit status is preserved. Cleanup failure remains visible alongside another
+failure. Parent cancellation arriving during final startup cleanup remains visible to API callers.
+Timing output is emitted when the command returns; client process launch is measured, while
+client session initialization remains explicitly unverified. Interactive readiness, live policy/load
+proof, R16 generation semantics, client assets/status bridge and release gates remain outstanding.

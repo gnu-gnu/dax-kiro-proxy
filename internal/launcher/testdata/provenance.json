@@ -1,13 +1,15 @@
 {
   "created": "2026-09-08",
   "updated": "2026-09-09",
-  "scope": "Independent local HTTP client for launcher lifetime tests; no installed-client captures or external inference",
+  "scope": "Independent local HTTP client and finite preflight CLI for launcher lifetime and executable-boundary tests; no installed-client captures or external inference",
   "repository_sources": ["PRODUCT_SPEC.md", "PROTOCOL_SPEC.md", "ACCEPTANCE_SPEC.md", "IMPLEMENTATION_DECISIONS.md"],
-  "fixtures": ["client/main.go"],
+  "fixtures": ["client/main.go", "preflight/main.go"],
   "constraints": [
     "Only Go standard-library imports; no proxy implementation imports",
     "The supplied gateway must use HTTP with a literal loopback IP",
     "The catalog-text mode checks that local model discovery includes its explicit startup alias",
+    "Version, account and catalog responses are independently authored protocol controls, not installed-client observations",
+    "Preflight writes fixed command labels only to the explicitly supplied temporary HOME; it supports no ACP or inference command",
     "All prompts, tools, arguments, results and settings are independently chosen synthetic values",
     "The fixture executes no client tool or hook and modifies no user or project file",
     "Observed stdout contains only its owned process ID, local address, runtime path and fixed state",
