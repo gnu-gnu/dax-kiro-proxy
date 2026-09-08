@@ -851,3 +851,67 @@ line is an invented test control, not a claim about Claude's interactive UI or i
 Catalog/cache/last-model selection, effective restricted Kiro launch preparation, complete client
 asset preservation, status-line credentials/hooks, user-facing timing output and final CLI wiring
 remain separate work. No live model request or installed-client run is implied by these tests.
+
+## D33: unsupported request controls and observed client rejection (review R16)
+
+Known request controls without an implemented mapping must not silently disappear. The decoder,
+session manager and standalone driver reject the controls below before backend dispatch, binding
+eviction, process preparation, history mutation or consumption of a pending tool result. HTTP returns
+400 with the normal invalid_request_error envelope, including for a streaming request before SSE
+starts. The diagnostic names only a fixed protocol field; it never includes the supplied stop text,
+server URL/token, container identifier or location. Execution directives are checked first in a fixed
+order. Compatible metadata and unknown compatible extensions retain their existing handling.
+
+This is the current request-field inventory, not a declaration that R16 is complete:
+
+| Field | Current implemented behavior | Remaining boundary |
+| --- | --- | --- |
+| model | Validate syntax, resolve exact catalog alias, synchronize while idle | Live catalog/ACP identity and client selector gates remain |
+| messages, system | Validate bounded ordered roles/content and project the supported text/media/tool subset | D18/D19 limitations apply; assistant prefill, signed thinking and unsupported blocks reject |
+| stream | Boolean; equivalent supported buffered/SSE message content | No extra generation control is implied |
+| tools, tool_choice | Validated custom registry; auto/none only; schema validation before exposure | Required/specific/disabled-parallel choices and unimplemented typed tools reject under D13 |
+| stop_sequences | Only absent or an empty JSON array is accepted | A nonempty list is rejected; the adapter does not enforce custom stops |
+| temperature, top_p, top_k | Reject whenever present, including null or a nominal default | No sampling synchronization is implemented |
+| mcp_servers | Only absent or an empty JSON array is accepted | A client body cannot request remote server-side tool execution |
+| container | Absent/null accepted; every supplied identifier or object rejected | No provider container, skill or execution environment is mapped |
+| inference_geo | Absent/null accepted; every supplied location rejected | The adapter cannot attest to a requested inference location |
+| service_tier | Reject whenever present, including auto | No requested Anthropic service tier can be asserted for Kiro |
+| metadata | Retained but not projected, used as identity, or logged | Authenticated headers remain the identity source |
+| cache_control | No provider caching action or billing attribution | D22 offers only separately labeled local estimates |
+| output_config.effort | Normalize recognized effort; malformed effort warns and is ignored; optional Kiro synchronization follows D09 | Actual private extension behavior remains a live gate |
+| max_tokens | Required integer in 1..1,048,576, shape checked | Provider token maximum is not enforced; gateway byte/deadline limits are different bounds. R16 remains open |
+| thinking | Retained; disabled participates in narrow title classification | No provider reasoning/budget control is mapped. Rejection recovery is not established |
+| context_management | Retained, not mapped | No requested context-edit semantics are implemented. R16 remains open |
+| output_config.format and other output controls | Retained; the narrow title shape participates in classification | No structured-output constraint or task budget is enforced. Title isolation tests are not schema-conformance tests |
+| Other compatible fields | Retain in Extra without backend actions | Future fields affecting execution, routing or output semantics need an explicit decision |
+
+This inventory exposes existing gaps rather than legitimizing them as fully compatible behavior.
+Reasoning, structured output, context management and a truthful max_tokens contract must be resolved
+before claiming complete client compatibility. No production retry setting or client feature is
+disabled by this decision, and no generation control is simulated by rewriting tool permissions.
+
+Sources checked 2026-09-08: the public
+[Messages request reference](https://platform.claude.com/docs/en/api/messages/create) describes
+sampling, stop, container, location, service tier and output declarations;
+[MCP connector documentation](https://platform.claude.com/docs/en/agents-and-tools/mcp-connector)
+defines server declarations. The documented
+[ACP prompt turn](https://agentclientprotocol.com/protocol/v1/prompt-turn) does not establish matching
+controls for the installed Kiro adapter. The rejection policy is this project's conservative subset,
+not an assertion that every public ACP agent or future extension lacks those features.
+
+The public [Claude gateway protocol](https://code.claude.com/docs/en/llm-gateway-protocol) describes
+wording-sensitive capability recovery and adaptive thinking on unfamiliar gateway aliases. Six local
+black-box cases on unmodified Claude Code 2.1.263 establish only the following narrower evidence:
+the same owned profile completes a synthetic response when no error is returned; a generic thinking
+rejection, an extra-input rejection, an enum rejection and a newly invented thinking token each yield
+one adaptive request and exit 1 without recovery. Increasing the generic case's retry setting from
+zero to two, in both environment and owned settings, does not change that result. The thinking token
+is an experimental fixture value, not a documented token or an adopted production error contract.
+
+These are negative observations, not proof that this client can never recover from a correctly
+recognized rejection. The initial recovery assertions failed; the named observation test now requires
+those failures and a successful positive control. A passing observation suite does not pass the
+recovery acceptance gate. Each case has an empty owned HOME/project, disabled client tools, a finite
+process deadline and bounded output, and a local synthetic HTTP responder. It records only fixed
+field/kind enums, counts, exit status and output length. No client source, Kiro prompt, live inference,
+real tool effect or private user profile is used.

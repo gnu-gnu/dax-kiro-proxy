@@ -175,6 +175,9 @@ func (d *Driver) Start(ctx context.Context, r *anthropic.Request) (inference.Tur
 	if r == nil || !r.ClientContent() {
 		return nil, inference.ErrRequest
 	}
+	if err := r.ValidateControls(); err != nil {
+		return nil, err
+	}
 	disabled, err := r.ToolPolicy()
 	if err != nil {
 		return nil, inference.ErrRequest

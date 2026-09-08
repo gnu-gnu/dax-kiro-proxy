@@ -38,6 +38,37 @@ does not redefine completion around an intermediate phase.
 Commands use `GOTOOLCHAIN=go1.27.1`, `GOMODCACHE="$PWD/.cache/gomod"` and
 `GOCACHE="$PWD/.cache/gobuild"` in this sandbox. No performance comparison with Rust is claimed.
 
+### Request constraints and negative client recovery evidence
+
+D33 now inventories accepted request fields and the remaining R16 gaps. Known unmapped stop,
+sampling, remote MCP, container, location and service-tier declarations reject with a fixed safe 400.
+Validation also runs at internal manager/driver admission before an idle binding can be evicted or a
+pending tool result consumed. Empty stop/server arrays and null container/location retain their
+no-declaration meaning. No client profile setting or dependency changes.
+
+The new tests first failed because the control-validation API was absent. The focused race suites
+passed for Anthropic (2.031s), gateway (2.028s) and session (3.733s), including preservation of the
+only idle binding when a different identity submits an unsupported control.
+
+The applicable full uncached race suites then passed with package parallelism two: Anthropic 8.061s,
+gateway 3.095s, session 9.552s, launcher 5.189s and interop 1.269s (installed-client cases opt-in).
+The final session suite also verifies that a rejected continuation leaves its pending tool result
+available to the next valid request on the same ACP prompt. `go vet ./...` and `git diff --check`
+passed. These runs do not use live model inference.
+
+Actual Claude Code 2.1.263 sent one adaptive-thinking request in each synthetic case. The positive
+control completed locally. Four newly authored thinking-error shapes did not recover (one request,
+exit 1); the generic shape also failed with two retries configured in both environment and owned
+settings. The original recovery assertions failed. TestClaudeThinkingRejectionObservation records
+these failures as negative evidence and requires the positive control to succeed; its race run passed
+in 4.657s (six cases, 2.71s test). This is not a successful recovery gate or a general claim about all
+upstream error wording. No model, Kiro prompt, client tool or real user profile was used. Logs retain
+only known field/kind names, counts and lengths. Production retry policy remains unchanged.
+
+The current max_tokens bound is validation only, and reasoning/context-management/structured-output
+constraints still have no complete mapping. Existing title-isolation tests establish separation, not
+JSON Schema output enforcement. R16, live client compatibility and release readiness remain open.
+
 ## Phase 1 acceptance mapping
 
 | Acceptance A/G behavior | Executable evidence |

@@ -183,6 +183,9 @@ func (m *Manager) Start(ctx context.Context, r *anthropic.Request) (inference.Tu
 	if r == nil {
 		return nil, inference.ErrRequest
 	}
+	if err := r.ValidateControls(); err != nil {
+		return nil, err
+	}
 	kind := requestfamily.Classify(r)
 	key, err := m.key(r, kind)
 	if err != nil {

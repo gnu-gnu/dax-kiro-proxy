@@ -212,7 +212,12 @@ func (h *Handler) messages(ctx context.Context, w http.ResponseWriter, r *http.R
 	}
 	request, err := anthropic.DecodeRequest(body)
 	if err != nil {
-		writeError(w, 400, "invalid_request_error", "Invalid Messages request")
+		message := "Invalid Messages request"
+		var control *anthropic.UnsupportedControlError
+		if errors.As(err, &control) {
+			message = control.Error()
+		}
+		writeError(w, 400, "invalid_request_error", message)
 		return
 	}
 	request.Identity, err = clientIdentity(r.Header)
@@ -236,7 +241,10 @@ func (h *Handler) messages(ctx context.Context, w http.ResponseWriter, r *http.R
 	output := &responseWriter{w: w, controller: controller, timeout: h.cfg.WriteTimeout, remaining: h.cfg.MaxOutputBytes}
 	turn, err := h.cfg.Backend.Start(ctx, request)
 	if err != nil {
-		if errors.Is(err, inference.ErrRequest) || errors.Is(err, anthropic.ErrRequest) {
+		var control *anthropic.UnsupportedControlError
+		if errors.As(err, &control) {
+			writeError(w, 400, "invalid_request_error", control.Error())
+		} else if errors.Is(err, inference.ErrRequest) || errors.Is(err, anthropic.ErrRequest) {
 			writeError(w, 400, "invalid_request_error", "Requested model or content is incompatible with the current Kiro catalog")
 		} else if errors.Is(err, inference.ErrBusy) {
 			writeError(w, 409, "invalid_request_error", "This conversation already has an active response")

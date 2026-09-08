@@ -62,6 +62,13 @@ Malformed model selection is a 400. Malformed effort should be ignored with a wa
 public API requirements say otherwise. Backend failures are normally 502. Recognized Kiro auth expiry
 is the special successful fallback described below.
 
+Nonempty `stop_sequences` and `mcp_servers`, non-null `container` and `inference_geo`, and any
+`temperature`, `top_p`, `top_k` or `service_tier` declaration are rejected with a safe field-specific
+400 before backend work. Empty arrays are accepted for the two list fields. These controls have no
+implemented mapping and must not be silently ignored. Decision D33 inventories the supported fields
+and explicitly records the still-unresolved token, reasoning, context-management and structured-output
+semantics; syntactic acceptance of those fields is not proof that their constraints are enforced.
+
 ### Local command interception
 
 Kiro usage and proxy diagnostic commands are recognized by strict request shape, completed locally,

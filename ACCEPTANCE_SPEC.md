@@ -29,6 +29,9 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
 - UI token authorizes only the exact hook/status routes.
 - Missing/wrong auth returns 401 without revealing the valid token.
 - Body over 16 MiB, non-object JSON, and empty/malformed messages are rejected.
+- Known unmapped stop/sampling/server-execution/container/location/service-tier controls reject
+  before HTTP/SSE commitment or backend work with fixed field names and no supplied values. An
+  internal caller receives the same rejection before eviction of idle state or consumption of tools.
 - Accepted TCP connections are bounded before HTTP parsing; excess connections close, partial headers
   and idle keepalives expire, and oversized headers or incomplete unauthorized bodies cannot retain
   unbounded resources.
@@ -38,6 +41,9 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
 ## C. Anthropic compatibility
 
 - Non-streaming text produces a valid assistant message and end-turn stop reason.
+- The D33 request inventory's remaining token/reasoning/context/structured-output constraints must
+  have explicit, truthful mappings or compatible rejection behavior before full compatibility is
+  claimed. Passing negative client observations is not proof of automatic capability recovery.
 - Streaming text produces the exact ordered event classes and reconstructs the non-streaming text.
 - Inline image/document shapes, MIME/header/dimension/count/byte limits and negotiated capabilities
   are enforced; historical images stay native and proven deltas do not resend them. URL/file sources

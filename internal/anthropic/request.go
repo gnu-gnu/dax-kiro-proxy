@@ -170,6 +170,9 @@ func DecodeRequest(body []byte) (*Request, error) {
 			r.Extra[key] = value
 		}
 	}
+	if err := r.ValidateControls(); err != nil {
+		return nil, err
+	}
 	return r, nil
 }
 
