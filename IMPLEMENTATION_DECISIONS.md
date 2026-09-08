@@ -458,7 +458,7 @@ Invalid optional fields do not erase independently valid diagnostics or fail ord
 
 Only final successful delivery publishes a completion. A tool handoff retains the same owned turn;
 Finish is idempotent, and canceled, failed or undelivered responses publish nothing. Manager title
-families and requests with a parent-agent identity are excluded. Other main-family requests are the
+families and requests with an agent or parent-agent identity are excluded. Other main-family requests are the
 initial foreground classification, pending broader actual-client observations. Records contain only
 the keyed binding digest, namespaced selected model, optional multiplier, bounded local elapsed time
 (including setup/tool wait/delivery; accepted ceiling two hours), created/reused/loaded state, safe
@@ -471,6 +471,11 @@ it is best-effort diagnostics, so a failed response after draining may lose reco
 snapshot survives draining and remains in usage status when account usage is unavailable. UI request
 admission and read/write deadlines are separate from model admission. No provider usage is changed.
 The launcher/client hook adapter remains separate implementation work; D22 defines local estimates.
+
+The public [Claude gateway attribution contract](https://code.claude.com/docs/en/llm-gateway-protocol),
+checked 2026-09-08, identifies first-level subagents through the agent header; the parent-agent header
+is only present for nested agents. A regression therefore excludes both, including an agent with no
+parent header. A parent-only check would incorrectly publish first-level agent work as foreground.
 
 ## D22: labeled local token heuristic (review R12/R16)
 
@@ -498,3 +503,23 @@ previous successful input retains at most 4,098 component digests/counts; output
 delivered input. It describes local reuse opportunity even if backend state was recreated. It is
 neither a provider cache hit nor proof of ACP session reuse; no estimate enters an Anthropic usage
 field. Cache formatting/hint/media changes may conservatively reduce prefix recognition.
+
+## D23: finite launcher subprocess checks (review R06/R12/R14)
+
+Version/login/other noninteractive checks use a separate runner with two process slots by default.
+Starting and retiring processes count until cleanup finishes. Commands require absolute executable
+and working-directory paths, at most 512 arguments and 128 explicitly supplied unique environment
+entries, with a 64 KiB combined command/environment budget. No environment or stdin is inherited.
+The caller remains responsible for choosing its version-specific environment allowlist.
+
+Stdout retains at most 64 KiB by default (configurable to 4 MiB); overflow fails the command and
+retires its group. Stderr is drained without retention. Errors expose fixed classes and exit status,
+never command arguments, output, credentials or subprocess error prose. Callers must parse bounded
+stdout without logging raw account data. The default command timeout is five seconds; cleanup has
+separate 100 ms graceful, 250 ms TERM and one-second KILL stages plus a bounded pipe-drain window.
+The direct process is reaped and its group checked even when its leader exits first. Repeated Close
+cancels and joins admitted work, and closed/overloaded runners cannot launch more processes.
+
+This runner covers finite preflight checks, not interactive terminal ownership or live Kiro tool
+restriction. Its independent child emits synthetic output/environment flags and creates its own
+TERM-ignoring descendant. No Kiro model or client tool effect is used by these tests.

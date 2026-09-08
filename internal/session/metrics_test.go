@@ -51,7 +51,7 @@ func TestToolHandoffPublishesOnlyAfterOwnedTurnCompletes(t *testing.T) {
 }
 
 func TestForegroundMetricsRequireFinalDeliveryAndReplaceRepeatedMetadata(t *testing.T) {
-	for _, kind := range []string{"main", "title", "background", "undelivered", "cancelled", "no-private-fields"} {
+	for _, kind := range []string{"main", "title", "subagent", "background", "undelivered", "cancelled", "no-private-fields"} {
 		t.Run(kind, func(t *testing.T) {
 			mode := "pool-metadata"
 			if kind == "no-private-fields" {
@@ -73,6 +73,9 @@ func TestForegroundMetricsRequireFinalDeliveryAndReplaceRepeatedMetadata(t *test
 			}
 			if kind == "background" {
 				r.Identity.ParentAgent = "synthetic-parent"
+			}
+			if kind == "subagent" {
+				r.Identity.Agent = "synthetic-first-level-agent"
 			}
 			turn, err := m.Start(context.Background(), r)
 			if err != nil {

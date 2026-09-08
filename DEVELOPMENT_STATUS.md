@@ -166,6 +166,31 @@ longer load/fuzz and clean-host release gates remain unverified. No new external
 
 ## Remaining work
 
+### Phase 6 finite launcher subprocess runner
+
+Tests first failed because the CLI runner did not exist. `go test -race -count=1 ./internal/childproc`
+then passed in 4.048s. Cases cover bounded stdout overflow, discarded 16 MiB stderr, exact exit code
+without raw error disclosure, an explicit environment without inherited sentinels, process admission,
+eight concurrent Close callers, and complete group removal for a TERM-ignoring descendant including
+when its leader exits first. D23 records the limits; interactive client ownership remains separate.
+The additional invalid-command regression passed in 2.241s: duplicate/invalid environment keys, NULs,
+oversized inputs and relative executable paths are rejected before admission. `go vet ./...` and
+`git diff --check` passed at this checkpoint.
+
+The opt-in read-only Kiro probe verified `kiro-cli 2.21.1`. Its `whoami --format json` did not complete
+within the five-second command deadline and was terminated through the owned cleanup path. The
+observation test passed as a bounded probe (6.897s suite), but this is **not** evidence of successful
+authentication or a verified whoami JSON schema. No account values, stderr, prompts or model calls
+were retained. Login status remains unknown; a launcher must not infer logged-in or logged-out from
+this timeout. No login, logout or settings mutation command was invoked.
+
+Current official Kiro links redirect to CLI 3.0/IDE 1.0 documentation. The explicit
+[CLI 2.x reference](https://kiro.dev/docs/cli/2x-reference/) describes different tool/permission/hook
+configuration, and the [current configuration reference](https://kiro.dev/docs/custom-agents/configuration-reference/)
+labels its version scope. Checked 2026-09-08. Installed 2.21.1 must not be configured by assuming 3.0
+permission semantics or automatically upgraded. R06 still requires effective black-box restriction
+proof; syntax validation alone does not establish supported fields or disabled inherited behavior.
+
 ### Phase 6 media evidence
 
 Media validation and projection tests first failed on missing APIs. The implemented inline subset,
@@ -207,6 +232,11 @@ without draining queued records. Missing account usage preserves the latest mode
 Usage tests cover 100 coalesced readers, TTL/backoff, failure retaining prior values, copied snapshots,
 shutdown joining a canceled fetch and invalid numeric values. Private unknown strings never enter
 numeric diagnostics. D21 records the provisional field mapping and best-effort bounded queue policy.
+
+The public Claude gateway contract later exposed a gap in the background classifier: the agent
+header identifies a first-level subagent without any parent header. A new regression first produced
+one incorrect foreground record; the manager now excludes either agent header as well as title work.
+The focused foreground/tool-handoff race suite passed in 4.038s after this correction.
 
 Passed `go test -race -count=1 ./internal/session ./internal/gateway ./internal/status
 ./internal/kirofeature`: 9.554s, 3.025s, 2.152s and 2.344s respectively. Earlier focused metadata/cache

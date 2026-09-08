@@ -233,7 +233,7 @@ func (m *Manager) Start(ctx context.Context, r *anthropic.Request) (inference.Tu
 	defer func() { stop(); cancel() }()
 	if e.driver == nil {
 		config := m.cfg.Session
-		if kind != requestfamily.Title && r.Identity.ParentAgent == "" {
+		if kind != requestfamily.Title && r.Identity.Agent == "" && r.Identity.ParentAgent == "" {
 			config.Metrics = m.cfg.Metrics
 			config.MetricsScope = key
 		}
