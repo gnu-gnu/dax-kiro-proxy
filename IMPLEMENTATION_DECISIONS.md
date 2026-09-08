@@ -1523,3 +1523,54 @@ Public client contracts checked on 2026-09-09:
 - https://code.claude.com/docs/en/settings
 - https://code.claude.com/docs/en/cli-reference
 - https://code.claude.com/docs/en/permissions#project-allow-rules-and-workspace-trust
+
+## D48: startup hooks and visible status are separate observations (review R14)
+
+The public [hook reference](https://code.claude.com/docs/en/hooks) specifies parallel matching
+handlers. SessionStart identifies a session lifecycle event, not a documented completion barrier
+for the interactive terminal. The [status-line contract](https://code.claude.com/docs/en/statusline)
+has independent update triggers and disabling/trust gates. A missing optional callback therefore
+cannot be treated as a hung client, nor can its arrival prove every startup task finished. These
+documents were checked on 2026-09-09; no interactive readiness interface was established in this
+review. Absence of an established interface is not proof that none exists.
+
+An explicitly authorized local Claude CLI consultation answered only a new public startup-lifecycle
+question. Its complete saved answer was reviewed against those primary sources. The first stripped
+environment returned a login error; the normal CLI environment then returned a successful one-turn
+result. No authentication change was needed and the cause of that difference remains unknown.
+The advice to distinguish observations and use a bounded terminal experiment was adopted. No source
+inspection, print-mode readiness substitution or unverified flag was adopted. This public-only
+question did not transmit the separately pending internal MCP observation payload.
+
+The independent startup-hook executable imports only standard packages, ignores stdin and never
+reads client context/transcripts. Each fresh owned hook reads a private synthetic configuration,
+records its own PID once, and sends two authenticated loopback callbacks: entered and returned.
+The parent holds one entered response while the other hook completes. Its kernel-observed PID
+must disappear before the held response is released after a further three seconds. Callback bodies
+are exactly empty objects; supplied identifiers cannot choose a process or falsify a stage. Duplicate,
+out-of-order, malformed and unauthenticated callbacks cannot advance recorded observations.
+
+Each helper has an eight-second HTTP budget and twelve-second deadline in main, with no redirects,
+proxies, retry, child process or model request. It emits one synthetic JSON systemMessage after its
+callbacks. No additionalContext or initialUserMessage is emitted. The fixture build disables Go
+telemetry only within its disposable build HOME using the documented go telemetry off command.
+GOTELEMETRY is a read-only Go environment value; assigning an environment variable does not set it.
+
+The installed Claude 2.1.263 experiment reuses D47's prepared empty project, documented test trust
+record, isolated source settings and bounded terminal capture. It records first callback, callback
+return, observed helper exit, held-response release, status request, visible status and visible
+notice times separately. Every timing is relative to the first hook callback, not process spawn.
+Raw terminal data remains bounded at 256 KiB in memory and never enters the retained report.
+
+In the verified run, the fast hook exited at 3ms. Status was requested at 514ms and visible at 520ms,
+while the other hook remained held until 3,005ms. Both notices first appeared at 3,023ms, after that
+release. There were zero HTTP message requests and zero backend starts. Client/group and both hook
+PIDs were gone after cleanup. This proves visible status can precede completion of the known startup
+hooks in this environment. The later notices do not establish a universal barrier for all other
+hooks, asynchronous work or input usability; no latency distribution or full onboarding is claimed.
+
+Production still reports process launch separately from the unverified client-initialization phase.
+Neither SessionStart nor status rendering becomes a readiness flag. The model-capability startup
+notice now has positive synthetic systemMessage display evidence, but its actual product payload,
+UI route and launcher hook remain separate implementation work. Full readiness, R06 and release
+gates remain open; this decision changes no production transport, dependency or execution authority.

@@ -1,0 +1,20 @@
+{
+  "created": "2026-09-09",
+  "fixture": "main.go",
+  "scope": "Independent command hooks for a bounded interactive client startup observation",
+  "repository_sources": ["PRODUCT_SPEC.md", "FLOWS_AND_STATE.md", "ACCEPTANCE_SPEC.md"],
+  "public_api_sources": [
+    "https://code.claude.com/docs/en/hooks",
+    "https://code.claude.com/docs/en/statusline",
+    "https://pkg.go.dev/net/http",
+    "https://pkg.go.dev/os"
+  ],
+  "constraints": [
+    "Standard library only; no previous implementation, dependency fixture or client source input",
+    "No stdin, transcript, credential-store or external endpoint reads",
+    "Exactly two authenticated loopback POSTs to fixed test routes, one private exclusive PID record and one synthetic JSON systemMessage",
+    "An eight-second whole HTTP deadline and a twelve-second main deadline bound blocking IO",
+    "No proxy, redirect, retry, model request, client tool, additional context or initial user message",
+    "The parent holds one request to distinguish hook arrival, hook return and visible terminal output; no general readiness guarantee is inferred"
+  ]
+}

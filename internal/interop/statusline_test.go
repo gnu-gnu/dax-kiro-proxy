@@ -46,6 +46,11 @@ func (b *statusProbeBackend) Start(context.Context, *anthropic.Request) (inferen
 // trusted through the documented per-project config key. Only first-run theme, the owned local
 // API key and introductory notes receive input. No login, user prompt or tool input is submitted.
 func TestClaudeStatuslineRefreshWithoutModelTurn(t *testing.T) {
+	observeClaudeStatusUI(t, nil)
+}
+
+func observeClaudeStatusUI(t *testing.T, startup *startupObservation) {
+	t.Helper()
 	clientExecutable := os.Getenv("DAX_INTEROP_CLAUDE_BINARY")
 	if clientExecutable == "" {
 		t.Skip("set DAX_INTEROP_CLAUDE_BINARY for an owned terminal/status probe; no inference")
@@ -65,7 +70,6 @@ func TestClaudeStatuslineRefreshWithoutModelTurn(t *testing.T) {
 	if os.WriteFile(settings, []byte(`{"permissions":{"defaultMode":"manual"},"hooks":{}}`), 0600) != nil || os.WriteFile(emptyMCP, []byte(`{"mcpServers":{}}`), 0600) != nil {
 		t.Fatal("cannot write owned UI settings")
 	}
-	before := fileFingerprint(t, settings)
 	runner, err := childproc.New(childproc.Config{Timeout: 20 * time.Second, MaxOutputBytes: 256 << 10})
 	if err != nil {
 		t.Fatal("cannot create bounded UI runner")
@@ -102,10 +106,16 @@ func TestClaudeStatuslineRefreshWithoutModelTurn(t *testing.T) {
 	var completed sync.Once
 	var messageRequests atomic.Int32
 	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if startup != nil && startup.handle(w, r) {
+			return
+		}
 		if r.URL.Path == "/v1/messages" || r.URL.Path == "/messages" {
 			messageRequests.Add(1)
 		}
 		if r.Method == "GET" && r.URL.Path == "/dax-kiro-proxy/status/usage" && r.Header.Get("x-api-key") == tokens.UI {
+			if startup != nil {
+				startup.record(startupStatusRequest)
+			}
 			mu.Lock()
 			now := time.Now()
 			calls++
@@ -122,6 +132,11 @@ func TestClaudeStatuslineRefreshWithoutModelTurn(t *testing.T) {
 	server.Config.MaxHeaderBytes = 8 << 10
 	server.Start()
 	defer server.Close()
+	if startup != nil {
+		startup.prepare(t, root, settings, server.URL)
+		defer startup.checkChildren(t, root)
+	}
+	before := fileFingerprint(t, settings)
 	proxy := filepath.Join(filepath.Dir(buildRelayObserver(t)), "owned-relay")
 	profile, err := launcher.PrepareClient(launcher.ClientConfig{RuntimeParent: root, Home: home, Project: project, UserSettings: settings, Executable: clientExecutable, Version: launcher.SupportedClientVersion, Model: model, GatewayURL: server.URL, ModelToken: tokens.Model, UIToken: tokens.UI, StatusExecutable: proxy, Environment: []string{"PATH=/usr/bin:/bin:/usr/sbin:/sbin", "TERM=xterm-256color", "COLUMNS=160", "LINES=40"}})
 	if err != nil {
@@ -148,6 +163,11 @@ func TestClaudeStatuslineRefreshWithoutModelTurn(t *testing.T) {
 	command.Args = append([]string{"-q", os.DevNull, "/bin/sh", wrapper}, command.Args...)
 	ctx, cancel := context.WithTimeout(t.Context(), 20*time.Second)
 	defer cancel()
+	if startup != nil {
+		joined := make(chan struct{})
+		go func() { defer close(joined); startup.control(ctx) }()
+		defer func() { cancel(); <-joined }()
+	}
 	type outcome struct {
 		result       childproc.Result
 		setupAnswers int
@@ -155,7 +175,11 @@ func TestClaudeStatuslineRefreshWithoutModelTurn(t *testing.T) {
 	}
 	finished := make(chan outcome, 1)
 	go func() {
-		result, answers, err := runStatusTerminal(ctx, terminalOwner, command)
+		var observe func(string)
+		if startup != nil {
+			observe = startup.observe
+		}
+		result, answers, err := runObservedStatusTerminal(ctx, terminalOwner, command, observe)
 		finished <- outcome{result, answers, err}
 	}()
 	var got outcome
@@ -213,13 +237,16 @@ func TestClaudeStatuslineRefreshWithoutModelTurn(t *testing.T) {
 	if count < 2 || count > 10 || elapsed == 0 || !visible || messageRequests.Load() != 0 || backend.starts.Load() != 0 || !groupGone || runner.Active() != 0 || terminalOwner.Active() != 0 || errors.Is(got.err, childproc.ErrCleanup) || errors.Is(got.err, childproc.ErrIO) || errors.Is(got.err, childproc.ErrOutputLimit) || fileFingerprint(t, settings) != before {
 		t.Fatal("installed client status refresh or terminal cleanup was not established")
 	}
+	if startup != nil {
+		startup.check(t)
+	}
 }
 
 var terminalEscapes = regexp.MustCompile("\\x1b\\[[0-?]*[ -/]*[@-~]|\\x1b\\][^\\x07\\x1b]*(?:\\x07|\\x1b\\\\)")
 
 // Output stays in bounded memory. Setup input requires the exact recognized screen and selected
 // item. The API key belongs solely to this test. No login, directory or tool approval is sent.
-func runStatusTerminal(ctx context.Context, owner *childproc.Attached, command childproc.Command) (childproc.Result, int, error) {
+func runObservedStatusTerminal(ctx context.Context, owner *childproc.Attached, command childproc.Command, observe func(string)) (childproc.Result, int, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	in, input, err := os.Pipe()
@@ -261,6 +288,9 @@ func runStatusTerminal(ctx context.Context, owner *childproc.Attached, command c
 				return
 			}
 			raw = append(raw, buffer[:n]...)
+			if observe != nil {
+				observe(strings.ToLower(strings.Join(strings.Fields(terminalEscapes.ReplaceAllString(string(raw), " ")), " ")))
+			}
 			if setupAnswers < 4 {
 				plain := strings.ToLower(strings.Join(strings.Fields(terminalEscapes.ReplaceAllString(string(raw[screenStart:]), " ")), " "))
 				keys, next := statusSetupInput(setupAnswers, plain)

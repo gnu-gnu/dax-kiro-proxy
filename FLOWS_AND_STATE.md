@@ -29,6 +29,11 @@ execute and return the result.
 Optional startup timing reports each phase separately. The login check has its own timeout and cannot
 hang the launcher indefinitely.
 
+Individual SessionStart callbacks, hook completion and visible status are distinct observations.
+Neither callback arrival nor status rendering establishes step 9. Optional hooks may be disabled
+without making startup fail. D48 records the observed ordering; full interactive readiness remains
+unverified, and process launch must not be reported as session initialization.
+
 ## 3. Conversation identity
 
 A session binding key has three layers:

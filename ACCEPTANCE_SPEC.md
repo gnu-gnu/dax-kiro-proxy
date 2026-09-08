@@ -169,6 +169,9 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
 - The status command preserves source settings and is removed with the client runtime. A completed
   foreground turn remains visible without account usage; a late helper cannot recreate removed
   runtime files. Installed-client UI evidence must be distinguished from a direct helper invocation.
+- Startup diagnostics distinguish process launch, individual hook execution and visible UI from
+  session initialization. A held-hook control must not let an earlier callback or status render
+  pass a full-readiness assertion. Disabled optional hooks must not make healthy startup fail.
 - Context percentage, duration, metering units, credits, model, multiplier, and effort status are parsed
   when present and degrade independently when absent.
 - Multiple metadata notifications in one turn create only one visible completion metric.

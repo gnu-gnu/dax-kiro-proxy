@@ -17,6 +17,8 @@ does not redefine completion around an intermediate phase.
 - D47 connects cached status to a temporary client status-line command with UI-only authority,
   bounded HTTP/output and runtime cleanup. This supplies no live account-usage adapter or Kiro
   execution-policy proof; the dedicated evidence below distinguishes helper and actual UI checks.
+- D48 observes visible status while another SessionStart hook is still running in installed Claude
+  2.1.263. Hook completion and visible UI must remain separate from unverified full initialization.
 - The original fourteen repository Markdown documents were read in README order, with README and
   AGENTS first. LIVE_KIRO_TEST_PLAN.md now adds the concrete scope of a separately opted-in test.
 - Specification-only baseline committed as `7b108dd`.
@@ -649,6 +651,56 @@ under the same umask: privatefs 1.389s, launcher 16.025s. The first run's other 
 5.023s, gateway 3.247s, interop 19.177s, session 16.622s, status 1.343s and statusline 2.589s.
 Whole-repository vet, changed-file formatting and diff whitespace checks passed. This is a broad
 run followed by affected-package revalidation, not a claim that the first run was entirely green.
+
+### Interactive startup hook ordering
+
+A new public-only Claude consultation completed with CLI exit 0 and a parsed successful one-turn
+result. The complete 3,365-byte answer file and its result metadata were read; a local review is
+saved alongside it at .cache/claude-consult/work/review-readiness.md. The prior restricted environment
+returned an inner login error and supplied no advice despite its wrapper exit 0. The successful
+direct invocation changed no credentials or account state through login/logout. Neither result
+identifies the reason for the environment difference. The separately blocked internal MCP prompt
+remains unsent; this was a distinct, approved public lifecycle question.
+
+The new independent hook-process test first failed because the executable fixture was absent.
+That run also encountered Go's local telemetry directory being written during temporary-directory
+cleanup. The fixture builder now uses go telemetry off only in its disposable HOME; an attempted
+GOTELEMETRY environment assignment was verified ineffective because Go exposes it as read-only.
+After the helper was authored, the protocol and existing setup-input race checks passed in 3.481s.
+
+TestClaudeStartupHookOrderingWithoutModelTurn passed against unmodified Claude Code 2.1.263 in
+8.37s (9.676s package). Its two independent SessionStart hooks send only fixed loopback observations
+and synthetic systemMessage notices. One callback is held until the other helper's PID is gone,
+then for three more seconds. The client has an empty prepared project, no tools and strict empty
+MCP settings; the normal D47 test-only trust/onboarding prerequisites apply.
+
+| Observation relative to first hook callback | Time |
+| --- | ---: |
+| Held / fast hook entered | 0 / 1ms |
+| Fast hook reported its first response returned / PID gone | 2 / 3ms |
+| First status request / visible status | 514 / 520ms |
+| Held callback released / helper reported its return | 3,005 / 3,006ms |
+| Fast and held notices first visible | Both 3,023ms |
+
+Status was visible while the held hook was still running. The two status polls were 4,622ms apart;
+there was one synthetic catalog request, zero HTTP message requests and zero backend starts. Client
+PID/group and both hook PIDs were gone, source settings were unchanged, and both process owners had
+zero active children. The private normalized log and exit 0 are retained under
+.cache/interop-observations/startup-order.gHCAPN. Raw terminal output remains in bounded memory only.
+
+This is positive ordering and notice-display evidence, not a prompt-input usability test, latency
+benchmark or full readiness guarantee. D48 retains the initialization gate and the missing product
+capability-notice payload/route/hook work. No Kiro process, model credit, actual client tool,
+authentication mutation, dependency or production-policy change was involved.
+
+The complete uncached interop race suite passed in 20.011s with both installed-CLI opt-ins empty
+and Kiro credit opt-in 0. The final invalid-callback regression also passed in 1.962s after seeding
+the entered-but-unreleased state explicitly. The existing installed-client status test passed after
+the shared observer refactor in 7.26s (8.566s package): two polls 5,008ms apart, visible status,
+zero message requests/backend starts and joined cleanup. Its normalized log and exit 0 are under
+.cache/interop-observations/startup-status.RBIDSF. Whole-repository vet, changed-file formatting and
+diff checks passed. No unrelated production acceptance suite or live Kiro gate is claimed by these
+test-only changes.
 
 ### Request constraints and negative client recovery evidence
 
