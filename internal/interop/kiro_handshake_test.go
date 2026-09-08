@@ -63,7 +63,7 @@ func TestKiroIsolatedACPHandshake(t *testing.T) {
 	started := time.Now()
 	client, err := acp.Start(ctx, acp.Config{Executable: executable, Args: []string{"acp", "--agent", name, "--agent-engine", "v2"}, Directory: cwd, Environment: env, ClientInfo: acp.Info{Name: "dax-protocol-observation", Version: "1"}, Auth: kiroauth.Classifier{}, Limits: acp.Limits{RequestTimeout: 5 * time.Second}})
 	if err != nil {
-		t.Logf("version=2.21.1, agent_syntax=true, initialized=false, failure=%s, elapsed_ms=%d", kiroSetupFailure(err), time.Since(started).Milliseconds())
+		t.Logf("version=2.21.1, agent_validate_exit=0, initialized=false, failure=%s, elapsed_ms=%d", kiroSetupFailure(err), time.Since(started).Milliseconds())
 		return
 	}
 	defer client.Close()
@@ -77,7 +77,7 @@ func TestKiroIsolatedACPHandshake(t *testing.T) {
 	if err := client.Close(); err != nil {
 		t.Fatalf("owned Kiro process cleanup failed: %s", kiroSetupFailure(err))
 	}
-	t.Logf("version=2.21.1, agent_syntax=true, initialized=true, load_session=%v, session_created=%v, model_count=%d, failure=%s, elapsed_ms=%d", caps.LoadSession, callErr == nil && decodeErr == nil, modelCount, kiroSetupFailure(callErr), time.Since(started).Milliseconds())
+	t.Logf("version=2.21.1, agent_validate_exit=0, initialized=true, load_session=%v, session_created=%v, model_count=%d, failure=%s, elapsed_ms=%d", caps.LoadSession, callErr == nil && decodeErr == nil, modelCount, kiroSetupFailure(callErr), time.Since(started).Milliseconds())
 }
 
 func kiroSetupFailure(err error) string {

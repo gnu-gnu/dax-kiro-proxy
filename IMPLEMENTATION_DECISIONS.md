@@ -609,7 +609,7 @@ asserting that a timeout proves the account is logged out. No authentication-cha
 
 Successful identity preflight establishes a current CLI identity/cache scope, not future token
 validity or Kiro execution restrictions. A separate isolated-HOME probe used a newly authored empty
-agent. Its finite syntax validation succeeded with the existing HOME; ACP itself, started with the
+agent. Its finite validation command exited 0 with the existing HOME; ACP itself, started with the
 empty HOME, failed initialization with a recognized authentication error and was cleaned up. No
 `session/prompt` was submitted. Logged-in ACP/tool restrictions and clean-host release gates remain.
 
@@ -632,3 +632,10 @@ suppression, launch-profile lifetime and pooling/load behavior still require int
 The installed ACP help describes --agent as selecting the first session's agent; later sessions must
 not be assumed to inherit the same restriction. Successful syntax validation is never an execution
 restriction proof or permission to enable real model traffic.
+
+The later 2.21.1 negative control confirms that `agent validate --path` exit status cannot establish
+even that a tool-list type check succeeded: the candidate and the same file with tools replaced by
+the number 42 both exited 0. The observation uses `/usr/bin/false` as its declared MCP executable, so
+unexpected validation-time execution cannot perform a client tool. This is evidence of an unreliable
+validation exit status, not evidence that malformed tools were effectively enabled or rejected.
+Neither this utility nor its success code may be used as the R06 startup gate.

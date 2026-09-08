@@ -122,11 +122,12 @@ over a racing relay disconnect, and notifications are drained again at the promp
   in 6.442s (`-fuzztime=5s -parallel=2`), with no failing input.
 
 Black-box Kiro 2.21.1 configuration evidence remains limited: an independently authored temporary
-profile with empty tools, empty MCP servers/resources, no hooks and `includeMcpJson: false` passed
-`agent validate` with exit 0. The default agent creation behavior advertised all tools (`*`) and
+profile with empty tools, empty MCP servers/resources, no hooks and `includeMcpJson: false` returned
+exit 0 from `agent validate`. The default agent creation behavior advertised all tools (`*`) and
 included inherited MCP configuration. The create command opened an editor; the owned editor/process
 was terminated, and later probes suppressed editor invocation and used bounded process groups.
-Syntax acceptance does not prove effective tool suppression. No model request or client tool effect
+The later D27 negative control shows this exit status cannot prove syntax acceptance either. No
+model request or client tool effect
 has been run. Real Kiro restricted-profile/negotiation proof (R06), actual Claude model UI (R14), and
 credit-consuming live opt-in gates remain open.
 
@@ -182,6 +183,14 @@ and an explicit --agent-engine selector with v2 as the current default. The firs
 requires a separate effective-profile check before enabling shared or loaded live sessions. No
 trust-all-tools flag was used. Candidate validation, process/profile lifecycle and R06 remain open.
 
+An opt-in validation probe initially failed its assumption that an invalid tool-list type produces
+a nonzero exit. Repeating the control at the exact same file path confirmed that both the candidate
+and a tools value of 42 return exit 0. `TestKiroAgentValidationExitStatus` records this observation
+(6.078s suite), with execution verification remaining false. Its declared MCP executable is the
+fixed system `/usr/bin/false`; no Kiro prompt is submitted. This is not a passing restriction gate,
+nor proof that Kiro effectively accepts malformed tools: only the exit-status test is inconclusive.
+Earlier descriptions of successful syntax validation must be read as a zero command exit only.
+
 ### Phase 6 Kiro identity preflight and unauthenticated startup
 
 Initial probes without the Kiro installation directory in PATH timed out. The installed public
@@ -200,7 +209,7 @@ suite passed in 2.149s. The installed read-only `TestKiroPinnedLoginPreflight` p
 unknown login result; it does not claim that the next model request's credentials cannot expire.
 
 The empty-HOME Kiro probe's syntax validator first timed out, then exited unsuccessfully after PATH
-was corrected. Validating that same new agent file with the existing HOME succeeded. ACP was still
+was corrected. The same validation command with the existing HOME exited 0. ACP was still
 launched with the empty temporary HOME and no copied account files; it returned a recognized
 authentication failure before initialization completed. `TestKiroIsolatedACPHandshake` passed as that
 bounded observation in 6.766s, with no session prompt, model credits or client tool effect. This proves
