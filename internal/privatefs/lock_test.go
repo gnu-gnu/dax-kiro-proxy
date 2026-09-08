@@ -68,6 +68,9 @@ func TestLeaseRefusesLinksAndUnsafeFileModes(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(path, "wide.lock"), nil, 0644); err != nil {
 		t.Fatal(err)
 	}
+	if err := os.Chmod(filepath.Join(path, "wide.lock"), 0644); err != nil {
+		t.Fatal(err)
+	}
 	if _, err := d.TryLock("wide.lock"); err == nil {
 		t.Fatal("non-private lock accepted")
 	}

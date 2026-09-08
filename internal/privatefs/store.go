@@ -25,6 +25,16 @@ func New(path string) (*Dir, error) {
 	if err := os.MkdirAll(path, 0700); err != nil {
 		return nil, ErrFile
 	}
+	return Open(path)
+}
+
+// Open requires an existing private directory. Readers of short-lived runtime files must not
+// recreate a directory after its owner has removed it during shutdown.
+func Open(path string) (*Dir, error) {
+	if !platformSupported || !filepath.IsAbs(path) {
+		return nil, ErrFile
+	}
+	path = filepath.Clean(path)
 	d := &Dir{path: path}
 	root, err := d.root()
 	if err != nil {

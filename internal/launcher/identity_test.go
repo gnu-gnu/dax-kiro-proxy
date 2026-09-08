@@ -154,6 +154,9 @@ func TestScopeKeyRefusesUnsafeFilesAndDirectories(t *testing.T) {
 					err = os.Link(outside, path)
 				case "public":
 					err = os.WriteFile(path, data, 0644)
+					if err == nil {
+						err = os.Chmod(path, 0644)
+					}
 				case "directory":
 					err = os.Mkdir(path, 0700)
 				}

@@ -162,6 +162,13 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
 - Status reads return cached data without waiting for a Kiro usage subprocess.
 - Refresh requests coalesce within the 60-second TTL and failure preserves last good/model-only status.
 - Status-line polling at five seconds does not create model turns.
+- The temporary client status command reads only its private UI credential, never client stdin or
+  model/provider credentials, and cannot redirect that credential or select a different HTTP route.
+  Invalid configuration, remote/hostname endpoints, proxy variables, oversized responses and stalled
+  input/output remain bounded. Display text contains no arbitrary upstream diagnostic or identity.
+- The status command preserves source settings and is removed with the client runtime. A completed
+  foreground turn remains visible without account usage; a late helper cannot recreate removed
+  runtime files. Installed-client UI evidence must be distinguished from a direct helper invocation.
 - Context percentage, duration, metering units, credits, model, multiplier, and effort status are parsed
   when present and degrade independently when absent.
 - Multiple metadata notifications in one turn create only one visible completion metric.

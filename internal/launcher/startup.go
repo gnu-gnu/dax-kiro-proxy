@@ -305,7 +305,7 @@ func start(ctx context.Context, opts LaunchOptions, files childproc.AttachedIO, 
 	cancel()
 	// RunClient takes ownership even when it rejects its configuration or parent is now canceled.
 	transferred = true
-	result.Client, err = services.client(ctx, ClientRunConfig{Backend: backend, Models: models, Schema: schema, Client: ClientConfig{RuntimeParent: runtime, Home: opts.Home, Project: opts.Project, UserSettings: opts.UserSettings, Executable: opts.ClientExecutable, Version: SupportedClientVersion, Environment: opts.Environment}, IO: files, Server: gateway.ServerConfig{Gateway: gateway.Config{Metrics: metrics}}})
+	result.Client, err = services.client(ctx, ClientRunConfig{Backend: backend, Models: models, Schema: schema, Client: ClientConfig{RuntimeParent: runtime, Home: opts.Home, Project: opts.Project, UserSettings: opts.UserSettings, Executable: opts.ClientExecutable, StatusExecutable: opts.ProxyExecutable, Version: SupportedClientVersion, Environment: opts.Environment}, IO: files, Server: gateway.ServerConfig{Gateway: gateway.Config{Metrics: metrics}}})
 	result.Startup.Phases = append(result.Startup.Phases, PhaseTiming{"gateway_startup", result.Client.GatewayTime.Milliseconds()}, PhaseTiming{"client_profile", result.Client.ProfileTime.Milliseconds()}, PhaseTiming{"process_launch", result.Client.LaunchTime.Milliseconds()}, PhaseTiming{"runtime_cleanup", result.Client.CleanupTime.Milliseconds()})
 	return result, err
 }

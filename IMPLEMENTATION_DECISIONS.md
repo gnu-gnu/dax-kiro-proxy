@@ -1462,3 +1462,64 @@ This establishes catalog decoding and identity agreement for this session/versio
 establish live model selection, generation constraints, execution restrictions or complete client
 selector behavior. No prompt, model change, client tool, credential copy or login/logout runs.
 The production policy gate and the separately pending D45 credit-consuming experiment are unchanged.
+
+## D47: bounded client status display with UI-only authority (review R12/R14/R15)
+
+The internal launcher passes its already-generated UI token to a private version-1 statusline.json
+inside the temporary client runtime. The four exact keys are version, endpoint, token and model;
+the file is at most 4 KiB, owner-only, regular and neither a symlink nor a hardlink. Model and UI
+tokens must differ. The helper accepts only a literal loopback IP, HTTP and an explicit valid port,
+with no path, query, user information or fragment. No user-supplied token reaches runtime startup.
+
+The temporary host-settings overlay selects a shell command that runs the absolute proxy executable
+through `/usr/bin/env -i PATH=/usr/bin:/bin`, with `statusline --config` and the quoted private path.
+Paths with quotes, backticks and shell substitution syntax remain literal. The UI credential is in
+neither argv nor the helper environment. The source user's status command remains in the temporary
+user snapshot, while the host overlay selects this product display for the launched session. Source
+settings are never rewritten, and original status commands are not chained. Permission and hook
+settings retain their existing precedence. The documented refreshInterval is five seconds. The
+client's workspace-trust and disableAllHooks gates still apply; the launcher does not override them.
+
+The helper reads no stdin, transcript or ambient credentials and launches no child process. It makes
+one GET to the exact cached usage route with its UI key. There are no redirects, environment proxies,
+DNS hostnames or retries. The HTTP context is 750ms, connect/header deadlines are 250/300ms, headers
+are bounded at 8 KiB and the body at 64 KiB. Ordinary failures render a fixed unavailable line; caller
+cancellation and malformed private configuration return a silent failure. A two-second timer in
+main exits even if inherited stdout or a filesystem call stalls. This begins after Go initialization,
+not at OS process creation. The helper owns no durable write or child that this exit could abandon.
+
+The display uses the selected startup model until a valid last completed foreground record exists.
+Thereafter `Kiro last` labels that record, including its effort state, local elapsed time and supplied
+context, multiplier and credit values. Missing values are not inferred. Local estimates carry the
+`~tokens` marker and remain distinct from billed usage; stale account amounts are marked. Labels
+strip the product prefix and terminal routing digest only for display, never for model selection.
+No binding digest, arbitrary diagnostic, account identity or provider token estimate is printed.
+The normalized output is one line of at most 1 KiB.
+
+A regression reproduced a late status invocation recreating the removed runtime through the existing
+privatefs.New constructor. The helper now uses privatefs.Open, which requires an existing private
+directory and never creates it. Runtime shutdown retains its server/backend/profile ordering. This
+feature adds no dependency or account-usage command and cannot enable the unverified Kiro policy.
+
+The broad run under umask 077 also exposed old negative-fixture assumptions: requesting mode 0644
+at file creation produced mode 0600, so private-file and scope-key tests mislabeled safe files as
+public. The three affected test sources now chmod their synthetic public records explicitly.
+Production file validation and permissions are unchanged by that correction.
+
+The installed UI test uses a fresh owned HOME, empty workspace, strict empty MCP config, no built-in
+tools and a local backend that cannot infer. Its dedicated client config seeds only the documented
+projects[exact owned path].hasTrustDialogAccepted key. This is a test prerequisite, not a launcher
+policy or proof of the complete interactive onboarding flow. The terminal observer supplies only
+recognized theme, synthetic local-key and introductory-note inputs. It waits for a separate selected
+Yes render before confirming that key. Unknown/login/directory/tool dialogs receive no input.
+Capture stays within 256 KiB in memory; retained reports contain only fixed markers/counts/outcomes.
+The test verifies actual visible output, a four-to-eight-second refresh interval, zero HTTP message
+requests and zero backend starts, then joins the independently recorded client's group. Earlier
+unseeded controls did not complete the trust flow and remain negative onboarding evidence.
+
+Public client contracts checked on 2026-09-09:
+
+- https://code.claude.com/docs/en/statusline
+- https://code.claude.com/docs/en/settings
+- https://code.claude.com/docs/en/cli-reference
+- https://code.claude.com/docs/en/permissions#project-allow-rules-and-workspace-trust

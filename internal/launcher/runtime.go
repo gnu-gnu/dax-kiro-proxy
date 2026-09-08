@@ -100,7 +100,7 @@ func RunClient(ctx context.Context, cfg ClientRunConfig) (result ClientRunResult
 	if ctx.Err() != nil {
 		return result, ctx.Err()
 	}
-	if cfg.Backend == nil || cfg.Client.GatewayURL != "" || cfg.Client.ModelToken != "" || cfg.Server.Gateway.Backend != nil || cfg.Server.Gateway.Tokens != (gateway.Tokens{}) || cfg.Server.UnsafeNetwork {
+	if cfg.Backend == nil || cfg.Client.GatewayURL != "" || cfg.Client.ModelToken != "" || cfg.Client.UIToken != "" || cfg.Server.Gateway.Backend != nil || cfg.Server.Gateway.Tokens != (gateway.Tokens{}) || cfg.Server.UnsafeNetwork {
 		return result, ErrConfig
 	}
 	if cfg.Models != nil {
@@ -129,6 +129,9 @@ func RunClient(ctx context.Context, cfg ClientRunConfig) (result ClientRunResult
 		return result, err
 	}
 	cfg.Client.GatewayURL, cfg.Client.ModelToken = server.URL(), tokens.Model
+	if cfg.Client.StatusExecutable != "" {
+		cfg.Client.UIToken = tokens.UI
+	}
 	started = time.Now()
 	profile, err = PrepareClient(cfg.Client)
 	result.ProfileTime = time.Since(started)

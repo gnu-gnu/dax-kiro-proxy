@@ -37,6 +37,17 @@ the queue or when account usage is unavailable. Neither route accepts a prompt o
 Decision D21 defines the cache, record bounds and delivery policy. The model-capability hook remains
 unimplemented pending the launcher/client contract.
 
+The temporary client settings select a product-owned `statusLine` command with a five-second
+`refreshInterval`. Its `statusline --config ABSOLUTE_PATH` helper reads a version-1, owner-only JSON
+file containing exactly `version`, `endpoint`, `token` and `model`. The endpoint is an HTTP literal
+loopback IP with an explicit port; the token has UI authority only. The helper's sole network request
+is the fixed usage-status GET, with a 750ms total HTTP deadline, no redirects/proxies/retries, an
+8 KiB response-header limit and a 64 KiB body limit. It reads no client stdin or transcript. Output
+is at most 1 KiB of normalized single-line text; unavailable data has a fixed local display. A
+two-second deadline started in helper main also bounds blocked inherited output. Source settings
+remain unchanged, and a late invocation cannot recreate the removed runtime. Decision D47 records
+credential delivery, display semantics and the distinction from live Kiro usage verification.
+
 ### Message request validation
 
 The request body limit is 16 MiB. The body must be a JSON object with a nonempty `messages` array.

@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 	"syscall"
+	"time"
 	"unicode"
 	"unicode/utf8"
 
@@ -22,6 +23,7 @@ import (
 	"dax-kiro-proxy/internal/relay"
 	"dax-kiro-proxy/internal/relay/mcp"
 	"dax-kiro-proxy/internal/schemacheck/worker"
+	"dax-kiro-proxy/internal/statusline"
 )
 
 func main() {
@@ -35,10 +37,17 @@ func main() {
 		return
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	// A status display owns no child process or durable state. Its whole-process deadline also
+	// bounds a stalled inherited stdout or filesystem call, which context alone cannot interrupt.
+	var displayDeadline *time.Timer
+	if len(os.Args) == 4 && os.Args[1] == "statusline" && os.Args[2] == "--config" {
+		displayDeadline = time.AfterFunc(2*time.Second, func() { os.Exit(1) })
+	}
 	files := childproc.AttachedIO{Stdin: os.Stdin, Stdout: os.Stdout, Stderr: os.Stderr, Foreground: true}
 	services := commandServices{
 		defaults: defaultOptions, inspect: launcher.Inspect, run: launcher.Run,
-		schema: func() error { return worker.Run(os.Stdin, os.Stdout) },
+		statusline: statusline.Display,
+		schema:     func() error { return worker.Run(os.Stdin, os.Stdout) },
 		relay: func(ctx context.Context, path string) error {
 			config, err := relay.LoadChildConfig(path)
 			if err != nil {
@@ -53,17 +62,21 @@ func main() {
 		},
 	}
 	code := execute(ctx, os.Args[1:], files, os.Stdout, os.Stderr, services)
+	if displayDeadline != nil {
+		displayDeadline.Stop()
+	}
 	stop()
 	os.Exit(code)
 }
 
 // Injection is local to command tests. CLI arguments cannot select an alternate launcher or policy.
 type commandServices struct {
-	defaults func() (launcher.LaunchOptions, error)
-	inspect  func(context.Context, launcher.LaunchOptions) (launcher.StartupReport, error)
-	run      func(context.Context, launcher.LaunchOptions, childproc.AttachedIO) (launcher.LaunchResult, error)
-	schema   func() error
-	relay    func(context.Context, string) error
+	defaults   func() (launcher.LaunchOptions, error)
+	inspect    func(context.Context, launcher.LaunchOptions) (launcher.StartupReport, error)
+	run        func(context.Context, launcher.LaunchOptions, childproc.AttachedIO) (launcher.LaunchResult, error)
+	schema     func() error
+	relay      func(context.Context, string) error
+	statusline func(context.Context, string) (string, error)
 }
 
 const helpText = `usage: dax-kiro-proxy <doctor|models|run> [options]
@@ -95,6 +108,20 @@ func execute(ctx context.Context, args []string, files childproc.AttachedIO, out
 	}
 	if len(args) == 3 && args[0] == "relay" && args[1] == "--config" {
 		if services.relay == nil || services.relay(ctx, args[2]) != nil {
+			return 1
+		}
+		return 0
+	}
+	if len(args) == 3 && args[0] == "statusline" && args[1] == "--config" {
+		if services.statusline == nil {
+			return 1
+		}
+		line, err := services.statusline(ctx, args[2])
+		if err != nil || len(line) > 1024 {
+			return 1
+		}
+		n, err := io.WriteString(out, line)
+		if err != nil || n != len(line) {
 			return 1
 		}
 		return 0

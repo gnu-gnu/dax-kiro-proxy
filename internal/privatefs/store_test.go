@@ -84,6 +84,10 @@ func TestSymlinkPermissionsAndSpecialFilesAreRejected(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(path, "public.json"), []byte("x"), 0644); err != nil {
 		t.Fatal(err)
 	}
+	// Creation modes are filtered by the caller's umask; make the unsafe fixture explicit.
+	if err := os.Chmod(filepath.Join(path, "public.json"), 0644); err != nil {
+		t.Fatal(err)
+	}
 	if _, err := d.Read("public.json", 128); err == nil {
 		t.Fatal("accepted world-readable record")
 	}

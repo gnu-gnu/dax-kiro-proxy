@@ -14,6 +14,9 @@ does not redefine completion around an intermediate phase.
   contains a same-named conflicting agent. Reload, inherited effects and native denial remain open.
 - D46 verifies agreement of all 19 CLI/ACP model identities and client aliases, including auto, in
   one owned empty-agent session. No model selection or prompt was sent; live turn gates remain open.
+- D47 connects cached status to a temporary client status-line command with UI-only authority,
+  bounded HTTP/output and runtime cleanup. This supplies no live account-usage adapter or Kiro
+  execution-policy proof; the dedicated evidence below distinguishes helper and actual UI checks.
 - The original fourteen repository Markdown documents were read in README order, with README and
   AGENTS first. LIVE_KIRO_TEST_PLAN.md now adds the concrete scope of a separately opted-in test.
 - Specification-only baseline committed as `7b108dd`.
@@ -90,8 +93,9 @@ CLIs may maintain their own account/cache metadata; no claim of globally untouch
 
 The built-in Kiro policy adapter remains unavailable. Run cannot start actual model traffic, and
 doctor explicitly reports that fact. A package-private fake adapter tests the complete runtime path;
-no trust flag or user-supplied verification record can select it. Client initialization timing/UI,
-assets/status integration, R16 request controls, real policy/load proof and release work remain open.
+no trust flag or user-supplied verification record can select it. Client initialization timing and
+complete interactive behavior, asset preservation, capability/metrics hooks, R16 request controls,
+real policy/load proof and release work remain open. D47 adds the separate status display below.
 
 The user subsequently explicitly authorized an independent local Claude CLI consultation and asked
 that Claude save its answer to a file for review. That authorization superseded the earlier automatic
@@ -595,6 +599,57 @@ Final uncached `go test -race -count=1 -p 1 ./internal/acp ./internal/interop` p
 `go vet ./...`, changed-file formatting and `git diff --check` passed. These fixture results remain
 separate from the successful installed catalog observation and its earlier failed preflight.
 
+### Temporary client status display
+
+D47 adds the internal `statusline --config` command and connects the launcher's generated UI token
+to an owner-only configuration file. Its temporary host overlay requests five-second refreshes.
+The child helper sees a cleared environment, reads no client stdin/transcript, and makes one bounded
+GET to the exact cached status route. A last completed foreground turn remains visible when account
+usage is unavailable. Optional model multipliers, credits and local token estimates stay distinct;
+the display does not derive billing data from estimates.
+
+The new formatter/helper/profile/dispatch tests initially failed on absent APIs. A late-invocation
+regression then reproduced recreation of the removed runtime; privatefs.Open fixes that reader-only
+path. A supplied-multiplier assertion also failed before the display was completed. Independent
+tests cover URL/credential authority, redirects, ignored proxy variables, hostile shell-path bytes,
+private file modes/link rejection, response caps, cancellation and source-settings preservation.
+An actual helper with an unread stdin and a saturated stdout exits on its own two-second deadline.
+The composed launcher test completes one fake ACP turn, reads its actual queued metric over HTTP,
+and then verifies revoked configuration and absence of the removed runtime after cancellation.
+
+The focused status/launcher/command race checks passed before installed UI observation; the final
+runtime/status selection passed in 7.336s and the multiplier correction in 2.019s. No dependency was
+added.
+
+`TestClaudeStatuslineRefreshWithoutModelTurn` passed on installed Claude Code 2.1.263 in 7.16s
+(9.044s package, including the setup-input regression). It rendered the synthetic last model and
+made two authenticated status requests separated by 4,971ms. HTTP message requests and backend
+starts were each zero; the synthetic catalog was queried once. The owned client PID/group were
+absent after shutdown, both process owners had zero active children and source settings were
+unchanged. Normalized evidence and exit 0 are retained in the ignored owner-only
+`.cache/interop-observations/statusline.YAkSfo` directory; raw terminal text was not saved.
+
+Earlier attempts failed before status rendering: an interactive invocation mistakenly used the
+print-only no-session-persistence option, a terminal-size probe used the wrong macOS stty path, and
+fresh profiles waited at theme, key, introductory or repeated trust dialogs. The corrected test uses
+the documented CLAUDE_CODE_SKIP_PROMPT_HISTORY setting and a pre-seeded trust record for only its
+fresh empty project. Recognized theme/key/note inputs remain bounded; directory dialogs receive no
+input in the final observer. No real user profile or credential is copied. The final result verifies
+idle status refresh on this prepared profile, not complete onboarding or trust-dialog behavior.
+Those earlier failures are not reclassified as passing UI tests. No Kiro process, model credit,
+login/logout command or client tool effect was used, and the production policy gate is unchanged.
+
+The uncached whole-repository `go test -race -p 1 -count=1 -timeout=3m ./...` run used umask 077,
+empty installed-CLI opt-ins and credit opt-in 0. All packages except privatefs and launcher passed;
+their failures came from three old negative-fixture sources relying on creation mode 0644 without
+accounting for umask. The created files were actually private, so accepting them was correct. The
+fixtures now explicitly chmod those synthetic records; production checks were not relaxed. The
+focused reproductions passed in 1.683s/3.114s, and both complete affected race suites then passed
+under the same umask: privatefs 1.389s, launcher 16.025s. The first run's other results include ACP
+5.023s, gateway 3.247s, interop 19.177s, session 16.622s, status 1.343s and statusline 2.589s.
+Whole-repository vet, changed-file formatting and diff whitespace checks passed. This is a broad
+run followed by affected-package revalidation, not a claim that the first run was entirely green.
+
 ### Request constraints and negative client recovery evidence
 
 D33 now inventories accepted request fields and the remaining R16 gaps. Known unmapped stop,
@@ -800,9 +855,10 @@ also covers canceled startup, malformed settings, failed exec, conflicting autho
 limits. A suspended usage fetch joins, and an arbitrary synthetic cleanup error is replaced with a
 fixed class while other cleanup continues. Source settings and caller descriptors remain unchanged.
 
-This is an internal runtime stage, not a complete executable launcher. Kiro restriction preflight,
-catalog/cache/last-model wiring, client assets and interactive readiness, UI hook/status credentials
-and final CLI entry remain unfinished. The new fixture contains no upstream capture and performs no
+At this checkpoint this was an internal runtime stage. D34/D35 subsequently connected catalog,
+last-model and public CLI startup; D47 adds status credentials/display. Kiro restriction proof,
+client assets, complete interactive readiness and capability/metrics hooks remain unfinished.
+The independent runtime fixture contains no upstream capture and performs no
 actual client tool effect, installed-client invocation or Kiro model request. No dependency was added.
 
 The final complete launcher race suite passed in 7.913s, including preservation of the profile until

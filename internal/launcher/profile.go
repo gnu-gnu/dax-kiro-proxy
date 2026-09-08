@@ -18,6 +18,7 @@ import (
 	"dax-kiro-proxy/internal/childproc"
 	"dax-kiro-proxy/internal/ndjson"
 	"dax-kiro-proxy/internal/privatefs"
+	"dax-kiro-proxy/internal/statusline"
 )
 
 var (
@@ -33,6 +34,7 @@ type ClientConfig struct {
 	RuntimeParent, Home, Project, UserSettings         string
 	Executable, Version, Model, GatewayURL, ModelToken string
 	Environment                                        []string
+	StatusExecutable, UIToken                          string
 }
 
 type ClientProfile struct {
@@ -93,11 +95,26 @@ func PrepareClient(cfg ClientConfig) (*ClientProfile, error) {
 	for key, value := range hostEnvironment(cfg.GatewayURL, cfg.ModelToken) {
 		env[key] = value
 	}
-	// Only connection/authentication and optional traffic controls belong at the command-line layer.
+	// Connection, authentication, optional traffic and product status use the command-line layer.
 	// Omitting permissions/hooks lets the client retain its user < project < local < managed order.
-	overlay, _ := json.Marshal(map[string]any{"env": hostEnvironment(cfg.GatewayURL, cfg.ModelToken), "apiKeyHelper": "", "awsAuthRefresh": "", "awsCredentialExport": "", "otelHeadersHelper": ""})
+	host := map[string]any{"env": hostEnvironment(cfg.GatewayURL, cfg.ModelToken), "apiKeyHelper": "", "awsAuthRefresh": "", "awsCredentialExport": "", "otelHeadersHelper": ""}
 	root, err := privatefs.New(path)
-	if err != nil || root.Write("host-settings.json", overlay) != nil {
+	if err != nil {
+		return nil, ErrRuntime
+	}
+	if cfg.StatusExecutable != "" {
+		data, err := statusline.EncodeConfig(statusline.Config{Version: 1, Endpoint: cfg.GatewayURL, Token: cfg.UIToken, Model: cfg.Model})
+		if err != nil || root.Write("statusline.json", data) != nil {
+			return nil, ErrRuntime
+		}
+		quote := func(s string) string { return "'" + strings.ReplaceAll(s, "'", "'\\''") + "'" }
+		// The client invokes this command. The display helper has no model/provider environment;
+		// its sole credential is read from the private file, never embedded in a shell argument.
+		command := "/usr/bin/env -i PATH=/usr/bin:/bin " + quote(cfg.StatusExecutable) + " statusline --config " + quote(filepath.Join(path, "statusline.json"))
+		host["statusLine"] = map[string]any{"type": "command", "command": command, "refreshInterval": 5}
+	}
+	overlay, _ := json.Marshal(host)
+	if root.Write("host-settings.json", overlay) != nil {
 		return nil, ErrRuntime
 	}
 	p.settings = filepath.Join(path, "host-settings.json")
@@ -109,6 +126,14 @@ func PrepareClient(cfg ClientConfig) (*ClientProfile, error) {
 func validClient(cfg ClientConfig) bool {
 	if cfg.Version != SupportedClientVersion {
 		return false
+	}
+	if cfg.StatusExecutable != "" || cfg.UIToken != "" {
+		if !filepath.IsAbs(cfg.StatusExecutable) || len(cfg.StatusExecutable) > 4096 || strings.ContainsAny(cfg.StatusExecutable, "\x00\r\n") || cfg.UIToken == cfg.ModelToken {
+			return false
+		}
+		if _, err := statusline.EncodeConfig(statusline.Config{Version: 1, Endpoint: cfg.GatewayURL, Token: cfg.UIToken, Model: cfg.Model}); err != nil {
+			return false
+		}
 	}
 	for _, path := range []string{cfg.RuntimeParent, cfg.Home, cfg.Project, cfg.UserSettings, cfg.Executable} {
 		if !filepath.IsAbs(path) || len(path) > 4096 || strings.ContainsAny(path, "\x00\r\n") {

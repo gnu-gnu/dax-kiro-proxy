@@ -123,7 +123,8 @@ func runtimeConfig(t *testing.T, mode string) (launcher.ClientRunConfig, *observ
 	if strings.HasPrefix(mode, "tools-") {
 		backendMode = "chat-tools"
 	}
-	manager, err := session.NewManager(session.ManagerConfig{ProfileScope: "independent-launcher", Session: session.Config{Process: acp.Config{Executable: runtimeACP, Directory: profile.Project, Args: []string{backendMode}, ClientInfo: acp.Info{Name: "dax-launcher-fixture", Version: "1"}, Limits: acp.Limits{GracePeriod: 20 * time.Millisecond, TermPeriod: 20 * time.Millisecond, KillPeriod: time.Second}}, SetupTimeout: 3 * time.Second, TurnTimeout: 8 * time.Second, Validator: worker, RelayExecutable: runtimeProxy}})
+	metrics := status.NewTurnQueue()
+	manager, err := session.NewManager(session.ManagerConfig{ProfileScope: "independent-launcher", Metrics: metrics, Session: session.Config{Process: acp.Config{Executable: runtimeACP, Directory: profile.Project, Args: []string{backendMode}, ClientInfo: acp.Info{Name: "dax-launcher-fixture", Version: "1"}, Limits: acp.Limits{GracePeriod: 20 * time.Millisecond, TermPeriod: 20 * time.Millisecond, KillPeriod: time.Second}}, SetupTimeout: 3 * time.Second, TurnTimeout: 8 * time.Second, Validator: worker, RelayExecutable: runtimeProxy}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -151,7 +152,7 @@ func runtimeConfig(t *testing.T, mode string) (launcher.ClientRunConfig, *observ
 		t.Cleanup(func() { file.Close() })
 	}
 	cfg := launcher.ClientRunConfig{Backend: owner, Schema: worker, Client: profile,
-		Server:   gateway.ServerConfig{Gateway: gateway.Config{FirstEventTimeout: 4 * time.Second, TurnTimeout: 8 * time.Second}, ShutdownTimeout: 2 * time.Second, JoinTimeout: time.Second},
+		Server:   gateway.ServerConfig{Gateway: gateway.Config{Metrics: metrics, FirstEventTimeout: 4 * time.Second, TurnTimeout: 8 * time.Second}, ShutdownTimeout: 2 * time.Second, JoinTimeout: time.Second},
 		Attached: childproc.AttachedConfig{Lifetime: 15 * time.Second, GracePeriod: 20 * time.Millisecond, TermPeriod: 20 * time.Millisecond, KillPeriod: time.Second},
 		IO:       childproc.AttachedIO{Stdin: input, Stdout: receive, Stderr: null}}
 	return cfg, owner, output, send
