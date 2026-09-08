@@ -16,6 +16,28 @@ import (
 
 type observedRelayProcess struct{ pid, group int }
 
+func relayJoinOutcome(executable string) string {
+	f, err := os.OpenFile(filepath.Join(filepath.Dir(executable), "group-join.txt"), os.O_RDONLY|syscall.O_NOFOLLOW, 0)
+	if err != nil {
+		return "unavailable"
+	}
+	defer f.Close()
+	info, err := f.Stat()
+	if err != nil || !info.Mode().IsRegular() || info.Mode().Perm() != 0600 || info.Size() > 32 {
+		return "invalid"
+	}
+	raw, err := io.ReadAll(io.LimitReader(f, 33))
+	if err != nil {
+		return "unavailable"
+	}
+	switch string(raw) {
+	case "changed\n", "unchanged\n", "parent-unavailable\n", "permission\n", "failed\n":
+		return strings.TrimSuffix(string(raw), "\n")
+	default:
+		return "invalid"
+	}
+}
+
 func relayProcessRecords(executable string) ([]observedRelayProcess, error) {
 	const limit = 1024
 	f, err := os.OpenFile(filepath.Join(filepath.Dir(executable), "relay-processes.txt"), os.O_RDONLY|syscall.O_NOFOLLOW, 0)

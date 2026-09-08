@@ -2,14 +2,16 @@
   "created": "2026-09-09",
   "scope": "Independently authored process-identity observer for the repository's effect-free MCP relay",
   "repository_sources": ["IMPLEMENTATION_DECISIONS.md", "ACCEPTANCE_SPEC.md"],
-  "public_api_sources": ["https://pkg.go.dev/os", "https://pkg.go.dev/syscall"],
+  "public_api_sources": ["https://pkg.go.dev/os", "https://pkg.go.dev/syscall", "https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/setpgid.2.html"],
   "fixture": "main.go",
   "constraints": [
     "Standard library only; no previous implementation or upstream fixture input",
-    "Only records its own PID and current process group before exec of the adjacent owned-relay binary",
+    "Records only its own PID and current process group before exec of the adjacent owned-relay binary",
     "At most 32 records and 1024 file bytes, mode 0600, no symlink following, nonblocking exclusive lock",
     "Forwards existing descriptors and arguments without parsing or recording MCP frames, prompts, credentials or tool output",
     "Accepts only the relay --config entry or the independent --version identity control",
-    "Does not change process groups or assert effective execution restrictions"
+    "The ordinary observed-relay and all --version controls preserve process groups",
+    "Only the explicitly named joining-relay experiment attempts to join its parent's group before relay exec and writes one fixed outcome marker to an exclusive private file",
+    "Parent identity is an experimental assumption, not a production group authorization mechanism; no effective execution restriction is asserted"
   ]
 }

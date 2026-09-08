@@ -384,6 +384,28 @@ After the exact-server regression and record bounds were finalized, ordinary unc
 race suites passed in 8.845s/7.975s, with installed opt-ins unset. Whole-repository go vet and
 git diff --check passed. Those results do not supersede the separately failed installed group gate.
 
+### Cooperative relay group-join experiment
+
+D41 adds a separately named group-joining observation variant and an independent fake ACP mode
+whose MCP child initially has its own group. The first normal-close test failed its movement
+assertion; the completed experiment passed normal, forced and pending-tool shutdown with eight
+concurrent Close calls. The group experiment and ordinary identity control passed their uncached
+race run in 10.105s. No production relay lifecycle or execution-policy gate changed.
+
+The first installed attempt stopped during account verification (5.107s), before ACP/relay setup;
+the package failed in 7.131s. One retry retained the same deadlines and passed in 10.667s
+(test 8.62s). One relay changed into the owned ACP group, one fresh bare alias appeared in the
+254-byte inventory, and the relay PID, ACP group, pending work and private configuration were all
+gone after normal shutdown. No native tool was listed and no model prompt or tool effect ran.
+
+The experiment establishes that cooperative group joining is possible with this installed Kiro
+version on macOS. Production still needs authenticated group binding, kernel peer verification and
+a bounded persistent lifetime channel. The earlier D40 ownership failure and R06/live release
+gates are not treated as resolved by this wrapper.
+
+The final ordinary uncached interop and ACP race suites passed in 11.513s and 5.479s with installed
+opt-ins unset. Whole-repository go vet and git diff --check also passed.
+
 ### Request constraints and negative client recovery evidence
 
 D33 now inventories accepted request fields and the remaining R16 gaps. Known unmapped stop,

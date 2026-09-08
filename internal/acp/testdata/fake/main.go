@@ -158,7 +158,7 @@ func main() {
 				if len(p.MCP) != 1 {
 					os.Exit(34)
 				}
-				relayChild = startFixtureRelay(p.MCP[0], p.CWD)
+				relayChild = startFixtureRelayGroup(p.MCP[0], p.CWD, mode == "chat-tools-separate-group")
 				if mode == "chat-tools-idle" {
 					relayChild.send(90, "tools/call", map[string]any{"name": relayChild.alias, "arguments": map[string]any{"n": 1}})
 					var outcome struct {

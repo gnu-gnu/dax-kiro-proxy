@@ -157,7 +157,27 @@ func TestKiroPinnedRelayInventory(t *testing.T) {
 	observePinnedToolsInventory(t, executable, nil, nil, buildRelayObserver(t))
 }
 
+func TestKiroPinnedRelayGroupJoin(t *testing.T) {
+	executable := os.Getenv("DAX_INTEROP_KIRO_BINARY")
+	if executable == "" {
+		t.Skip("set DAX_INTEROP_KIRO_BINARY for an owned relay group-join experiment and tools query; no model prompt")
+	}
+	joined := buildNamedRelayObserver(t, "joining-relay")
+	t.Cleanup(func() {
+		outcome := relayJoinOutcome(joined)
+		t.Logf("experimental_relay_group_join=%s", outcome)
+		if !t.Failed() && outcome != "changed" {
+			t.Error("the installed relay did not move into the ACP parent's group")
+		}
+	})
+	observePinnedToolsInventory(t, executable, nil, nil, joined)
+}
+
 func buildRelayObserver(t *testing.T) string {
+	return buildNamedRelayObserver(t, "observed-relay")
+}
+
+func buildNamedRelayObserver(t *testing.T, name string) string {
 	t.Helper()
 	root := t.TempDir()
 	cwd, err := os.Getwd()
@@ -175,14 +195,14 @@ func buildRelayObserver(t *testing.T) string {
 			env = append(env, key+"="+value)
 		}
 	}
-	for _, target := range []struct{ name, source string }{{"owned-relay", "../../cmd/dax-kiro-proxy"}, {"observed-relay", "./testdata/relayobserver"}} {
+	for _, target := range []struct{ name, source string }{{"owned-relay", "../../cmd/dax-kiro-proxy"}, {name, "./testdata/relayobserver"}} {
 		_, err = runner.Run(t.Context(), childproc.Command{Executable: filepath.Join(runtime.GOROOT(), "bin", "go"), Directory: cwd, Environment: env,
 			Args: []string{"build", "-o", filepath.Join(root, target.name), target.source}})
 		if err != nil {
 			t.Fatal("cannot build the owned effect-free relay observation")
 		}
 	}
-	return filepath.Join(root, "observed-relay")
+	return filepath.Join(root, name)
 }
 
 func observePinnedToolsInventory(t *testing.T, executable string, declaredTools, listedTools []string, relayExecutable string) {

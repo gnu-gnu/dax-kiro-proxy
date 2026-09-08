@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"syscall"
 	"time"
 )
 
@@ -20,6 +21,10 @@ type fixtureRelay struct {
 }
 
 func startFixtureRelay(raw []byte, cwd string) *fixtureRelay {
+	return startFixtureRelayGroup(raw, cwd, false)
+}
+
+func startFixtureRelayGroup(raw []byte, cwd string, separate bool) *fixtureRelay {
 	var config struct {
 		Command string                         `json:"command"`
 		Args    []string                       `json:"args"`
@@ -29,6 +34,9 @@ func startFixtureRelay(raw []byte, cwd string) *fixtureRelay {
 		os.Exit(36)
 	}
 	cmd := exec.Command(config.Command, config.Args...)
+	if separate {
+		cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	}
 	cmd.Dir = cwd
 	cmd.Env = []string{}
 	for _, v := range config.Env {

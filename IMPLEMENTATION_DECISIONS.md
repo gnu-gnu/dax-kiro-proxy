@@ -1238,3 +1238,37 @@ must exercise the chosen mechanism. Tests may then validate that mechanism inste
 group equality by assumption. The current installed ownership probe remains failed; ordinary fixture
 success is not reported as real descendant-cleanup proof. No production gate, process policy,
 dependency or timeout is changed by these observations.
+
+## D41: cooperative relay group-join feasibility (review R06/R07/R12)
+
+An independent fake ACP mode starts its MCP child in a deliberately separate process group. The
+explicitly named joining-relay observation variant then calls setpgid for itself, targeting its
+parent's group, before exec of the adjacent actual relay. It records one fixed outcome marker and
+its resulting PID/group. The ordinary observer and every version control preserve their group.
+The experiment's parent identity is a controlled test assumption, not a production authorization
+mechanism. Its marker is exclusive, owner-only, bounded and refuses symlinks.
+
+The initial fake normal-close test failed because no group movement occurred. After implementing
+the experiment, normal close, forced ACP-group loss and close with a suspended synthetic tool all
+pass, including eight concurrent Close callers and checks for the relay PID, ACP group, pending
+work and private configuration. No fixture performs a client tool effect.
+
+The installed Kiro 2.21.1/v2 experiment also moved one relay into its ACP parent's group. The fresh
+alias was enumerated, no native tool was listed, and both the relay PID and ACP group were absent
+after normal Close. The first attempt stopped at the unchanged five-second account-check deadline,
+before the relay observation; an identical bounded retry passed. Neither attempt sent a model
+prompt or copied credentials. This is macOS feasibility evidence for cooperative group membership,
+not proof of authenticated production membership or all live cancellation paths. D40's original
+uninstrumented production ownership gap remains open.
+
+The selected next mechanism is a private authenticated attachment exchange: the process owner binds
+its known ACP group, the relay receives that group over the owner-only control socket, and the
+owner checks the socket peer's kernel-reported PID and actual group before MCP becomes available.
+A persistent connection must couple relay lifetime to its owner. Setup, duplicate attachment,
+failed joins, owner loss and repeated shutdown require bounded tests; cleanup errors must reach the
+process owner. No client-supplied PID or the experiment's parent assumption may authorize a signal.
+This record selects the implementation direction; the authenticated mechanism is not implemented
+by the observation wrapper and does not open the execution-policy gate.
+
+Public operating-system reference:
+https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/setpgid.2.html
