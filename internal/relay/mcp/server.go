@@ -31,6 +31,19 @@ type server struct {
 }
 
 func Run(ctx context.Context, input, output *os.File, config relay.ChildConfig) error {
+	defer input.Close()
+	defer output.Close()
+	var err error
+	input, err = cancellableFile(input)
+	if err != nil {
+		return err
+	}
+	defer input.Close()
+	output, err = cancellableFile(output)
+	if err != nil {
+		return err
+	}
+	defer output.Close()
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	s := &server{ctx: ctx, cancel: cancel, config: config, output: output, pending: make(map[string]context.CancelFunc)}

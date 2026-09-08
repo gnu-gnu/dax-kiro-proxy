@@ -99,6 +99,9 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
   starting another ACP prompt. Changed, partial, reordered or older instructions and extra user text
   reject before any pending result is consumed.
 - Cancellation and timeout resolve all suspended relay calls and remove owner-only socket/config data.
+- MCP starts only after authenticated supervisor/child PID checks and verified ACP group membership.
+  A peer cannot supply its own PID/group, forge a join, replay an attachment or replace a valid child.
+  After binding, a different process cannot submit a tool call using the child's control credentials.
 
 ## F. Session continuity
 
@@ -128,6 +131,11 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
   recognized authentication expiry after a keepalive still completes one normal assistant message.
 - Repeated caller cancellation cannot interrupt final cleanup or leak an ACP/relay child.
 - Shutdown can be called repeatedly and remains bounded.
+- Relay lifetime loss cancels blocked stdio and pending tools. A surviving relay produces a retained
+  cleanup error; idle release retires the owned ACP group and repeated idle/final shutdown joins that
+  result. A driver with failed cleanup cannot be reused.
+  Manager eviction/pruning retains the failure, prevents further admission/discovery and joins it
+  during final shutdown even after the failed binding has been removed from its map.
 - HTTP server shutdown cancels active request contexts and joins connection/handler cleanup, including
   the corresponding ACP group. A handler that ignores cancellation must produce a bounded cleanup
   failure rather than a successful join report; launcher shutdown separately owns suspended sessions.

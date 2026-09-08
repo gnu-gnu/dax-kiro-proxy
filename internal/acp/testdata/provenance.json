@@ -23,6 +23,7 @@
     "All text, error strings, IDs and credential sentinels are synthetic",
     "Descendant processes only exercise lifecycle cleanup; they execute no client tool",
     "The chat-tools-separate-group mode deliberately creates an MCP child in a distinct process group for the independent cooperative group-join experiment",
+    "The chat-tools-stopped-idle mode stops only its own relay PID after a synthetic result, testing bounded cleanup failure and process retirement without a client tool effect",
     "Effort command shapes remain specification interpretations under D09; the separate read-only tools inventory uses the observed D39 envelope with independently authored data",
     "Inventory modes accept only initialization, one session/new and one advertised argument-free tools query; optional MCP readiness must match the owned session and exact serverName; no model prompt or tool effect is supported",
     "MCP tool requests are answered by synthetic test clients or an opt-in unmodified public client with an independently authored denying hook; the fake backend performs no filesystem or shell tool effect"

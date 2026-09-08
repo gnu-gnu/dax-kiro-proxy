@@ -6,6 +6,9 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D42 implements authenticated relay group membership and bounded lifetime. Independent failure
+  regressions and the installed read-only Kiro inventory pass; native execution restrictions and
+  the complete live/release gates remain open. Detailed results and failed attempts appear below.
 - All fourteen repository Markdown documents read in README order, with README and AGENTS first.
 - Specification-only baseline committed as `7b108dd`.
 - Go selected by explicit user instruction; comparative experiments remain unmeasured.
@@ -405,6 +408,56 @@ gates are not treated as resolved by this wrapper.
 
 The final ordinary uncached interop and ACP race suites passed in 11.513s and 5.479s with installed
 opt-ins unset. Whole-repository go vet and git diff --check also passed.
+
+### Authenticated relay membership and cleanup
+
+D42 replaces the experimental parent-group assumption with a product attachment exchange. The
+child validates its supervisor's kernel PID/UID; the supervisor authenticates the session, supplies
+the locally bound ACP group and verifies the child's kernel PID and actual membership. MCP cannot
+start before attachment. Bound tool calls must come from that same peer. Child config version 2
+rejects legacy configuration, and 65 bounded connections accommodate one lifetime channel plus
+64 tool calls. Existing dependency versions and the fail-closed public run policy are unchanged.
+
+The new independent private-protocol tests first failed to compile because attachment/binding and
+cleanup-result APIs were absent. The first completed ten-case race run passed in 8.445s. Cases cover
+wrong credentials, a supplied PID field, false joins, bad/missing acknowledgments, unbound setup,
+duplicate connections, owner loss and a deliberately lingering child. Later regressions also check
+the supervisor identity, legacy config and control calls from an unregistered process.
+
+Actual MCP child tests initially failed both idle-input and pending-tool closure: the child remained
+blocked after its control connection closed. Nonblocking owned stdio duplicates corrected this;
+the suite then passed in 5.535s. A full unread output-pipe case was added and passed in the final
+whole-repository run. The fake ACP matrix now exercises normal, forced and pending-tool shutdown
+with both the experimental wrapper and the product's own attachment movement.
+
+A stopped-relay regression passed in 6.836s: eight idle-close callers observe the same cleanup
+failure, the ACP group is retired, final Close retains the error and the driver cannot be reused.
+Manager eviction and TTL pruning initially lost that error (two failed cases, package 10.944s).
+After retaining retired failures, blocking admission/discovery and joining pruning during shutdown,
+the affected session, launcher and gateway race suites passed in 16.439s, 13.151s and 3.064s.
+
+An initial default-parallel whole-repository race run failed two fake ACP initialization deadlines:
+TestInitializeAndVersionRejection and the ready inventory case. All other packages passed. The
+same deadlines were retained for the complete uncached `go test -race -count=1 -p 1 ./...`, which
+passed: ACP 4.732s, interop 20.177s, relay 9.629s, MCP 6.149s and session 11.857s, with every other
+package passing or containing no tests. The later manager change has the focused results above.
+These results do not establish unrestricted concurrent-load stability; no timeout was widened.
+
+The first installed product observation stopped at the existing account-check deadline (5.114s,
+package 7.358s), before ACP/relay setup. One identical bounded retry passed in 11.236s (test 9.87s).
+The plain wrapper recorded one relay initially leading a group different from ACP. The product
+attachment then verified that exact PID in the ACP group. Kiro 2.21.1/v2 listed one fresh bare alias,
+no native tool, and two matching MCP initialization notifications. The 254-byte inventory succeeded;
+the relay PID, ACP group, pending work and private config were gone after normal shutdown.
+
+This supersedes D40's unresolved production membership assumption for this exercised normal-close
+path. Forced loss and suspended-tool shutdown have independent fake-process evidence; live prompts,
+native tool effects, inherited MCP/hooks and the rest of R06 are still unverified. No Kiro model
+prompt, actual client tool, credential copying, login/logout or external-provider fallback occurred.
+
+Final whole-repository go vet, formatting and whitespace checks passed. Linux amd64 also compiled
+with CGO_ENABLED=0 and GOPROXY=off; this is cross-build evidence only, with runtime validation on
+the macOS host described above.
 
 ### Request constraints and negative client recovery evidence
 

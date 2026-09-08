@@ -303,6 +303,11 @@ func main() {
 						continue
 					}
 					result := relayChild.call()
+					if mode == "chat-tools-stopped-idle" {
+						if syscall.Kill(relayChild.cmd.Process.Pid, syscall.SIGSTOP) != nil {
+							os.Exit(48)
+						}
+					}
 					text, _ := json.Marshal(map[string]any{"promptCount": promptCount, "relayResult": result})
 					emit(string(text))
 					reply(q.ID, map[string]any{"stopReason": "end_turn"})

@@ -27,6 +27,7 @@ type MCPTool struct {
 }
 type ChildConfig struct {
 	Version       int       `json:"version"`
+	SupervisorPID int       `json:"supervisorPid"`
 	Socket        string    `json:"socket"`
 	Owner         string    `json:"owner"`
 	Secret        string    `json:"secret"`
@@ -34,15 +35,19 @@ type ChildConfig struct {
 	Tools         []MCPTool `json:"tools"`
 }
 type Socket struct {
-	broker          *Broker
-	cfg             SocketConfig
-	directory, path string
-	listener        *net.UnixListener
-	mu              sync.Mutex
-	closed          bool
-	connections     map[*net.UnixConn]bool
-	wg              sync.WaitGroup
-	closeOnce       sync.Once
+	broker              *Broker
+	cfg                 SocketConfig
+	directory, path     string
+	listener            *net.UnixListener
+	mu                  sync.Mutex
+	closed              bool
+	connections         map[*net.UnixConn]bool
+	wg                  sync.WaitGroup
+	closeOnce           sync.Once
+	closing, groupReady chan struct{}
+	group, peer         int
+	joined              bool
+	closeErr            error
 }
 
 func Listen(b *Broker, cfg SocketConfig) (*Socket, error) {
@@ -50,7 +55,7 @@ func Listen(b *Broker, cfg SocketConfig) (*Socket, error) {
 		cfg.BaseDirectory = "/private/tmp"
 	}
 	if cfg.Connections == 0 {
-		cfg.Connections = 64
+		cfg.Connections = 65
 	}
 	if cfg.ReadTimeout == 0 {
 		cfg.ReadTimeout = 5 * time.Second
@@ -58,7 +63,7 @@ func Listen(b *Broker, cfg SocketConfig) (*Socket, error) {
 	if cfg.WriteTimeout == 0 {
 		cfg.WriteTimeout = 5 * time.Second
 	}
-	if b == nil || !filepath.IsAbs(cfg.BaseDirectory) || cfg.Connections < 1 || cfg.Connections > 64 || cfg.ReadTimeout <= 0 || cfg.ReadTimeout > 10*time.Second || cfg.WriteTimeout <= 0 || cfg.WriteTimeout > 10*time.Second {
+	if b == nil || !filepath.IsAbs(cfg.BaseDirectory) || cfg.Connections < 1 || cfg.Connections > 65 || cfg.ReadTimeout <= 0 || cfg.ReadTimeout > 10*time.Second || cfg.WriteTimeout <= 0 || cfg.WriteTimeout > 10*time.Second {
 		return nil, ErrCall
 	}
 	directory, err := os.MkdirTemp(cfg.BaseDirectory, "dax-r-")
@@ -87,7 +92,7 @@ func Listen(b *Broker, cfg SocketConfig) (*Socket, error) {
 		fail()
 		return nil, ErrCall
 	}
-	child := ChildConfig{Version: 1, Socket: path, Owner: b.credentials.Owner, Secret: b.credentials.Secret, TimeoutMillis: (b.limits.ToolTimeout + 15*time.Second).Milliseconds(), Tools: make([]MCPTool, 0)}
+	child := ChildConfig{Version: 2, SupervisorPID: os.Getpid(), Socket: path, Owner: b.credentials.Owner, Secret: b.credentials.Secret, TimeoutMillis: (b.limits.ToolTimeout + 15*time.Second).Milliseconds(), Tools: make([]MCPTool, 0)}
 	for _, tool := range b.registry.Tools() {
 		child.Tools = append(child.Tools, MCPTool{Name: tool.Alias, Description: tool.Description, InputSchema: tool.Schema})
 	}
@@ -97,7 +102,7 @@ func Listen(b *Broker, cfg SocketConfig) (*Socket, error) {
 		fail()
 		return nil, ErrCall
 	}
-	s := &Socket{broker: b, cfg: cfg, directory: directory, path: path, listener: listener, connections: make(map[*net.UnixConn]bool)}
+	s := &Socket{broker: b, cfg: cfg, directory: directory, path: path, listener: listener, connections: make(map[*net.UnixConn]bool), closing: make(chan struct{}), groupReady: make(chan struct{})}
 	s.wg.Add(1)
 	go s.accept()
 	go func() { <-b.Done(); s.Close() }()
@@ -127,16 +132,37 @@ func (s *Socket) accept() {
 }
 func (s *Socket) serve(conn *net.UnixConn) {
 	defer func() { _ = conn.Close(); s.mu.Lock(); delete(s.connections, conn); s.mu.Unlock(); s.wg.Done() }()
-	_ = conn.SetReadDeadline(time.Now().Add(s.cfg.ReadTimeout))
+	if !s.setDeadline(conn, s.cfg.ReadTimeout, false) {
+		return
+	}
 	raw, err := ReadFrame(conn)
 	if err != nil {
+		return
+	}
+	fields, err := ndjson.Object(raw)
+	if err != nil {
+		return
+	}
+	if _, present := fields["operation"]; present {
+		s.attach(conn, fields)
 		return
 	}
 	call, err := decodeCall(raw)
 	if err != nil {
 		return
 	}
-	_ = conn.SetReadDeadline(time.Now().Add(s.broker.limits.ToolTimeout + 15*time.Second))
+	s.mu.Lock()
+	group, peer, joined := s.group, s.peer, s.joined
+	s.mu.Unlock()
+	if group != 0 {
+		pid, err := socketPeerPID(conn)
+		if err != nil || !joined || pid != peer || !processInGroup(pid, group) {
+			return
+		}
+	}
+	if !s.setDeadline(conn, s.broker.limits.ToolTimeout+15*time.Second, false) {
+		return
+	}
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	monitorDone := make(chan struct{})
@@ -149,13 +175,29 @@ func (s *Socket) serve(conn *net.UnixConn) {
 	} else {
 		response["result"] = value
 	}
-	_ = conn.SetWriteDeadline(time.Now().Add(s.cfg.WriteTimeout))
+	if !s.setDeadline(conn, s.cfg.WriteTimeout, true) {
+		return
+	}
 	_ = WriteFrame(conn, response)
 }
-func (s *Socket) Close() {
+
+// A handler cannot extend the shutdown deadline after Close takes ownership of its connection.
+func (s *Socket) setDeadline(conn *net.UnixConn, duration time.Duration, write bool) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.closed {
+		return false
+	}
+	if write {
+		return conn.SetWriteDeadline(time.Now().Add(duration)) == nil
+	}
+	return conn.SetReadDeadline(time.Now().Add(duration)) == nil
+}
+func (s *Socket) Close() error {
 	s.closeOnce.Do(func() {
 		s.mu.Lock()
 		s.closed = true
+		close(s.closing)
 		_ = s.listener.Close()
 		for conn := range s.connections {
 			_ = conn.SetDeadline(time.Now().Add(time.Second))
@@ -163,8 +205,14 @@ func (s *Socket) Close() {
 		s.mu.Unlock()
 		s.broker.Close()
 		s.wg.Wait()
-		_ = os.RemoveAll(s.directory)
+		if !waitRelayExit(s.peer) {
+			s.closeErr = ErrCleanup
+		}
+		if os.RemoveAll(s.directory) != nil {
+			s.closeErr = ErrCleanup
+		}
 	})
+	return s.closeErr
 }
 
 func LoadChildConfig(path string) (ChildConfig, error) {
@@ -180,14 +228,14 @@ func LoadChildConfig(path string) (ChildConfig, error) {
 		return ChildConfig{}, ErrCall
 	}
 	fields, err := ndjson.Object(raw)
-	if err != nil || len(fields) != 6 {
+	if err != nil || len(fields) != 7 {
 		return ChildConfig{}, ErrCall
 	}
 	var c ChildConfig
-	if string(fields["version"]) != "1" || !controlString(fields["socket"], &c.Socket) || !controlString(fields["owner"], &c.Owner) || !controlString(fields["secret"], &c.Secret) || json.Unmarshal(fields["timeoutMillis"], &c.TimeoutMillis) != nil || json.Unmarshal(fields["tools"], &c.Tools) != nil {
+	if string(fields["version"]) != "2" || json.Unmarshal(fields["supervisorPid"], &c.SupervisorPID) != nil || c.SupervisorPID <= 1 || c.SupervisorPID > 1<<31-1 || !controlString(fields["socket"], &c.Socket) || !controlString(fields["owner"], &c.Owner) || !controlString(fields["secret"], &c.Secret) || json.Unmarshal(fields["timeoutMillis"], &c.TimeoutMillis) != nil || json.Unmarshal(fields["tools"], &c.Tools) != nil {
 		return ChildConfig{}, ErrCall
 	}
-	c.Version = 1
+	c.Version = 2
 	if !filepath.IsAbs(c.Socket) || filepath.Dir(c.Socket) != filepath.Dir(path) || len(c.Socket) > 100 || len(c.Owner) != 22 || len(c.Secret) != 43 || c.TimeoutMillis < 1 || c.TimeoutMillis > (time.Hour+15*time.Second).Milliseconds() || len(c.Tools) > toolregistry.MaxTools {
 		return ChildConfig{}, ErrCall
 	}

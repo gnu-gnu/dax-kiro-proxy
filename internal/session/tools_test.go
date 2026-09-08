@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -131,6 +132,49 @@ func TestToolHandoffSurvivesHTTPContextAndResumesSamePrompt(t *testing.T) {
 	}
 	if _, err := d.Start(context.Background(), next); !errors.Is(err, inference.ErrRequest) {
 		t.Fatal("tool result replay started a new prompt")
+	}
+}
+
+func TestIdleRelayCleanupFailureIsJoinedAndRetained(t *testing.T) {
+	d := toolDriver(t, "chat-tools-stopped-idle", time.Second)
+	request := toolRequest(t)
+	turn, err := d.Start(t.Context(), request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	prefix, uses := toolHandoff(t, turn)
+	turn.Finish()
+	resumed, err := d.Start(t.Context(), followup(t, request, prefix, uses))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := collect(t.Context(), resumed); err != nil {
+		t.Fatal(err)
+	}
+	resumed.Finish()
+	if d.State() != session.Idle {
+		t.Fatal("synthetic turn did not finish before its stopped relay cleanup")
+	}
+	done := make(chan struct{})
+	var callers sync.WaitGroup
+	for range 8 {
+		callers.Go(func() {
+			if !errors.Is(d.CloseIdle(), relay.ErrCleanup) {
+				t.Error("idle cleanup failure was lost")
+			}
+		})
+	}
+	go func() { callers.Wait(); close(done) }()
+	select {
+	case <-done:
+	case <-time.After(6 * time.Second):
+		t.Fatal("idle cleanup did not join its bounded process retirement")
+	}
+	if !errors.Is(d.Close(), relay.ErrCleanup) {
+		t.Fatal("full shutdown lost the earlier relay cleanup failure")
+	}
+	if _, err := d.Start(t.Context(), request); !errors.Is(err, relay.ErrCleanup) {
+		t.Fatal("failed cleanup did not prevent driver reuse")
 	}
 }
 func TestToolWaitExpiresWithoutAnHTTPConsumer(t *testing.T) {

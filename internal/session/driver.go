@@ -72,6 +72,9 @@ type Driver struct {
 	setupDone           chan struct{}
 	closeOnce           sync.Once
 	closeErr            error
+	cleanupErr          error
+	idleClosing         chan struct{}
+	idleErr             error
 	modelState          catalog.Session
 	fresh               bool
 	initialUsed         bool
@@ -406,20 +409,19 @@ func (d *Driver) discardStart(client backendClient, retire bool) {
 	d.socket = nil
 	d.broker = nil
 	d.mu.Unlock()
-	if socket != nil {
-		socket.Close()
-	} else if broker != nil {
-		broker.Close()
-	}
+	cleanupErr := closeRelay(socket, broker)
 	if client != nil {
-		if lease, ok := client.(*acppool.Lease); ok && !retire {
+		if lease, ok := client.(*acppool.Lease); ok && !retire && cleanupErr == nil {
 			if err := lease.SetIdle(true); err == nil {
-				_ = lease.ReleaseIdle()
+				cleanupErr = lease.ReleaseIdle()
+			} else {
+				cleanupErr = lease.Close()
 			}
 		} else {
-			_ = client.Close()
+			cleanupErr = errors.Join(cleanupErr, client.Close())
 		}
 	}
+	d.noteCleanup(cleanupErr)
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	d.client = nil
@@ -480,6 +482,7 @@ func (d *Driver) Close() error {
 			d.setupCancel()
 		}
 		setup := d.setupDone
+		idleClosing := d.idleClosing
 		current, client := d.current, d.client
 		socket, broker := d.socket, d.broker
 		d.mu.Unlock()
@@ -490,15 +493,15 @@ func (d *Driver) Close() error {
 		if client != nil {
 			d.closeErr = client.Close()
 		}
-		if socket != nil {
-			socket.Close()
-		} else if broker != nil {
-			broker.Close()
-		}
+		d.noteCleanup(closeRelay(socket, broker))
 		if setup != nil {
 			<-setup
 		}
+		if idleClosing != nil {
+			<-idleClosing
+		}
 		d.processWatch.Wait()
+		d.closeErr = errors.Join(d.closeErr, d.cleanupFailure())
 		if d.cfg.Persistence != nil {
 			d.closeErr = errors.Join(d.closeErr, d.cfg.Persistence.Close())
 		}

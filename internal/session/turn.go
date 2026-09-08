@@ -310,12 +310,9 @@ func (t *turn) abort(reason error) {
 	t.settle.Do(func() {
 		close(t.released)
 		t.cancelOwned()
-		if t.socket != nil {
-			t.socket.Close()
-		} else if t.broker != nil {
-			t.broker.Close()
-		}
-		_ = t.client.Close()
+		cleanupErr := closeRelay(t.socket, t.broker)
+		cleanupErr = errors.Join(cleanupErr, t.client.Close())
+		t.driver.noteCleanup(cleanupErr)
 		<-t.done
 		// Relay disconnection may race the correlated account-expiry response during group cleanup.
 		// A confirmed backend auth class takes precedence over that secondary cancellation.

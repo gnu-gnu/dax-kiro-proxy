@@ -1272,3 +1272,62 @@ by the observation wrapper and does not open the execution-policy gate.
 
 Public operating-system reference:
 https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/setpgid.2.html
+
+## D42: authenticated relay membership and bounded lifetime (review R06/R07/R12)
+
+The product relay now requires attachment before starting MCP. Child configuration is version 2
+with seven exact fields: version, supervisorPid, socket, owner, secret, timeoutMillis and tools.
+The supervisor PID is written by the listener into its existing owner-only configuration. The
+child checks the socket server's kernel peer PID and effective UID before sending credentials.
+Version 1 child configurations are rejected; private tool-call envelopes remain version 1.
+
+The session driver binds its actual ACP leader after process initialization and before session
+creation/loading. This local one-time binding rejects invalid, current, shared-parent and absent
+groups. A peer request cannot supply a PID or select a target group. The private attachment request
+has exactly version=1, operation=attach, owner and secret. The supervisor answers with version,
+operation=attach and its bound group. The child joins that group and acknowledges version and
+operation=joined; the supervisor independently checks the kernel peer's actual group before sending
+version and operation=ready. Unexpected fields, wrong credentials, invented acknowledgments and
+false group claims reject. Darwin uses LOCAL_PEERPID and LOCAL_PEERCRED; Linux uses SO_PEERCRED.
+Unsupported platforms reject this mechanism.
+
+One authenticated child can claim each socket's lifetime slot. An invalid credential or extra
+untrusted field cannot consume that slot; a duplicate cannot retire the valid attachment. Once
+claimed, failed setup or connection loss closes the broker and prevents tool replay. The child has
+a five-second setup bound. Parent reads/acknowledgments retain bounded deadlines, and waiting for
+the local process binding is also bounded. After binding, tool-call connections must come from the
+same kernel PID in the verified group. The default/maximum socket connection count is now 65,
+allowing one lifetime connection alongside at most 64 tool calls; broker and MCP call limits remain
+64. No new dependency is added.
+
+The lifetime connection stays open while MCP runs. Its loss cancels the reader and all suspended
+calls. Inherited blocking stdio initially caused the actual-child closure tests to fail: closing a
+blocking os.File did not interrupt the pending read. MCP now owns nonblocking close-on-exec copies
+registered through os.NewFile, so cancellation interrupts pipe reads and writes. The tests cover
+idle input, pending tools and a full unread output pipe. All original and duplicated descriptors are
+closed by the relay when Run returns; this does not change the launcher's client descriptors.
+
+Socket Close joins connection handlers with a one-second shutdown deadline, then allows up to one
+second for its recorded peer to disappear. Handlers cannot extend a deadline after closure begins.
+Repeated callers join the same result. A surviving child or failed private-directory removal is a
+retained ErrCleanup, not a success report. The socket never signals a wire PID or a separate peer
+group. The existing ACP owner performs bounded group retirement when a session cleanup fails.
+Driver cleanup errors survive idle release and final Close; concurrent idle closes join one result,
+and a failed driver cannot start again. A deliberately stopped owned relay exercises this path.
+Manager eviction and TTL pruning retain that failure, cancel the manager's admitted work and reject
+new starts/discovery. Pruning participates in the shutdown join so final Close cannot miss an
+in-progress retired driver's outcome. Both eviction and pruning initially failed this regression.
+
+The plain observation wrapper now records the relay's pre-attachment group. An inventory probe may
+accept that initial group difference only when the authenticated socket verifies that exact
+recorded PID's later membership, and the PID is absent after shutdown. The earlier group-equality
+assumption is not silently treated as evidence. Independent fake ACP tests exercise normal, forced
+and pending-tool cleanup both with the experimental join wrapper and with the unmodified product
+attachment path. Live execution restrictions, native tool effects and credit-consuming prompt gates
+remain separate.
+
+Public API references:
+
+- https://pkg.go.dev/os#NewFile
+- https://pkg.go.dev/golang.org/x/sys@v0.47.0/unix
+- https://man7.org/linux/man-pages/man7/unix.7.html

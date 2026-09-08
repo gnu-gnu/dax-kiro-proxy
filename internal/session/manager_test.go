@@ -10,6 +10,8 @@ import (
 
 	"dax-kiro-proxy/internal/acp"
 	"dax-kiro-proxy/internal/anthropic"
+	"dax-kiro-proxy/internal/relay"
+	"dax-kiro-proxy/internal/schemacheck"
 	"dax-kiro-proxy/internal/session"
 )
 
@@ -28,6 +30,68 @@ func manager(t *testing.T, mode string) *session.Manager {
 		}
 	})
 	return m
+}
+
+func TestManagerRetainsEvictedRelayCleanupFailure(t *testing.T) {
+	for _, action := range []string{"evict", "prune"} {
+		t.Run(action, func(t *testing.T) {
+			validator, err := schemacheck.New(schemacheck.Config{Executable: relayBinary, Directory: t.TempDir()})
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer validator.Close()
+			cfg := managerConfig(t, "chat-tools-stopped-idle")
+			cfg.MaxSessions = 1
+			cfg.Session.Validator = validator
+			cfg.Session.RelayExecutable = relayBinary
+			if action == "prune" {
+				cfg.IdleTTL = 10 * time.Millisecond
+			}
+			m, err := session.NewManager(cfg)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer m.Close()
+			request := toolRequest(t)
+			request.Identity.Session = "first-owned-binding"
+			turn, err := m.Start(t.Context(), request)
+			if err != nil {
+				t.Fatal(err)
+			}
+			prefix, uses := toolHandoff(t, turn)
+			turn.Finish()
+			resumed, err := m.Start(t.Context(), followup(t, request, prefix, uses))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err := collect(t.Context(), resumed); err != nil {
+				t.Fatal(err)
+			}
+			resumed.Finish()
+			if action == "prune" {
+				time.Sleep(20 * time.Millisecond)
+				m.Prune()
+			}
+			next := *request
+			next.Identity.Session = "second-owned-binding"
+			turn, err = m.Start(t.Context(), &next)
+			if turn != nil {
+				turn.Cancel()
+			}
+			if !errors.Is(err, relay.ErrCleanup) {
+				t.Fatal("retired relay cleanup failure did not stop admission")
+			}
+			if _, err := m.Models(t.Context()); !errors.Is(err, relay.ErrCleanup) {
+				t.Fatal("discovery ignored retired cleanup failure")
+			}
+			if !errors.Is(m.Close(), relay.ErrCleanup) || !errors.Is(m.Close(), relay.ErrCleanup) {
+				t.Fatal("manager shutdown lost retired cleanup failure")
+			}
+			if m.Stats().Processes != 0 {
+				t.Fatal("retired manager kept an ACP process")
+			}
+		})
+	}
 }
 func mainRequest(t *testing.T, id string) *anthropic.Request {
 	r := sample(t)

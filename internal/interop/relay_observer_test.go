@@ -77,6 +77,11 @@ func relayProcessRecords(executable string) ([]observedRelayProcess, error) {
 // The live caller invokes this after ACP shutdown and before removing the private wrapper directory.
 func checkRelayProcessCleanup(t *testing.T, executable string, group int) {
 	t.Helper()
+	checkRelayCleanupWithAttachment(t, executable, group, 0)
+}
+
+func checkRelayCleanupWithAttachment(t *testing.T, executable string, group, verifiedPeer int) {
+	t.Helper()
 	records, err := relayProcessRecords(executable)
 	if err != nil {
 		t.Error(err)
@@ -98,8 +103,10 @@ func checkRelayProcessCleanup(t *testing.T, executable string, group int) {
 			time.Sleep(10 * time.Millisecond)
 		}
 	}
-	t.Logf("relay_process_count=%d, relay_same_acp_group=%v, relay_group_leaders=%v, relay_processes_gone_after_acp_close=%v", len(records), sameGroup, groupLeaders, allGone)
-	if !allGone || !sameGroup {
+	t.Logf("relay_process_count=%d, relay_initial_group_matches_acp=%v, relay_initial_group_leaders=%v, relay_processes_gone_after_acp_close=%v", len(records), sameGroup, groupLeaders, allGone)
+	attached := len(records) == 1 && records[0].pid == verifiedPeer
+	t.Logf("relay_attachment_verified=%v", attached)
+	if !allGone || !sameGroup && !attached {
 		t.Error("ACP shutdown did not establish relay process ownership and cleanup")
 	}
 }

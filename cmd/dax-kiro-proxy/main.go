@@ -44,7 +44,12 @@ func main() {
 			if err != nil {
 				return err
 			}
-			return mcp.Run(ctx, os.Stdin, os.Stdout, config)
+			attachment, err := relay.Attach(ctx, config)
+			if err != nil {
+				return err
+			}
+			defer attachment.Close()
+			return mcp.Run(attachment.Context(), os.Stdin, os.Stdout, config)
 		},
 	}
 	code := execute(ctx, os.Args[1:], files, os.Stdout, os.Stderr, services)

@@ -1,0 +1,14 @@
+{
+  "created": "2026-09-09",
+  "scope": "Independently authored private attachment protocol and process-lifetime peer",
+  "repository_sources": ["IMPLEMENTATION_DECISIONS.md", "ACCEPTANCE_SPEC.md"],
+  "public_api_sources": ["https://pkg.go.dev/net", "https://pkg.go.dev/os", "https://pkg.go.dev/syscall"],
+  "fixtures": ["main.go"],
+  "constraints": [
+    "Standard library only; no product packages, previous implementation or captured conversation inputs",
+    "Only private attachment frames are exchanged; no MCP tool effect or model prompt is performed",
+    "Config input is bounded to 2 MiB and attachment frames to 4 KiB; fixture connection setup and reads have finite deadlines",
+    "Outputs only fixed owner, ready or rejected markers; no credentials or arbitrary response values are printed",
+    "The deliberately lingering case exercises cleanup failure; the test owns and terminates all fixture processes"
+  ]
+}

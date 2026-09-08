@@ -296,15 +296,27 @@ func observePinnedToolsInventory(t *testing.T, executable string, declaredTools,
 		t.Fatalf("inventory ACP initialization failed: %s", kiroSetupFailure(err))
 	}
 	defer client.Close()
+	if socket != nil && socket.BindProcess(client.PID()) != nil {
+		t.Fatal("cannot bind the owned inventory ACP group")
+	}
 	report, callErr := readOnlyToolsInventoryAfter(ctx, client, cwd, 3*time.Second, required)
 	closeErr := client.Close()
 	groupGone := errors.Is(syscall.Kill(-client.PID(), 0), syscall.ESRCH)
 	runner.Close()
 	if broker != nil {
-		checkRelayProcessCleanup(t, relayExecutable, client.PID())
+		peer, verified := socket.PeerPID()
+		if !verified {
+			t.Error("relay did not establish authenticated kernel-verified group membership")
+		}
+		if !verified {
+			peer = 0
+		}
+		checkRelayCleanupWithAttachment(t, relayExecutable, client.PID(), peer)
 		stats := broker.Stats()
 		broker.Close()
-		socket.Close()
+		if socket.Close() != nil {
+			t.Error("registered relay cleanup failed")
+		}
 		_, configErr := os.Lstat(socket.ConfigPath())
 		t.Logf("relay_pending=%d, relay_alias_matched=%v, relay_alias_form=%s, relay_config_removed=%v, mcp_param_kinds=%v, mcp_declared_name_matches=%d", stats.Pending, report.AliasMatched, report.AliasNameForm, errors.Is(configErr, os.ErrNotExist), report.MCPParamKinds, report.MCPDeclaredNameMatches)
 		if stats.Pending != 0 || stats.Queued != 0 || stats.Sealed != 0 || !errors.Is(configErr, os.ErrNotExist) {

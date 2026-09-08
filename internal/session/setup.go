@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"slices"
 
 	"dax-kiro-proxy/internal/acp"
@@ -18,6 +19,7 @@ import (
 )
 
 type backendClient interface {
+	PID() int
 	Call(context.Context, string, any) (json.RawMessage, error)
 	TryNext() (acp.Notification, bool, error)
 	Activity() <-chan struct{}
@@ -57,9 +59,10 @@ func (d *Driver) prepare(ctx context.Context, reuse bool, registry *toolregistry
 		fingerprint = registry.Fingerprint()
 	}
 	d.mu.Lock()
-	if d.closed {
+	if d.closed || d.cleanupErr != nil {
+		err := errors.Join(acp.ErrClosed, d.cleanupErr)
 		d.mu.Unlock()
-		return nil, acp.ErrClosed
+		return nil, err
 	}
 	if d.state == Starting || d.state == Prompting || d.state == WaitingTools {
 		d.mu.Unlock()
@@ -84,7 +87,11 @@ func (d *Driver) prepare(ctx context.Context, reuse bool, registry *toolregistry
 		d.broker = nil
 	}
 	d.mu.Unlock()
-	fail := func(err error) (*prepared, error) { d.failedStart(p.client); p.finishSetup(); return nil, err }
+	fail := func(err error) (*prepared, error) {
+		d.failedStart(p.client)
+		p.finishSetup()
+		return nil, errors.Join(err, d.cleanupFailure())
+	}
 	if lease, ok := p.client.(*acppool.Lease); ok {
 		if lease.SetIdle(false) != nil {
 			p.client = nil
@@ -92,15 +99,17 @@ func (d *Driver) prepare(ctx context.Context, reuse bool, registry *toolregistry
 		}
 	}
 	if p.client == nil {
-		if previousSocket != nil {
-			previousSocket.Close()
-		} else if previousBroker != nil {
-			previousBroker.Close()
-		}
+		cleanupErr := closeRelay(previousSocket, previousBroker)
 		if previous != nil {
-			if err := releaseIdle(previous); err != nil {
-				return fail(err)
+			if cleanupErr != nil {
+				cleanupErr = errors.Join(cleanupErr, previous.Close())
+			} else {
+				cleanupErr = releaseIdle(previous)
 			}
+		}
+		if cleanupErr != nil {
+			d.noteCleanup(cleanupErr)
+			return fail(cleanupErr)
 		}
 		var err error
 		mcp := []any{}
@@ -153,6 +162,14 @@ func (d *Driver) prepare(ctx context.Context, reuse bool, registry *toolregistry
 		}
 		if err != nil {
 			return fail(err)
+		}
+		d.mu.Lock()
+		socket := d.socket
+		d.mu.Unlock()
+		if socket != nil {
+			if err := socket.BindProcess(p.client.PID()); err != nil {
+				return fail(err)
+			}
 		}
 		params := struct {
 			CWD string `json:"cwd"`
@@ -238,11 +255,7 @@ func (d *Driver) watchIdleProcess(client backendClient) {
 	d.fresh = false
 	d.state = Unstarted
 	d.mu.Unlock()
-	if socket != nil {
-		socket.Close()
-	} else if broker != nil {
-		broker.Close()
-	}
+	d.noteCleanup(closeRelay(socket, broker))
 }
 
 func releaseIdle(client backendClient) error {
@@ -255,32 +268,45 @@ func releaseIdle(client backendClient) error {
 // CloseIdle can evict an idle binding without canceling an active sibling on the same process.
 func (d *Driver) CloseIdle() error {
 	d.mu.Lock()
+	if done := d.idleClosing; done != nil {
+		d.mu.Unlock()
+		<-done
+		return d.idleErr
+	}
+	if d.closed {
+		d.mu.Unlock()
+		return d.Close()
+	}
 	if d.state == Starting || d.state == Prompting || d.state == WaitingTools {
 		d.mu.Unlock()
 		return ErrBusy
 	}
 	d.closed = true
+	d.idleClosing = make(chan struct{})
 	d.state = Closed
 	client, socket, broker := d.client, d.socket, d.broker
 	d.client = nil
 	d.socket = nil
 	d.broker = nil
 	d.mu.Unlock()
-	if socket != nil {
-		socket.Close()
-	} else if broker != nil {
-		broker.Close()
-	}
+	err := closeRelay(socket, broker)
 	if client != nil {
-		if err := releaseIdle(client); err != nil {
-			return err
+		if err != nil {
+			err = errors.Join(err, client.Close())
+		} else {
+			err = releaseIdle(client)
 		}
 	}
 	d.processWatch.Wait()
 	if d.cfg.Persistence != nil {
-		return d.cfg.Persistence.Close()
+		err = errors.Join(err, d.cfg.Persistence.Close())
 	}
-	return nil
+	d.mu.Lock()
+	d.cleanupErr = errors.Join(d.cleanupErr, err)
+	d.idleErr = d.cleanupErr
+	close(d.idleClosing)
+	d.mu.Unlock()
+	return d.idleErr
 }
 
 func (p *prepared) drain() error {

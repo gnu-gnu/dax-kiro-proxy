@@ -30,19 +30,20 @@ type ManagerConfig struct {
 	Metrics        *status.TurnQueue
 }
 type Manager struct {
-	cfg       ManagerConfig
-	mu        sync.Mutex
-	entries   map[string]*binding
-	hasher    *history.Hasher
-	pool      *acppool.Pool
-	ownsPool  bool
-	discovery *Driver
-	ctx       context.Context
-	cancel    context.CancelFunc
-	closed    bool
-	starts    sync.WaitGroup
-	closeOnce sync.Once
-	closeErr  error
+	cfg        ManagerConfig
+	mu         sync.Mutex
+	entries    map[string]*binding
+	hasher     *history.Hasher
+	pool       *acppool.Pool
+	ownsPool   bool
+	discovery  *Driver
+	ctx        context.Context
+	cancel     context.CancelFunc
+	closed     bool
+	starts     sync.WaitGroup
+	closeOnce  sync.Once
+	closeErr   error
+	cleanupErr error
 }
 type binding struct {
 	driver  *Driver
@@ -192,9 +193,10 @@ func (m *Manager) Start(ctx context.Context, r *anthropic.Request) (inference.Tu
 		return nil, err
 	}
 	m.mu.Lock()
-	if m.closed {
+	if m.closed || m.cleanupErr != nil {
+		err := errors.Join(acp.ErrClosed, m.cleanupErr)
 		m.mu.Unlock()
-		return nil, acp.ErrClosed
+		return nil, err
 	}
 	m.starts.Add(1)
 	defer m.starts.Done()
@@ -222,13 +224,15 @@ func (m *Manager) Start(ctx context.Context, r *anthropic.Request) (inference.Tu
 		e.users++
 	}
 	m.mu.Unlock()
-	for _, d := range expired {
-		_ = d.CloseIdle()
+	if e != nil {
+		defer func() { m.mu.Lock(); e.users--; m.mu.Unlock() }()
+	}
+	if err := m.closeExpired(expired); err != nil {
+		return nil, err
 	}
 	if e == nil {
 		return nil, acp.ErrOverloaded
 	}
-	defer func() { m.mu.Lock(); e.users--; m.mu.Unlock() }()
 	select {
 	case e.gate <- struct{}{}:
 		defer func() { <-e.gate }()
@@ -283,9 +287,10 @@ func (m *Manager) Start(ctx context.Context, r *anthropic.Request) (inference.Tu
 func (m *Manager) touch(e *binding) { m.mu.Lock(); e.touched = time.Now(); m.mu.Unlock() }
 func (m *Manager) Models(ctx context.Context) ([]inference.Model, error) {
 	m.mu.Lock()
-	if m.closed {
+	if m.closed || m.cleanupErr != nil {
+		err := errors.Join(acp.ErrClosed, m.cleanupErr)
 		m.mu.Unlock()
-		return nil, acp.ErrClosed
+		return nil, err
 	}
 	m.starts.Add(1)
 	m.mu.Unlock()
@@ -297,12 +302,30 @@ func (m *Manager) Models(ctx context.Context) ([]inference.Model, error) {
 }
 func (m *Manager) Prune() {
 	m.mu.Lock()
+	if m.closed || m.cleanupErr != nil {
+		m.mu.Unlock()
+		return
+	}
+	m.starts.Add(1)
 	expired := m.pruneLocked()
 	m.mu.Unlock()
-	for _, d := range expired {
-		_ = d.CloseIdle()
-	}
+	defer m.starts.Done()
+	_ = m.closeExpired(expired)
 	m.pool.Prune()
+}
+
+func (m *Manager) closeExpired(drivers []*Driver) error {
+	var err error
+	for _, driver := range drivers {
+		err = errors.Join(err, driver.CloseIdle())
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if err != nil {
+		m.cleanupErr = errors.Join(m.cleanupErr, err)
+		m.cancel()
+	}
+	return m.cleanupErr
 }
 func (m *Manager) Stats() acppool.Stats { return m.pool.Stats() }
 func (m *Manager) Close() error {
@@ -313,6 +336,7 @@ func (m *Manager) Close() error {
 		m.mu.Unlock()
 		m.starts.Wait()
 		m.mu.Lock()
+		m.closeErr = m.cleanupErr
 		drivers := make([]*Driver, 0, len(m.entries))
 		for _, e := range m.entries {
 			if e.driver != nil {

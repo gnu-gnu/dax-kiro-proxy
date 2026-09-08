@@ -48,7 +48,7 @@ func TestPrivateSocketRoundTripAndCleanup(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(s.Close)
+	t.Cleanup(func() { _ = s.Close() })
 	for _, item := range []struct {
 		path string
 		mode os.FileMode
@@ -98,7 +98,11 @@ func TestPrivateSocketRoundTripAndCleanup(t *testing.T) {
 	dir := s.Directory()
 	var closes sync.WaitGroup
 	for range 8 {
-		closes.Go(s.Close)
+		closes.Go(func() {
+			if s.Close() != nil {
+				t.Error("relay cleanup failed")
+			}
+		})
 	}
 	closes.Wait()
 	if _, err := os.Lstat(dir); !os.IsNotExist(err) {

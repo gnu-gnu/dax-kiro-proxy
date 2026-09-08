@@ -8,6 +8,9 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
+	"sync"
+	"syscall"
 	"testing"
 	"time"
 
@@ -65,10 +68,11 @@ func launch(t *testing.T) (*child, *relay.Broker, *relay.Socket, string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(s.Close)
+	t.Cleanup(func() { _ = s.Close() })
 	cmd := exec.Command(binaryPath, "relay", "--config", s.ConfigPath())
 	cmd.Dir = t.TempDir()
 	cmd.Env = []string{}
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	in, err := cmd.StdinPipe()
 	if err != nil {
 		t.Fatal(err)
@@ -81,9 +85,9 @@ func launch(t *testing.T) (*child, *relay.Broker, *relay.Socket, string) {
 		t.Fatal(err)
 	}
 	c := &child{in, bufio.NewReader(out), cmd, make(chan error, 1)}
+	go func() { c.done <- cmd.Wait() }()
 	t.Cleanup(func() {
 		_ = in.Close()
-		go func() { c.done <- cmd.Wait() }()
 		select {
 		case <-c.done:
 		case <-time.After(3 * time.Second):
@@ -92,6 +96,9 @@ func launch(t *testing.T) (*child, *relay.Broker, *relay.Socket, string) {
 			t.Error("relay child required forced cleanup")
 		}
 	})
+	if s.BindProcess(cmd.Process.Pid) != nil {
+		t.Fatal("cannot bind the owned MCP fixture group")
+	}
 	return c, b, s, r.Tools()[0].Alias
 }
 func (c *child) send(t *testing.T, id any, method string, params any) {
@@ -214,5 +221,60 @@ func TestMCPCancellationSettlesSuspendedCall(t *testing.T) {
 	case <-b.Done():
 	case <-time.After(time.Second):
 		t.Fatal("canceled relay session remained reusable")
+	}
+}
+
+func TestMCPOwnerClosureStopsBlockedInputAndPendingTools(t *testing.T) {
+	for _, mode := range []string{"idle", "pending", "blocked-output"} {
+		t.Run(mode, func(t *testing.T) {
+			c, broker, socket, alias := launch(t)
+			initialize(t, c)
+			pid, verified := socket.PeerPID()
+			if !verified || pid != c.cmd.Process.Pid {
+				t.Fatal("MCP started without verified process attachment")
+			}
+			if mode == "pending" {
+				c.send(t, 20, "tools/call", map[string]any{"name": alias, "arguments": map[string]any{}})
+				until := time.Now().Add(time.Second)
+				for broker.Stats().Pending != 1 && time.Now().Before(until) {
+					time.Sleep(time.Millisecond)
+				}
+				if broker.Stats().Pending != 1 {
+					t.Fatal("tool did not suspend")
+				}
+			}
+			var writerDone chan struct{}
+			if mode == "blocked-output" {
+				writerDone = make(chan struct{})
+				go func() {
+					defer close(writerDone)
+					_, _ = io.WriteString(c.input, strings.Repeat("{\"jsonrpc\":\"2.0\",\"id\":30,\"method\":\"ping\"}\n", 32768))
+				}()
+				select {
+				case <-writerDone:
+					t.Fatal("bounded fixture did not fill the unread pipe")
+				case <-time.After(100 * time.Millisecond):
+				}
+			}
+			var callers sync.WaitGroup
+			for range 8 {
+				callers.Go(func() {
+					if socket.Close() != nil {
+						t.Error("MCP cleanup failed")
+					}
+				})
+			}
+			callers.Wait()
+			if writerDone != nil {
+				select {
+				case <-writerDone:
+				case <-time.After(time.Second):
+					t.Fatal("blocked fixture writer did not join")
+				}
+			}
+			if syscall.Kill(pid, 0) != syscall.ESRCH || broker.Stats().Pending != 0 {
+				t.Fatal("MCP or pending work survived supervisor closure")
+			}
+		})
 	}
 }
