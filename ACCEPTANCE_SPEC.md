@@ -71,6 +71,16 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
   depth; unsafe links, nonregular sources and exceeded limits reject before partial activation.
   Preserve executable owner bits and exact bytes without parsing frontmatter or running commands;
   exclude unrelated state. Existing profiles keep their snapshot; fresh preparation sees updates (D76).
+- Personal rules must retain native user scope, original relative-import bases and path exclusions.
+  Compare natural/prepared/stripped startup, full four-hop chains with an absent fifth hop and
+  conditionally activated rules before and after exactly one successful client Read. Check original
+  source trees/import files, groups and private cleanup, including unusual HOME path characters.
+  Validate rules with the shared asset bounds before creating runtime artifacts; a native rules
+  reference is not an immutable snapshot and is not a filesystem sandbox (D77).
+- Personal CLAUDE.md compatibility additionally requires unconditional root-body loading, original
+  path exclusions, all four import hops and native ordering without duplicated content. D77's
+  explicit counterfactuals demonstrate rejected adapters, not successful product support. This
+  acceptance item remains open; the private profile currently omits personal CLAUDE.md.
 
 ## C. Anthropic compatibility
 

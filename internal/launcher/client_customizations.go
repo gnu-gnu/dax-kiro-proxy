@@ -16,12 +16,14 @@ const (
 
 type clientAsset struct {
 	path                  string
+	reference             string
 	data                  []byte
 	directory, executable bool
 }
 
-// Keep personal assets in their native scope without exposing mutable source directories to
-// the private profile. Interpret neither frontmatter nor commands; execution stays with the client.
+// Tool assets are private snapshots. Rules keep their original import bases and exclusion
+// paths through a native reference; this is not an immutable source snapshot or a tool sandbox.
+// Personal CLAUDE.md has no verified adapter. Interpret neither frontmatter nor commands.
 func clientCustomizations(home string) ([]clientAsset, error) {
 	owner, err := os.OpenRoot(home)
 	if err != nil {
@@ -38,8 +40,8 @@ func clientCustomizations(home string) ([]clientAsset, error) {
 	defer base.Close()
 	var assets []clientAsset
 	total, entries := 0, 0
-	var walk func(*os.Root, string, string, int) error
-	walk = func(parent *os.Root, name, relative string, depth int) error {
+	var walk func(*os.Root, string, string, int, bool) error
+	walk = func(parent *os.Root, name, relative string, depth int, retain bool) error {
 		entries++
 		if entries > MaxClientAssetEntries || depth > MaxClientAssetDepth || len(relative) > 4096 {
 			return ErrSettings
@@ -59,14 +61,16 @@ func clientCustomizations(home string) ([]clientAsset, error) {
 				return ErrSettings
 			}
 			defer file.Close()
-			assets = append(assets, clientAsset{path: relative, directory: true})
+			if retain {
+				assets = append(assets, clientAsset{path: relative, directory: true})
+			}
 			for {
 				names, err := file.Readdirnames(64)
 				if err != nil && !errors.Is(err, io.EOF) {
 					return ErrSettings
 				}
 				for _, child := range names {
-					if err := walk(dir, child, filepath.Join(relative, child), depth+1); err != nil {
+					if err := walk(dir, child, filepath.Join(relative, child), depth+1, retain); err != nil {
 						return err
 					}
 				}
@@ -96,10 +100,12 @@ func clientCustomizations(home string) ([]clientAsset, error) {
 			return ErrSettings
 		}
 		total += len(data)
-		assets = append(assets, clientAsset{path: relative, data: data, executable: opened.Mode().Perm()&0100 != 0})
+		if retain {
+			assets = append(assets, clientAsset{path: relative, data: data, executable: opened.Mode().Perm()&0100 != 0})
+		}
 		return nil
 	}
-	for _, name := range []string{"skills", "commands", "agents"} {
+	for _, name := range []string{"skills", "commands", "agents", "rules"} {
 		info, err := base.Lstat(name)
 		if errors.Is(err, os.ErrNotExist) {
 			continue
@@ -107,8 +113,12 @@ func clientCustomizations(home string) ([]clientAsset, error) {
 		if err != nil || !safeClientAssetDirectory(info) {
 			return nil, ErrSettings
 		}
-		if err := walk(base, name, name, 1); err != nil {
+		reference := name == "rules"
+		if err := walk(base, name, name, 1, !reference); err != nil {
 			return nil, err
+		}
+		if reference {
+			assets = append(assets, clientAsset{path: name, reference: filepath.Join(home, ".claude", name)})
 		}
 	}
 	return assets, nil
@@ -134,6 +144,12 @@ func openClientAssetDirectory(parent *os.Root, name string) (*os.Root, error) {
 func writeClientCustomizations(profile string, assets []clientAsset) error {
 	for _, asset := range assets {
 		path := filepath.Join(profile, asset.path)
+		if asset.reference != "" {
+			if os.Symlink(asset.reference, path) != nil {
+				return ErrRuntime
+			}
+			continue
+		}
 		if asset.directory {
 			if os.Mkdir(path, 0700) != nil {
 				return ErrRuntime

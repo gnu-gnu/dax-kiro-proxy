@@ -140,6 +140,14 @@ depth sixteen, 2 MiB per file and 32 MiB total. Unsafe links, special files, wri
 exceeded limits reject preparation. Changes to the original assets take effect on a new launch;
 custom roots, actual agent execution and relative helper execution remain separate work.
 
+Personal `~/.claude/rules` now remains available at its native scope through a validated source
+reference (D77). Installed-client checks cover relative imports, original-path exclusions,
+conditional activation after Read and the full four-hop import limit. The source reference is
+not an immutable snapshot; preparation validates the shared asset bounds and cleanup removes only
+the private link. Personal `~/.claude/CLAUDE.md` is still not loaded by the temporary profile.
+Tested adapters either bypass its original exclusion, lose one import hop or omit a root body
+with path frontmatter. None is enabled. This remains a client-environment compatibility gap.
+
 The product status display now yields to existing user/project/local status choices, including
 commands without a refresh interval. It supplies a bounded user-scope default only when no such
 choice or uncertain project source is found. Linked worktrees and unsafe/ambiguous sources suppress

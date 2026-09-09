@@ -6,6 +6,23 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D77 retains standard-HOME personal rules through a validated native reference, keeping source
+  paths for imports and exclusions. Thirty-five actual-Claude/local-responder invocations pass
+  across natural/prepared/stripped controls, conditional Read activation, six unusual HOME path
+  cases and full four-hop imports. Eight separate counterfactual invocations reproduce rejected
+  personal CLAUDE.md adapters; their passing observations are not acceptance of those adapters.
+  All four top-level controls pass in 24.203s with separate rule-body/import markers, source/import
+  preservation and joined cleanup.
+  Personal CLAUDE.md remains absent from the private profile: wrappers lose one import hop,
+  direct links bypass original-root exclusions, and a rules entry can omit path-frontmatter body
+  text. The prototype wrapper is removed. Local public-only Claude advice is saved/read/assessed.
+  Rules share existing source bounds; final personal unit race checks pass in 5.372s. A reference
+  does not freeze later source edits or enforce read-only client tool access. Full environment
+  preservation and live alpha/release gates remain open. Applicable opt-ins-off race suites pass
+  launcher 26.458s, interop 24.853s and command 1.833s; seven installed-client regressions pass
+  together in 54.956s. Whole-repository/fixture vet, formatting, whitespace, build and executable
+  help pass. The development executable includes D77; run admission is unchanged and live Kiro
+  work still awaits login renewal.
 - D76 fixes missing personal skills, legacy commands and agent definitions in the temporary Claude
   profile. Bounded source snapshots retain native scope and exact bytes without executing assets
   or modifying their original trees. Thirteen installed-Claude controls pass against local fake

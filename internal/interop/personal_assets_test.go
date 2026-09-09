@@ -5,12 +5,14 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"reflect"
+	"sort"
 	"strings"
 	"sync"
 	"syscall"
@@ -24,18 +26,75 @@ import (
 )
 
 // Only independently authored assets in an owned HOME/project are loaded. The synthetic
-// responder emits text only: it never dispatches a skill, agent, shell or filesystem tool.
+// responder never dispatches an agent or shell. The explicit conditional-rule controls request
+// exactly one Read of an owned fixture through the actual client's permission system.
 func TestClaudePersonalCustomizationSources(t *testing.T) {
+	observePersonalCustomizationSources(t, personalSourceOptions{})
+}
+
+func TestClaudePersonalRuleSources(t *testing.T) {
+	observePersonalCustomizationSources(t, personalSourceOptions{instructions: true, rulesOnly: true})
+}
+
+func TestClaudePersonalRulePathCharacters(t *testing.T) {
+	for _, tc := range []struct{ name, prefix string }{
+		{"quotes", "dax \"quoted\" 'single'-"}, {"brackets", "dax (round) [square]-"},
+		{"at-dollar", "dax @at dollar$-"}, {"backticks", "dax `tick`-"},
+		{"backslash", "dax \\backslash-"}, {"tab", "dax tab\t-"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			observePersonalCustomizationSources(t, personalSourceOptions{instructions: true, rulesOnly: true, homePrefix: tc.prefix})
+		})
+	}
+}
+
+func TestClaudePersonalRuleImportDepth(t *testing.T) {
+	observePersonalCustomizationSources(t, personalSourceOptions{instructions: true, rulesOnly: true, chainLength: 5})
+}
+
+// These controls assert defects in rejected memory adapters. A passing observation is not
+// acceptance of personal CLAUDE.md support; none of these adapters is used in production.
+func TestClaudePersonalMemoryAdapterCounterfactuals(t *testing.T) {
+	t.Run("original-exclusion-bypass", func(t *testing.T) {
+		observePersonalCustomizationSources(t, personalSourceOptions{instructions: true, modes: []string{"natural", "natural_excluded", "linked", "linked_excluded"}})
+	})
+	t.Run("wrapper-depth-loss", func(t *testing.T) {
+		observePersonalCustomizationSources(t, personalSourceOptions{instructions: true, chainLength: 5, modes: []string{"natural", "tilde"}})
+	})
+	t.Run("rules-entry-body-loss", func(t *testing.T) {
+		observePersonalCustomizationSources(t, personalSourceOptions{instructions: true, rootFrontmatter: true, chainLength: 5, modes: []string{"natural", "rule_entry"}})
+	})
+}
+
+type personalSourceOptions struct {
+	instructions    bool
+	homePrefix      string
+	chainLength     int
+	rootFrontmatter bool
+	rulesOnly       bool
+	modes           []string
+}
+
+func observePersonalCustomizationSources(t *testing.T, options personalSourceOptions) {
+	t.Helper()
+	instructions, unusualPaths := options.instructions, options.homePrefix
 	executable := os.Getenv("DAX_INTEROP_CLAUDE_BINARY")
 	if executable == "" {
 		t.Skip("set DAX_INTEROP_CLAUDE_BINARY for independent personal asset controls; no external inference")
 	}
-	root, err := os.MkdirTemp("/private/tmp", "dax-personal-assets-")
+	prefix := "dax-personal-assets-"
+	if instructions {
+		prefix = "dax personal instructions-"
+	}
+	root, err := os.MkdirTemp("/private/tmp", prefix)
 	if err != nil {
 		t.Fatal("cannot create owned asset root")
 	}
 	defer os.RemoveAll(root)
 	home, project := filepath.Join(root, "home"), filepath.Join(root, "project")
+	if unusualPaths != "" {
+		home = filepath.Join(root, unusualPaths+"home")
+	}
 	write := func(path, value string) {
 		t.Helper()
 		if os.MkdirAll(filepath.Dir(path), 0700) != nil || os.WriteFile(path, []byte(value), 0600) != nil {
@@ -53,8 +112,46 @@ func TestClaudePersonalCustomizationSources(t *testing.T) {
 		write(filepath.Join(base, "agents", name+"-agent.md"), "---\nname: "+name+"-agent\ndescription: Independent "+source.scope+" agent availability control.\ntools: []\nmodel: inherit\n---\nReturn text without using tools.\n")
 		write(filepath.Join(base, "skills", "dax-shared", "SKILL.md"), "---\nname: dax-shared\ndescription: Independent scope collision.\n---\nDAX_"+source.scope+"_SHARED_BODY\nReturn text without using tools.\n")
 		write(filepath.Join(base, "agents", "dax-shared-agent.md"), "---\nname: dax-shared-agent\ndescription: Independent "+source.scope+" agent collision winner.\ntools: []\nmodel: inherit\n---\nReturn text without using tools.\n")
+		if instructions {
+			frontmatter := ""
+			if options.rootFrontmatter {
+				frontmatter = "---\npaths:\n  - \"never-opened/*.go\"\n---\n"
+			}
+			if !options.rulesOnly {
+				write(filepath.Join(base, "CLAUDE.md"), frontmatter+"DAX_"+source.scope+"_INSTRUCTIONS\n@../relative-instructions.txt\n")
+				write(filepath.Join(source.path, "relative-instructions.txt"), "DAX_"+source.scope+"_RELATIVE_IMPORT\n")
+			}
+			write(filepath.Join(base, "rules", "general.md"), "DAX_"+source.scope+"_RULE_BODY_END\n@../../rule-context.txt\n")
+			write(filepath.Join(source.path, "rule-context.txt"), "DAX_"+source.scope+"_RULE_IMPORT\n")
+			for i := 1; i <= options.chainLength; i++ {
+				filename := fmt.Sprintf("hop%d.txt", i)
+				if i == 1 {
+					filename = "relative-instructions.txt"
+					if options.rulesOnly {
+						filename = "rule-context.txt"
+					}
+				}
+				content := fmt.Sprintf("DAX_%s_HOP_%d_END\n", source.scope, i)
+				if i == 1 {
+					marker := "RELATIVE_IMPORT"
+					if options.rulesOnly {
+						marker = "RULE_IMPORT"
+					}
+					content += "DAX_" + source.scope + "_" + marker + "\n"
+				}
+				if i < options.chainLength {
+					content += fmt.Sprintf("@hop%d.txt\n", i+1)
+				}
+				write(filepath.Join(source.path, filename), content)
+			}
+			write(filepath.Join(base, "rules", "conditional.md"), "---\npaths:\n  - \"never-opened/*.go\"\n---\nDAX_"+source.scope+"_CONDITIONAL\n")
+		}
 	}
 	const model, answer = "claude-dax-personal-assets", "Independent personal assets complete."
+	readPath := filepath.Join(project, "never-opened", "owned.go")
+	if instructions {
+		write(readPath, "Independent conditional source.\n")
+	}
 	tokens, err := gateway.NewTokens()
 	if err != nil {
 		t.Fatal(err)
@@ -65,10 +162,18 @@ func TestClaudePersonalCustomizationSources(t *testing.T) {
 		PersonalSkill, ProjectSkill, PersonalAgent, ProjectAgent                       bool
 		PersonalSkillBody, ProjectSkillBody, PersonalCommandBody, ProjectCommandBody   bool
 		PersonalSharedBody, ProjectSharedBody, PersonalAgentWinner, ProjectAgentWinner bool
+		PersonalInstructions, ProjectInstructions, PersonalImport, ProjectImport       bool
+		PersonalRule, ProjectRule, Conditional                                         bool
+		PersonalRuleImport, ProjectRuleImport                                          bool
+		ReadRequested, ReadMatched, PersonalConditional, ProjectConditional            bool
+		PersonalHops, ProjectHops                                                      []int
+		InstructionOrder                                                               []string
+		DuplicateInstructions                                                          bool
 	}
 	var mu sync.Mutex
 	var got observation
 	requests := 0
+	readMode := false
 	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "HEAD" {
 			w.WriteHeader(404)
@@ -89,7 +194,11 @@ func TestClaudePersonalCustomizationSources(t *testing.T) {
 			defer mu.Unlock()
 			requests++
 			got.Requests++
-			if requests > 16 || got.Requests > 1 {
+			maxRequests := 1
+			if readMode {
+				maxRequests = 2
+			}
+			if requests > 32 || got.Requests > maxRequests {
 				w.WriteHeader(429)
 				return
 			}
@@ -116,6 +225,81 @@ func TestClaudePersonalCustomizationSources(t *testing.T) {
 			got.ProjectSharedBody = bytes.Contains(body, []byte("DAX_project_SHARED_BODY"))
 			got.PersonalAgentWinner = bytes.Contains(body, []byte("Independent personal agent collision winner."))
 			got.ProjectAgentWinner = bytes.Contains(body, []byte("Independent project agent collision winner."))
+			got.PersonalInstructions = bytes.Contains(body, []byte("DAX_personal_INSTRUCTIONS"))
+			got.ProjectInstructions = bytes.Contains(body, []byte("DAX_project_INSTRUCTIONS"))
+			got.PersonalImport = bytes.Contains(body, []byte("DAX_personal_RELATIVE_IMPORT"))
+			got.ProjectImport = bytes.Contains(body, []byte("DAX_project_RELATIVE_IMPORT"))
+			got.PersonalRule = bytes.Contains(body, []byte("DAX_personal_RULE_BODY_END"))
+			got.ProjectRule = bytes.Contains(body, []byte("DAX_project_RULE_BODY_END"))
+			got.PersonalRuleImport = bytes.Contains(body, []byte("DAX_personal_RULE_IMPORT"))
+			got.ProjectRuleImport = bytes.Contains(body, []byte("DAX_project_RULE_IMPORT"))
+			got.Conditional = bytes.Contains(body, []byte("DAX_personal_CONDITIONAL")) || bytes.Contains(body, []byte("DAX_project_CONDITIONAL"))
+			got.PersonalConditional = bytes.Contains(body, []byte("DAX_personal_CONDITIONAL"))
+			got.ProjectConditional = bytes.Contains(body, []byte("DAX_project_CONDITIONAL"))
+			if instructions {
+				got.DuplicateInstructions = false
+				var positions []struct {
+					marker string
+					at     int
+				}
+				for _, marker := range []string{"DAX_personal_INSTRUCTIONS", "DAX_personal_RELATIVE_IMPORT", "DAX_personal_RULE_BODY_END", "DAX_personal_RULE_IMPORT", "DAX_project_INSTRUCTIONS", "DAX_project_RELATIVE_IMPORT", "DAX_project_RULE_BODY_END", "DAX_project_RULE_IMPORT"} {
+					if bytes.Count(body, []byte(marker)) > 1 {
+						got.DuplicateInstructions = true
+					}
+					if at := bytes.Index(body, []byte(marker)); at >= 0 {
+						positions = append(positions, struct {
+							marker string
+							at     int
+						}{marker, at})
+					}
+				}
+				sort.Slice(positions, func(i, j int) bool { return positions[i].at < positions[j].at })
+				got.InstructionOrder = nil
+				for _, p := range positions {
+					got.InstructionOrder = append(got.InstructionOrder, p.marker)
+				}
+			}
+			if options.chainLength > 0 {
+				got.PersonalHops, got.ProjectHops = nil, nil
+				for i := 1; i <= options.chainLength; i++ {
+					if bytes.Contains(body, []byte(fmt.Sprintf("DAX_personal_HOP_%d_END", i))) {
+						got.PersonalHops = append(got.PersonalHops, i)
+					}
+					if bytes.Contains(body, []byte(fmt.Sprintf("DAX_project_HOP_%d_END", i))) {
+						got.ProjectHops = append(got.ProjectHops, i)
+					}
+				}
+			}
+			if readMode {
+				if got.Requests == 1 {
+					listed := false
+					for _, raw := range request.Tools {
+						var tool struct{ Name string }
+						if json.Unmarshal(raw, &tool) == nil && tool.Name == "Read" {
+							listed = true
+						}
+					}
+					if !listed || got.Conditional {
+						w.WriteHeader(400)
+						return
+					}
+					got.ReadRequested = true
+					writeObservedMessage(w, request.Stream, model, []map[string]any{{"type": "tool_use", "id": "toolu_dax_conditional_read", "name": "Read", "input": map[string]string{"file_path": readPath}}}, "tool_use")
+					return
+				}
+				results, err := request.LatestToolResults()
+				if err == nil && len(results) == 1 && results[0].ID == "toolu_dax_conditional_read" && !results[0].IsError {
+					for _, block := range results[0].Content {
+						if block.Type == "text" && strings.Contains(block.Text, "Independent conditional source.") {
+							got.ReadMatched = true
+						}
+					}
+				}
+				if !got.ReadMatched {
+					w.WriteHeader(400)
+					return
+				}
+			}
 			writeObservedMessage(w, request.Stream, model, []map[string]any{{"type": "text", "text": answer}}, "end_turn")
 		default:
 			w.WriteHeader(404)
@@ -133,27 +317,81 @@ func TestClaudePersonalCustomizationSources(t *testing.T) {
 	}
 	defer runner.Close()
 	cfg := launcher.ClientConfig{RuntimeParent: root, Home: home, Project: project, UserSettings: settings, Executable: executable, Version: launcher.SupportedClientVersion, Model: model, GatewayURL: server.URL, ModelToken: tokens.Model, Environment: []string{"PATH=/usr/bin:/bin:/usr/sbin:/sbin", "TERM=dumb"}}
-	for _, mode := range []string{"natural", "stripped", "prepared"} {
+	modes := []string{"natural", "stripped", "prepared"}
+	if instructions {
+		modes = []string{"natural", "stripped", "natural_excluded", "prepared", "prepared_excluded", "natural_read", "prepared_read"}
+	}
+	if unusualPaths != "" {
+		modes = []string{"natural", "natural_excluded", "prepared", "prepared_excluded"}
+	}
+	if options.chainLength > 0 {
+		modes = []string{"natural", "prepared", "natural_excluded", "prepared_excluded"}
+	}
+	if options.modes != nil {
+		modes = options.modes
+	}
+	var nativeOrder []string
+	for _, mode := range modes {
 		prompts := []string{"Return one brief text response without using tools.", "/dax-personal", "/dax-project", "/dax-personal-command", "/dax-project-command", "/dax-shared"}
-		if mode == "stripped" {
+		if mode == "stripped" || instructions {
 			prompts = prompts[:1]
 		}
 		for _, prompt := range prompts {
 			if !t.Run(mode+"/"+strings.TrimPrefix(strings.Split(prompt, " ")[0], "/"), func(t *testing.T) {
+				excluded := strings.HasSuffix(mode, "_excluded")
+				read := strings.HasSuffix(mode, "_read")
+				source := map[string]any{"disableAllHooks": true}
+				if read {
+					source["permissions"] = map[string]any{"allow": []string{"Read(/" + readPath + ")"}, "deny": []string{"Bash", "Write", "Edit"}}
+				}
+				if excluded {
+					source["claudeMdExcludes"] = []string{filepath.Join(home, ".claude", "CLAUDE.md"), filepath.Join(home, ".claude", "rules", "general.md")}
+				}
+				encoded, err := json.Marshal(source)
+				if err != nil {
+					t.Fatal("cannot encode independent exclusion")
+				}
+				write(settings, string(encoded))
 				profile, err := launcher.PrepareClient(cfg)
 				if err != nil {
 					t.Fatal(err)
 				}
 				defer profile.Close()
+				if instructions && !strings.HasPrefix(mode, "prepared") {
+					for _, name := range []string{"CLAUDE.md", "rules"} {
+						if os.RemoveAll(filepath.Join(profile.Path(), "client", name)) != nil {
+							t.Fatal("cannot isolate independent instruction candidate")
+						}
+					}
+				}
+				if strings.HasPrefix(mode, "linked") {
+					for _, name := range []string{"CLAUDE.md", "rules"} {
+						if os.Symlink(filepath.Join(home, ".claude", name), filepath.Join(profile.Path(), "client", name)) != nil {
+							t.Fatal("cannot create independent instruction reference")
+						}
+					}
+				}
+				if strings.HasPrefix(mode, "tilde") {
+					write(filepath.Join(profile.Path(), "client", "CLAUDE.md"), "@~/.claude/CLAUDE.md\n")
+					if os.Symlink(filepath.Join(home, ".claude", "rules"), filepath.Join(profile.Path(), "client", "rules")) != nil {
+						t.Fatal("cannot prepare native HOME import candidate")
+					}
+				}
+				if mode == "rule_entry" {
+					rules := filepath.Join(profile.Path(), "client", "rules")
+					if os.Mkdir(rules, 0700) != nil || os.Symlink(filepath.Join(home, ".claude", "CLAUDE.md"), filepath.Join(rules, "00-personal-instructions.md")) != nil || os.Symlink(filepath.Join(home, ".claude", "rules"), filepath.Join(rules, "source")) != nil {
+						t.Fatal("cannot create independent native rules entry")
+					}
+				}
 				if mode == "stripped" {
-					for _, name := range []string{"skills", "commands", "agents"} {
+					for _, name := range []string{"skills", "commands", "agents", "CLAUDE.md", "rules"} {
 						if os.RemoveAll(filepath.Join(profile.Path(), "client", name)) != nil {
 							t.Fatal("cannot prepare independent missing-assets counterfactual")
 						}
 					}
 				}
 				command := profile.Command()
-				if mode == "natural" {
+				if strings.HasPrefix(mode, "natural") {
 					env := make([]string, 0, len(command.Environment))
 					for _, entry := range command.Environment {
 						if !strings.HasPrefix(entry, "CLAUDE_CONFIG_DIR=") {
@@ -170,9 +408,18 @@ func TestClaudePersonalCustomizationSources(t *testing.T) {
 				}
 				beforeHome, beforeProject := boundedPluginTree(t, filepath.Join(home, ".claude")), boundedPluginTree(t, project)
 				beforeGlobal := fileFingerprint(t, filepath.Join(home, ".claude.json"))
+				importFingerprints := make(map[string][32]byte)
+				for _, name := range []string{"relative-instructions.txt", "rule-context.txt", "hop2.txt", "hop3.txt", "hop4.txt", "hop5.txt"} {
+					path := filepath.Join(home, name)
+					importFingerprints[path] = fileFingerprint(t, path)
+				}
 				mu.Lock()
 				got = observation{}
+				readMode = read
 				mu.Unlock()
+				if read {
+					prompt = "Read the one independently owned conditional fixture and give a brief text response."
+				}
 				command.Args = append(command.Args, "--strict-mcp-config", "--mcp-config", `{"mcpServers":{}}`, "--print", "--output-format", "json", "--no-session-persistence", prompt)
 				result, err := runner.Run(ctx, command)
 				mu.Lock()
@@ -186,7 +433,40 @@ func TestClaudePersonalCustomizationSources(t *testing.T) {
 				groupGone := result.PID > 1 && errors.Is(syscall.Kill(-result.PID, 0), syscall.ESRCH)
 				t.Logf("observed=%+v, complete=%v, client_exit=%d, group_gone=%v", seen, complete, result.ExitCode, groupGone)
 				wantPersonal := mode != "stripped"
-				if !complete || !groupGone || seen.Requests != 1 || !seen.Decoded || seen.PersonalSkill != wantPersonal || !seen.ProjectSkill || seen.PersonalAgent != wantPersonal || !seen.ProjectAgent || seen.PersonalAgentWinner || !seen.ProjectAgentWinner {
+				if seen.DuplicateInstructions {
+					t.Error("instruction content was duplicated")
+				}
+				if mode == "natural" {
+					nativeOrder = append([]string(nil), seen.InstructionOrder...)
+				}
+				wantOrder := nativeOrder
+				missingRootBody := mode == "rule_entry" && options.rootFrontmatter
+				if missingRootBody {
+					wantOrder = append([]string(nil), nativeOrder[1:]...)
+				}
+				if instructions && !excluded && wantPersonal && !reflect.DeepEqual(wantOrder, seen.InstructionOrder) {
+					t.Error("native instruction ordering changed")
+				}
+				if options.chainLength > 0 {
+					wantHops := []int{1, 2, 3, 4}
+					if !reflect.DeepEqual(seen.ProjectHops, wantHops) {
+						t.Error("native project control did not reach exactly four import hops")
+					}
+					if mode == "tilde" {
+						wantHops = []int{1, 2, 3} // Measured rejected wrapper defect, not product acceptance.
+					}
+					if excluded {
+						wantHops = nil
+					}
+					if !reflect.DeepEqual(seen.PersonalHops, wantHops) {
+						t.Error("personal import-depth observation changed")
+					}
+				}
+				wantRequests := 1
+				if read {
+					wantRequests = 2
+				}
+				if !complete || !groupGone || seen.Requests != wantRequests || !seen.Decoded || seen.PersonalSkill != wantPersonal || !seen.ProjectSkill || seen.PersonalAgent != wantPersonal || !seen.ProjectAgent || seen.PersonalAgentWinner || !seen.ProjectAgentWinner {
 					t.Error("personal/project asset activation or lifecycle mismatch")
 				}
 				if seen.PersonalSkillBody != (prompt == "/dax-personal") || seen.ProjectSkillBody != (prompt == "/dax-project") || seen.PersonalCommandBody != (prompt == "/dax-personal-command") || seen.ProjectCommandBody != (prompt == "/dax-project-command") {
@@ -195,8 +475,21 @@ func TestClaudePersonalCustomizationSources(t *testing.T) {
 				if seen.PersonalSharedBody != (prompt == "/dax-shared") || seen.ProjectSharedBody {
 					t.Error("native personal skill precedence changed")
 				}
-				if mode != "natural" && (!reflect.DeepEqual(beforeHome, boundedPluginTree(t, filepath.Join(home, ".claude"))) || !reflect.DeepEqual(beforeProject, boundedPluginTree(t, project)) || beforeGlobal != fileFingerprint(t, filepath.Join(home, ".claude.json"))) {
+				wantInstructions := instructions && wantPersonal && !excluded
+				// The rejected direct-link candidate demonstrably bypasses this original-path
+				// CLAUDE.md exclusion. Keep it as a counterfactual, never a successful adapter.
+				wantMemory := (wantInstructions || mode == "linked_excluded") && !options.rulesOnly
+				wantProjectMemory := instructions && !options.rulesOnly
+				if seen.PersonalInstructions != (wantMemory && !missingRootBody) || seen.PersonalImport != wantMemory || seen.PersonalRule != wantInstructions || seen.PersonalRuleImport != wantInstructions || seen.ProjectInstructions != wantProjectMemory || seen.ProjectImport != wantProjectMemory || seen.ProjectRule != instructions || seen.ProjectRuleImport != instructions || seen.Conditional != read || seen.PersonalConditional != read || seen.ProjectConditional != read || seen.ReadRequested != read || seen.ReadMatched != read {
+					t.Error("instruction/import scope or conditional rule activation changed")
+				}
+				if !strings.HasPrefix(mode, "natural") && (!reflect.DeepEqual(beforeHome, boundedPluginTree(t, filepath.Join(home, ".claude"))) || !reflect.DeepEqual(beforeProject, boundedPluginTree(t, project)) || beforeGlobal != fileFingerprint(t, filepath.Join(home, ".claude.json"))) {
 					t.Error("prepared run changed an owned source")
+				}
+				for path, before := range importFingerprints {
+					if fileFingerprint(t, path) != before {
+						t.Error("client changed an original import source")
+					}
 				}
 				if profile.Close() != nil {
 					t.Error("profile cleanup failed")

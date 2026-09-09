@@ -3361,3 +3361,95 @@ and disabled hooks. Whole-repository go vet, formatting and whitespace checks pa
 installed-client or actual-Kiro success is inferred from this targeted regression.
 The development executable is rebuilt with D76 and its public help command passes. Development run
 admission remains enabled for the pinned combination; login is still required before live work.
+
+## D77: preserve native personal rules; reject incomplete root-memory adapters
+
+Independent Claude 2.1.263 controls extend D76 to personal instruction sources. The old private
+profile drops both user CLAUDE.md and rules, while natural owned-HOME startup loads them. Preserve
+only the verified rules path in this change. Personal CLAUDE.md remains a documented compatibility
+gap; no tested root-memory adapter is enabled. This is progress on environment preservation, not
+completion of that gate or a new condition for development execution-policy admission.
+
+Preparation validates HOME/.claude/rules using the same checked bounded walker as the existing
+skill/command/agent snapshots. All four trees share 1,024 entries, depth sixteen, 2 MiB per file
+and 32 MiB total. Rule bytes are validated but not retained as a relocated snapshot. The private
+client/rules entry instead references the original owned directory. Native Claude resolves relative
+imports and exclusions, loads conditional rules and retains user/project order. No Markdown,
+frontmatter, glob or command parser is introduced. Unsafe source links, modes, nonregular files
+and exceeded bounds reject before runtime artifacts exist. Repeated cleanup removes the private
+reference without traversing it. The launcher does not write original rules or imported files.
+
+This is not an immutable/read-only filesystem view: source edits after validation may affect
+what the client reads. Imported files outside the selected rules tree remain native client reads,
+not part of the launcher's bounded tree snapshot. Client tools retain their own permission/hook
+authority. Dynamic mutation, custom roots and arbitrary linked-source compatibility remain open.
+
+Public [memory documentation](https://code.claude.com/docs/en/memory) documents relative imports,
+four import hops, personal rules, symbolic links, path conditions and claudeMdExcludes. The
+[configuration directory documentation](https://code.claude.com/docs/en/claude-directory) describes
+CLAUDE_CONFIG_DIR relocation. Reviewed 2026-09-09. Public help and the documented environment
+surface provide no verified separate personal-memory root in the mechanisms checked; this does
+not establish the universal absence of any future/native solution. The source-reference mechanism
+and its limitations below are our own pinned-client black-box observations.
+
+The independent responder uses an authenticated bounded loopback server, owned HOME/project,
+fixed synthetic markers, finite print clients and strict empty MCP configuration. It never calls
+Kiro, dispatches an agent or requests a shell effect. Exactly two conditional controls ask the
+client to Read one owned file under an explicit permission; each must show the condition absent
+before Read and present only with the matching successful result in the second request. Every
+invocation requires one final fixed answer, an absent owned client process group and removed
+private profile. Source entries/bytes/modes and import fingerprints outside the selected .claude
+tree are checked.
+Only fixed fields/markers, counts and booleans are logged, never raw client requests/responses.
+
+Root-memory experiments expose three independent defects:
+
+- A direct private CLAUDE.md symlink retains ordinary content, but an exclusion naming the original
+  absolute CLAUDE.md path does not suppress its body/imports (personal-instructions-exclusions.2SmJdL).
+- A wrapper importing the original path honors that exclusion and ordinary relative imports.
+  Native tilde syntax also handles six tested HOME-character classes and conditional rules
+  (personal-instructions-native-import.wIYOkM, 22.381s). The later depth control disproves full
+  fidelity: personal imports stop at hop three while native/project controls reach four
+  (personal-instructions-depth.nDZzxs, failed 2.065s).
+- A rules entry pointing at the original CLAUDE.md retains four hops and exclusions, but changes
+  root semantics: paths frontmatter suppresses its body although natural global-root loading
+  includes it (personal-instructions-frontmatter.POVAf7, failed 2.296s). Combining a root wrapper
+  and rules entry still loses the fourth hop (personal-instructions-combined.bemAgf, failed
+  3.697s). Two rules entries retain depth but still omit the root body
+  (personal-instructions-two-rules.HWHXSL, failed 4.024s).
+
+Earlier quoted/aliased import candidates either omitted content or bypassed exclusions. An initial
+path-character control varied runtime/project paths as well as HOME and failed even in natural
+execution; it is not proxy-defect evidence. The corrected matrix varies only HOME. No broader
+runtime/project path-character support is claimed. The incomplete production root wrapper is
+withdrawn after a unit control fails on its accidental activation (3.226s), rather than reducing
+the required native import depth or accepting missing body text. Three retained counterfactual
+tests explicitly assert these rejected behaviors; passing them never means root-memory acceptance.
+
+Two bounded public-only local Claude consultations are saved, fully read and assessed in
+public-memory-scope-review-ps8dh1zx and public-memory-fidelity-review-f8z1eben. Their emphasis on
+separate source identity, depth, conditionality and source immutability is useful. Their broad
+absence claims are not adopted as facts. No additional dependency, private-client inspection,
+previous implementation input or custom instruction parser is used.
+
+Final scoped installed-client evidence personal-rules-scoped.43hozu passes in 23.858s: seven source
+controls (3.97s), twenty-four HOME-character controls (11.83s), four depth/exclusion controls
+(1.94s) and eight rejected-root-adapter counterfactual controls (4.16s). The thirty-five product
+rules invocations require unchanged sources/imports and observed process/artifact cleanup. The
+eight memory counterfactual invocations reproduce defects only. Expanded personal unit race tests
+pass in 6.051s, including the full unsafe/oversized source matrix for both snapshots and rules.
+
+Review strengthens the rule-body markers so an imported marker cannot accidentally stand in for
+a missing general-rule body. Both body and import now participate in order/duplication checks.
+The final scoped matrix personal-rules-final-markers.pAsngv passes in 24.203s (3.96s source,
+12.41s HOME paths, 1.88s depth, 4.11s counterfactuals), without changing the required native depth.
+The applicable opt-ins-off race regression personal-rules-core.XhZBkj passes launcher 26.458s,
+interop 24.853s and command 1.833s. Seven installed-client regressions in
+personal-rules-client-regression.8XCT7t pass in 54.956s, covering D76 personal assets, MCP scopes,
+plugin skills/hooks, existing status precedence, permission/disabled-hook behavior and default
+tool traffic through the gateway/relay. Whole-repository and independent-ACP fixture vet,
+formatting and whitespace pass. The development executable is rebuilt with D77 and its public
+help command passes. This is not a release or actual-Kiro verification; D75's login blocker and
+remaining live alpha/release work are unchanged.
+The final personal unit race suite passes in 5.372s after consolidating duplicate rules negatives
+into the shared snapshot/rules matrix; all twelve unsafe/bound cases still run for each tree.
