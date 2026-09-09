@@ -207,6 +207,15 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
 
 ## F. Session continuity
 
+- A completed client Write or Bash must remain historical context after native explicit-ID resume.
+  Require one matching original tool ID/name/decoded input and successful result with exact text
+  content, ordered before the new user instruction. Observe native effect counts and PreToolUse/
+  PostToolUse receipts independently; an append effect and both receipts remain exactly one after
+  the resumed text turn, with no new tool handoff. Each stage uses a fresh joined backend/profile/
+  endpoint/token while retaining the native session ID. D90 covers these two finite single-tool
+  cases with actual Kiro/Claude, plus corrupted-history and repeated-effect controls. Interrupted
+  pending work, new policy decisions after resume, interactive/default-tool variants, concurrent
+  writers and uncertain effect/acknowledgement windows remain separate checks.
 - Optional native client history survives removal of its temporary configuration. Explicit-ID resume
   uses a fresh endpoint, credential and backend owner; previous completed text appears once in the
   subsequent request. The native client remains the only transcript writer. Default ephemeral

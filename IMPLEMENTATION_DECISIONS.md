@@ -4144,3 +4144,67 @@ concurrent writers/retention, authentication expiry and full alpha/release requi
 
 The opt-ins-off interop race suite passes in 25.513s. Whole-repository/observer vet, formatting and
 whitespace checks pass, as do the unchanged D87 artifact's 139 inventory byte checks.
+
+## D90: observe completed client effects across native history resume
+
+The [public native session contract](https://code.claude.com/docs/en/sessions) restores conversation
+tool calls/results and rereads launch configuration. This establishes a test surface, not an
+exactly-once execution guarantee. Observe public Messages requests and independently owned native
+effects without decoding/editing transcript files. The saved public-only Claude consultation at
+`.cache/claude-consult/work/public-tool-resume-review-jnlw7k4c` was read completely and assessed.
+Adopt non-idempotent effects, exact ID/result checks and joined old ownership. Reject unrestricted
+request logging, treating native resume as an ACP operation, and blanket claims about unmeasured
+crash/acknowledgement windows or arbitrary repetition counts.
+
+Each owned Write/Bash case performs one operation through the client, receives its successful
+result and finishes. The Bash command appends a line; Write creates its own separate target.
+Exact PreToolUse/PostToolUse hooks append fixed receipts. A test-only gateway adapter admits two
+model requests in that first native launch and one in a second explicit-ID resume. The resumed
+request contains one original assistant tool use and one matching successful user result, ordered
+before the new user instruction. IDs/names, decoded argument objects and the result's text blocks
+must match the first observed pair. Old question/answer markers occur once; the new answer is
+observed in both the active backend text and native public result JSON. No newly emitted tool may
+reach the client during this text continuation, and any such attempt fails the observation.
+
+Each stage owns one prepared restricted ACP process/session, one manager/pool, bounded schema
+worker and local server, and a fresh temporary native profile and credential. The first native
+client and observed ACP/relay group must be gone, its listener closed and its private artifacts
+removed before the second stage. Original settings/global configuration stay unchanged. Native
+history survives only in the explicitly retained disposable projects directory. The second stage
+must use the same native conversation ID but a different backend group/profile/address/token.
+Effects and both hook receipts remain exactly one after each stage. Source contents, model text
+and tool results are not written to diagnostic logs; only fixed counts/facts are retained.
+
+Negative controls change IDs/arguments/result text/status, remove/duplicate/reorder blocks, move
+the completed answer before its result, emit an unexpected resumed tool or double an effect/hook
+receipt. The independent ACP peer reads only an invented operation expectation and public relay
+launch declaration; it never reads native history or effect files. It has a sixty-second lifetime,
+one initialization/new session/prompt, a 1 MiB incoming frame limit and bounded owned PID/stage
+receipts. Its initial prompt relays the exact one operation. Its resumed prompt requires prior
+context markers and tool blocks, then emits text without another tool call. Backend load rejects.
+
+Initial local controls found test-only defects: a counter directory lacked required private
+permissions; native first requests include a trailing system message; delegating the test model
+list to the manager triggered an unwanted discovery process. The corrected observer admits one
+user message followed by at most one system message, uses the prepared catalog and retains all
+other bounds. Corrected fake-ACP/native-client cases pass in 10.55s (12.473s race package), with
+both operations and all four stages clean. No live inference ran before those controls passed.
+
+One actual Kiro 2.21.2 / Claude 2.1.263 run passes both cases in 56.99s (58.324s race package),
+Write 29.65s and Bash 27.34s. Across four native launches: four main ACP prompts, six HTTP model
+requests, two original client tool effects, two restored matching historical pairs, two resumed
+text completions, zero resumed tool handoffs and joined old/new cleanup. No live retry occurs.
+The log is `.cache/history-review/d90-live-completed-tool-resume.log`; corrected fake evidence is
+`d90-native-tool-resume-standing-control.log`. No production code/dependency/artifact change.
+
+This establishes finite single-tool completed-effect resume for these two operations. It does not
+establish interrupted pending recovery, a new permission/hook decision after resume, interactive
+tool resume, the entire default registry, concurrent writers, native file checkpoints/media or
+arbitrary effect/acknowledgement crash windows. Those and all other alpha/release gates remain open.
+
+Final native-Claude/fake-ACP and observer controls pass in 10.830s after adding a counterfactual
+completed answer placed before its tool result. The opt-ins-off race regressions pass: ACP 5.670s,
+interop 22.879s. Whole-repository/fake-peer vet, formatting and whitespace pass. The unchanged D87
+development artifact still passes all 139 frozen dependency/input byte checks; no release clearance
+is inferred. Final logs are `d90-final-native-controls.log`, `d90-core-regression.log` and
+`d90-final-vet.log` under the owned history-review cache.

@@ -67,6 +67,13 @@ client-supplied history; hidden Kiro context is not restored. Continue/latest, c
 pending-tool recovery, file checkpoints, media sidecars and concurrent history writers remain separate
 checks; these text results do not complete the full alpha resume gate.
 
+D90 additionally verifies completed Write/Bash history across two native print launches with actual
+Kiro/Claude. The resumed request retains the original tool ID, decoded input and successful result
+text in order; it completes without a new tool handoff. The owned file effect and both native tool
+hooks occur once across each episode. Old resources are joined before fresh profile/endpoint/token/
+backend ownership. Interrupted pending work and new permission/hook decisions after resume remain
+open; these finite single-tool results do not establish general exactly-once crash recovery.
+
 The diagnostic checks support Kiro CLI 2.21.2 (including its adjacent `kiro-cli-chat` helper) and Claude Code
 2.1.263. They use the installed CLIs' finite version/account/catalog commands, without an ACP session
 or model prompt. `--kiro` and `--client` accept absolute executable paths. Private scope/cache state

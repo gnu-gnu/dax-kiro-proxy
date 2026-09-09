@@ -1,0 +1,115 @@
+package main
+
+import (
+	"bufio"
+	"encoding/json"
+	"fmt"
+	"io"
+	"os"
+	"path/filepath"
+	"strings"
+	"time"
+)
+
+// The client owns all effects and native transcript writes. This independent ACP peer reads only
+// an owned operation expectation, the public MCP launch declaration and incoming protocol frames.
+func nativeToolHistory() {
+	if len(os.Args) != 5 || (os.Args[2] != "0" && os.Args[2] != "1") {
+		os.Exit(101)
+	}
+	timer := time.AfterFunc(60*time.Second, func() { os.Exit(102) })
+	defer timer.Stop()
+	mark := func(stage int) {
+		if os.WriteFile(filepath.Join(filepath.Dir(os.Args[3]), "peer-stage-"+os.Args[2]), []byte(fmt.Sprintf("%d %d", os.Getpid(), stage)), 0600) != nil {
+			os.Exit(112)
+		}
+	}
+	mark(0)
+	f, err := os.Open(os.Args[4])
+	if err != nil {
+		os.Exit(103)
+	}
+	declaration, err := io.ReadAll(io.LimitReader(f, (64<<10)+1))
+	closeErr := f.Close()
+	if err != nil || closeErr != nil || len(declaration) > 64<<10 {
+		os.Exit(103)
+	}
+	scan := bufio.NewScanner(os.Stdin)
+	scan.Buffer(make([]byte, 4096), 1<<20)
+	initialized, created, prompted := false, false, false
+	var relay *fixtureRelay
+	for scan.Scan() {
+		var q request
+		if json.Unmarshal(scan.Bytes(), &q) != nil || len(q.ID) == 0 {
+			os.Exit(104)
+		}
+		switch q.Method {
+		case "initialize":
+			mark(1)
+			var p struct {
+				ProtocolVersion    int
+				ClientCapabilities map[string]any
+			}
+			if initialized || json.Unmarshal(q.Params, &p) != nil || p.ProtocolVersion != 1 || p.ClientCapabilities == nil || len(p.ClientCapabilities) != 0 {
+				os.Exit(105)
+			}
+			initialized = true
+			reply(q.ID, map[string]any{"protocolVersion": 1, "agentCapabilities": map[string]any{"loadSession": true}})
+		case "session/new":
+			mark(2)
+			var p struct {
+				CWD        string
+				MCPServers []json.RawMessage
+			}
+			if !initialized || created || json.Unmarshal(q.Params, &p) != nil || p.CWD == "" || p.MCPServers == nil || len(p.MCPServers) != 0 {
+				os.Exit(106)
+			}
+			created = true
+			relay = startFixtureRelay(declaration, p.CWD)
+			mark(3)
+			defer relay.close()
+			reply(q.ID, map[string]any{"sessionId": "independent-tool-history", "models": map[string]any{"currentModelId": "fixture-backend", "availableModels": []any{map[string]string{"modelId": "fixture-backend", "name": "Independent tool history"}}}})
+		case "session/prompt":
+			mark(4)
+			var p struct {
+				SessionID string
+				Prompt    []struct{ Type, Text string }
+			}
+			if !created || prompted || json.Unmarshal(q.Params, &p) != nil || p.SessionID != "independent-tool-history" {
+				os.Exit(107)
+			}
+			prompted = true
+			var parts []string
+			for _, part := range p.Prompt {
+				if part.Type != "text" {
+					os.Exit(108)
+				}
+				parts = append(parts, part.Text)
+			}
+			text := strings.Join(parts, "\n")
+			if strings.Count(text, "EffectQuestion_131") != 1 || strings.Contains(text, "UnsentEffect_139") {
+				os.Exit(109)
+			}
+			answer := "ToolArchiveReady_131"
+			if os.Args[2] == "0" {
+				if strings.Contains(text, "EffectFollow_137") || strings.Contains(text, answer) {
+					os.Exit(109)
+				}
+				relay.effect(os.Args[3])
+			} else {
+				if strings.Count(text, "EffectFollow_137") != 1 || strings.Count(text, answer) != 1 || !strings.Contains(text, "tool_use") || !strings.Contains(text, "tool_result") {
+					os.Exit(109)
+				}
+				answer = "ToolArchiveResumed_137"
+			}
+			write(map[string]any{"jsonrpc": "2.0", "method": "session/update", "params": map[string]any{"sessionId": p.SessionID, "update": map[string]any{"sessionUpdate": "agent_message_chunk", "content": map[string]string{"type": "text", "text": answer}}}})
+			reply(q.ID, map[string]string{"stopReason": "end_turn"})
+		default:
+			// A load or second prompt cannot earn a passing observation.
+			os.Exit(110)
+		}
+	}
+	if scan.Err() != nil {
+		os.Exit(111)
+	}
+}

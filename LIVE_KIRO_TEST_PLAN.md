@@ -1289,3 +1289,53 @@ No guard/prompt error, emergency cleanup or retry occurs. Fixed results are reta
 `.cache/history-review/d89-native-history-shared-state.log` and `d89-live-native-picker.log`.
 Observer race passes in 1.903s. Broader selection, continue/latest, pending tools, native sidecars,
 concurrent writers/retention, authentication expiry and full alpha/release work remain open.
+
+## D90: completed client effects across native resume
+
+Use two disposable native print launches for each of Write and Bash. The first owns one exact
+operation, one matching successful result continuation and one completed answer. Bash appends one
+line to an owned file; Write creates the separate owned target. Native PreToolUse/PostToolUse hooks
+append one fixed receipt each. The backend/fixture never performs either effect. Join the first
+client, ACP/relay group, manager, pool, listener and profile before preparing the second launch.
+
+The second launch retains the same native conversation ID but receives fresh routing credentials,
+endpoint, temporary profile and backend. Its one model request must contain exactly one prior
+tool call/result pair, with the same ID, name, decoded argument values, successful status and exact
+text content in order before the new user instruction. It also carries the old question/answer
+markers once. No new tool is admitted in this text continuation. Both native result JSON and
+active backend text must contain the new completed-answer marker. Effects and both hook receipts
+must still occur exactly once. Source settings/global configuration remain unchanged.
+
+Bound each case to three minutes, each native invocation to sixty seconds/128 KiB output, each
+model turn to forty-five seconds and each stage to one ACP process/session/prepared launch. Admit
+two HTTP model requests in stage one and one in stage two; no titles, retries, extra tools or
+backend recreations. Stop before any following stage/case after a failure. Output observations
+remain bounded in memory; saved diagnostics contain only fixed facts/counts and owned PID/stage
+receipts. Never parse/edit native transcript files. Public-only Claude advice was saved, fully
+read and assessed under `.cache/claude-consult/work/public-tool-resume-review-jnlw7k4c`.
+
+Mutated/missing/duplicate/reordered tool pairs and doubled hook/effect receipts are independent
+negative controls. Another guard rejects a newly emitted tool during the resumed text turn.
+The first local fixture controls exposed an overly narrow one-message admission and an unwanted
+model-discovery process in the test adapter. The observer now accepts the client's bounded trailing
+system message, and models come from the already prepared catalog. Product behavior is unchanged.
+Both corrected native-Claude/fake-ACP cases pass in 10.55s (12.473s race package): four clean stages,
+two original client effects, preserved pairs, zero resumed tool handoffs and unchanged sources.
+
+The live opt-in is `TestKiroLiveCompletedToolNativeResume`: at most two main prompts per tool case,
+four total, with two original client effects and no automatic retry. This measures completed Write/
+Bash history and effect counts only. Interrupted pending hooks, new post-resume permission/hook
+decisions, crash-before-acknowledgement windows, interactive tool resume and concurrent writers
+remain separate acceptance work. No general exactly-once recovery guarantee is inferred.
+
+One actual Kiro 2.21.2 / Claude 2.1.263 run passes in 56.99s (58.324s race package): Write 29.65s,
+Bash 27.34s. All four native launches finish, with six HTTP model requests, four main ACP prompts,
+two original client tool effects, exact restored pairs and zero resumed handoffs. Both hook counts
+and each effect stay one. Every recorded old/new group and client/relay PID, listener/profile and
+private launch artifact is removed; source settings/global configuration are unchanged. No live
+retry occurs. Fixed evidence: `.cache/history-review/d90-live-completed-tool-resume.log`.
+
+The final local controls also reject a completed-answer marker moved before its tool result, and
+pass with both native fake-ACP cases in 10.830s (`d90-final-native-controls.log`). Opt-ins-off ACP/
+interop race regressions pass in 5.670s/22.879s. Whole-repository/fake-peer vet, formatting, whitespace
+and the current D87 artifact's 139 inventory byte checks pass. No product change or live retry.

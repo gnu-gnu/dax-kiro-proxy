@@ -42,6 +42,10 @@ func main() {
 	if len(os.Args) > 1 {
 		mode = os.Args[1]
 	}
+	if mode == "native-tool-history" {
+		nativeToolHistory()
+		return
+	}
 	if strings.HasPrefix(mode, "inventory-") {
 		inventoryFixture(mode)
 		return

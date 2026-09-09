@@ -6,6 +6,23 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D90 verifies completed Write/Bash history after native explicit-ID resume with the actual pinned
+  Kiro/Claude pair. Each case has one original client effect, two native launches, two ACP main
+  prompts and three HTTP model requests. Stage two preserves the exact original tool ID/name,
+  decoded arguments, successful status and result text, ordered before its new question, with
+  no new tool handoff. Native pre/post hook counts and the file effect stay exactly one. Four
+  stages complete with distinct old/new groups/profiles/endpoints/tokens, joined cleanup and
+  unchanged sources. The single live run passes in 56.99s (58.324s race package): Write 29.65s,
+  Bash 27.34s, no live retry. Corrected fake-ACP controls pass in 10.55s (12.473s package).
+  Initial local failures exposed test-only directory permissions, overly narrow initial-message
+  admission and a model-discovery path; the product needed no change. Public-only local Claude
+  advice is saved/read/assessed. Independent controls reject modified/missing/duplicate/reordered
+  pairs, a newly emitted resumed tool and doubled effect/hook receipts. Interrupted pending work,
+  post-resume policy decisions, arbitrary/default tools, interactive tool resume, authentication
+  expiry and all remaining alpha/release gates stay open. No dependency or artifact change.
+  Final fake/native and observer controls pass in 10.830s after strengthening completed-answer
+  ordering. Opt-ins-off race regressions pass: ACP 5.670s, interop 22.879s. Whole-repository/fake-peer
+  vet, formatting, whitespace and the unchanged D87 artifact's 139 inventory byte checks pass.
 - D89 verifies the native /resume picker after a new compiled run --client-history. A public native
   flag names the owned first conversation; the second invocation types /resume, confirms that exact
   selected row, then waits for the restored answer before entering its question. Both stages share

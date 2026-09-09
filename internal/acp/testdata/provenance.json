@@ -16,8 +16,9 @@
     "https://kiro.dev/docs/cli/2x-reference/"
   ],
   "repository_sources": ["PROTOCOL_SPEC.md", "ACCEPTANCE_SPEC.md", "IMPLEMENTATION_DECISIONS.md"],
-  "fixtures": ["fake/main.go", "fake/relay.go", "fake/pool.go", "fake/inventory.go", "fake/native.go", "fake/recovery.go"],
+  "fixtures": ["fake/main.go", "fake/relay.go", "fake/pool.go", "fake/inventory.go", "fake/native.go", "fake/recovery.go", "fake/tool_history.go"],
   "constraints": [
+    "The native-tool-history peer relays one owned Write or Bash through the client, then a fresh peer requires prior tool/history markers in its only prompt and returns text without another tool call; it never reads native transcripts or effect files",
     "No imports from proxy implementation packages",
     "fixture/* methods are synthetic test controls, not Kiro capabilities",
     "Prepared-launch markers and alias manifests are invented fixture controls, not copied Kiro configuration or effective restriction evidence",
