@@ -122,11 +122,12 @@ reaches the wait, expanded tools, one plugin call and joined cleanup, but fails 
 marker condition; the full live plugin gate remains open. Other lifecycle paths remain alpha
 checks. No general Messages/API compatibility is implied.
 
-Actual Claude with fake ACP also verifies process loss before Read delivery, a client-visible error,
-joined old cleanup and a fresh text request in a new process (D75). Its actual-Kiro invocation stops
-before model work because both CLI entry points reported no logged-in account at that time. A later
-read-only check (D80) now verifies the logged-in identity with the product preflight, so live testing
-can resume. Development execution-policy admission remains enabled.
+Actual Kiro 2.21.2 and Claude 2.1.263 now also verify process loss before Read delivery, a client-visible
+error, joined old cleanup and a fresh text request in a new process (D81). Two requests produce one
+intercepted tool and one successful new completion, with no client Read, changed source or retained
+owned process/artifact. D75's absent-login condition is resolved by D80's read-only product preflight.
+This is a fresh-request recovery check; interactive same-process continuation, late tool results and
+sibling-session failure remain separate work. Development execution-policy admission remains enabled.
 
 The temporary client profile now retains standard-HOME user/local MCP declarations and decisions
 at their native scopes. Installed-client controls verify all three MCP scopes, disabled/re-enabled

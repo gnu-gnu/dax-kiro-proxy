@@ -869,3 +869,15 @@ preflight passes with its bounded-postamble handling. No account value is logged
 command or state mutation is performed. The absent-login condition is resolved, so the bounded
 sequence above may proceed after its applicable local controls. This read-only check alone does
 not close the live process-loss gate.
+
+D81 reruns the independent guards and installed-Claude/fake-ACP rehearsal successfully (7.609s
+race package), then executes the actual sequence once with restored login. It passes in 21.51s
+(22.801s race package): the first client exits 1 with a JSON error after one intercepted Read and
+observed ACP death, while its caller context is still active. Joined old cleanup precedes the
+second request, which exits 0 with nonempty text and one delivered completion. There are exactly
+two main requests, two prepared/cleaned backend processes and no hook invocation or source change.
+Both client/ACP groups, relays, tracked policy artifacts and the temporary profile are gone.
+The bounded raw billing-header difference is retained unchanged, as in the rehearsal. Fixed
+diagnostics are saved to `.cache/memory-review/live-process-loss-after-login.log`; no model text
+or raw stderr is retained. No failed trial is automatically retried. This completes only the
+scenario specified here, with the same-client/late-result/sibling-failure and other limits above.

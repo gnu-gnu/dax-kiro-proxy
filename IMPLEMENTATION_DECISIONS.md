@@ -3676,3 +3676,40 @@ Kiro entry points (5.140s package). The correctly named product login-preflight 
 selection ran no tests and is not counted as validation. No account values or credentials are retained.
 This supersedes D75's absent-login observation: no further login action is currently required, and
 bounded live testing can resume. It does not establish the still-unrun live acceptance cases.
+
+## D81: verify actual process loss followed by an independently supplied request
+
+After D80 verifies the restored login, rerun the independent process-loss guards and the installed
+Claude/fake-ACP rehearsal. They pass together under race detection in 7.609s, including the actual
+client error, exact intercepted Read, absent hook activity, joined old cleanup and successful new
+request. The existing bounded LIVE_KIRO_TEST_PLAN.md sequence can therefore proceed with the
+already authorized actual Kiro pair; neither request or acceptance condition is changed.
+
+The actual Kiro 2.21.2/v2 / Claude 2.1.263 test passes in 21.51s (22.801s race package). Before any
+client tool delivery, the first owned ACP group is terminated. The actual turn reports internal
+cancellation while its caller remains active; the existing guard requires the independent process
+death/cleanup proof and distinguishes this from user cancellation or timeout. Claude receives a
+JSON error and exits 1. One exact Read is intercepted, its denial hook never runs and the source
+canary is neither read by the client nor disclosed. The old ACP/relay group, policy artifacts and
+pool entry are gone before the new request is admitted.
+
+The separately supplied second request preserves owner/model/effort/tools/metadata/user policy,
+returns nonempty text and one delivered end_turn, and exits 0. The short native billing-header
+variation is observed by the existing bounded predicate; requests are passed through unchanged.
+There are exactly two main requests, two prepared/cleaned backend processes, one intercepted tool
+and one successful fresh completion. Both client/ACP groups and relays are gone; all four tracked
+policy/relay artifacts and the profile are removed. Source settings/canary, empty HTTP/pool state
+and shutdown checks pass. No trial is repeated and no production, fixture or dependency code changes.
+
+This closes the measured process-loss-before-delivery/fresh-request alpha scenario. It does not
+establish interactive continuation in the same client, late tool results, sibling-session failure,
+foreground Ctrl+C, authentication expiry, model changes, or resume. Personal-root memory, complete
+live lifecycle, soak, clean-host release and rights/license requirements remain open. Only fixed
+categories/counts/booleans are retained from the live test; no model text, tool output, credentials,
+actual-user assets or earlier implementation is used as a fixture or implementation input.
+
+The unchanged D79 executable's doctor command also exits 0 with a separate owned state directory:
+login verified, policy verified, launch_available true and a non-stale catalog for the pinned pair.
+Its client_initialization remains unverified by design; doctor does not launch the client or prove
+all acceptance gates. This confirms current development admission without an interactive run or
+another model request. Documentation/whitespace checks pass; no binary rebuild is needed.

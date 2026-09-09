@@ -6,6 +6,16 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D81 completes the actual Kiro 2.21.2 / Claude 2.1.263 process-loss-before-Read-delivery and fresh-
+  request scenario after D80 restores verified login. Independent guards and the fake-ACP rehearsal
+  first pass in 7.609s; the actual test passes in 21.51s (22.801s race package). The first client
+  receives the real backend error, old cleanup joins, and a second independently supplied request
+  completes with unchanged owner/policy. Exactly two requests and two cleaned backend processes,
+  one intercepted Read, no client hook/effect, one new completion, unchanged sources and all observed
+  groups/artifacts gone. No retry or code/dependency/artifact change. Same-client continuation,
+  late results, sibling-session failure, remaining live alpha and release gates stay open.
+  The current D79 executable's fresh-state doctor exits 0 with login/policy verified and
+  launch_available true; client_initialization remains unverified because doctor does not launch it.
 - D80 adds bounded personal-memory observations without enabling a production adapter. Explicit
   alias exclusions pass twelve user/project/local controls, but do not implement general policy
   mapping. Five native read-only control sessions verify effective exclusions and exact context
