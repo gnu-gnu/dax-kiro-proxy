@@ -1034,3 +1034,92 @@ terminal settings are restored and source settings/global JSON/Read fixture are 
 release marker has no observed effect. Exactly one main and one completed title prompt run, with
 no guard failure, emergency cleanup or retry. Native Kiro MCP call/result counts are unobserved and
 reported as such. Fixed results are retained in `.cache/terminal-review/live-held-hook-exit.log`.
+
+## A new question in the same foreground client after streamed Ctrl+C
+
+Extend D82's text-only compiled-command test. Keep the ordinary proxy, owned native client/profile,
+empty tool/MCP lists, passive terminal supervisor and real Kiro preflight/ACP forwarding. The first
+counting prompt and readiness checks are unchanged. After one typed Ctrl+C, require the main ACP
+cancel, its group absent and the same recorded Claude/proxy PIDs, profile and gateway address still
+live within the existing eight-second interruption observation. Only then write an owned admission
+marker and type this second question, submitting Enter only after its complete text is visible:
+
+```text
+Stop the counting task. Reply with the concatenation of Follow and _49 without spaces, and no other text.
+```
+
+The observer distinguishes the second main prompt by its new independently chosen instruction
+fragment. One initial main and one follow-up main are admitted exclusively across replacement
+processes before forwarding. The follow-up requires the parent's admission marker. Allow at most
+two auxiliary title prompts total; a second title also requires that marker. A title process may
+legitimately serve two sequential prompts, so the scoped frame guard permits two only in this test,
+rejecting overlap, a third prompt or an uncorrelated old reply as a new completion. Other keyboard
+tests retain their one-prompt-per-process and one-main/one-title limits. Maximum actual inference
+admissions are two main and two title prompts; this is not a provider billing-call guarantee.
+
+Before typing the second question, retain the set of every already observed group. The second main
+must arrive in a different group from the interrupted main and from that entire set, preventing an
+existing auxiliary survivor from satisfying fresh-process proof. Require one observed client exec,
+unchanged live client/proxy/profile/address, one correlated follow-up completion, no follow-up
+cancellation and the generated marker visible in the current native screen. The complete generated
+marker is absent from both typed prompts. Then use the proven confirmed Ctrl+D exit and require all
+recorded PIDs/groups, listener and private artifacts gone, terminal restored and sources unchanged.
+
+Record only Boolean presence of the original user fragment, interrupted partial-response marker,
+new instruction and an unrelated marker that is never submitted. This small-history scenario
+requires old/new input preservation; partial-response retention is observed without synthesizing or
+rewriting client history or treating it as a general public-protocol guarantee. The unrelated marker
+must remain absent. Independent controls cover marker detection, pre-intent refusal, repeated/old-
+request refusal, bounded second title, overlapping requests, stale correlated IDs, changed client,
+reused main group, missing history/instruction, title-only completion and repeated follow-up.
+
+The initial actual-Claude/fake-ACP control passes in 6.242s under race detection with one initial
+main, one title and one follow-up. The old input, visible partial marker and new input are all present
+in the unchanged ACP projection. The generated follow-up answer is visible in the same client, with
+a fresh ACP process and successful keyboard cleanup. After adding the detector's absent-marker
+control and explicit exclusion of every previously observed group, repeat that local control before
+one actual-Kiro trial. Keep the existing terminal/frame/event/time budgets; do not automatically
+retry a failed live trial or replace keyboard actions with process signals or parent cancellation.
+
+The public-only local Claude consultation is saved/read/assessed after the user explicitly approves
+its prepared payload, resolving an initial automatic approval-review refusal. New-input causality,
+correlated visible completion and an absent-marker control are useful. A fresh group cannot be
+required to have received the old cancellation; legitimate auxiliary concurrency also does not
+prove cancellation failure. Recorded address/PIDs do not constitute a socket-inode or start-time
+census. Tool-result continuations, authentication expiry, model changes, reconnect/resume and
+unobserved historical/detached descendants remain separate acceptance work.
+
+D84's final fake control passes in 6.285s under race detection with the added absent-marker and
+previous-group exclusions. The actual pinned pair then runs once and passes in 22.94s (24.864s
+race package). Ctrl+C follows sixteen initial text updates; one cancel and one cancelled reply
+retire the old main group before the second question. One observed Claude exec, unchanged live
+client/proxy/profile/address and a previously unobserved follow-up ACP group are verified. The
+follow-up has one text update and one correlated end, no cancellation, preserved old/new input and
+the observed partial marker, an absent unrelated marker and the generated answer visible in Claude.
+Exactly two main prompts and one title prompt run. Confirmed keyboard exit returns 0, restores the
+terminal and removes all five recorded groups/nine PIDs, listener, runtime and profile with unchanged
+sources. No guard failure, emergency cleanup or live retry occurs. Fixed results are retained in
+`.cache/terminal-review/live-interrupted-followup.log`; no prompt/response body is logged.
+
+Before closing D84, review finds that the observer's historical end counter accepts any correlated
+non-cancelled reply, including a JSON-RPC error. That counter alone cannot prove successful prompt
+completion. An independent error/missing-stop/limit-stop regression fails, and the observer is
+corrected to count end only for end_turn, retain cancelled separately and count other results as
+non-success. Native frames are still forwarded unchanged; a non-success observation fails the test.
+This is a test-oracle correction, not an observed product failure or production behavior change.
+Rerun all six fake-ACP keyboard controls with this stronger observation before one new bounded actual
+follow-up trial under the continuing authorization. The earlier live lifecycle/display observations
+remain recorded, but the stronger trial must establish end_turn; do not infer it retrospectively.
+
+All six actual-Claude/fake-ACP keyboard controls pass with the corrected observer in 34.283s under
+race detection. The new actual revalidation passes in 22.88s (24.731s package), with zero non-success
+prompt results. After 24 initial text updates, the main cancellation/retirement precedes new input.
+The same client/proxy/profile/address remain, the follow-up group was previously unobserved, and one
+follow-up text update/end_turn reaches the visible client. Old/new instruction fragments and the
+partial marker are present; the unrelated marker is absent. Two main and two title prompts run;
+one title ends before keyboard exit and all six recorded groups/eleven PIDs, listener, runtime and
+profile are removed. Terminal restoration and source preservation pass, without emergency cleanup.
+Fixed facts are saved in `.cache/terminal-review/live-interrupted-followup-strict.log`. Across both
+live episodes there are four main and three title admissions. This is deliberate revalidation after
+a discovered observer defect, not an automatic retry of a failed provider call. Marker presence
+does not prove complete native-history byte equivalence; that broader claim is not made here.

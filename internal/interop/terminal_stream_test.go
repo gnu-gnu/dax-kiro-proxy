@@ -18,13 +18,18 @@ import (
 )
 
 const terminalStreamPrompt = `Begin with the concatenation of Ready and _47 without spaces. Then list integers 1 through 2000, one per line, without tools or any other text.`
+const terminalFollowupPrompt = `Stop the counting task. Reply with the concatenation of Follow and _49 without spaces, and no other text.`
 
 func terminalCancelEligible(trace terminalTrace) bool {
-	return trace.Prompts == 1 && trace.TitlePrompts <= 1 && trace.Texts >= 2 && trace.Ends == 0 && trace.Cancels == 0 && trace.Canceled == 0 && trace.Failures == 0 && !trace.Exited
+	return trace.Prompts == 1 && trace.TitlePrompts <= 1 && trace.Texts >= 2 && trace.Ends == 0 && trace.Cancels == 0 && trace.Canceled == 0 && trace.Failures == 0 && trace.PromptFailures == 0 && !trace.Exited
 }
 
 func terminalHookEligible(trace terminalTrace) bool {
-	return trace.Prompts == 1 && trace.TitlePrompts <= 1 && trace.HookHeld == 1 && trace.Hook > 1 && trace.HookReleased == 0 && trace.HookPost == 0 && trace.HookInterrupted == 0 && trace.Ends == 0 && trace.Cancels == 0 && trace.Canceled == 0 && trace.Failures == 0 && !trace.Exited
+	return trace.Prompts == 1 && trace.TitlePrompts <= 1 && trace.HookHeld == 1 && trace.Hook > 1 && trace.HookReleased == 0 && trace.HookPost == 0 && trace.HookInterrupted == 0 && trace.Ends == 0 && trace.Cancels == 0 && trace.Canceled == 0 && trace.Failures == 0 && trace.PromptFailures == 0 && !trace.Exited
+}
+
+func terminalFollowupComplete(r terminalTrace) bool {
+	return r.Clients == 1 && r.Prompts == 1 && r.Cancels > 0 && r.Ends == 0 && r.FollowPrompts == 1 && r.FollowACP > 1 && r.FollowACP != r.ACP && r.FollowTexts > 0 && r.FollowEnds == 1 && r.FollowCancels == 0 && r.FollowCanceled == 0 && r.FollowOldInput && r.FollowNewInput && !r.FollowNull && r.TitlePrompts <= 2 && r.Failures == 0 && r.PromptFailures == 0 && !r.Exited
 }
 
 func terminalExitConfirmation(screen string) bool {
@@ -33,33 +38,42 @@ func terminalExitConfirmation(screen string) bool {
 }
 
 type terminalReceipt struct {
-	Kind        string `json:"kind"`
-	PID         int    `json:"pid"`
-	Group       int    `json:"group"`
-	Child       int    `json:"child"`
-	Foreground  int    `json:"foreground"`
-	Profile     string `json:"profile"`
-	Endpoint    string `json:"endpoint"`
-	Code        int    `json:"code"`
-	Restored    bool   `json:"restored"`
-	MainHint    bool   `json:"main_hint"`
-	TitleHint   bool   `json:"title_hint"`
-	SummaryHint bool   `json:"summary_hint"`
-	TitleScope  bool   `json:"title_scope"`
+	NullMarker    bool   `json:"null_marker"`
+	FollowScope   bool   `json:"follow_scope"`
+	OldInput      bool   `json:"old_input"`
+	NewInput      bool   `json:"new_input"`
+	PartialMarker bool   `json:"partial_marker"`
+	Kind          string `json:"kind"`
+	PID           int    `json:"pid"`
+	Group         int    `json:"group"`
+	Child         int    `json:"child"`
+	Foreground    int    `json:"foreground"`
+	Profile       string `json:"profile"`
+	Endpoint      string `json:"endpoint"`
+	Code          int    `json:"code"`
+	Restored      bool   `json:"restored"`
+	MainHint      bool   `json:"main_hint"`
+	TitleHint     bool   `json:"title_hint"`
+	SummaryHint   bool   `json:"summary_hint"`
+	TitleScope    bool   `json:"title_scope"`
 }
 
 type terminalTrace struct {
-	Hook, HookHeld, HookReleased, HookInterrupted, HookPost int
-	RelayCalls, RelayResults                                int
-	Client, ACP, Agent, Proxy, Supervisor                   int
-	Foreground                                              int
-	Prompts, Texts, Cancels, Ends, Canceled, Failures       int
-	Exited, Restored                                        bool
-	ExitCode                                                int
-	Profile, Endpoint                                       string
-	Groups, PIDs                                            []int
-	Attempts, MainHints, TitleHints, SummaryHints           int
-	TitlePrompts, TitleEnds                                 int
+	PromptFailures                                                                            int
+	FollowNull                                                                                bool
+	Clients, FollowPrompts, FollowACP, FollowTexts, FollowEnds, FollowCancels, FollowCanceled int
+	FollowOldInput, FollowNewInput, FollowPartial                                             bool
+	Hook, HookHeld, HookReleased, HookInterrupted, HookPost                                   int
+	RelayCalls, RelayResults                                                                  int
+	Client, ACP, Agent, Proxy, Supervisor                                                     int
+	Foreground                                                                                int
+	Prompts, Texts, Cancels, Ends, Canceled, Failures                                         int
+	Exited, Restored                                                                          bool
+	ExitCode                                                                                  int
+	Profile, Endpoint                                                                         string
+	Groups, PIDs                                                                              []int
+	Attempts, MainHints, TitleHints, SummaryHints                                             int
+	TitlePrompts, TitleEnds                                                                   int
 }
 
 func readTerminalTrace(root string) (terminalTrace, error) {
@@ -105,6 +119,7 @@ func readTerminalTrace(root string) (terminalTrace, error) {
 			case "hook-post":
 				trace.HookPost++
 			case "client":
+				trace.Clients++
 				trace.Client, trace.Foreground, trace.Profile, trace.Endpoint = r.PID, r.Foreground, r.Profile, r.Endpoint
 			case "acp":
 			case "agent":
@@ -118,11 +133,18 @@ func readTerminalTrace(root string) (terminalTrace, error) {
 			case "prompt":
 				if r.TitleScope {
 					trace.TitlePrompts++
+				} else if r.FollowScope {
+					trace.FollowPrompts++
+					trace.FollowACP = r.Group
 				} else {
 					trace.Prompts++
 					trace.ACP = r.Group
 				}
 			case "prompt-attempt":
+				if !r.TitleScope && r.FollowScope {
+					trace.FollowOldInput, trace.FollowNewInput, trace.FollowPartial = r.OldInput, r.NewInput, r.PartialMarker
+					trace.FollowNull = r.NullMarker
+				}
 				trace.Attempts++
 				if r.MainHint {
 					trace.MainHints++
@@ -134,23 +156,33 @@ func readTerminalTrace(root string) (terminalTrace, error) {
 					trace.SummaryHints++
 				}
 			case "text":
-				if !r.TitleScope {
+				if !r.TitleScope && r.FollowScope {
+					trace.FollowTexts++
+				} else if !r.TitleScope {
 					trace.Texts++
 				}
 			case "cancel":
-				if !r.TitleScope {
+				if !r.TitleScope && r.FollowScope {
+					trace.FollowCancels++
+				} else if !r.TitleScope {
 					trace.Cancels++
 				}
 			case "end":
 				if r.TitleScope {
 					trace.TitleEnds++
+				} else if r.FollowScope {
+					trace.FollowEnds++
 				} else {
 					trace.Ends++
 				}
 			case "cancelled":
-				if !r.TitleScope {
+				if !r.TitleScope && r.FollowScope {
+					trace.FollowCanceled++
+				} else if !r.TitleScope {
 					trace.Canceled++
 				}
+			case "failed-result":
+				trace.PromptFailures++
 			case "guard-failed":
 				trace.Failures++
 			default:
@@ -205,9 +237,25 @@ func TestKiroLiveCompiledRunHeldHookKeyboardExit(t *testing.T) {
 	runCompiledTerminalStream(t, "held-hook-exit", kiro)
 }
 
+func TestCompiledRunInterruptedFollowupWithFakeACP(t *testing.T) {
+	runCompiledTerminalStream(t, "cancel-followup", "")
+}
+
+func TestKiroLiveCompiledRunInterruptedFollowup(t *testing.T) {
+	if os.Getenv("DAX_INTEROP_KIRO_CREDIT_OPT_IN") != "1" {
+		t.Skip("explicit live interrupted-followup opt-in required")
+	}
+	kiro := os.Getenv("DAX_INTEROP_KIRO_BINARY")
+	if kiro == "" || os.Getenv("DAX_INTEROP_CLAUDE_BINARY") == "" {
+		t.Fatal("both pinned executables are required")
+	}
+	runCompiledTerminalStream(t, "cancel-followup", kiro)
+}
+
 func runCompiledTerminalStream(t *testing.T, mode, kiro string) {
 	t.Helper()
 	heldHook := strings.HasPrefix(mode, "held-hook-")
+	followup := mode == "cancel-followup"
 	client := os.Getenv("DAX_INTEROP_CLAUDE_BINARY")
 	if client == "" {
 		t.Skip("set DAX_INTEROP_CLAUDE_BINARY for an owned compiled-run terminal")
@@ -273,7 +321,7 @@ func runCompiledTerminalStream(t *testing.T, mode, kiro string) {
 		}
 	}
 	args := []string{"run", "--client", filepath.Join(bin, "claude"), "--kiro", filepath.Join(bin, "kiro-cli"), "--settings", settings, "--runtime-dir", artifacts, "--state-dir", filepath.Join(root, "state")}
-	config, _ := json.Marshal(map[string]any{"Root": root, "Proxy": proxy, "Client": client, "Kiro": kiro, "AccountHome": os.Getenv("HOME"), "Project": project, "Args": args, "HeldHook": heldHook})
+	config, _ := json.Marshal(map[string]any{"Root": root, "Proxy": proxy, "Client": client, "Kiro": kiro, "AccountHome": os.Getenv("HOME"), "Project": project, "Args": args, "HeldHook": heldHook, "AllowFollowup": followup})
 	if os.WriteFile(filepath.Join(bin, "terminal.json"), config, 0600) != nil {
 		t.Fatal("cannot write terminal role configuration")
 	}
@@ -320,6 +368,10 @@ func runCompiledTerminalStream(t *testing.T, mode, kiro string) {
 	var keyAt time.Time
 	var heldAt time.Time
 	var heldObserved, hookAtConfirmation bool
+	var originalClient, originalProxy int
+	var originalProfile, originalEndpoint string
+	var followupObserved bool
+	groupsBeforeFollowup := make(map[int]bool)
 	var receiptErr error
 	var canceledAlive, foregroundObserved, exitKey bool
 	var screenHints uint32
@@ -341,7 +393,7 @@ func runCompiledTerminalStream(t *testing.T, mode, kiro string) {
 				}
 			}
 		}
-		if trace.Failures > 0 {
+		if trace.Failures > 0 || trace.PromptFailures > 0 {
 			stop()
 			return ""
 		}
@@ -349,6 +401,7 @@ func runCompiledTerminalStream(t *testing.T, mode, kiro string) {
 		case 0:
 			if trace.Client > 1 && trace.Foreground == trace.Client && statusProjectVisible(lower, project) && strings.Contains(screen, "❯") && !strings.Contains(lower, "do you want") && !strings.Contains(lower, "enter to continue") {
 				foregroundObserved = true
+				originalClient, originalProxy, originalProfile, originalEndpoint = trace.Client, trace.Proxy, trace.Profile, trace.Endpoint
 				stage = 1
 				return prompt
 			}
@@ -388,7 +441,7 @@ func runCompiledTerminalStream(t *testing.T, mode, kiro string) {
 				beforeKey = trace.Texts
 				keyAt = time.Now()
 				stage = 3
-				if mode == "cancel" {
+				if mode == "cancel" || followup {
 					return "\x03"
 				}
 				return "x"
@@ -401,6 +454,23 @@ func runCompiledTerminalStream(t *testing.T, mode, kiro string) {
 				}
 			} else if trace.Cancels > 0 && trace.ACP > 1 && errors.Is(syscall.Kill(-trace.ACP, 0), syscall.ESRCH) && strings.Contains(screen, "❯") {
 				canceledAlive = trace.Client > 1 && trace.Proxy > 1 && syscall.Kill(trace.Client, 0) == nil && syscall.Kill(trace.Proxy, 0) == nil && time.Since(keyAt) < 8*time.Second
+				if followup {
+					if !canceledAlive || trace.Client != originalClient || trace.Proxy != originalProxy || trace.Profile != originalProfile || trace.Endpoint != originalEndpoint {
+						receiptErr = errors.New("original foreground owner absent after interruption")
+						stop()
+						return ""
+					}
+					if os.WriteFile(filepath.Join(root, "followup-allowed"), []byte("owned-new-question"), 0600) != nil {
+						receiptErr = errors.New("cannot admit owned new question")
+						stop()
+						return ""
+					}
+					for _, group := range trace.Groups {
+						groupsBeforeFollowup[group] = true
+					}
+					stage = 8
+					return terminalFollowupPrompt
+				}
 				stage = 5
 				exitKey = true
 				return "\x04"
@@ -417,6 +487,17 @@ func runCompiledTerminalStream(t *testing.T, mode, kiro string) {
 			}
 		case 7:
 			if trace.HookReleased == 1 && trace.HookPost == 1 && trace.RelayResults == 1 && trace.Ends == 1 && strings.Contains(screen, "HookControl_47") {
+				stage, exitKey = 5, true
+				return "\x04"
+			}
+		case 8:
+			if strings.Contains(strings.Join(strings.Fields(screen), " "), terminalFollowupPrompt) {
+				stage = 9
+				return "\r"
+			}
+		case 9:
+			if terminalFollowupComplete(trace) && !groupsBeforeFollowup[trace.FollowACP] && strings.Contains(screen, "Follow_49") && trace.Client == originalClient && trace.Proxy == originalProxy && trace.Profile == originalProfile && trace.Endpoint == originalEndpoint && syscall.Kill(originalClient, 0) == nil && syscall.Kill(originalProxy, 0) == nil && errors.Is(syscall.Kill(-trace.ACP, 0), syscall.ESRCH) {
+				followupObserved = true
 				stage, exitKey = 5, true
 				return "\x04"
 			}
@@ -458,18 +539,29 @@ func runCompiledTerminalStream(t *testing.T, mode, kiro string) {
 			}
 			time.Sleep(300 * time.Millisecond)
 			after, err := readTerminalTrace(root)
-			lateReleaseQuiet = lateReleaseQuiet && err == nil && after.HookReleased == 0 && after.HookPost == 0 && after.RelayResults == 0 && after.Prompts == trace.Prompts && after.TitlePrompts == trace.TitlePrompts && after.Ends == 0 && after.Failures == 0
+			lateReleaseQuiet = lateReleaseQuiet && err == nil && after.HookReleased == 0 && after.HookPost == 0 && after.RelayResults == 0 && after.Prompts == trace.Prompts && after.TitlePrompts == trace.TitlePrompts && after.Ends == 0 && after.Failures == 0 && after.PromptFailures == 0
 		}
 		t.Logf("held_observed=%v hook_held=%d hook_released=%d hook_interrupted=%d hook_post=%d hook_alive_at_exit_confirmation=%v relay_calls=%d relay_results=%d late_release_quiet=%v exit_ms=%d", heldObserved, trace.HookHeld, trace.HookReleased, trace.HookInterrupted, trace.HookPost, hookAtConfirmation, trace.RelayCalls, trace.RelayResults, lateReleaseQuiet, exitLatency.Milliseconds())
 	}
+	t.Logf("non_success_prompt_results=%d", trace.PromptFailures)
 	t.Logf("fixed_screen_hint_bits=%d observed_groups=%d observed_pids=%d", screenHints, len(trace.Groups), len(trace.PIDs))
+	if followup {
+		t.Logf("absent_marker_detected=%v followup_group_previously_observed=%v", trace.FollowNull, groupsBeforeFollowup[trace.FollowACP])
+		t.Logf("followup_observed=%v clients=%d follow_prompts=%d follow_texts=%d follow_ends=%d follow_cancels=%d follow_cancelled_replies=%d distinct_acp=%v old_input_preserved=%v new_input_preserved=%v partial_marker_present=%v same_client=%v same_proxy=%v same_profile=%v same_listener=%v", followupObserved, trace.Clients, trace.FollowPrompts, trace.FollowTexts, trace.FollowEnds, trace.FollowCancels, trace.FollowCanceled, trace.FollowACP > 1 && trace.FollowACP != trace.ACP, trace.FollowOldInput, trace.FollowNewInput, trace.FollowPartial, trace.Client == originalClient, trace.Proxy == originalProxy, trace.Profile == originalProfile, trace.Endpoint == originalEndpoint)
+	}
 	t.Logf("prompt_attempts=%d main_hints=%d title_hints=%d summary_hints=%d title_prompts=%d title_ends=%d", trace.Attempts, trace.MainHints, trace.TitleHints, trace.SummaryHints, trace.TitlePrompts, trace.TitleEnds)
 	t.Logf("live_kiro=%v mode=%s stage=%d setup=%d prompts=%d texts=%d cancels=%d ends=%d cancelled_replies=%d guard_failures=%d key_after_texts=%d foreground_observed=%v client_alive_after_cancel=%v keyboard_exit=%v proxy_exited=%v proxy_exit=%d terminal_restored=%v groups_gone=%v recorded_pids_gone=%v listener_gone=%v runtime_removed=%v profile_removed=%v sources_unchanged=%v output_bytes=%d command_exit=%d", kiro != "", mode, stage, setup, trace.Prompts, trace.Texts, trace.Cancels, trace.Ends, trace.Canceled, trace.Failures, beforeKey, foregroundObserved, canceledAlive, exitKey, trace.Exited, trace.ExitCode, trace.Restored, groupsGone, pidsGone, listenerGone, artifactErr == nil && len(entries) == 0, os.IsNotExist(profileErr), sources, len(result.Stdout), result.ExitCode)
-	valid := runErr == nil && result.ExitCode == 0 && receiptErr == nil && err == nil && foregroundObserved && exitKey && trace.Exited && trace.ExitCode == 0 && trace.Restored && groupsGone && pidsGone && listenerGone && artifactErr == nil && len(entries) == 0 && os.IsNotExist(profileErr) && sources && trace.Prompts == 1 && trace.TitlePrompts <= 1 && trace.Failures == 0
+	titleLimit := 1
+	if followup {
+		titleLimit = 2
+	}
+	valid := runErr == nil && result.ExitCode == 0 && receiptErr == nil && err == nil && foregroundObserved && exitKey && trace.Exited && trace.ExitCode == 0 && trace.Restored && groupsGone && pidsGone && listenerGone && artifactErr == nil && len(entries) == 0 && os.IsNotExist(profileErr) && sources && trace.Prompts == 1 && trace.TitlePrompts <= titleLimit && trace.Failures == 0 && trace.PromptFailures == 0
 	if mode == "held-hook-exit" {
 		valid = valid && heldObserved && trace.HookReleased == 0 && trace.HookPost == 0 && trace.RelayResults == 0 && trace.Ends == 0 && !strings.Contains(string(result.Stdout), "OwnedHookRead_47") && exitLatency < 8*time.Second && lateReleaseQuiet
 	} else if mode == "held-hook-release" {
 		valid = valid && heldObserved && trace.HookReleased == 1 && trace.HookPost == 1 && trace.RelayResults == 1 && trace.Ends == 1 && trace.Cancels == 0
+	} else if followup {
+		valid = valid && canceledAlive && followupObserved && trace.FollowPrompts == 1 && trace.FollowEnds == 1 && trace.FollowCancels == 0 && trace.FollowCanceled == 0 && trace.Ends == 0
 	} else if mode == "cancel" {
 		valid = valid && canceledAlive && trace.Cancels >= 1 && trace.Ends == 0
 	} else {

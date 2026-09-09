@@ -10,6 +10,7 @@ import (
 var errFrame = errors.New("independent terminal frame limit or shape")
 
 type frameGuard struct {
+	maxPrompts             int
 	mu                     sync.Mutex
 	frames, total, prompts int
 	id                     json.RawMessage
@@ -37,17 +38,19 @@ func (g *frameGuard) inspect(from string, raw []byte) (string, error) {
 	}
 	if from == "client" && method == "session/prompt" {
 		id := fields["id"]
-		if len(id) == 0 || bytes.Equal(id, []byte("null")) || g.prompts != 0 {
+		limit := max(g.maxPrompts, 1)
+		if len(id) == 0 || bytes.Equal(id, []byte("null")) || g.prompts >= limit || g.prompts > 0 && !g.done {
 			return "", errFrame
 		}
 		g.id = append([]byte(nil), id...)
 		g.prompts++
+		g.done = false
 		return "prompt", nil
 	}
 	if from == "client" && method == "session/cancel" {
 		return "cancel", nil
 	}
-	if from == "agent" && g.prompts == 1 && !g.done {
+	if from == "agent" && g.prompts > 0 && !g.done {
 		if method == "session/update" {
 			var params struct {
 				Update struct {
@@ -68,10 +71,16 @@ func (g *frameGuard) inspect(from string, raw []byte) (string, error) {
 		if method == "" && bytes.Equal(fields["id"], g.id) {
 			g.done = true
 			var result struct{ StopReason string }
-			if json.Unmarshal(fields["result"], &result) == nil && result.StopReason == "cancelled" {
+			if len(fields["error"]) != 0 || json.Unmarshal(fields["result"], &result) != nil {
+				return "failed-result", nil
+			}
+			if result.StopReason == "cancelled" {
 				return "cancelled", nil
 			}
-			return "end", nil
+			if result.StopReason == "end_turn" {
+				return "end", nil
+			}
+			return "failed-result", nil
 		}
 	}
 	return "", nil

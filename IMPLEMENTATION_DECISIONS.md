@@ -3841,3 +3841,70 @@ all pass again with actual Claude/fake ACP in 22.676s. Final opt-ins-off race su
 25.344s and the complete independent observer package 1.225s. Whole-repository/observer vet,
 formatting and whitespace checks pass. No binary rebuild or dependency inventory refresh is needed
 for these test/documentation-only changes.
+
+## D84: verify a new foreground question after streamed keyboard interruption
+
+Extend the independent compiled-command observer to type one new text-only question after D82's
+proven Ctrl+C path. The interrupted main ACP group must disappear while the original recorded
+Claude/proxy PIDs, profile and gateway address remain live. Only then does the parent authorize a
+new question and type it; Enter requires its complete echo in the current native screen. The second
+main prompt must contain its new instruction and arrive in a group absent from every previously
+observed group, excluding reuse of the old main or an auxiliary survivor. Require one client exec,
+unchanged live ownership, correlated end_turn and a generated marker visible in the same UI before
+the existing confirmed keyboard exit, terminal restoration and private cleanup checks.
+
+Admission tests first fail on missing APIs, then verify one initial main, one explicitly admitted
+follow-up and at most two titles across replacement processes. The second title also requires the
+parent's intent marker. This scope permits two sequential prompts per observer process so a reused
+title session remains legal, while independent guards reject overlap, a third prompt and an old
+reply completing the next request. Other keyboard scenarios retain their prior one-prompt limits.
+The live maximum is four inference admissions per episode, not a provider billing-call guarantee.
+
+Only Boolean marker-presence facts are recorded from unchanged ACP frames: old/new instruction
+fragments, the interrupted partial marker and a never-submitted null marker. Independent controls
+check both presence and absence, pre-intent refusal, repeated old/follow-up requests, title-only
+completion, changed client, reused group, missing instruction and non-success results. Native
+partial-response retention is observed, never synthesized or assumed to be a public-protocol rule.
+These markers do not establish full native-history byte equivalence. No tool/MCP is exposed to the
+native client, and no prompt, response body, credential or unrestricted stderr is logged.
+
+The initial actual-Claude/fake-ACP control passes in 6.242s; the final absent-marker/group-exclusion
+control passes in 6.285s. The first actual Kiro 2.21.2 / Claude 2.1.263 observation passes in 22.94s
+(24.864s race package), with sixteen initial text updates, two main prompts and one title, a visible
+new response in the same client and joined cleanup. Review then finds that the historical observer
+end counter also accepts correlated JSON-RPC errors. Its count alone cannot establish successful
+prompt completion. A new error/missing-stop/limit-stop test fails, and only end_turn now increments
+end; cancelled remains separate and other correlated results increment a non-success counter that
+fails the scenario. Frames are still forwarded unchanged. This is an observer defect, not evidence
+of a product failure, and the earlier completion count is not retroactively treated as end_turn.
+
+After the correction, all six actual-Claude/fake-ACP keyboard controls pass in 34.283s under race
+detection, including the prior streaming and held-hook cases. A new bounded actual revalidation
+then passes in 22.88s (24.731s package). The original main streams 24 updates before one cancel and
+cancelled reply retire its group. The same live client/proxy/profile/address remain; the follow-up
+uses a previously unobserved ACP group, yields one text update and one end_turn, and appears in the
+current UI. Old/new instruction fragments and the partial marker are present, the null marker is
+absent, and no non-success result or follow-up cancellation occurs. Two main and two title prompts
+run within the declared bound; one title ends before exit. All six recorded groups/eleven PIDs,
+listener, runtime and profile are gone, with terminal restoration and unchanged sources. Neither
+episode needs emergency cleanup. The two episodes total four main and three title admissions;
+the second is deliberate revalidation after an observer correction, not an automatic failed-call
+retry. Detailed bounds and fixed log locations remain in LIVE_KIRO_TEST_PLAN.md.
+
+The prepared local-Claude consultation was initially rejected by automatic approval review because
+it included project-specific implementation/runtime facts without approval for that exact external
+payload. The user explicitly approved it; the same command then completed with one turn and a saved
+answer, which was fully read and assessed. New-input causality and the null detector are adopted.
+Requiring a fresh group to have received the previous cancellation, or treating legitimate auxiliary
+concurrency as cancellation failure, is rejected. Address/PID observations are not a socket-inode
+or process-start-time census. No alternate destination or rejection bypass, prior implementation,
+private client source, SDK or new dependency is used.
+
+These are test/documentation changes; production and the D79 frozen development artifact remain
+unchanged. Development run stays enabled. Pending-tool recovery, auth expiry, model changes,
+persisted restart/resume, complete client-environment preservation, unobserved descendants, soak,
+clean-host release and rights/license requirements remain open.
+
+Final opt-ins-off race suites pass interop 25.113s and the complete observer package 1.242s.
+Whole-repository/observer vet, formatting and whitespace checks pass. The frozen production inputs
+are unchanged, so no executable rebuild or inventory refresh is required.

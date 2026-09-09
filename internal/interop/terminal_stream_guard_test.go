@@ -107,3 +107,34 @@ func TestTerminalHookExitRequiresALiveUnreleasedCall(t *testing.T) {
 		})
 	}
 }
+
+func TestTerminalFollowupNeedsDistinctMainCompletionAndHistory(t *testing.T) {
+	complete := terminalTrace{Clients: 1, Prompts: 1, ACP: 101, Cancels: 1, FollowPrompts: 1, FollowACP: 202, FollowTexts: 1, FollowEnds: 1, FollowOldInput: true, FollowNewInput: true}
+	for _, tc := range []struct {
+		name   string
+		change func(*terminalTrace)
+		valid  bool
+	}{
+		{"completed", func(*terminalTrace) {}, true},
+		{"new-client", func(r *terminalTrace) { r.Clients = 2 }, false},
+		{"same-backend", func(r *terminalTrace) { r.FollowACP = r.ACP }, false},
+		{"not-cancelled", func(r *terminalTrace) { r.Cancels = 0 }, false},
+		{"first-ended", func(r *terminalTrace) { r.Ends = 1 }, false},
+		{"title-only", func(r *terminalTrace) { r.FollowEnds = 0; r.TitleEnds = 2 }, false},
+		{"no-old-input", func(r *terminalTrace) { r.FollowOldInput = false }, false},
+		{"no-new-input", func(r *terminalTrace) { r.FollowNewInput = false }, false},
+		{"second-cancelled", func(r *terminalTrace) { r.FollowCancels = 1 }, false},
+		{"automatic-retry", func(r *terminalTrace) { r.FollowPrompts = 2 }, false},
+		{"non-success-result", func(r *terminalTrace) { r.PromptFailures = 1 }, false},
+		{"detector-null", func(r *terminalTrace) { r.FollowNull = true }, false},
+		{"failed", func(r *terminalTrace) { r.Failures = 1 }, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			r := complete
+			tc.change(&r)
+			if terminalFollowupComplete(r) != tc.valid {
+				t.Fatal("unproven followup admitted")
+			}
+		})
+	}
+}

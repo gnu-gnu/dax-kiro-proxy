@@ -6,6 +6,26 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D84 verifies a new question after streamed Ctrl+C in the same foreground Claude 2.1.263 / Kiro
+  2.21.2 run. Admission/correlation/readiness tests first fail on missing APIs, then pass. An initial
+  actual observation passes, but review finds that its end counter also accepts correlated errors.
+  A failing negative test leads to an observer correction: only end_turn counts as successful end.
+  All six actual-Claude/fake-ACP keyboard controls then pass in 34.283s under race detection. The
+  stronger actual revalidation passes in 22.88s (24.731s package): after 24 initial text updates,
+  the old main group retires on cancel/cancelled reply before the new question. The same observed
+  Claude exec and live client/proxy/profile/address remain; a previously unobserved ACP group
+  delivers one text/end_turn and its answer appears in the current UI. Old/new instruction fragments
+  and the partial marker are present; an unrelated marker is absent. Two main and two title prompts
+  run within the declared budget; one title ends before exit. All six recorded groups/eleven PIDs,
+  listener, runtime and profile disappear, with restored terminal, unchanged sources and no guard
+  failure or non-success prompt result. Two live episodes total distinguish initial observation
+  from corrected revalidation; no failed provider call is automatically retried. The local
+  Claude consultation is saved/read/assessed after explicit payload approval resolves an initial
+  automatic approval refusal. No production/dependency/artifact change. Pending-tool recovery,
+  authentication expiry, model changes, persisted restart/resume, personal-root memory, unobserved
+  descendants and the remaining alpha/release gates stay open.
+  Final opt-ins-off race suites pass interop 25.113s and the complete observer package 1.242s.
+  Whole-repository/observer vet, formatting and whitespace checks pass.
 - D83 verifies compiled-command keyboard exit during an exact native Read hook wait with actual
   Kiro 2.21.2 / Claude 2.1.263. Hook input/readiness tests first fail on missing APIs, then pass.
   Both actual-Claude/fake-ACP controls pass in 10.251s under race detection: explicit hook release

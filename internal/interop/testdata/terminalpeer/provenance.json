@@ -12,5 +12,6 @@
   "native_frames": "Forward unchanged after bounded observation and separate main/title admission",
   "recorded_data": "Fixed lifecycle events, counts, Boolean classifications, owned runtime coordinates and one owned hook ID digest",
   "held_hook": "One exact owned Read, bounded native PreToolUse wait and correlated PostToolUse; only the actual client reads the requested file",
-  "fake_relay": "Read only the generated agent MCP command declaration; preserve its connection for the ACP process lifetime"
+  "fake_relay": "Read only the generated agent MCP command declaration; preserve its connection for the ACP process lifetime",
+  "followup": "Parent-intent-gated second main and at most two titles; exact frames and fixed marker-presence facts only"
 }

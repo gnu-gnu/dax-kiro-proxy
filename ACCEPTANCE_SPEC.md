@@ -272,6 +272,13 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
   hook/client/ACP groups and private artifacts, restored terminal and unchanged sources. Hook expiry,
   direct signals and emergency cleanup cannot count as keyboard success. A late release marker
   must not produce an observed result or new prompt during the bounded post-exit check.
+- For same-client recovery after streamed keyboard interruption, admit a new distinct question
+  only after the old main group is gone and the original client/proxy remain live (D84). Require
+  unchanged recorded owner/profile/address, a follow-up ACP group absent from the prior observed
+  group set, observed old/new instruction fragments, correlated end_turn and a generated answer visible
+  in the current client screen. Titles and automatic repeats cannot satisfy the new main turn.
+  Observe partial-response retention without inventing history. Verify ordinary keyboard exit and
+  cleanup afterward; this does not establish tool-result recovery or persisted restart/resume.
 - Public startup rejects invalid binaries/settings, failed login, unknown configured models and an
   unverified execution policy before launching a model-facing runtime. There is no CLI/config trust
   override. Diagnostic success reports launch availability separately. Startup cancellation joins

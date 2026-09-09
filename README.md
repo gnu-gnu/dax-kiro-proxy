@@ -145,6 +145,14 @@ private artifacts, restored terminal and unchanged sources. A fake-ACP release c
 that the same held Read can complete. No late effect is observed after the old release marker is
 created. Arbitrary hooks, following questions and unobserved descendants remain separate checks.
 
+D84 verifies a new text question after streamed Ctrl+C in the same actual Claude/Kiro run. Old
+main-group cleanup precedes the new input, which reaches a previously unobserved ACP group and
+completes visibly with end_turn while the original Claude/proxy/profile/address remain in use.
+The measured projection contains the old/new instruction fragments and the partial-response marker.
+Two main and two title prompts stay within the declared budget; subsequent keyboard exit restores
+the terminal and removes all recorded processes and private artifacts. This does not establish
+complete history equivalence, pending-tool recovery or persisted restart/resume.
+
 The temporary client profile now retains standard-HOME user/local MCP declarations and decisions
 at their native scopes. Installed-client controls verify all three MCP scopes, disabled/re-enabled
 servers, project refusal and local/project/user precedence, with unchanged source files and joined

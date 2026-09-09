@@ -25,6 +25,7 @@ import (
 )
 
 type config struct {
+	AllowFollowup                                   bool
 	HeldHook                                        bool
 	Root, Proxy, Client, Kiro, AccountHome, Project string
 	Args                                            []string
@@ -34,6 +35,7 @@ var cfg config
 var events sync.Mutex
 var eventBytes int
 var titleScope atomic.Bool
+var followScope atomic.Bool
 
 func record(kind string, values map[string]any) {
 	events.Lock()
@@ -43,6 +45,7 @@ func record(kind string, values map[string]any) {
 	}
 	values["kind"], values["pid"], values["group"] = kind, os.Getpid(), syscall.Getpgrp()
 	values["title_scope"] = titleScope.Load()
+	values["follow_scope"] = followScope.Load()
 	data, _ := json.Marshal(values)
 	eventBytes += len(data) + 1
 	if eventBytes > 64<<10 {
@@ -204,7 +207,7 @@ func forward(r io.Reader, w io.Writer, from string, g *frameGuard) error {
 			record("guard-failed", nil)
 			return err
 		}
-		if kind == "prompt" && admitPrompt(titleScope.Load()) != nil {
+		if kind == "prompt" && admitObservedPrompt(titleScope.Load(), followScope.Load()) != nil {
 			record("guard-failed", nil)
 			return errFrame
 		}
@@ -222,11 +225,16 @@ func notePrompt(raw []byte) {
 	if json.Unmarshal(raw, &packet) == nil && packet.Method == "session/prompt" {
 		lower := bytes.ToLower(raw)
 		titleScope.Store(bytes.Contains(lower, []byte("title")))
+		followScope.Store(bytes.Contains(raw, []byte("concatenation of Follow and _49")))
 		record("prompt-attempt", map[string]any{
-			"main_hint":    bytes.Contains(raw, []byte("concatenation of Ready and _47")),
-			"title_hint":   bytes.Contains(lower, []byte("title")),
-			"summary_hint": bytes.Contains(lower, []byte("summar")),
-			"prompt_bytes": len(raw),
+			"main_hint":      bytes.Contains(raw, []byte("concatenation of Ready and _47")),
+			"title_hint":     bytes.Contains(lower, []byte("title")),
+			"summary_hint":   bytes.Contains(lower, []byte("summar")),
+			"prompt_bytes":   len(raw),
+			"old_input":      bytes.Contains(raw, []byte("concatenation of Ready and _47")),
+			"partial_marker": bytes.Contains(raw, []byte("Ready_47")),
+			"new_input":      followScope.Load(),
+			"null_marker":    bytes.Contains(raw, []byte("UnsentControl_53")),
 		})
 	}
 }
@@ -237,9 +245,31 @@ func admitPrompt(title bool) error {
 	if title {
 		name = "prompt-admission-title"
 	}
+	return admitNamed(name)
+}
+
+func admitObservedPrompt(title, follow bool) error {
+	intent := func() bool {
+		data, err := os.ReadFile(filepath.Join(cfg.Root, "followup-allowed"))
+		return cfg.AllowFollowup && err == nil && string(data) == "owned-new-question"
+	}
+	if !title && follow {
+		if !intent() {
+			return errFrame
+		}
+		return admitNamed("prompt-admission-followup")
+	}
+	err := admitPrompt(title)
+	if title && errors.Is(err, os.ErrExist) && intent() {
+		return admitNamed("prompt-admission-second-title")
+	}
+	return err
+}
+
+func admitNamed(name string) error {
 	f, err := os.OpenFile(filepath.Join(cfg.Root, name), os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
 	if err != nil {
-		return errFrame
+		return err
 	}
 	_, err = fmt.Fprintln(f, os.Getpid())
 	if f.Close() != nil || err != nil {
@@ -264,6 +294,9 @@ func bridge(target string, env []string) int {
 	}
 	record("agent", map[string]any{"child": cmd.Process.Pid})
 	var g frameGuard
+	if cfg.AllowFollowup {
+		g.maxPrompts = 2
+	}
 	go func() {
 		if err := forward(os.Stdin, stdin, "client", &g); err != nil && !errors.Is(err, io.EOF) {
 			record("guard-failed", nil)
@@ -284,6 +317,9 @@ func bridge(target string, env []string) int {
 
 func fakeACP() {
 	var g frameGuard
+	if cfg.AllowFollowup {
+		g.maxPrompts = 2
+	}
 	var output sync.Mutex
 	send := func(value any) {
 		output.Lock()
@@ -315,7 +351,7 @@ func fakeACP() {
 			record("guard-failed", nil)
 			return
 		}
-		if kind == "prompt" && admitPrompt(titleScope.Load()) != nil {
+		if kind == "prompt" && admitObservedPrompt(titleScope.Load(), followScope.Load()) != nil {
 			record("guard-failed", nil)
 			return
 		}
@@ -343,6 +379,11 @@ func fakeACP() {
 				continue
 			}
 			cancel = make(chan struct{})
+			if followScope.Load() {
+				send(map[string]any{"jsonrpc": "2.0", "method": "session/update", "params": map[string]any{"sessionId": "owned-stream", "update": map[string]any{"sessionUpdate": "agent_message_chunk", "content": map[string]string{"type": "text", "text": "Follow_49"}}}})
+				reply(r.ID, map[string]string{"stopReason": "end_turn"})
+				continue
+			}
 			if cfg.HeldHook {
 				go func(id json.RawMessage) {
 					if err := fakeHeldTool(); err != nil {
