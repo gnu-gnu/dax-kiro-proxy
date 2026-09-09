@@ -1,0 +1,78 @@
+package main
+
+import (
+	"bytes"
+	"encoding/json"
+	"errors"
+	"sync"
+)
+
+var errFrame = errors.New("independent terminal frame limit or shape")
+
+type frameGuard struct {
+	mu                     sync.Mutex
+	frames, total, prompts int
+	id                     json.RawMessage
+	done                   bool
+}
+
+func (g *frameGuard) inspect(from string, raw []byte) (string, error) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	if from != "client" && from != "agent" {
+		return "", errFrame
+	}
+	g.frames++
+	g.total += len(raw)
+	if len(raw) > 256<<10 || g.frames > 1024 || g.total > 8<<20 {
+		return "", errFrame
+	}
+	var fields map[string]json.RawMessage
+	if json.Unmarshal(raw, &fields) != nil || fields == nil {
+		return "", errFrame
+	}
+	var method string
+	if p, ok := fields["method"]; ok && json.Unmarshal(p, &method) != nil {
+		return "", errFrame
+	}
+	if from == "client" && method == "session/prompt" {
+		id := fields["id"]
+		if len(id) == 0 || bytes.Equal(id, []byte("null")) || g.prompts != 0 {
+			return "", errFrame
+		}
+		g.id = append([]byte(nil), id...)
+		g.prompts++
+		return "prompt", nil
+	}
+	if from == "client" && method == "session/cancel" {
+		return "cancel", nil
+	}
+	if from == "agent" && g.prompts == 1 && !g.done {
+		if method == "session/update" {
+			var params struct {
+				Update struct {
+					SessionUpdate string
+					Content       struct {
+						Type string
+						Text string
+					}
+				}
+			}
+			if json.Unmarshal(fields["params"], &params) != nil {
+				return "", errFrame
+			}
+			if params.Update.SessionUpdate == "agent_message_chunk" && params.Update.Content.Type == "text" && params.Update.Content.Text != "" {
+				return "text", nil
+			}
+		}
+		if method == "" && bytes.Equal(fields["id"], g.id) {
+			g.done = true
+			var result struct{ StopReason string }
+			if json.Unmarshal(fields["result"], &result) == nil && result.StopReason == "cancelled" {
+				return "cancelled", nil
+			}
+			return "end", nil
+		}
+	}
+	return "", nil
+}

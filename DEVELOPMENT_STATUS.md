@@ -6,6 +6,21 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D82 verifies typed Ctrl+C during main-response streaming through the ordinary compiled foreground
+  command with actual Kiro 2.21.2 / Claude 2.1.263. Independent observer/readiness controls pass first,
+  followed by all three actual-Claude/fake-ACP cases: normal completion, ordinary-character input
+  and cancellation (23.041s race package). The actual trial passes once in 18.34s (19.651s package):
+  after 24 main text updates and a generated marker visible in the client, Ctrl+C produces one
+  forwarded ACP cancel and one cancelled reply, with no main end. The main group disappears while
+  Claude/proxy remain alive; confirmed Ctrl+D exit restores terminal state and removes all four
+  recorded groups, seven recorded PIDs, listener, runtime and profile. Source settings remain intact.
+  Exactly one main and one separate title prompt run; no guard failure or emergency cleanup occurs.
+  Initial fake harness failures exposed an incorrect one-total-prompt assumption; correcting title
+  attribution changes only the independent fixture. Local public-only Claude advice is saved/read/
+  assessed. No production/dependency/artifact change or live retry. Held-hook keyboard exit, a new
+  question after interruption, unobserved descendants, other live alpha and release gates remain open.
+  Applicable opt-ins-off race suites pass interop 23.720s, launcher 28.446s, childproc 6.106s,
+  ACP 5.031s and command 3.790s. Whole-repository/observer vet, formatting and whitespace pass.
 - D81 completes the actual Kiro 2.21.2 / Claude 2.1.263 process-loss-before-Read-delivery and fresh-
   request scenario after D80 restores verified login. Independent guards and the fake-ACP rehearsal
   first pass in 7.609s; the actual test passes in 21.51s (22.801s race package). The first client

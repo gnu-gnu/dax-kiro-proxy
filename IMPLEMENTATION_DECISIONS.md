@@ -3713,3 +3713,71 @@ login verified, policy verified, launch_available true and a non-stale catalog f
 Its client_initialization remains unverified by design; doctor does not launch the client or prove
 all acceptance gates. This confirms current development admission without an interactive run or
 another model request. Documentation/whitespace checks pass; no binary rebuild is needed.
+
+## D82: observe typed streaming cancellation and keyboard exit in the compiled command
+
+Add a separate test-only CLI/ACP observer and drive the ordinary compiled `run` from an owned
+terminal with the unmodified pinned client. Independently authored protocol and state guards first
+fail on the absent observer API, then verify active correlated prompts, exact frame forwarding,
+bounded receipts and admission consumed across replacement processes. The observer records only
+fixed events, counts, Boolean classifications and owned lifecycle coordinates. It never executes
+client tools or logs ACP bodies, captured terminal text, credentials or native stderr.
+
+The supervisor captures its terminal settings and foreground group, launches the compiled command
+with inherited descriptors and checks restoration after the command exits. It does not restore
+state itself. The client exec wrapper records its actual foreground ownership and private profile;
+only the owned empty project is pretrusted. Native tools/MCP are empty, the test supplies a short
+text-only system instruction and disables thinking, experimental betas and transcript history.
+The live Kiro wrapper forwards ordinary version/account/catalog commands and ACP bytes unchanged,
+preserving restricted KIRO_HOME, agent argv and launch directory. Only the native Kiro child's HOME
+uses the existing account for authentication. No production setting or actual-user asset is changed.
+
+The first fake attempts mistakenly allow one ACP prompt for the entire client. Observation shows
+the legitimate separate title request, required by ACCEPTANCE_SPEC.md and FLOWS_AND_STATE.md. The
+fixture now permits one main and one title prompt, with separate exclusive admission files checked
+before forwarding, and attributes events by that process's known purpose. Its coarse title-word
+observation is scoped to these two test instructions; it is not a production classifier. A title
+completion cannot satisfy main readiness or main cancellation, and every observed group is retained.
+These were test-harness failures; production request-family behavior is unchanged.
+
+Public [keyboard documentation](https://code.claude.com/docs/en/interactive-mode) and observed native
+screens distinguish a typed Ctrl+C from kernel SIGINT and Ctrl+D exit. Require an active main
+prompt, at least two text updates, no main completion/cancel and a generated marker visible in the
+client before typing one Ctrl+C. The marker's complete form is absent from the prompt, so input
+echo cannot establish generation. Then require a forwarded main ACP cancellation and its group
+gone while client/proxy remain alive within eight seconds. This checks the product's retirement
+contract; it does not measure provider-side execution or billing cancellation.
+
+The test exits through Ctrl+D and sends a second Ctrl+D only after the client explicitly requests
+the same key again to exit. Require command exit 0, passive terminal restoration, all recorded
+PIDs/groups absent, listener closed, runtime/profile removed and original owned settings unchanged.
+Known groups remain available to failure cleanup even after a later receipt-read error. Emergency
+group termination and its three-second bounded join always fail the test and cannot satisfy a
+passing result. This is a census of observed owned groups/PIDs, not every historical or detached
+descendant. The separate held-hook keyboard-exit and following-question cases remain open.
+
+All three actual-Claude/fake-ACP controls pass together under race detection in 23.041s: natural
+completion and ordinary-character input each deliver forty main text updates and one end without
+cancellation; typed Ctrl+C after two updates yields one cancel and no main end. Every case reaches
+confirmed keyboard exit, restored terminal state, removed observed processes/artifacts and unchanged
+sources. The independent fixture/readiness guards pass again in 1.298s/1.897s before actual inference.
+
+The actual Kiro 2.21.2 / Claude 2.1.263 trial runs once and passes in 18.34s (19.651s race package).
+Ctrl+C follows 24 main text updates and visible generated text. One cancel and one cancelled reply
+occur, with no main end. The main ACP group disappears while client/proxy remain alive, followed
+by confirmed keyboard exit and terminal restoration. All four recorded groups and seven recorded
+PIDs, listener, runtime and profile are gone; source settings/global JSON are unchanged. There is
+exactly one main prompt and one completed title prompt, with no guard failure, emergency cleanup
+or live retry. The detailed bounds and fixed diagnostic log location are in LIVE_KIRO_TEST_PLAN.md.
+
+The public-only local Claude consultation public-terminal-cancellation-review-v49xatpe is saved,
+fully read and assessed. Typed-byte controls and passive restoration advice are useful. Requiring
+all Kiro processes to remain alive after cancellation conflicts with this project's retirement
+contract and is rejected. Raw capture dumps and unconditional stale-PID kills are also rejected.
+No libproc API, client SDK, dependency, prior implementation or private client source is adopted.
+These are test/documentation changes; the D79 development artifact and its frozen inputs remain
+unchanged. Development run remains enabled. Other live lifecycle, personal-root memory, soak,
+clean-host release and rights/license gates remain open.
+
+Applicable opt-ins-off race regressions pass interop 23.720s, launcher 28.446s, childproc 6.106s,
+ACP 5.031s and command 3.790s. Whole-repository/observer vet, formatting and whitespace checks pass.

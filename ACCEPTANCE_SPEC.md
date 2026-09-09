@@ -258,6 +258,13 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
   cancellation, then verify the launcher joins its client, hook, backend, relay, pool and private
   artifacts without another model request (D74). A print-wrapper runtime observation does not
   establish foreground terminal Ctrl+C or disconnect during an active HTTP response.
+- For the compiled foreground command, type Ctrl+C only after an active main ACP response and
+  generated text visible in the actual client are both observed. Require a forwarded ACP cancel,
+  retirement of its owned group and a live client/proxy before keyboard exit. Normal completion
+  and ordinary-character fake-ACP controls must not cancel. Observe keyboard exit confirmation,
+  terminal restoration, recorded process/group disappearance, closed listener, removed private
+  artifacts and unchanged sources (D82). Separate title work cannot satisfy main-response readiness.
+  This does not establish a following question, exit during a held hook or unobserved descendants.
 - Public startup rejects invalid binaries/settings, failed login, unknown configured models and an
   unverified execution policy before launching a model-facing runtime. There is no CLI/config trust
   override. Diagnostic success reports launch availability separately. Startup cancellation joins

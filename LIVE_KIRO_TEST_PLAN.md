@@ -881,3 +881,92 @@ The bounded raw billing-header difference is retained unchanged, as in the rehea
 diagnostics are saved to `.cache/memory-review/live-process-loss-after-login.log`; no model text
 or raw stderr is retained. No failed trial is automatically retried. This completes only the
 scenario specified here, with the same-client/late-result/sibling-failure and other limits above.
+
+## Typed cancellation of a streamed response through the compiled run command
+
+The continuing authorization covers a finite actual-Kiro trial after independent protocol guards
+and all three actual-Claude/fake-ACP controls pass. Public
+[keyboard documentation](https://code.claude.com/docs/en/interactive-mode) distinguishes Ctrl+C
+cancellation from Ctrl+D exit. Do not substitute a direct process signal or parent context cancel
+for either typed action. A quiet UI, an ended HTTP response, or leader death alone is insufficient.
+
+The new test compiles the ordinary command and a separate independent observer into an owned
+temporary directory. The system terminal allocator starts an observer supervisor in its own session.
+The supervisor captures terminal settings/foreground group, launches the compiled `run` with inherited
+terminal descriptors, waits for it, and checks restoration itself without performing restoration.
+The product then owns its ordinary foreground transfer to Claude. All HOME/project/settings/state/
+runtime directories are disposable fixtures. An exec wrapper records Claude's PID/PGID, foreground
+group, private profile and loopback address, then executes the unmodified client. Version queries
+forward unchanged. No model credential or unbounded terminal output is logged.
+
+The test scopes Claude to an empty native tool list and strict empty MCP list, a short independent
+text-only system instruction, disabled thinking/experimental betas and disabled transcript history.
+It marks only the owned private profile's empty project trusted, while preserving original source
+settings/global JSON. This is controlled actual-client keyboard coverage, not arbitrary user-asset
+or native-tool coverage. The only submitted user instruction is:
+
+```text
+Begin with the concatenation of Ready and _47 without spaces. Then list integers 1 through 2000, one per line, without tools or any other text.
+```
+
+An ACP observer forwards complete newline-delimited frames unchanged and records fixed prompt,
+text-update, cancellation and correlated-result facts. Native Kiro is an unmodified child in the
+observer's ACP group; only its HOME is redirected to the existing account HOME for authentication.
+The product's owned KIRO_HOME, restricted agent, argv and launch directory remain in effect. Its
+ordinary real version/account/catalog preflight runs before inference. No identity is synthesized
+in the live path. The fake path has independently authored version/account/catalog and ACP replies.
+
+The public client also requests a session title; the specification deliberately gives it a separate
+Kiro session. Allow at most one main prompt and one title prompt across all observer processes,
+using exclusive owned admission markers before forwarding. The fixture distinguishes its two known
+purposes using the title word; that coarse observation is not a replacement production classifier.
+The input contains no title word. Record purpose hints, retain separate per-process event attribution,
+and enforce a maximum of two prompts even if the proxy replaces a process. Do not equate this with
+a two-call provider billing guarantee. Title work cannot satisfy main-stream readiness or cancellation.
+
+Before typing a single Ctrl+C byte, require one active main prompt, at least two main text updates,
+no end/cancel/guard failure and the generated marker visible in the client UI. The complete marker
+is absent from the typed instruction, preventing prompt echo from satisfying readiness. Then require
+a forwarded main session/cancel and the main ACP group gone while Claude and the compiled proxy
+remain alive, within eight seconds. This matches the product's retirement semantics; Kiro need not
+remain alive after cancellation. It does not prove remote provider execution or billing has stopped.
+
+Exit with Ctrl+D, sending a second Ctrl+D only after the current client screen explicitly asks for
+that same key again to exit. Require the compiled command to exit 0, the supervisor's terminal
+restoration check, every recorded owned PID/group gone, closed loopback listener, removed runtime/
+profile and unchanged sources. Record all observed groups, including the separate title process.
+The passive observer never repairs terminal state on the success path. Failure-only emergency
+cleanup does not count as passing. Unobserved historical/detached descendants remain outside this
+particular observation; no complete process-tree census is claimed.
+
+The no-byte and ordinary-character controls use only fake ACP. Both must reach a normal main
+completion without a cancellation; the ordinary character must not stop text delivery. They then
+clear the unsubmitted character and take the same keyboard exit path. The fake cancellation case
+must stop before main completion, retire the main ACP group and leave the client usable until exit.
+Protocol tests separately check correlated responses, exact byte forwarding, process-replacement
+admission refusal and frame budgets; readiness tests reject title-only/finished/already-cancelled
+or failed observations, and Ctrl+C confirmation text cannot authorize another Ctrl+D.
+
+Bounds: two minutes for the test including builds, seventy seconds for the terminal invocation,
+ninety seconds for an observer fail-safe (never a success condition), 256 KiB terminal capture kept
+only in memory, 256 KiB per ACP frame, 1,024 frames/8 MiB per observer, 64 KiB per event file,
+32 event files and 512 KiB aggregate receipts. Each input write has the existing 200ms deadline.
+A guard failure aborts the test; a failed actual trial is not automatically retried. Select only
+TestKiroLiveCompiledRunKeyboardCancellation with both pinned executable variables and explicit
+DAX_INTEROP_KIRO_CREDIT_OPT_IN=1 after the fake controls pass.
+
+This does not establish keyboard exit during a held tool hook, a new question after interruption,
+all descendant lifetimes, terminal reconnect, auth expiry or sibling-session cancellation. Those
+remain distinct acceptance work. Initial fake harness attempts incorrectly limited the whole client
+to one ACP prompt; observations identified legitimate separate title work, so the fixture was corrected
+without changing production behavior. The first complete three-control race run passes in 23.041s.
+
+D82 executes the actual pinned pair once and passes in 18.34s (19.651s race package). At the typed
+Ctrl+C, the main response has delivered 24 text updates and its generated marker is visible in
+Claude. One main session/cancel is forwarded and one correlated cancelled reply returns; no main
+completion is observed. The main ACP group is gone while Claude and the proxy remain alive within
+the required interval. Confirmed Ctrl+D exit returns 0, with terminal restoration and all four
+recorded groups/seven recorded PIDs, listener, runtime and profile gone. Source settings/global JSON
+are unchanged. One separate title prompt completes; exactly two prompt admissions occur, with no
+guard failure or emergency cleanup. Fixed facts are saved to `.cache/terminal-review/live-keyboard.log`.
+No failed live trial is retried. This establishes only the controlled streaming/keyboard scope above.

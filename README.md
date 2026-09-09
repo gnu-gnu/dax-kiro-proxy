@@ -99,8 +99,9 @@ the Write content/permission screen is checked before input. Bare refusal now ve
 the existing deadline and safe recreation for a following question, using actual Claude with fake
 ACP. The shared launcher configuration also passes actual Bash approval and hook refusal. Actual
 Kiro/client runtime cancellation after a delivered Read handoff and held client hook joins all
-observed processes/artifacts (D74). Foreground Ctrl+C, streamed disconnect, process-loss, model-switch,
-authentication and resume checks remain alpha work.
+observed processes/artifacts (D74). D81 below verifies process-loss recovery, and D82 verifies typed
+Ctrl+C during a streamed response. Model-switch, authentication, resume and broader cancellation
+paths remain alpha work.
 
 On Kiro 2.21.2, seven initial-session file-resource controls pass: active inherited files disappear
 when default-resource inheritance is disabled, including with a separate session workspace. An
@@ -128,6 +129,14 @@ intercepted tool and one successful new completion, with no client Read, changed
 owned process/artifact. D75's absent-login condition is resolved by D80's read-only product preflight.
 This is a fresh-request recovery check; interactive same-process continuation, late tool results and
 sibling-session failure remain separate work. Development execution-policy admission remains enabled.
+
+The compiled foreground `run` also passes a controlled actual Kiro/Claude keyboard check (D82).
+Ctrl+C during visible main-response streaming produces an ACP cancellation and retires that group
+while Claude/proxy remain alive. Subsequent confirmed Ctrl+D exit restores terminal settings and
+removes all recorded processes/groups, listener and private artifacts with unchanged source settings.
+Natural completion and ordinary-character controls pass with actual Claude and fake ACP. This
+text-only fixture admits one main prompt and at most one separate title prompt; it does not establish
+a following question, keyboard exit during a held tool hook or every unobserved descendant.
 
 The temporary client profile now retains standard-HOME user/local MCP declarations and decisions
 at their native scopes. Installed-client controls verify all three MCP scopes, disabled/re-enabled
