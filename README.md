@@ -80,7 +80,9 @@ enable run.
 On Kiro 2.21.2, seven initial-session file-resource controls pass: active inherited files disappear
 when default-resource inheritance is disabled, including with a separate session workspace. An
 override in the process launch directory can re-enable inheritance; the launch directory must stay
-owned and isolated. Skills, other resource sources and reload/load need separate evidence.
+owned and isolated. Initial skill controls now also pass for the owned launch and KIRO_HOME roots:
+both are actively inherited with suppression off and absent with it on. Dynamic reload/load and
+unmeasured source paths remain separate; the prepared production policy is not yet connected.
 
 Development launch and release readiness are separate milestones in ACCEPTANCE_SPEC.md. The next
 priority is effective Kiro isolation and real client tool approval/denial/hook round trips, followed

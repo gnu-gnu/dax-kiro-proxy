@@ -26,6 +26,7 @@ var (
 // Name presence is not permission status or evidence that a native tool was denied. The in-memory
 // session identifier is excluded from live diagnostics. This report never enables production policy.
 type inventoryReport struct {
+	skills            *skillInventoryProbe
 	contextFiles      map[string]string
 	contextFile       string
 	contextDescriptor json.RawMessage
@@ -172,6 +173,7 @@ func readOnlyContextShow(ctx context.Context, client *acp.Client, inventory *inv
 }
 
 type inventoryPrerequisite struct {
+	Skills        *skillInventoryProbe
 	WaitForMCP    bool
 	Alias         string
 	ObservedTools map[string]string
@@ -189,6 +191,7 @@ func readOnlyToolsInventory(ctx context.Context, client *acp.Client, cwd string,
 func readOnlyToolsInventoryAfter(ctx context.Context, client *acp.Client, cwd string, advertisementWait time.Duration, required inventoryPrerequisite) (inventoryReport, error) {
 	report := inventoryReport{NativeNames: map[string]bool{}, ResultKinds: map[string]string{}, NotificationKinds: map[string]int{}, DataKinds: map[string]string{}, DataSizes: map[string]int{}, ToolEntryKinds: map[string]string{}, ListedNativeNames: map[string]bool{}, MCPParamKinds: map[string]string{}}
 	report.MCPMatches, report.ToolMatches = map[string]int{}, map[string]bool{}
+	report.skills = required.Skills
 	if len(required.ObservedTools) > 8 || required.WaitForAllMCP && len(required.ObservedTools) == 0 || required.SettleWindow < 0 || required.SettleWindow > time.Second {
 		return report, errInventoryShape
 	}
@@ -407,6 +410,11 @@ func (r *inventoryReport) observe(n acp.Notification, session string) error {
 	owner, ok := inventoryString(fields["sessionId"], 1024)
 	if !ok || owner != session {
 		return errInventoryBinding
+	}
+	if r.skills != nil {
+		if err := r.skills.observe(n.Method, fields); err != nil {
+			return err
+		}
 	}
 	switch n.Method {
 	case "_kiro.dev/mcp/server_initialized":

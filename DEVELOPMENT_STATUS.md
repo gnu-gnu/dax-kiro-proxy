@@ -6,6 +6,12 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D61 passes active initial skill controls on Kiro 2.21.2: explicit inclusion, default inheritance
+  and suppression across owned launch and KIRO_HOME skill roots (17.755s race package). Both active
+  sources disappear under suppression. The relative launch skill name is recorded separately from
+  the absolute configuration-root name; ACP skill-command absence is not used as exclusion proof.
+  All source bytes and process cleanup pass. Final independent interop race suite passes in 24.082s;
+  whole-repository go vet passes. Production policy wiring is next; reload/load remain disabled.
 - D60 adds original client names and client permission/hook authority to relay descriptions while
   preserving opaque wire names, complete descriptions and schemas. Registry identity changes with
   this metadata policy. Actual Kiro 2.21.2/v2 and Claude 2.1.263 now pass all six rule/hook cases:

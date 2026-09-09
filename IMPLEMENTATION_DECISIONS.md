@@ -2212,3 +2212,40 @@ launcher 21.850s and final interop 21.929s, with installed opt-ins disabled. Tar
 annotation/command/JSON controls pass in 1.595s. Whole-repository go vet, formatting, whitespace
 checks and the development build pass. Production run remains unavailable until the remaining
 initial-session isolation evidence and built-in launch policy are connected.
+
+## D61: active skill inheritance controls on Kiro 2.21.2 (review R06/R14)
+
+The owned empty-agent observer now tests independently authored skill metadata at the launch
+directory's .kiro/skills and the selected KIRO_HOME/skills. It first declares both absolute skill://
+files explicitly, then compares resources=[] with default inheritance enabled and disabled in fresh
+roots. Each fixture has a unique name, no actions and preserved source bytes. No model, skill or tool
+is invoked; only the existing tools/context inspection runs, with a one-second notification window.
+
+The [Kiro inheritance changelog](https://kiro.dev/changelog/cli/2-10/) describes suppression of default
+skills alongside steering and AGENTS.md. [Context documentation](https://kiro.dev/docs/cli/chat/context/)
+distinguishes startup skill metadata from on-demand content. These supply hypotheses for the pinned
+black-box observation, not an assumption that the current documentation proves older CLI behavior.
+The public [ACP command advertisement](https://agentclientprotocol.com/protocol/v1/slash-commands)
+is optional, and its absence alone cannot establish resource exclusion.
+
+The first explicit control reports two matched context files but no skill command advertisement
+(skill-inheritance.QlUrg1, 6.473s); its command-only observer fails. After adding exact owned context
+path matches, the explicit control passes but inheritance reports the launch skill relatively
+(skill-context-inheritance.4ZE6Rg, 11.157s). The final observer recognizes that independently seeded
+relative name under a separate label without inventing a base for arbitrary relative names.
+
+All three cases then pass in skill-context-forms.EHIaIQ: 16.44s test / 17.755s race package.
+Explicit resources match both absolute paths, with context estimate 98. Default inheritance matches
+the selected configuration root absolutely and the launch skill relatively, with estimate 86.
+Suppression reports no matched context items and estimate zero. These are local estimates, not billed
+usage. No skill names are observed in command advertisements in any case. Source bytes and joined
+process cleanup pass throughout. The result establishes initial suppression for these two active
+skill sources, not dynamic reload, persisted-session load or every possible undocumented source.
+
+Independent tests reject foreign-session and unrelated-description/text matches. Existing malformed
+context/query-budget controls remain active. One interim fake initial initialize call times out before
+the changed observer runs; an unchanged focused follow-up passes in 3.067s, and the final focused
+suite passes in 3.266s. Its cause is not established or attributed to the observer. The final uncached
+interop race suite passes in 24.082s, with installed opt-ins disabled. Whole-repository go vet passes.
+No production policy or dependency changes; this closes the measured skill-source gap before the
+prepared development launch policy is connected.

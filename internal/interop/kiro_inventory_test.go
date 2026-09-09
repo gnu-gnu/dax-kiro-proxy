@@ -327,6 +327,7 @@ func observePinnedToolsInventory(t *testing.T, executable string, declaredTools,
 }
 
 type inventoryVariant struct {
+	skills          *skillInventoryProbe
 	resourceControl string
 	// Exact test-only version admission for new read-only observations; no production policy grant.
 	version     string
@@ -420,6 +421,13 @@ func observePinnedInventory(t *testing.T, executable string, declaredTools, list
 	}
 	if os.WriteFile(filepath.Join(configuration, "settings", "cli.json"), []byte(`{"chat.disableInheritingDefaultResources":true}`), 0600) != nil {
 		t.Fatal("cannot write owned inventory configuration")
+	}
+	if variant.skills != nil {
+		if variant.version != "2.21.2" || !variant.context || variant.resource || variant.resourceControl != "" {
+			t.Fatal("skill controls require the separate empty-agent context probe")
+		}
+		variant.skills.prepare(t, configuration, cwd, name)
+		required.Skills, required.SettleWindow = variant.skills, time.Second
 	}
 	if variant.resourceControl != "" {
 		mode := variant.resourceControl
@@ -585,6 +593,9 @@ func observePinnedInventory(t *testing.T, executable string, declaredTools, list
 	}
 	report, callErr := readOnlyToolsInventoryAfter(inventoryContext, client, sessionDirectory, 3*time.Second, required)
 	if variant.context {
+		if variant.skills != nil {
+			report.contextFiles = variant.skills.paths
+		}
 		if variant.resourceControl != "" {
 			report.contextFiles = map[string]string{"agent": filepath.Join(sessionDirectory, "AGENTS.md"), "steering": filepath.Join(sessionDirectory, ".kiro", "steering", "owned-default.md")}
 			if sessionDirectory != cwd {
@@ -599,6 +610,9 @@ func observePinnedInventory(t *testing.T, executable string, declaredTools, list
 			t.Error("context prerequisites failed")
 		} else {
 			contextReport, contextErr := readOnlyContextShow(ctx, client, &report)
+			if variant.skills != nil {
+				variant.skills.context = contextReport
+			}
 			t.Logf("context_show=%+v, failure=%s", contextReport, kiroSetupFailure(contextErr))
 			if contextErr != nil || !contextReport.Success {
 				t.Error("read-only context-show wire observation failed")
@@ -637,6 +651,9 @@ func observePinnedInventory(t *testing.T, executable string, declaredTools, list
 	}
 	if variant.directories != nil {
 		variant.directories.check(t)
+	}
+	if variant.skills != nil {
+		variant.skills.check(t)
 	}
 	if variant.native != nil {
 		variant.native.report.FilesUnchanged = variant.native.filesUnchanged()

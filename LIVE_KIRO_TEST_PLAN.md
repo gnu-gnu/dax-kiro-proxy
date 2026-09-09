@@ -358,3 +358,39 @@ target and no post-hook marker. Each refusal returns its matching error result a
 the hook case requires the exact refusal reason. All six pass source/canary and observed relay/group/
 private-artifact cleanup checks. No content-bearing output is saved. These are real Kiro/Claude
 rule/hook results; interactive display and remaining isolation paths are separate evidence.
+
+## Initial skill inheritance observation
+
+The next read-only matrix creates two new skill fixtures, one under the owned launch directory's
+.kiro/skills and one under the owned KIRO_HOME/skills candidate global root. A fresh empty custom
+agent first declares both skill:// files explicitly, then separate cases use default inheritance
+enabled and suppressed. Each case has fresh roots and unique skill names. No skill, prompt or tool
+is invoked. The existing pinned ACP setup, advertised tools query, context show and one-second
+notification settling window bound inspection; original HOME serves authentication only.
+
+The observer matches only the two owned names in public/private command advertisements for the
+owned session. Assistant text or an unrelated command description cannot establish skill availability.
+Only fixed location labels and Boolean matches are saved. Positive controls must establish both names
+before a negative result can support exclusion. An inactive candidate root or absent ACP skill
+advertisement leaves that observation incomplete, not verified. Every source byte and process cleanup
+is checked. This experiment does not observe dynamic reload or load of an existing session.
+
+The first explicit case reports two matched context items and a positive local context estimate,
+but advertises neither skill name as an ACP command (skill-inheritance.QlUrg1, 6.473s). That
+command-only observer therefore fails; no inheritance cases run. The follow-up uses the existing
+strict verbose-context observer to match each owned absolute skill path and requires two matched
+items with a positive estimate in positive controls. Suppression requires zero matched context items,
+zero context estimate and no observed owned skill command. Command advertisement is supplemental;
+its absence alone cannot establish exclusion. The fixtures, settings and no-model boundary remain.
+
+The explicit context control then passes, while default inheritance reports the global skill
+absolutely and one skill relatively (skill-context-inheritance.4ZE6Rg, 11.157s). The observer now
+also recognizes the exact independently seeded .kiro/skills/<owned-name>/SKILL.md relative name under
+a separate label, without resolving arbitrary returned relative paths. Other relative names still
+fail the expected inventory. The next matrix keeps the same roots, settings and command budget.
+
+That three-case matrix passes in skill-context-forms.EHIaIQ (16.44s test, 17.755s race package).
+Explicit inclusion matches two absolute paths; inheritance matches the configuration-root skill
+absolutely and the launch skill relatively; suppression has zero matched items and zero context
+estimate. No owned skill command is advertised. All sources remain unchanged and process cleanup
+passes. This establishes the two tested initial skill paths, with no model prompt or billed-usage claim.
