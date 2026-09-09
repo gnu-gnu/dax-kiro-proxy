@@ -14,6 +14,19 @@ import (
 
 // Check the historical pair independently before admitting a distinct current pair.
 func resumedOperationPair(r *anthropic.Request, prior completedToolPair, issued anthropic.ToolUse, expect *toolEffectExpectation, question string, resultExpected bool) (completedToolPair, error) {
+	return resumedPairAfterHistory(r, prior, issued, expect, question, resultExpected, func(prefix *anthropic.Request) bool {
+		old, err := completedPair(prefix, true)
+		return err == nil && sameCompletedPair(old, prior)
+	})
+}
+
+func resumedInterruptedOperationPair(r *anthropic.Request, prior completedToolPair, issued anthropic.ToolUse, expect *toolEffectExpectation, oldQuestion, question string, resultExpected bool) (completedToolPair, error) {
+	return resumedPairAfterHistory(r, prior, issued, expect, question, resultExpected, func(prefix *anthropic.Request) bool {
+		return abandonedNativeToolHistoryQuestion(prefix, oldQuestion, prior.use.ID, prior.text, question)
+	})
+}
+
+func resumedPairAfterHistory(r *anthropic.Request, prior completedToolPair, issued anthropic.ToolUse, expect *toolEffectExpectation, question string, resultExpected bool, historyMatches func(*anthropic.Request) bool) (completedToolPair, error) {
 	var pair completedToolPair
 	bad := errors.New("resumed operation history mismatch")
 	if r == nil || expect == nil || question == "" || len(r.Messages) > 16 || !r.ClientContent() {
@@ -38,8 +51,7 @@ func resumedOperationPair(r *anthropic.Request, prior completedToolPair, issued 
 	}
 	prefix := *r
 	prefix.Messages = r.Messages[:boundary+1]
-	old, err := completedPair(&prefix, true)
-	if err != nil || !sameCompletedPair(old, prior) {
+	if !historyMatches(&prefix) {
 		return pair, bad
 	}
 	uses, results := 0, 0

@@ -72,8 +72,8 @@ func observeNativeToolHistory(t *testing.T, live bool, kind, holdMode string) {
 
 func observeToolHistory(t *testing.T, live bool, kind, holdMode, followPolicy string) {
 	t.Helper()
-	if followPolicy != "" && (kind != "allow-bash" || holdMode != "") {
-		t.Fatal("resumed policy requires a completed first Bash operation")
+	if followPolicy != "" && (kind != "allow-bash" || holdMode != "" && holdMode != "interrupt" && holdMode != "interrupt-preface") {
+		t.Fatal("resumed policy requires an owned completed or interrupted first Bash operation")
 	}
 	client := os.Getenv("DAX_INTEROP_CLAUDE_BINARY")
 	if client == "" {
@@ -126,6 +126,12 @@ func observeToolHistory(t *testing.T, live bool, kind, holdMode, followPolicy st
 	if followPolicy != "" {
 		followEffect, followSettings = prepareFollowupEffect(t, root, project, followPolicy)
 		followFingerprint = fileFingerprint(t, followSettings)
+		if held != nil && held.interrupted {
+			manifest, _ := json.Marshal(map[string]any{"input": followEffect.expect.Input, "isError": followEffect.expect.IsError, "requiredText": followEffect.expect.RequiredText, "followupEffect": true, "interrupted": true, "preface": holdMode == "interrupt-preface"})
+			if os.WriteFile(followEffect.manifest, manifest, 0600) != nil {
+				t.Fatal("interrupted follow-up expectation")
+			}
+		}
 	}
 	beforeSettings, beforeGlobal := fileFingerprint(t, settings), fileFingerprint(t, global)
 	version, err := runner.Run(ctx, childproc.Command{Executable: client, Directory: root, Environment: []string{"HOME=" + home, "PATH=/usr/bin:/bin"}, Args: []string{"--version"}})
@@ -152,7 +158,11 @@ func observeToolHistory(t *testing.T, live bool, kind, holdMode, followPolicy st
 		prompts[1] = pendingRestartQuestion
 	}
 	if followEffect != nil {
-		prompts[1] = "EffectFollow_137: The earlier operation is complete. Request Bash once for this separate new operation with exactly this argument object: " + string(followEffect.expect.Input) + ". Never repeat the earlier operation. After the client returns success or refusal, do not retry or request any other tool. Reply only with the concatenation of ToolArchiveResumed and _137 without spaces."
+		previousState := "The earlier operation is complete."
+		if interrupted {
+			previousState = "The earlier operation was interrupted before execution. It must remain unexecuted."
+		}
+		prompts[1] = "EffectFollow_137: " + previousState + " Request Bash once for this separate new operation with exactly this argument object: " + string(followEffect.expect.Input) + ". Never repeat the earlier operation. After the client returns success or refusal, do not retry or request any other tool. Reply only with the concatenation of ToolArchiveResumed and _137 without spaces."
 	}
 	var previous completedToolPair
 	var groups [2]int
@@ -233,7 +243,11 @@ func observeToolHistory(t *testing.T, live bool, kind, holdMode, followPolicy st
 		guard := &toolRestartBackend{backend: manager, models: models, stage: stage, identity: id, expect: currentEffect.expect, previous: previous, beforeUse: currentEffect.beforeUse, interrupted: interrupted, question: prompts[0], followup: followup, followQuestion: prompts[1]}
 		if followup {
 			guard.beforeUse = func() bool {
-				return effect != followEffect && toolRestartEffectsOnce(effect) && followEffect.beforeUse()
+				oldSafe := toolRestartEffectsOnce(effect)
+				if interrupted {
+					oldSafe = held.effectsAbsent(effect) && held.hookGone() && held.lateChecked
+				}
+				return effect != followEffect && oldSafe && followEffect.beforeUse()
 			}
 		}
 		guard.observeProcess = func() error {
@@ -293,7 +307,7 @@ func observeToolHistory(t *testing.T, live bool, kind, holdMode, followPolicy st
 		}
 		guard.mu.Lock()
 		wantResults := 1
-		if interrupted && guard.abandoned {
+		if interrupted && guard.abandoned && !followup {
 			wantResults = 0
 		}
 		wantStarts, wantUses := 2-stage, 1-stage
@@ -331,14 +345,6 @@ func observeToolHistory(t *testing.T, live bool, kind, holdMode, followPolicy st
 		}
 		gone = gone && dialErr != nil
 		effectOnce := toolRestartEffectsOnce(effect)
-		if followEffect != nil {
-			if followup {
-				effectOnce = effectOnce && followupEffectMatches(followEffect)
-			} else {
-				effectOnce = effectOnce && followEffect.beforeUse()
-			}
-			t.Logf("resumed_policy=%s old_effect_once=%v history_checks=%d fresh_result_failed=%v", followPolicy, toolRestartEffectsOnce(effect), guard.historyChecks, guard.pair.failed)
-		}
 		if held != nil {
 			gone = gone && held.hookGone()
 			if interrupted {
@@ -352,6 +358,15 @@ func observeToolHistory(t *testing.T, live bool, kind, holdMode, followPolicy st
 			}
 			t.Logf("held_mode=%s held_hook_observed=%v delivered_handoffs=%d old_hook_gone=%v initial_join_ms=%d", holdMode, held.ready, guard.handoffs, held.hookGone(), held.join.Milliseconds())
 			t.Logf("abandoned_native_history=%v retained_tool_pairs=%d original_partial_text_bytes=%d resumed_assistant_text_bytes=%d native_noncompletion_placeholder=%v late_release_checked=%v", guard.abandoned, guard.results, len(guard.previous.text), guard.placeholder.AssistantBytes, guard.placeholder.NoResponseRequested, held.lateChecked)
+		}
+		if followEffect != nil {
+			oldSafe := effectOnce
+			if followup {
+				effectOnce = effectOnce && followupEffectMatches(followEffect)
+			} else {
+				effectOnce = effectOnce && followEffect.beforeUse()
+			}
+			t.Logf("resumed_policy=%s old_effect_safe=%v history_checks=%d fresh_result_failed=%v", followPolicy, oldSafe, guard.historyChecks, guard.pair.failed)
 		}
 		sources := fileFingerprint(t, settings) == beforeSettings && fileFingerprint(t, global) == beforeGlobal
 		if followEffect != nil {

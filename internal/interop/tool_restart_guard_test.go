@@ -234,7 +234,7 @@ func (b *toolRestartBackend) Start(ctx context.Context, r *anthropic.Request) (i
 	if b.followup {
 		budget = 2
 	}
-	if b.interrupted {
+	if b.interrupted && !b.followup {
 		budget = 1
 	}
 	valid := r != nil && nativeHistoryID(r.Identity.Session) && len(r.Tools) == 1 && n <= budget
@@ -257,8 +257,12 @@ func (b *toolRestartBackend) Start(ctx context.Context, r *anthropic.Request) (i
 		valid = valid && count == 1
 	} else if valid && b.followup {
 		pair, err := resumedOperationPair(r, b.previous, b.issued, b.expect, b.followQuestion, n == 2)
+		if b.interrupted {
+			pair, err = resumedInterruptedOperationPair(r, b.previous, b.issued, b.expect, b.question, b.followQuestion, n == 2)
+		}
 		valid = err == nil && (n == 1 || b.uses == 1 && b.handoffs == 1)
 		if valid {
+			b.abandoned = b.interrupted
 			b.historyChecks++
 			if n == 2 {
 				b.pair = pair
@@ -349,7 +353,7 @@ func (t *toolRestartTurn) Next(ctx context.Context) (inference.Event, error) {
 			if b.followup {
 				lastRequest = 2
 			}
-			valid = valid && event.StopReason == "end_turn" && t.request == lastRequest && b.ends == 0 && (b.results == 1 || b.interrupted && b.abandoned)
+			valid = valid && event.StopReason == "end_turn" && t.request == lastRequest && b.ends == 0 && (b.results == 1 || b.interrupted && !b.followup && b.abandoned)
 			if valid {
 				b.ends++
 			}

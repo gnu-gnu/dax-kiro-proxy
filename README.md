@@ -83,8 +83,15 @@ tools after completed history; interactive pending recovery remains separate.
 D92 additionally verifies a distinct new Bash operation after completed-history resume under
 current allow/deny rules and a PreToolUse veto with actual Kiro/Claude. Old tool history stays exact
 and old effects remain once; the new operation executes once or returns its matching refusal.
-All six stages clean up and preserve source settings. Interactive approval after resume and new
-work following an interrupted history remain separate checks.
+All six stages clean up and preserve source settings. Interactive approval after resume remains
+a separate check; D98 extends new work to an interrupted history.
+
+D98 verifies a distinct new Bash operation after cancellation at a delivered native hook wait and
+explicit-ID resume. With actual Kiro/Claude, the old operation stays unexecuted after late hook
+release, the exact old question/partial text remains in both resumed requests, and the new allowed
+operation executes once. Recorded ownership is removed and source settings stay unchanged. Native
+client/fake-ACP controls additionally cover current configured denial and hook veto with no-text and
+partial-text histories. Interactive approval and uncertain effect/acknowledgement windows remain open.
 
 The diagnostic checks support Kiro CLI 2.21.2 (including its adjacent `kiro-cli-chat` helper) and Claude Code
 2.1.263. They use the installed CLIs' finite version/account/catalog commands, without an ACP session

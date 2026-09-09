@@ -1700,3 +1700,73 @@ regressions pass in 22.858s. Logs: `.cache/history-review/d97-wrapper-oracle-ini
 [settings documentation](https://code.claude.com/docs/en/settings) and
 [CLI reference](https://code.claude.com/docs/en/cli-reference) were checked on 2026-09-10; no private
 client source or dependency is used. Production, dependencies and D96 artifact bytes do not change.
+
+## D98: new tool policy after an interrupted native history
+
+Extend the independent native-history experiment by combining a delivered, unexecuted old Bash
+with a distinct new Bash operation after explicit-ID resume. First establish the exact live
+PreToolUse hook, delivered HTTP handoff and absent effect/result. Cancel the runner eight times;
+join its hook/client/ACP/relay ownership, listener/profile and launch artifacts. Create the late
+release marker only after that join and require the old effect to remain absent for 300ms. The
+resumed operation cannot be delivered until those old ownership/effect checks still pass.
+
+The new client's first request and result continuation must both retain the exact old question,
+measured partial response or native non-completion placeholder, and exact new question in order.
+The old unfinished pair stays absent. Require one distinct new call ID/operation and its exact
+matching success/refusal. A new result remains mandatory: abandoned old history cannot satisfy
+the new completion condition. Observe native file effects and pre/post hooks independently, with
+unchanged old/new settings sources. Each stage owns a new profile/address/token/backend group.
+
+The fixture matrix uses native no-text and partial-text interrupted histories, each followed by
+allowance, configured denial or hook veto. All six cases pass in 32.00s (33.282s race package):
+eighteen HTTP requests, twelve separate ACP prompts/owners, six old zero-effect cancellations,
+two new allowed appends and four fresh refusals. Both history checks pass in each resumed stage;
+all recorded ownership and private artifacts are removed. The first guard command fails at
+compilation on a test-only missing brace, before any process/model dispatch. Corrected history,
+ownership, new-result and existing completed-history guards pass in 2.149s race package.
+
+The separate actual-client episode is limited to allowance: two main ACP prompts, three HTTP
+model requests, one cancelled old handoff and one new allowed append. No title request, additional
+tool, retry, extra model prompt or live refusal matrix is admitted. Retain the shared preflight,
+45-second turn bound, sixty-second client lifetime and three-minute episode bound. With the
+reviewed offline environment and pinned client paths:
+
+```sh
+DAX_INTEROP_KIRO_CREDIT_OPT_IN=1 \
+  DAX_INTEROP_KIRO_BINARY=/Users/geunwooshim/.local/bin/kiro-cli \
+  DAX_INTEROP_CLAUDE_BINARY=/Users/geunwooshim/.local/bin/claude \
+  go test -race -p 1 -count=1 -timeout 4m \
+  -run '^TestKiroLiveInterruptedResumedToolPolicy$' -v ./internal/interop
+```
+
+This remains explicit-ID print-mode single-tool recovery, not interactive pending-tool approval,
+general crash exactly-once semantics, simultaneous tool batches or restored hidden Kiro context.
+No native transcript is decoded or changed by the test. Results are observed through Messages,
+ACP, process ownership and owned client effects; logs retain fixed categories/counts only.
+
+The first invocation stops at generic version/account preflight before model work (4.67s test,
+4.933s package). Its failed command and exact cause are not observable in that record. Separate
+read-only baseline/owned-KIRO_HOME identity controls then pass in 6.23s (7.566s package), twelve
+version/account commands and no model work. Add fixed command/exit/byte-count/failure/cleanup
+diagnostics and a six-command allowlist to the shared preparation. A standalone identical-preparation
+control passes in 10.30s (12.227s package), including catalog and private-directory cleanup, with
+zero ACP sessions/model requests. These fresh admissions do not explain away the earlier failure.
+
+The bounded actual episode following those checks passes in 46.95s (48.273s package). Cancellation
+at the old delivered hook joins in 166ms, with no old effect/result after late release. Stage two
+uses new process/profile/endpoint/token ownership; both resumed requests preserve the original
+question and all 31 bytes of old partial text before the exact new question. Its one new Bash
+operation succeeds once, with matching pre/post hooks, end_turn and native exit 0. Both stages
+remove recorded groups/PIDs/listeners/private artifacts and preserve both settings sources.
+The combined model budget is two ACP prompts/three HTTP requests/one owned append; no dispatched
+model work is repeated. Actual refusal/hook policy after interrupted history remains separate.
+
+Existing native completed/pending/policy regressions pass in 34.779s. Applicable opt-ins-off race
+suites pass ACP 6.023s, session 29.452s, interop 22.133s and owned resume hook 1.677s. Logs under
+`.cache/history-review/`: `d98-guard-controls.log` (initial compile failure), `d98-guard-checked.log`,
+`d98-native-interrupted-policy.log`, `d98-native-history-regressions.log`, `d98-core-regressions.log`,
+`d98-live-interrupted-policy.log` (initial preflight failure), `d98-readonly-identity.log`,
+`d98-readonly-prepared.log`, `d98-live-preflight-verified.log`, `d98-final-interop.log` and
+`d98-final-vet.log`. Production code, fixture source, dependencies and D96 artifact remain unchanged.
+Final interop race passes in 21.439s after the preflight diagnostic addition; final repository/
+fixture/hook vet, formatting, whitespace and all 139 development-artifact byte checks pass.

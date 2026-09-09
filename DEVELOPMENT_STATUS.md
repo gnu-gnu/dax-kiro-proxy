@@ -6,6 +6,22 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D98 verifies new work after an interrupted native history. Six native-client/fake-ACP cases pass
+  in 32.00s (33.282s package): no-text/partial-text histories followed by allowance, configured
+  denial or hook veto, with six old operations staying unexecuted, two new appends and four refusals.
+  Exact old history precedes the new question in both resumed requests; fresh IDs/results and all
+  ownership/source checks pass. One actual Kiro/Claude allowed-operation episode passes in 46.95s
+  (48.273s package), two ACP prompts/three HTTP requests: old cancellation joins in 166ms, all
+  31 bytes of old partial text remain, and only the new operation executes once. Initial admission
+  failed at generic version/account preflight before model work; separate identity/identical-
+  preparation read-only controls pass before the successful episode. Its first failure cause
+  remains unknown; fixed command diagnostics now distinguish later failures. Guards pass in 2.149s,
+  existing native history/policy regressions in 34.779s, and ACP/session/interop/owned-hook race
+  suites in 6.023s/29.452s/22.133s/1.677s. Production, dependencies and D96 artifact remain unchanged.
+  Final interop race passes in 21.439s after adding preflight diagnostics; whole-repository/fixture/
+  hook vet, formatting, whitespace and all 139 artifact byte checks pass.
+  Interactive pending approval, actual refusals after interrupted history and remaining alpha/
+  release requirements stay open.
 - D97 rules out a context-list absence oracle for personal root exclusions. The initial hypothesis
   fails for empty/comment-only roots without an exclusion (3.98s test, 4.976s race package).
   Eight separate counterfactual controls pass in 3.76s: active plain/frontmatter/import-only roots,

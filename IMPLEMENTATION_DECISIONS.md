@@ -4479,3 +4479,61 @@ and command bounds are recorded in LIVE_KIRO_TEST_PLAN.md.
 
 The final opt-ins-off interop race suite passes in 24.230s. Interop vet, formatting, whitespace
 and all 139 unchanged D96 artifact byte checks pass.
+
+## D98: distinguish new tool policy from abandoned work after native resume
+
+D91 observes native omission of an unfinished tool pair; D92 checks new tools only after completed
+history. Combine those independent cases without changing production history semantics. First
+deliver one owned Bash handoff and establish its exact live PreToolUse wait with no effect/result.
+Cancel the runner repeatedly, join recorded hook/client/backend/relay ownership and private state,
+then check a late release marker cannot execute the old command. Only then launch a fresh native
+explicit-ID resume requesting a distinct new operation under current client settings.
+
+Factor the current-pair observer from the prior-history observer. Completed-history cases retain
+their exact successful pair requirement. Interrupted-history cases require the exact old question,
+measured partial response or non-completion placeholder, absent unfinished pair and exact new
+question. Validate that prefix in both the new request and its result continuation. The new call
+must have a fresh ID and exact separate arguments, and its result must match ID, status and any
+required refusal reason. An abandoned old pair cannot satisfy the new result prerequisite.
+Before delivering the new call, recheck old hook disappearance/late-release proof/no effect and
+new target absence. Both current permission policy and native effects/hooks are independently checked.
+
+Use the existing independently authored peer's interrupted/follow-up modes; no fixture expression
+or production code changes. The first guard command fails to compile on a new test's missing brace;
+correct it before native dispatch. New corrupt-history/order/identity/operation/result/completion
+controls and existing completed/interrupted guards pass in 2.149s race package. No-text and partial-
+text native histories each pass allowance, configured denial and hook veto: six cases, twelve
+stages, eighteen HTTP requests, twelve ACP prompts/owners, six unexecuted old operations, two new
+allowed appends and four refusals. All history/effect/cleanup/source checks pass (32.00s test,
+33.282s package). Existing native completed/interrupted/policy regressions pass in 34.779s.
+
+A separately opted-in actual Kiro/Claude case admits only two main ACP prompts, three HTTP model
+requests and one new append. Its initial invocation fails during version/account preflight before
+any model work (4.67s test, 4.933s package); the generic observation cannot identify the failed
+command. Do not infer logout, a version change or a timeout. Subsequent read-only baseline/owned-
+KIRO_HOME identity checks all pass (twelve public commands, 6.23s test / 7.566s package). Add fixed
+command/exit/output-length/failure/cleanup diagnostics and a six-command allowlist to the shared
+preflight. A standalone check of that exact preparation also passes, including the catalog and
+private configuration cleanup, with no ACP/session/model work (10.30s / 12.227s).
+
+Those observations establish fresh admission, not the cause of the earlier failure. They precede
+the bounded model episode using the still-unused two-prompt/three-request budget. No dispatched
+model work is retried, no deadline or product isolation rule is relaxed, and no authentication
+state is changed. Results and the remaining evidence limits are recorded below and in the live plan.
+
+The actual episode passes in 46.95s (48.273s race package). The first handoff reaches the exact
+native hook, cancellation joins in 166ms, and late release produces no old effect. After fresh
+preflight/profile/address/token/backend ownership, both resumed requests retain the original
+question and all 31 bytes of measured partial text before the exact new instruction. One distinct
+new call returns a matching success and completes; its append and pre/post hooks occur once.
+All recorded process/group/listener/profile/policy ownership is gone and both settings sources are
+unchanged. Total work stays two ACP prompts/three HTTP requests/one new effect, with no old result
+invented. This establishes the allowed new operation after this interrupted history, not live
+refusals, interactive approval, arbitrary crashes/effect windows, simultaneous calls or hidden
+backend context restoration.
+
+Applicable opt-ins-off race suites pass: ACP 6.023s, session 29.452s, interop 22.133s and the owned
+resume hook 1.677s. No production/dependency/artifact change is required; the D96 inventory remains
+current. Whole-repository/fake-peer/hook vet and formatting/whitespace checks pass.
+The final interop race suite after preflight diagnostics passes in 21.439s; all 139 unchanged
+development-artifact byte checks pass with release clearance still false.

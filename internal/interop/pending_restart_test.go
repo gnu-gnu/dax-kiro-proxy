@@ -283,7 +283,11 @@ func TestInterruptedNativeToolPairRejectsClaimedSuccess(t *testing.T) {
 // This is not a successful tool result or an explicit cancellation notice. Old runtime/effect
 // assertions remain separate prerequisites for accepting the new, explicitly non-executing turn.
 func abandonedNativeToolHistory(r *anthropic.Request, question, callID, preface string) bool {
-	if r == nil || question == "" || callID == "" || len(r.Messages) > 16 || !r.ClientContent() {
+	return abandonedNativeToolHistoryQuestion(r, question, callID, preface, pendingRestartQuestion)
+}
+
+func abandonedNativeToolHistoryQuestion(r *anthropic.Request, question, callID, preface, nextQuestion string) bool {
+	if r == nil || question == "" || callID == "" || nextQuestion == "" || len(r.Messages) > 16 || !r.ClientContent() {
 		return false
 	}
 	old, placeholder, next := 0, 0, 0
@@ -305,7 +309,7 @@ func abandonedNativeToolHistory(r *anthropic.Request, question, callID, preface 
 				placeholder++
 			}
 			if strings.Contains(block.Text, "EffectFollow_137") {
-				if message.Role != "user" || old != 1 || placeholder != 1 || index != r.LatestUserIndex() || block.Text != pendingRestartQuestion {
+				if message.Role != "user" || old != 1 || placeholder != 1 || index != r.LatestUserIndex() || block.Text != nextQuestion {
 					return false
 				}
 				next++

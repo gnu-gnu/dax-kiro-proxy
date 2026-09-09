@@ -214,13 +214,24 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
 
 ## F. Session continuity
 
+- A new tool after an interrupted native history must be checked separately from resuming completed
+  work. Join the original delivered-but-unexecuted hook/client/backend before new admission, and
+  require the old effect to remain absent after late hook release and throughout the new turn.
+  Retain the exact old question and measured partial text/native non-completion placeholder before
+  the exact new question in both resumed requests; do not manufacture the omitted old tool pair.
+  Require a distinct new call and matching success/refusal under current client policy, with
+  independent effect/hook witnesses and joined new cleanup. Old history cannot substitute for
+  the new result. D98 supplies no-text/partial-text native-client controls with independent ACP
+  for allowance, configured denial and hook veto, plus one actual Kiro/Claude allowed-operation
+  episode. Interactive prompts, actual refusals after interrupted history, uncertain effect windows
+  and concurrent/multiple tools remain separate gates.
 - A distinct new tool after completed-history resume must obey current client settings and hooks.
   Preserve the old successful pair before the exact new question and again in the result request;
   require a new ID, exact new operation and matching success/refusal, including the hook reason.
   Old effects/hooks stay one. A new allowed append and its hooks occur once; refused targets and
   success hooks stay absent. Join fresh and old ownership and preserve both source policies. D92
   covers finite Bash allowance, configured denial and hook veto with actual Kiro/Claude. It does
-  not establish interactive approval screens or new work after an interrupted-history resume.
+  not establish interactive approval screens; D98 separately extends new work to interrupted history.
 - A finite native restart after cancellation at a delivered PreToolUse wait must join the original
   hook/client/backend ownership before a fresh resume. Require no original effect/result, including
   after a late release marker, and retain the exact original question and observed partial text or
