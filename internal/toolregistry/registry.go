@@ -137,11 +137,12 @@ func build(ctx context.Context, raw []json.RawMessage, native []string, validato
 		r.tools[i].Alias = "relay_" + hashes[i][:lengths[i]]
 		r.aliases[r.tools[i].Alias] = i
 	}
+	// Version 2 includes explicit original-name attribution in the relay's tool metadata.
 	identity, err := json.Marshal(struct {
 		Version int
 		Tools   []Tool
 		Native  []string
-	}{1, r.tools, []string{}})
+	}{2, r.tools, []string{}})
 	if err != nil || len(identity) > MaxBytes {
 		return nil, ErrRegistry
 	}

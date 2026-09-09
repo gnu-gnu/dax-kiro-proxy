@@ -85,6 +85,9 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
   tools are rejected before prompting.
 - Alias mapping is deterministic, reversible within the session, and collision-safe.
 - Kiro sees only session-declared aliases and explicitly supported native tools.
+- Every relay description identifies its original client tool name and client execution authority,
+  preserves the complete source description and exact input schema, and retains the opaque wire name.
+  Metadata policy changes invalidate the registry fingerprint used for session compatibility.
 - Relay calls during setup/load or idle time never become client tool-use blocks. Prompt completion
   cannot leave a suspended or validating call to be exposed by another turn.
 - Relay child exposes only initialize, ping, tools/list, and tools/call and performs no effect itself.

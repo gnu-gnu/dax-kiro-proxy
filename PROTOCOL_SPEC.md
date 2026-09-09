@@ -349,6 +349,11 @@ ownership. It then creates a new client-visible tool call ID and suspends the re
 matching client tool result. Results preserve text, base64 image content, and error status; unsupported
 content becomes text.
 
+The MCP wire name remains an opaque alias. Its description prefixes the original client name and
+client permission/hook authority, then preserves the entire original description. Client descriptions
+retain their 8 KiB allowance; attribution has a separate 256-byte allowance in the private child
+configuration. The registry identity version changes with this metadata policy (D60).
+
 Tool-call admission is open only for an owned ACP prompt, including its successful HTTP tool handoffs.
 It is closed during session creation/load, idle time and after the prompt reply. Prompt completion
 with any pending or validating relay call is inconsistent and retires the session.

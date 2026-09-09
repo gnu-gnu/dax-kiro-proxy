@@ -3,6 +3,7 @@ package toolregistry
 import (
 	"context"
 	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"strings"
@@ -36,6 +37,15 @@ func TestRegistryIdentityAndOwnership(t *testing.T) {
 	r, err := Build(ctx, input, nil, fixtureValidator{})
 	if err != nil {
 		t.Fatal(err)
+	}
+	legacy, _ := json.Marshal(struct {
+		Version int
+		Tools   []Tool
+		Native  []string
+	}{1, r.Tools(), []string{}})
+	oldDigest := sha256.Sum256(legacy)
+	if r.Fingerprint() == hex.EncodeToString(oldDigest[:]) {
+		t.Fatal("explicit client-name metadata reused the previous registry policy identity")
 	}
 	reordered, err := Build(ctx, []json.RawMessage{input[1], input[0]}, nil, fixtureValidator{})
 	if err != nil || r.Fingerprint() != reordered.Fingerprint() {

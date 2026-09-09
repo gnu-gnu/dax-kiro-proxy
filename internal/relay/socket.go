@@ -25,6 +25,10 @@ type MCPTool struct {
 	Description string          `json:"description,omitempty"`
 	InputSchema json.RawMessage `json:"inputSchema"`
 }
+
+// Client descriptions keep their complete 8 KiB allowance; relay attribution has its own bound.
+const maxMCPDescriptionBytes = 8192 + 256
+
 type ChildConfig struct {
 	Version       int       `json:"version"`
 	SupervisorPID int       `json:"supervisorPid"`
@@ -94,7 +98,8 @@ func Listen(b *Broker, cfg SocketConfig) (*Socket, error) {
 	}
 	child := ChildConfig{Version: 2, SupervisorPID: os.Getpid(), Socket: path, Owner: b.credentials.Owner, Secret: b.credentials.Secret, TimeoutMillis: (b.limits.ToolTimeout + 15*time.Second).Milliseconds(), Tools: make([]MCPTool, 0)}
 	for _, tool := range b.registry.Tools() {
-		child.Tools = append(child.Tools, MCPTool{Name: tool.Alias, Description: tool.Description, InputSchema: tool.Schema})
+		description := "Client tool name: \"" + tool.Name + "\". This relay requests execution by the client; client permissions and hooks decide whether it runs.\n\n" + tool.Description
+		child.Tools = append(child.Tools, MCPTool{Name: tool.Alias, Description: description, InputSchema: tool.Schema})
 	}
 	encoded, err := json.Marshal(child)
 	if err != nil || store.Write("relay.json", encoded) != nil {
@@ -241,7 +246,7 @@ func LoadChildConfig(path string) (ChildConfig, error) {
 	}
 	seen := make(map[string]bool)
 	for _, tool := range c.Tools {
-		if !validCallID(tool.Name) || seen[tool.Name] || len(tool.Description) > 8192 {
+		if !validCallID(tool.Name) || seen[tool.Name] || len(tool.Description) > maxMCPDescriptionBytes {
 			return ChildConfig{}, ErrCall
 		}
 		seen[tool.Name] = true

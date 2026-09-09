@@ -9,10 +9,45 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 	"time"
+
+	"dax-kiro-proxy/internal/toolregistry"
 )
+
+func TestRelayMetadataNamesTheClientToolWithoutChangingWireIdentity(t *testing.T) {
+	for _, description := range []string{"", "Independent tool information.", strings.Repeat("x", 8192)} {
+		name := strings.Repeat("a", 64)
+		raw, _ := json.Marshal(map[string]any{"name": name, "description": description, "input_schema": map[string]any{"type": "object", "properties": map[string]any{"n": map[string]string{"type": "integer"}}}})
+		registry, err := toolregistry.Build(t.Context(), []json.RawMessage{raw}, nil, integerFixture{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		broker, err := NewBroker(registry, Limits{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer broker.Close()
+		socket, err := Listen(broker, SocketConfig{BaseDirectory: "/private/tmp"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer socket.Close()
+		config, err := LoadChildConfig(socket.ConfigPath())
+		if err != nil || len(config.Tools) != 1 {
+			t.Fatal("cannot read complete bounded relay metadata")
+		}
+		original, exposed := registry.Tools()[0], config.Tools[0]
+		if exposed.Name != original.Alias || exposed.Name == original.Name || !strings.Contains(exposed.Description, `Client tool name: "`+name+`"`) || !strings.Contains(exposed.Description, "client permissions and hooks") || !strings.HasSuffix(exposed.Description, description) || string(exposed.InputSchema) != string(original.Schema) {
+			t.Fatal("relay metadata lost client-name correspondence, schema or original description")
+		}
+		if original.Description != description || len(exposed.Description) > 8192+256 {
+			t.Fatal("client declaration was mutated or wire description became unbounded")
+		}
+	}
+}
 
 func TestControlFramingBoundsAndExactEnvelope(t *testing.T) {
 	var stream bytes.Buffer

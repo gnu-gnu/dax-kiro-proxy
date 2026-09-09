@@ -10,6 +10,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+	"unicode"
 
 	"dax-kiro-proxy/internal/anthropic"
 	"dax-kiro-proxy/internal/catalog"
@@ -27,6 +28,7 @@ type denialDriver interface {
 }
 
 type denialProbeStats struct {
+	Arguments                                   effectArgumentShape
 	AfterInterruption                           interruptedRequestShape
 	Starts, Uses, Results, Denials, Completions int
 	CanaryObserved                              bool
@@ -289,7 +291,8 @@ func (t *denialProbeTurn) Next(ctx context.Context) (inference.Event, error) {
 			}
 			callMatches := use.Name == "Read" && json.Unmarshal(use.Input, &args) == nil && args.File == b.readPath
 			if b.effect != nil {
-				callMatches = b.effect.matches(use)
+				b.stats.Arguments = b.effect.compare(use)
+				callMatches = b.stats.Arguments.NameMatches && b.stats.Arguments.ValuesMatch
 			}
 			if !callMatches || use.ID == "" || b.observeCanary(string(use.Input)) {
 				valid = false
@@ -315,7 +318,7 @@ func (t *denialProbeTurn) Next(ctx context.Context) (inference.Event, error) {
 	return event, nil
 }
 
-// Owned experiments authorize a single exact argument object, not a tool-wide permission bypass.
+// Owned experiments require exact operation arguments; Bash may include bounded display metadata.
 type toolEffectExpectation struct {
 	Tool                string
 	Input               json.RawMessage
@@ -324,12 +327,60 @@ type toolEffectExpectation struct {
 }
 
 func (e *toolEffectExpectation) matches(use anthropic.ToolUse) bool {
-	if use.Name != e.Tool {
-		return false
+	shape := e.compare(use)
+	return shape.NameMatches && shape.ValuesMatch
+}
+
+type effectArgumentShape struct {
+	Seen, NameMatches, ValidObjects, ValuesMatch, EncodingOnly              bool
+	ExpectedFields, ActualFields, ExtraFields, MissingFields, ChangedFields int
+	ExtraDescription, ExtraTimeout, ExtraBackground                         bool
+	DescriptionAccepted                                                     bool
+}
+
+func (e *toolEffectExpectation) compare(use anthropic.ToolUse) effectArgumentShape {
+	shape := effectArgumentShape{Seen: true, NameMatches: use.Name == e.Tool}
+	if len(e.Input) > 16<<10 || len(use.Input) > 64<<10 {
+		return shape
 	}
 	a, errA := ndjson.Object(e.Input)
 	b, errB := ndjson.Object(use.Input)
-	return errA == nil && errB == nil && reflect.DeepEqual(a, b)
+	if errA != nil || errB != nil {
+		return shape
+	}
+	shape.ValidObjects = true
+	shape.ExpectedFields, shape.ActualFields = len(a), len(b)
+	decode := func(raw json.RawMessage) any {
+		decoder := json.NewDecoder(strings.NewReader(string(raw)))
+		decoder.UseNumber()
+		var value any
+		_ = decoder.Decode(&value) // Object has already validated the whole document recursively.
+		return value
+	}
+	for key, expected := range a {
+		actual, found := b[key]
+		if !found {
+			shape.MissingFields++
+		} else if !reflect.DeepEqual(decode(expected), decode(actual)) {
+			shape.ChangedFields++
+		}
+	}
+	for key := range b {
+		if _, found := a[key]; !found {
+			shape.ExtraFields++
+			shape.ExtraDescription = shape.ExtraDescription || key == "description"
+			shape.ExtraTimeout = shape.ExtraTimeout || key == "timeout"
+			shape.ExtraBackground = shape.ExtraBackground || key == "run_in_background"
+			if e.Tool == "Bash" && key == "description" && a["command"] != nil {
+				var description string
+				shape.DescriptionAccepted = json.Unmarshal(b[key], &description) == nil &&
+					len(description) > 0 && len(description) <= 256 && strings.IndexFunc(description, unicode.IsControl) == -1
+			}
+		}
+	}
+	shape.ValuesMatch = shape.ExtraFields == btoi(shape.DescriptionAccepted) && shape.MissingFields == 0 && shape.ChangedFields == 0
+	shape.EncodingOnly = shape.ValuesMatch && shape.ExtraFields == 0 && !reflect.DeepEqual(a, b)
+	return shape
 }
 
 // The caller holds the observation mutex. Only the allowed Read can return its canary; neither

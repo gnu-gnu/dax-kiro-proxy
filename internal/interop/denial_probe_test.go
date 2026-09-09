@@ -60,9 +60,6 @@ func runOnePromptDenialProbe(t *testing.T, clientExecutable, kiroExecutable stri
 
 func runClientToolProbe(t *testing.T, clientExecutable, kiroExecutable, effectKind string) {
 	t.Helper()
-	if effectKind != "" && kiroExecutable != "" {
-		t.Fatal("client effect controls require the independent fake ACP")
-	}
 	root, err := os.MkdirTemp("/private/tmp", "dax-denial-probe-")
 	if err != nil {
 		t.Fatal("cannot create owned denial-probe root")
@@ -100,8 +97,15 @@ func runClientToolProbe(t *testing.T, clientExecutable, kiroExecutable, effectKi
 		t.Fatal("cannot write owned client settings")
 	}
 	var effect *clientEffectProbe
+	var effectSystem, effectUser string
 	if effectKind != "" {
 		effect = prepareClientEffect(t, root, project, filename, canary, effectKind, settings)
+		if kiroExecutable != "" {
+			effectSystem, effectUser, err = liveEffectPrompt(effect)
+			if err != nil {
+				t.Fatal("invalid live tool experiment before process startup")
+			}
+		}
 	}
 	launchBudget := int32(1)
 	if effect != nil && effect.recoverNext {
@@ -141,7 +145,13 @@ func runClientToolProbe(t *testing.T, clientExecutable, kiroExecutable, effectKi
 		}
 		bounded := kiroHomeIdentityRunner(func(ctx context.Context, command childproc.Command) (childproc.Result, error) {
 			command.Environment = append(append([]string(nil), command.Environment...), "KIRO_HOME="+configuration)
-			return runner.Run(ctx, command)
+			limit := 5 * time.Second
+			if len(command.Args) == 4 && strings.Join(command.Args, " ") == "chat --list-models --format json" {
+				limit = 15 * time.Second
+			}
+			bounded, stop := context.WithTimeout(ctx, limit)
+			defer stop()
+			return runner.Run(bounded, command)
 		})
 		kiroConfig := launcher.KiroConfig{Executable: kiroExecutable, Home: os.Getenv("HOME"), Directory: backend, ScopeKey: key}
 		if _, err := launcher.CheckKiro(ctx, bounded, kiroConfig); err != nil {
@@ -227,6 +237,9 @@ func runClientToolProbe(t *testing.T, clientExecutable, kiroExecutable, effectKi
 	}
 	defer driver.Close()
 	b := &onePromptBackend{driver: driver, models: models, readPath: filename, canary: canary, observeUse: func() error {
+		if effect != nil && !effect.beforeUse() {
+			return errors.New("client handoff already has an effect or tool activity")
+		}
 		records, err := relayProcessRecords(relayExecutable)
 		if err != nil || len(records) != 1 {
 			return errors.New("one owned relay process was not observed")
@@ -263,6 +276,9 @@ func runClientToolProbe(t *testing.T, clientExecutable, kiroExecutable, effectKi
 	tool, systemText, userText := "Read", denialSystemPrompt, denialUserPrompt(filename)
 	if effect != nil {
 		tool, systemText, userText = effect.expect.Tool, "Independent client permission exercise.", "Perform the single declared operation, accept the client result, then finish."
+		if kiroExecutable != "" {
+			systemText, userText = effectSystem, effectUser
+		}
 	}
 	command.Args = append(command.Args, "--strict-mcp-config", "--mcp-config", emptyMCP, "--tools", tool)
 	if effect == nil || !effect.interactive {
@@ -318,6 +334,9 @@ func runClientToolProbe(t *testing.T, clientExecutable, kiroExecutable, effectKi
 		t.Error("prepared launch budget or joined retirement was not established")
 	}
 	t.Logf("acp_launches=%d, old_runtime_retired_before_recovery=%v", preparedCount.Load(), retiredBeforeRestart.Load())
+	if effect != nil {
+		t.Logf("tool_argument_comparison=%+v, handoff_group_observed=%v", stats.Arguments, relayGroup.Load() > 1)
+	}
 	t.Logf("live_kiro=%v, initial_request_budget=1, accepted_backend_requests=%d, exposed_tool_calls=%d, matched_results=%d, matched_denials=%d, final_completions=%d, policy_effect_verified=%v, canary_unchanged=%v, canary_in_model_output=%v, relay_gone=%v, observed_group_gone=%v, client_exit=%d, client_output_bytes=%d", kiroExecutable != "", stats.Starts, stats.Uses, stats.Results, stats.Denials, stats.Completions, policyOK, canaryUnchanged, stats.CanaryObserved, relayGone, groupGone, result.ExitCode, len(result.Stdout))
 	serverState := server.Stats()
 	wantState, wantStarts, wantResults, wantCompletions := session.Idle, 2, 1, 1

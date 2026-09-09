@@ -9,8 +9,64 @@ import (
 	"strings"
 	"testing"
 
+	"dax-kiro-proxy/internal/anthropic"
 	"dax-kiro-proxy/internal/inference"
 )
+
+func TestEffectArgumentsCompareJSONValues(t *testing.T) {
+	e := &toolEffectExpectation{Tool: "Bash", Input: json.RawMessage(`{"command":"printf foo \u003e /owned/fixture"}`)}
+	for _, input := range []string{`{"command":"printf foo > /owned/fixture"}`, `{"command":"printf foo \u003e /owned/fixture"}`} {
+		if !e.matches(anthropic.ToolUse{Name: "Bash", Input: json.RawMessage(input)}) {
+			t.Fatal("equal decoded command was rejected because of JSON escaping")
+		}
+	}
+	shape := e.compare(anthropic.ToolUse{Name: "Bash", Input: json.RawMessage(`{"command":"printf foo > /owned/fixture"}`)})
+	if !shape.EncodingOnly || !shape.ValuesMatch || !shape.ValidObjects || shape.ExtraFields != 0 {
+		t.Fatal("encoding-only difference was not distinguished")
+	}
+	for _, input := range []string{`{"command":"printf foo > /elsewhere"}`, `{"command":"printf foo > /owned/fixture","timeout":1000}`, `{"command":"bad","command":"printf foo > /owned/fixture"}`, `{"command":null}`} {
+		if e.matches(anthropic.ToolUse{Name: "Bash", Input: json.RawMessage(input)}) {
+			t.Fatal("a changed operation was accepted")
+		}
+	}
+	shape = e.compare(anthropic.ToolUse{Name: "Bash", Input: json.RawMessage(`{"command":"printf foo > /owned/fixture","description":"private-description"}`)})
+	encoded, _ := json.Marshal(shape)
+	if !shape.ValuesMatch || shape.ExtraFields != 1 || !shape.ExtraDescription || strings.Contains(string(encoded), "private-description") || strings.Contains(string(encoded), "/owned") {
+		t.Fatal("shape diagnostics lost the mismatch or retained values")
+	}
+	numbers := &toolEffectExpectation{Tool: "Bash", Input: json.RawMessage(`{"nested":{"number":9007199254740992}}`)}
+	for _, raw := range []string{`{"nested":{"number":9007199254740993}}`, `{"nested":{"number":1,"number":9007199254740992}}`} {
+		if numbers.matches(anthropic.ToolUse{Name: "Bash", Input: json.RawMessage(raw)}) {
+			t.Fatal("numeric precision loss or duplicate nested key changed exact admission")
+		}
+	}
+}
+
+func TestBashEffectDescriptionDoesNotWidenCommandAdmission(t *testing.T) {
+	e := &toolEffectExpectation{Tool: "Bash", Input: json.RawMessage(`{"command":"printf foo > /owned/fixture"}`)}
+	for _, c := range []struct {
+		input string
+		valid bool
+	}{
+		{`{"command":"printf foo > /owned/fixture","description":"Create the owned fixture"}`, true},
+		{`{"command":"printf foo > /elsewhere","description":"Create the owned fixture"}`, false},
+		{`{"command":"printf foo > /owned/fixture","description":"ok","timeout":1}`, false},
+		{`{"command":"printf foo > /owned/fixture","description":"ok","run_in_background":false}`, false},
+		{`{"command":"printf foo > /owned/fixture","description":null}`, false},
+		{`{"command":"printf foo > /owned/fixture","description":{"text":"ok"}}`, false},
+		{`{"command":"printf foo > /owned/fixture","description":"line\nbreak"}`, false},
+		{`{"command":"printf foo > /owned/fixture","description":"` + strings.Repeat("x", 257) + `"}`, false},
+		{`{"command":"printf foo > /owned/fixture","description":"ok","description":"again"}`, false},
+	} {
+		if e.matches(anthropic.ToolUse{Name: "Bash", Input: json.RawMessage(c.input)}) != c.valid {
+			t.Fatal("Bash description changed exact operation admission")
+		}
+	}
+	write := &toolEffectExpectation{Tool: "Write", Input: json.RawMessage(`{"file_path":"/owned/fixture","content":"foo"}`)}
+	if write.matches(anthropic.ToolUse{Name: "Write", Input: json.RawMessage(`{"file_path":"/owned/fixture","content":"foo","description":"extra"}`)}) {
+		t.Fatal("Bash annotation allowance spread to another tool")
+	}
+}
 
 func TestOnePromptEffectGuardRequiresExactCallAndResult(t *testing.T) {
 	for _, c := range []struct {
@@ -195,6 +251,20 @@ func prepareClientEffect(t *testing.T, root, project, readPath, canary, kind, se
 }
 
 func probeShellQuote(s string) string { return "'" + strings.ReplaceAll(s, "'", "'\\''") + "'" }
+
+func (e *clientEffectProbe) beforeUse() bool {
+	for _, marker := range []string{e.pre, e.post} {
+		if _, err := os.Lstat(marker); !errors.Is(err, os.ErrNotExist) {
+			return false
+		}
+	}
+	if e.expect.ReadCanary {
+		content, err := readDenialArtifact(filepath.Dir(e.path), filepath.Base(e.path), 128)
+		return err == nil && string(content) == e.expect.RequiredText
+	}
+	_, err := os.Lstat(e.path)
+	return errors.Is(err, os.ErrNotExist)
+}
 
 func (e *clientEffectProbe) check(t *testing.T) bool {
 	t.Helper()

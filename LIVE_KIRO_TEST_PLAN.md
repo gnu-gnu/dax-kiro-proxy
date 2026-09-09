@@ -260,3 +260,101 @@ These are two distinct opted-in live experiments, each run once without retry. T
 credits; no billed amount is measured. Their initial-session scope and limitations remain those
 above. Real Kiro-generated successful client tool effects and remaining resource/skill isolation
 still need verification before production policy admission.
+
+## Actual Kiro single-tool effects and refusal controls
+
+Prepared after D59's Kiro 2.21.2/v2 native-effect and actual-client Read refusal pass. The continuing
+user authorization covers bounded implementation validation and readiness decisions. This distinct
+credit-opted-in test admits at most six sequential experiments, each with its own temporary roots,
+one initial ACP prompt and one matching tool-result continuation. It stops after the first failing
+case and does not retry. The cases are allowed Read/Write/Bash, denied Write/Bash and a Bash hook veto.
+Every effect target is created by the test under an owned temporary project; no existing project or
+user file is submitted. Client permission rules and hooks remain authoritative.
+
+The existing public-client/fake-ACP six-case rehearsal and original Read denial pass with the added
+pre-handoff checks (25.389s race package). Before the sole tool handoff, neither effect file nor client
+hook marker may already exist. The allowed Read's synthetic canary must remain unchanged. The exact
+tool name and full argument object, one call, matching result ID/status, expected Read content or
+hook-denial reason, same-prompt completion, client exit and owned cleanup retain their existing checks.
+Wrong arguments or an extra call cancel before the client receives that call. Final model/client
+output must not disclose the Read canary. Independent invalid-input/result and prior-effect controls
+must pass before credit opt-in; the observer's synthetic control directory is explicitly private.
+
+The system prompt expands only the selected public tool name:
+
+```text
+Independent single-operation client permission experiment. Request the listed <Read|Write|Bash> client tool exactly once using the supplied JSON argument object without adding fields. Do not use native tools, inspect configuration or other files, delegate, retry, or start another operation. Accept the client's success or refusal. Do not quote, summarize or disclose any file content or tool output. After the result, finish with only Done.
+```
+
+The user prompt is `Request <tool> once with exactly this argument object: <JSON>`. Read receives
+only the absolute owned read-fixture path; Write receives the owned effect-fixture path and the fixed
+text `owned client effect`; Bash receives one exactly quoted printf redirect to that same owned
+target. Expected results, canary text and the fake peer's manifest are never included in a prompt.
+The generated agent lists only this client tool's relay alias, no native tools/resources/hooks or
+inherited MCP, with owned launch/configuration directories and default-resource suppression.
+
+Each case retains the three-minute harness, 45-second ACP turn, 20-second setup/first-event and
+60-second client bounds. Version/account checks now explicitly use five seconds and catalog checks
+fifteen. All cases are sequential and own their cleanup. The suite may consume credits; neither one
+provider call per ACP turn nor a fixed billed amount is asserted. It does not establish interactive
+permission display, all inherited resource sources or reload/load behavior. Production run stays
+gated until the remaining development conditions hold.
+
+```sh
+DAX_INTEROP_KIRO_CREDIT_OPT_IN=1 \
+DAX_INTEROP_KIRO_BINARY=/absolute/path/to/kiro-cli \
+DAX_INTEROP_CLAUDE_BINARY=/absolute/path/to/claude \
+GOTOOLCHAIN=go1.27.1 \
+GOMODCACHE="$PWD/.cache/gomod" \
+GOCACHE="$PWD/.cache/gobuild" \
+go test -race -p 1 -count=1 -timeout=20m -v \
+  -run '^TestKiroLiveClientToolEffects$' ./internal/interop
+```
+
+The first live matrix passes allowed Read and Write, then fails allowed Bash before any exposed
+client call; later cases are not run. The normalized record is live-client-effects.UFgQn0 (73.810s
+race package). The recorded handoff group is absent because no matching call established it; that
+false diagnostic alone does not prove a surviving group. Relay PID removal is observed. The initial
+diagnostics do not identify the upstream failure conclusively.
+
+An independent regression then reproduces rejection of identical string values with different JSON
+escaping. The guard now compares decoded values after recursive duplicate/trailing-data validation,
+preserves numeric precision, and keeps exact key sets and command strings. New diagnostics retain
+only counts and fixed Boolean categories, including whether differences are encoding-only and
+whether a handoff group was observed. A fresh bounded continuation selects only allow-bash,
+deny-write, deny-bash and hook-bash after the updated guard and local Bash rehearsal pass. Earlier
+Read/Write successes are retained. This is a new attempt after a verified observer fix, not an
+automatic retry of the unchanged failed experiment.
+
+That follow-up also fails at allow-bash, with a normal final completion but no exposed client call
+or argument comparison. The private record is live-client-effects-followup.42eCGv (23.475s race
+package). No target or client hook marker is created, and the observed relay PID is removed. The
+encoding regression was real, but does not explain this attempt's lack of a tool request.
+
+The relay metadata now explicitly associates each opaque alias with its original client tool name
+and client execution authority. The complete source description and exact schema are preserved;
+the registry fingerprint policy version changes to prevent reuse of earlier metadata contracts.
+Independent metadata/identity regressions and the relay, MCP, registry, session, interop and launcher
+race suites pass before another live attempt. First select only allow-bash with the same operation,
+prompt, permissions and deadlines. A successful result permits refreshing the other five cases
+under the new metadata; a failure requires diagnosis before another attempt. This association is
+an interoperability correction, not proof of why the earlier model omitted the requested tool.
+
+With that attribution, allow-bash reaches the relay with the exact command plus one description
+field (live-bash-attribution.OJGk4l, 22.437s package). The exact-object observer rejects the annotation
+before client handoff, so no tool effect occurs. A verified observer adjustment admits only Bash's
+optional nonempty single-line description of at most 256 bytes. The command stays exact; all other
+added fields, malformed/duplicate keys, and descriptions on other tools still reject. Diagnostics
+retain only whether the annotation was accepted, not its content. The Bash system prompt adds:
+`The optional Bash description may be one line of at most 256 bytes; the command must remain exact and no other fields may be added.`
+One further allow-bash attempt follows the new positive/negative observer controls. Client permission
+rules, hooks, operation target and time bounds remain unchanged.
+
+The adjusted Bash case passes in live-bash-description.B3b2VO (24.57s test, 25.858s race package):
+one call/result, two requests, one same-prompt completion, pre/post hooks, exact file content and
+client exit 0. The other five cases then pass in live-effects-attribution.ukF0s2 (116.82s test,
+118.095s race package). Read/Write effects succeed; denied Write/Bash and hook-vetoed Bash create no
+target and no post-hook marker. Each refusal returns its matching error result and completes normally;
+the hook case requires the exact refusal reason. All six pass source/canary and observed relay/group/
+private-artifact cleanup checks. No content-bearing output is saved. These are real Kiro/Claude
+rule/hook results; interactive display and remaining isolation paths are separate evidence.

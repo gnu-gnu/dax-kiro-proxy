@@ -6,6 +6,14 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D60 adds original client names and client permission/hook authority to relay descriptions while
+  preserving opaque wire names, complete descriptions and schemas. Registry identity changes with
+  this metadata policy. Actual Kiro 2.21.2/v2 and Claude 2.1.263 now pass all six rule/hook cases:
+  allowed Read/Write/Bash, denied Write/Bash and Bash hook refusal. Bash passes separately in
+  25.858s; the other five pass in 118.095s, with exact effects/results and complete observed cleanup.
+  Earlier Bash failures led to independently verified JSON comparison and bounded description-field
+  corrections in the test observer. No failed attempt is counted as a pass. Interactive display
+  remains verified with fake ACP; skill/source isolation and the production launch adapter remain.
 - D59 migrates finite preflight to exact Kiro 2.21.2 main/helper after fresh installed account and
   CLI/ACP catalog checks pass (19.363s race package). All 19 model identities and aliases match;
   no model prompt is sent. Old/future/mismatched binaries reject before account lookup. Versioned

@@ -68,9 +68,10 @@ execution restrictions and the complete product acceptance gates remain unfinish
 build is not a release or installation procedure.
 
 The initial-session native-effect challenge and real-client Read-hook refusal both pass freshly on
-Kiro 2.21.2, with unchanged files and joined process cleanup. Six actual Claude/fake ACP cases verify
-allowed Read/Write/Bash, denied Write/Bash and Bash
-hook vetoes. Interactive Write/Bash approval and refusal with a comment also pass with fake ACP;
+Kiro 2.21.2, with unchanged files and joined process cleanup. Six actual Kiro 2.21.2 / Claude 2.1.263
+cases now also verify allowed Read/Write/Bash, denied Write/Bash and Bash hook vetoes, including
+matching results, effects and cleanup. Relay descriptions explicitly associate opaque wire names
+with original client names. Interactive Write/Bash approval and refusal with a comment pass with fake ACP;
 the Write content/permission screen is checked before input. Bare refusal now verifies cleanup at
 the existing deadline and safe recreation for a following question, using actual Claude with fake
 ACP. Remaining isolation paths and real Kiro variants still need verification; these results do not

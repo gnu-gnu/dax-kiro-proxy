@@ -199,7 +199,7 @@ initial states.
 ## 10. Tool relay flow
 
 1. Validate the request’s tool declarations and build a deterministic registry.
-2. Give Kiro only opaque aliases, never client tool names directly where aliasing is required.
+2. Use opaque aliases for Kiro's tool wire names, retaining the original client name in metadata.
 3. Launch a session-specific relay MCP child whose tools/list exposes those aliases.
 4. Kiro calls an alias through the relay.
 5. The parent authenticates the control request, validates the schema, and creates a unique client
@@ -213,6 +213,11 @@ initial states.
 Alias generation is deterministic from the original tool name, uses a cryptographic digest prefix, and
 extends the prefix on collision. The registry fingerprint includes original name, alias, description,
 input schema, and native-tool choices.
+
+Each relay description identifies the original client tool name and states that execution is decided
+by client permissions and hooks. The complete original description follows this attribution. The
+opaque wire alias and input schema stay unchanged. Registry identity includes the metadata policy
+version, so sessions prepared under an earlier metadata contract cannot share its fingerprint.
 
 ## 11. Cancellation and failure flow
 

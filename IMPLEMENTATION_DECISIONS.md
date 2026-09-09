@@ -2151,3 +2151,64 @@ Successful actual Kiro-generated Read/Write/Bash with client permission controls
 resource/skill sources and the prepared production policy remain the next development work. Unused
 reload/load paths must stay disabled unless separately verified; optional web/usage and release soak
 remain outside the development-launch prerequisite set.
+
+## D60: original client names in relay metadata and actual tool effects (review R06/R14)
+
+Opaque relay names previously lacked an explicit association with original client names. Each MCP
+description now prefixes that association and the client's execution authority, followed by the
+complete original description. Wire aliases and input schemas do not change. The private child
+description limit is 8,192 + 256 bytes; source descriptions retain their full existing allowance.
+Registry identity moves to version 2 so existing sessions cannot reuse the earlier metadata contract.
+Independent tests cover empty and maximum descriptions, maximum names, unchanged schemas, compiled
+MCP tools/list output and fingerprint invalidation. They fail before the corresponding changes.
+
+The public [MCP tool definition](https://modelcontextprotocol.io/specification/2025-06-18/server/tools)
+separates wire identity, optional display title and functional description. A description prefix keeps
+the association attached to each immutable tool; optional title alone cannot establish what a client
+passes to a model. This does not guarantee tool selection or diagnose earlier model behavior.
+
+The actual Kiro 2.21.2/v2 and Claude 2.1.263 test permits one exact owned operation and its matching
+result continuation per case. The initial six-case matrix passes allowed Read and Write, then stops
+at Bash without a client call (live-client-effects.UFgQn0, 73.810s package). An independent guard
+regression exposes rejection of equivalent JSON string escaping. Comparison now decodes values after
+strict recursive duplicate validation, preserving command strings and numeric precision. A follow-up
+still ends without a tool call (live-client-effects-followup.42eCGv, 23.475s), so encoding is not an
+established explanation of the live failure.
+
+With the original-name attribution, Bash reaches the relay with the exact command and one additional
+description (live-bash-attribution.OJGk4l, 22.437s). The observer refuses it before client execution.
+New positive/negative controls then admit only the optional Bash description as a nonempty single-line
+string of at most 256 bytes. Changed commands, other added fields including timeout/background, bad
+types and duplicate fields remain rejected. Other tool inputs still require exact key sets. This is
+an experiment admission correction; production schema validation and client permissions are unchanged.
+Only fixed field categories and counts are retained; actual descriptions and arguments are not logged.
+
+The next single Bash case passes in live-bash-description.B3b2VO: 24.57s test / 25.858s race package.
+It has one tool call, matching successful result, two requests and one same-prompt completion. The
+client's pre/post hooks run, the owned target has the exact content, source/canary checks pass and the
+relay/group/artifacts are removed. Claude exits 0. The description is admitted but not retained.
+LIVE_KIRO_TEST_PLAN.md records the bounds and successive changes; no failed case is silently retried.
+
+Two authorized local Claude consultations used generic public JSON/MCP questions only, with tools,
+MCP and hooks disabled and 60-second/64-KiB bounds. Both exited 0 with one answer. Full answers and
+reviews are saved under .cache/claude-consult/work/json-value-review-v81chywo and
+.cache/claude-consult/work/tool-alias-context-review-0v0bdn_p. Adopted decoded-value comparison and
+complete tool-name attribution; rejected mapping elision and unneeded hashes/arbitrary-key logging.
+No earlier implementation or actual client inputs were supplied. No dependency changes.
+
+The other five cases pass freshly with the new metadata in live-effects-attribution.ukF0s2:
+116.82s test / 118.095s race package. Read takes 25.23s, Write 23.68s, denied Write 21.57s,
+denied Bash 22.26s and hook-vetoed Bash 24.08s. Each has one matching call/result, two requests,
+one same-prompt completion and client exit 0. Allowed effects have pre/post hooks; refused effects
+are absent and have no post hook. The Bash hook refusal returns the exact expected reason.
+All source/canary, relay/group and private artifact cleanup checks pass. Together with the separate
+Bash case this establishes all six rule/hook paths on the current metadata contract. Interactive
+screen evidence remains the independent fake-ACP result, and skill/source isolation and prepared
+production policy remain separate development work. These model tests may consume account credits;
+no provider-billed usage is measured. Raw model/client output is checked without retaining content.
+
+Applicable uncached race suites pass: relay 10.436s, MCP 7.071s, registry 1.889s, session 17.319s,
+launcher 21.850s and final interop 21.929s, with installed opt-ins disabled. Targeted malformed
+annotation/command/JSON controls pass in 1.595s. Whole-repository go vet, formatting, whitespace
+checks and the development build pass. Production run remains unavailable until the remaining
+initial-session isolation evidence and built-in launch policy are connected.

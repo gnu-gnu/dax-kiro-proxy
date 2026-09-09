@@ -160,12 +160,17 @@ func TestMCPChildLifecycleAndClientOnlyRoundTrip(t *testing.T) {
 	list := c.receive(t)
 	var tools struct {
 		Tools []struct {
-			Name string `json:"name"`
+			Name        string          `json:"name"`
+			Description string          `json:"description"`
+			InputSchema json.RawMessage `json:"inputSchema"`
 		}
 	}
 	_ = json.Unmarshal(list["result"], &tools)
 	if len(tools.Tools) != 1 || tools.Tools[0].Name != alias {
 		t.Fatal("MCP list exposed undeclared/original tool")
+	}
+	if !strings.Contains(tools.Tools[0].Description, `Client tool name: "synthetic_client_tool"`) || !strings.HasSuffix(tools.Tools[0].Description, "Only the fixture client completes this request.") || string(tools.Tools[0].InputSchema) != `{"type":"object"}` {
+		t.Fatal("MCP metadata lost the client name, source description or exact schema")
 	}
 	c.send(t, "invoke-id", "tools/call", map[string]any{"name": alias, "arguments": map[string]any{"synthetic": "value"}})
 	until := time.Now().Add(time.Second)
