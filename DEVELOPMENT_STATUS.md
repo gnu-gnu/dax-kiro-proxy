@@ -6,6 +6,22 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D101 connects lazy account usage to `run` using a separate empty-agent Kiro 2.21.2/v2 session.
+  Independent parser/lifecycle tests cover malformed and ambiguous amounts, session/command/tool
+  admission, cache coalescing, identity mismatch, timeout, repeated close and cleanup-failure
+  latching. Read-only discovery verifies CREDIT used/limit fields without retaining amounts. The
+  production cache passes one actual refresh in 10.25s (13.195s race package), with one ACP process,
+  three post-initialize RPCs, zero model prompts, unchanged source settings and removed owned
+  resources. It reports server-used/conditional-limit credits, never inferred remaining or summed
+  supplemental credits. The 60-second cache and 15-second refresh deadline keep status reads and
+  model requests independent. Launcher/startup/usage race controls pass in 16.467s after fixing the
+  independent peer's macOS path-alias assertion. Native status rendering with account data, nonempty
+  supplemental payloads and full release gates remain separate. D100's actual plugin experiment
+  still awaits its required explicit approval.
+  Whole-repository race verification passes in 27 packages (six without tests), with interop
+  26.839s, launcher 25.982s and session 28.581s. Whole-repository/new-peer vet, formatting and
+  whitespace checks pass. D101's rebuilt development executable and new usage inventory pass all
+  141 byte checks with release clearance false. D99 is retained; no dependency is added/upgraded.
 - D100 prepares a simpler fresh-result phrase for the unresolved actual plugin completion gate.
   Sixteen independent allowance/refusal counterexamples first expose early-token disclosure, then
   pass with the corrected guard and existing sequence tests (1.799s). A new fixture token-extraction

@@ -96,9 +96,9 @@ def main():
     parser.add_argument("--binary", type=Path,
                         help="also require byte identity with the recorded development artifact")
     parser.add_argument("--snapshot",
-                        choices=("development", "installation", "native-history", "relay-close", "effort"),
+                        choices=("development", "installation", "native-history", "relay-close", "effort", "usage"),
                         default="development",
-                        help="select the frozen D78, D79, D87, D96 or D99 artifact record")
+                        help="select the frozen D78, D79, D87, D96, D99 or D101 artifact record")
     args = parser.parse_args()
     try:
         report = ROOT / ("third_party/inventory/macos-arm64-" + args.snapshot + ".json")

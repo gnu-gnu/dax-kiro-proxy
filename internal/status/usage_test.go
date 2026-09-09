@@ -13,6 +13,43 @@ import (
 )
 
 func amount(n float64) *float64 { return &n }
+
+func TestUsageCloseJoinsFetchBeforeReportingOwnerFailure(t *testing.T) {
+	entered, ended := make(chan struct{}), make(chan struct{})
+	var closes atomic.Int32
+	failure := errors.New("independent-cleanup-failure")
+	c, err := NewUsageCache(UsageConfig{Fetch: func(ctx context.Context) (UsageData, error) {
+		close(entered)
+		<-ctx.Done()
+		close(ended)
+		return UsageData{}, ctx.Err()
+	}, Close: func() error {
+		select {
+		case <-ended:
+		default:
+			t.Error("owner closed before fetch joined")
+		}
+		closes.Add(1)
+		return failure
+	}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	c.Read()
+	<-entered
+	var callers sync.WaitGroup
+	for range 20 {
+		callers.Go(func() {
+			if !errors.Is(c.Close(), failure) {
+				t.Error("cleanup failure lost")
+			}
+		})
+	}
+	callers.Wait()
+	if closes.Load() != 1 || c.Read().Refreshing {
+		t.Fatal("cleanup repeated or refresh still admitted")
+	}
+}
 func awaitUsage(t *testing.T, c *UsageCache, accept func(UsageSnapshot) bool) UsageSnapshot {
 	t.Helper()
 	until := time.Now().Add(time.Second)

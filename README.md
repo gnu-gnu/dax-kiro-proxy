@@ -222,6 +222,15 @@ servers, project refusal and local/project/user precedence, with unchanged sourc
 process cleanup. Plugins, skills, existing status commands and remote MCP OAuth remain separate
 preservation work; see decision D64 for the measured limits.
 
+D101 connects account usage to `run`. Status reads return immediately from a 60-second cache; an
+asynchronous refresh uses a fresh empty-agent Kiro session with a 15-second deadline and no model
+prompt. The measured 2.21.2 adapter reports server-provided used credits and, when present, their
+limit. It does not infer a remaining balance or combine supplemental credit buckets. One native
+refresh passes with preserved source settings and joined process/file cleanup. Failed refreshes
+retain the last good/model-only view. `doctor` and `models` do not start usage sessions. Nonempty
+bonus/add-on/enterprise payloads and native Claude status rendering with account data remain
+separate checks; this optional feature does not change development-launch admission.
+
 Standard user plugins now also have a read-only seed path into the temporary profile. Full print
 startup checks an owned plugin's MCP initialization/discovery, disable/re-enable behavior and source
 preservation. Finite list commands do not establish that startup behavior. Plugin tool success and
@@ -292,11 +301,11 @@ from 41.61s to 10.67s with all recorded ownership removed. Whole-repository race
 allow/deny/hook controls and actual Kiro/Claude allowed-tool resume pass. These finite measurements
 do not establish general throughput or complete the remaining soak gates.
 
-Phase 7 has frozen dependency inventories and retained scoped notices. For the D99 effort
+Phase 7 has frozen dependency inventories and retained scoped notices. For the D101 account-usage
 development artifact, run `python3 tools/verify_dependency_inventory.py --gomodcache .cache/gomod
---snapshot effort --binary dist/dax-kiro-proxy`. The default `development` snapshot identifies
+--snapshot usage --binary dist/dax-kiro-proxy`. The default `development` snapshot identifies
 D78's earlier D77 binary, `installation` identifies D79, `native-history` identifies D87 and
-`relay-close` identifies D96. Those
+`relay-close` identifies D96; `effort` identifies D99. Those
 historical snapshots do not match this rebuild and its changed production source. These offline byte checks
 do not grant release license clearance; see DEPENDENCY_REVIEW.md for resource differences and
 remaining packaging/rights work.

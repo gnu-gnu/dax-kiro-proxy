@@ -150,8 +150,11 @@ func TestStartupOwnedCompositionWithIndependentExecutables(t *testing.T) {
 			if !got.result.Startup.LaunchAvailable || got.result.Startup.ClientInitialization != "unverified" || prepared.Load() != 1 || cleaned.Load() != 1 {
 				t.Fatal("incomplete lifecycle or false readiness", prepared.Load(), cleaned.Load())
 			}
-			if observed == nil || observed.Server.Gateway.Metrics == nil {
-				t.Fatal("startup did not connect metrics")
+			if observed == nil || observed.Server.Gateway.Metrics == nil || observed.Server.Gateway.Usage == nil {
+				t.Fatal("startup did not connect metrics and usage")
+			}
+			if observed.Server.Gateway.Usage.Read().Refreshing {
+				t.Fatal("startup left its usage cache open")
 			}
 			if _, err := observed.Models.Models(context.Background()); err == nil {
 				t.Fatal("transferred catalog remained open")

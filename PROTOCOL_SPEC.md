@@ -344,6 +344,21 @@ true. A missing command, well-formed negative result, or command rejection is no
 the effective sync status. Transport corruption, failed writes, process termination, and ambiguous
 timeouts retain the process-retirement semantics of section 4, even during an optional command.
 
+### Account usage
+
+On the measured Kiro 2.21.2/v2 combination, a separate empty-agent ACP session may execute the
+advertised `tools` and `usage` commands with `{sessionId, command: {command, args: {}}}` (D101).
+The tools result must first confirm an empty list. This path never issues `session/prompt`, borrows
+a model session, enables native tools or copies user Kiro configuration. Missing advertisements,
+malformed replies and query failures leave usage unavailable or preserve its last good cache entry;
+they do not fail a model request. Other versions require new evidence.
+
+A successful result has `success: true` and a `data.usageBreakdowns` array. Only a unique
+`resourceType: "CREDIT"` entry supplies `used_credits` from `used` and, when `hasLimit: true`,
+`limit_credits` from `limit`. Amounts must be finite numbers from zero through 1e12. The proxy does
+not derive remaining credits, combine bonus/add-on buckets, expose account labels or convert these
+credit amounts into provider token usage. D101 records the bounds and version-specific evidence.
+
 ### Metadata
 
 `_kiro.dev/metadata` is a notification associated with a session. Recognized fields are context usage

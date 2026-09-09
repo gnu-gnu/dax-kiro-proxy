@@ -125,7 +125,9 @@ func Start(ctx context.Context, cfg Config) (*Client, error) {
 	}
 	if err != nil {
 		c.retire(err)
-		_ = c.Close()
+		if c.Close() != nil {
+			err = errors.Join(err, ErrCleanup)
+		}
 		return nil, err
 	}
 	c.mu.Lock()
@@ -133,7 +135,9 @@ func Start(ctx context.Context, cfg Config) (*Client, error) {
 	err = c.err
 	c.mu.Unlock()
 	if err != nil {
-		_ = c.Close()
+		if c.Close() != nil {
+			err = errors.Join(err, ErrCleanup)
+		}
 		return nil, err
 	}
 	return c, nil

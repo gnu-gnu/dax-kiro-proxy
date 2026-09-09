@@ -424,6 +424,11 @@ func TestKiroPinnedEffortRoundTrip(t *testing.T) {
 
 func observeEffortInventory(t *testing.T, executable string, probe *effortWireProbe) {
 	t.Helper()
+	observeSettingsPreservingInventory(t, executable, inventoryVariant{effort: probe})
+}
+
+func observeSettingsPreservingInventory(t *testing.T, executable string, variant inventoryVariant) {
+	t.Helper()
 	path := filepath.Join(os.Getenv("HOME"), ".kiro", "settings", "cli.json")
 	check := func() {
 		info, err := os.Lstat(path)
@@ -441,5 +446,5 @@ func observeEffortInventory(t *testing.T, executable string, probe *effortWirePr
 			t.Error("protected Kiro settings changed")
 		}
 	}()
-	observePinnedInventory(t, executable, []string{}, []string{}, "", inventoryVariant{effort: probe})
+	observePinnedInventory(t, executable, []string{}, []string{}, "", variant)
 }

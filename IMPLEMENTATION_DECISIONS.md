@@ -4648,3 +4648,66 @@ of one allowance plus one hook refusal, two ACP prompts per case (four total), w
 questions/results and the client's default instructions/tool definitions sent to Kiro. Credit use
 is provider-dependent and is not estimated here. The action remains pending; this record does not
 override the rejection or claim a live pass. The remaining independent product work is unaffected.
+
+## D101: connect account usage through an isolated non-model command
+
+The public Kiro slash-command reference describes `/usage`; installed 2.21.2 finite help still has
+no top-level usage command. An owned empty-agent ACP session advertises usage and tools. The
+independently verified command envelope accepts `command: "usage", args: {}` without a model turn.
+Read-only observations retain only shape, success, enum classes and counts. The 446-byte native
+result contains a CREDIT entry labeled Credits, numeric used/limit, hasLimit, and empty bonus/add-on
+arrays. No actual amounts, plan labels or response prose enter logs or fixtures. Sources are the
+unmodified local CLI, https://kiro.dev/docs/cli/reference/slash-commands/ and
+https://kiro.dev/docs/cli/acp/.
+
+The private adapter maps only the unique CREDIT entry's reported used and conditional limit. It
+ignores supplemental buckets and never calculates a total remaining balance. No aggregate meaning
+is inferred for accounts with add-ons, bonuses or enterprise overages, whose nonempty private
+payloads have not been observed. Independent fixtures cover unknown units, duplicate entries/keys,
+invalid numbers, over-limit usage, absent limits and supplemental values without summation. Replies
+are bounded at 64 KiB, breakdowns at sixteen and amounts at 1e12. Account usage stays separate from
+turn metadata; no credit amount enters Anthropic provider token accounting.
+
+Each refresh creates a fresh private profile, scratch and empty workspace. It reuses the measured
+resource-suppression preparation but supplies its own zero-tool/zero-MCP agent, empty resources/hooks,
+no MCP JSON inheritance and no client filesystem/terminal capabilities. Before ACP, three finite
+version/helper/account checks must match the launch's HMAC account scope. The fresh session receives
+no MCP declarations. At most 64 notifications/1 MiB are considered; a foreign session, MCP
+initialization, malformed/duplicate command advertisement or nonempty tools result stops before
+usage dispatch. Only session/new, tools and usage are sent after initialize.
+
+The cache remains lazy, coalesces readers for 60 seconds and returns immediately. A refresh has a
+15-second total deadline, including identity checks; each finite CLI check has a five-second limit.
+ACP has a 128 KiB frame limit, four pending/writer slots, 64 notification slots/1 MiB and existing
+finite cleanup stages. Every refresh joins its ACP process and command runner before publishing
+data or removing its root. Cleanup failure preserves the root and stops this cache's further
+refresh admission. Roots are direct children of the launch runtime parent, outside the model/client
+startup root, so outer cleanup cannot remove a preserved usage root. Cache Close cancels and joins
+once, reports owner failure to RunClient and cannot admit late readers. ACP initialization now
+preserves a distinct cleanup-failure marker instead of hiding a failed join behind its initial error.
+
+`run` owns this cache through early exits and normal shutdown. `doctor` and `models` return before
+cache construction and retain their no-ACP behavior. Query/identity failure preserves the existing
+model-only or last-good view; optional usage does not change development admission. Scope checks
+precede the command; they do not claim an atomic snapshot across external login changes.
+
+The independent process test initially fails its session path assertion because macOS can name the
+same temporary directory through /var and /private/var. The fixture now requires directory identity
+instead of string equality, preserving the requested workspace and empty-MCP checks. Normal query
+and held-response cancellation then pass with all recorded groups removed. Launcher/usage/startup
+race controls pass in 16.467s, including cleanup-failure latching and early exit propagation. The
+prior sandboxed runtime attempt fails at loopback binding; the authorized local-process run passes.
+
+One production-cache refresh against unmodified Kiro passes in 10.25s (13.195s race package). The
+refresh itself takes 7.311s, uses one ACP process/three post-initialize RPCs and zero model prompts,
+and returns normalized used/limit fields. Source settings are unchanged; the recorded ACP group
+and owned files are removed. This verifies the adapter/cache path, not new native Claude status
+rendering, add-on/enterprise accounts, actual billing precision or release clearance. D100's
+separately rejected credit-consuming plugin experiment remains pending.
+
+Whole-repository race verification passes in all 27 tested packages (six without tests), including
+ACP 5.504s, interop 26.839s, launcher 25.982s, session 28.581s and status 1.446s. Whole-repository
+and new independent-peer vet passes; formatting and whitespace checks pass. The D101 development
+binary replaces dist after retaining D99. Its 141 byte checks pass; the same 267 packages and four
+external dependencies remain selected. Two production files are added and five changed, with
+102 repository input records. DEPENDENCY_REVIEW.md records the exact artifact and open release work.

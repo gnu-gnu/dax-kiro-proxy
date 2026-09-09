@@ -1890,3 +1890,27 @@ then only on success one hook refusal, at most four ACP prompts total under the 
 above. It sends synthetic test questions/results and default client instructions/tool definitions
 to Kiro, with provider-dependent credit use. Do not treat preparation as approval or bypass the
 review rejection. Production and the verified D99 artifact remain unchanged.
+
+## D101: read-only account usage cache
+
+`TestKiroPinnedUsageAdvertisement` and `TestKiroPinnedUsageQuery` in internal/interop establish the
+owned session's usage advertisement and private result structure, retaining only shapes/classes
+and counts. `TestKiroPinnedUsageCache` in internal/launcher checks the production cache/preparation
+with the native Kiro binary opt-in and credit opt-in explicitly zero. It permits one refresh, one
+ACP process and exactly session/new, tools and usage after initialization. A wrapper rejects other
+commands, extra RPCs and every session/prompt. Finite version/helper/account checks and the usage
+query use the existing login without logging identity. Claude is not launched; no credit-consuming
+inference is allowed.
+
+The refresh uses a fresh zero-tool/zero-MCP agent with resource suppression and isolated settings.
+It must first observe matching-session command availability and an empty tools result. The cache
+returns immediately, publishes reported CREDIT used/conditional-limit only after joined cleanup,
+does not infer remaining and cannot recreate work after Close. Failure stops the observation.
+Original Kiro settings are fingerprinted before/after; retained groups or cleanup failures preserve
+the owned observation directory and fail the test. Amounts/private payloads are never printed.
+
+Independent query/parser/lifecycle controls precede this native cache test. The completed native
+case passes in 10.25s, with a 7.311s refresh, one process/three post-initialize RPCs, unchanged source
+settings and removed owned files/group. Native Claude status rendering, nonempty supplemental
+buckets and other versions remain separate. This read-only action does not authorize or bypass
+D100's rejected plugin model experiment.

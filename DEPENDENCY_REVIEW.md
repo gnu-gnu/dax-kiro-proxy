@@ -673,3 +673,27 @@ The rebuilt candidate passes all 139 byte checks and release_clearance remains f
 forward the existing scoped dependency review; advisory/reachability review, complete native/build/
 test attribution, clean-host distribution and owner rights remain open. Correcting the private
 command does not establish private-extension licensing permission or release clearance.
+
+## Account usage artifact snapshot — D101, 2026-09-10
+
+`third_party/inventory/macos-arm64-usage.json` records the rebuilt 13,624,658-byte development
+command, SHA-256 `d9c786248f3b7c90de0e3ecc546bd2365ffff4740754eb3ea432774894136bac`.
+It identifies Go 1.27.1, darwin/arm64, CGO_ENABLED=1 and parent
+8ba2f00ac7dfa1c435222470217b454471cca3f4 with vcs.modified=true. It captures the uncommitted
+D101 production inputs rather than claiming a subsequent clean-commit build.
+
+There are 102 repository input records: 93 selected Go files, seven embedded notice/reference
+files and go.mod/go.sum. Two usage adapters are added; ACP initialization, launcher startup/runtime
+and the usage cache account for five changed source files. The 267 import paths, four external
+module versions/sums/package sets, native selections and stdlib vendor packages match D99. Only
+the two adapter packages gain selected filenames. Retained notices and reviewed dependency bytes
+are unchanged. No dependency is added or upgraded. D99 remains the hashed predecessor, with its
+executable retained before replacement.
+
+```sh
+python3 tools/verify_dependency_inventory.py --gomodcache .cache/gomod --snapshot usage --binary dist/dax-kiro-proxy
+```
+
+All 141 byte checks pass with release_clearance false. Existing advisory/reachability, native/build/
+test attribution, clean-host distribution and owner-rights work remain open. The read-only private
+usage observation is interoperability evidence and does not grant private-extension license rights.

@@ -17,6 +17,7 @@ var (
 	ErrOverloaded     = errors.New("ACP resource limit exceeded")
 	ErrClosed         = errors.New("ACP process is closed")
 	ErrParameters     = errors.New("invalid ACP request parameters")
+	ErrCleanup        = errors.New("ACP process cleanup did not complete")
 )
 
 type Info struct {

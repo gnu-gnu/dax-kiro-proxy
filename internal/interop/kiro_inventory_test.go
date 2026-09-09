@@ -327,6 +327,7 @@ func observePinnedToolsInventory(t *testing.T, executable string, declaredTools,
 }
 
 type inventoryVariant struct {
+	usage           *usageCommandProbe
 	effort          *effortWireProbe
 	skills          *skillInventoryProbe
 	resourceControl string
@@ -342,8 +343,9 @@ type inventoryVariant struct {
 
 func observePinnedInventory(t *testing.T, executable string, declaredTools, listedTools []string, relayExecutable string, variant inventoryVariant) {
 	t.Helper()
-	if variant.effort != nil && (variant.version != "" || len(declaredTools) != 0 || relayExecutable != "" || variant.native != nil || variant.context || variant.catalog || variant.sources != nil || variant.directories != nil || variant.skills != nil || variant.resource || variant.resourceControl != "") {
-		t.Fatal("effort observation requires its separate empty-agent setup")
+	privateQuery := variant.effort != nil || variant.usage != nil
+	if privateQuery && (variant.effort != nil && variant.usage != nil || variant.version != "" || len(declaredTools) != 0 || relayExecutable != "" || variant.native != nil || variant.context || variant.catalog || variant.sources != nil || variant.directories != nil || variant.skills != nil || variant.resource || variant.resourceControl != "") {
+		t.Fatal("private command observation requires its separate empty-agent setup")
 	}
 	if variant.version != "" && (variant.version != "2.21.2" || len(declaredTools) != 0 || relayExecutable != "" || variant.native != nil || variant.catalog || variant.sources != nil || variant.directories != nil) {
 		t.Fatal("new-version observation must remain an empty-agent read-only probe")
@@ -368,19 +370,19 @@ func observePinnedInventory(t *testing.T, executable string, declaredTools, list
 	if err != nil {
 		t.Fatal("cannot create owned inventory root")
 	}
-	effortGroup := 0
+	commandGroup := 0
 	defer func() {
-		if effortGroup != 0 && !errors.Is(syscall.Kill(-effortGroup, 0), syscall.ESRCH) {
-			t.Error("effort group survived; private root preserved")
+		if commandGroup != 0 && !errors.Is(syscall.Kill(-commandGroup, 0), syscall.ESRCH) {
+			t.Error("private command group survived; private root preserved")
 			return
 		}
 		err := os.RemoveAll(root)
-		if variant.effort != nil {
+		if privateQuery {
 			_, state := os.Lstat(root)
 			gone := err == nil && os.IsNotExist(state)
-			t.Logf("effort_private_root_removed=%v", gone)
+			t.Logf("command_private_root_removed=%v", gone)
 			if !gone {
-				t.Error("effort observation retained its private root")
+				t.Error("private command observation retained its root")
 			}
 		}
 	}()
@@ -598,8 +600,8 @@ func observePinnedInventory(t *testing.T, executable string, declaredTools, list
 		t.Fatalf("inventory ACP initialization failed: %s", kiroSetupFailure(err))
 	}
 	defer client.Close()
-	if variant.effort != nil {
-		effortGroup = client.PID()
+	if privateQuery {
+		commandGroup = client.PID()
 	}
 	if socket != nil && socket.BindProcess(client.PID()) != nil {
 		t.Fatal("cannot bind the owned inventory ACP group")
@@ -614,6 +616,14 @@ func observePinnedInventory(t *testing.T, executable string, declaredTools, list
 		defer stopInventory()
 	}
 	report, callErr := readOnlyToolsInventoryAfter(inventoryContext, client, sessionDirectory, 3*time.Second, required)
+	if variant.usage != nil {
+		if callErr != nil || !report.Success || report.DataSizes["tools"] != 0 {
+			t.Error("empty-tool usage prerequisites failed")
+		} else if err := variant.usage.query(ctx, client, report); err != nil {
+			t.Errorf("read-only usage query failed: %s", kiroSetupFailure(err))
+		}
+		t.Logf("usage_query=%+v, model_prompt_sent=false", variant.usage.report)
+	}
 	if variant.effort != nil {
 		if callErr != nil || !report.Success || report.DataSizes["tools"] != 0 {
 			t.Error("empty-tool effort prerequisites failed")
@@ -723,6 +733,7 @@ func observePinnedInventory(t *testing.T, executable string, declaredTools, list
 		closeErr == nil && groupGone && runner.Active() == 0, time.Since(started).Milliseconds())
 	t.Logf("declared_tool_count=%d, data_kinds=%v, data_container_sizes=%v, tool_entry_kinds=%v, listed_native_names=%v", len(declaredTools), report.DataKinds, report.DataSizes, report.ToolEntryKinds, report.ListedNativeNames)
 	t.Logf("context_command_advertised=%v, context_descriptor_shape=%v, context_metadata_shape=%v", report.ContextAvailable, report.ContextFields, report.ContextMetaShape)
+	t.Logf("usage_command_advertised=%v, usage_query_sent=%v", len(report.usageDescriptor) > 0, variant.usage != nil && variant.usage.report.Sent)
 	if variant.catalog {
 		t.Logf("catalog_comparison=%+v, model_selection_sent=false, model_prompt_sent=false", report.ModelCatalog)
 		if !report.ModelCatalog.Decoded || !report.ModelCatalog.CLIAuto || !report.ModelCatalog.ACPAuto {

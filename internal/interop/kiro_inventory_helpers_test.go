@@ -32,6 +32,7 @@ type inventoryReport struct {
 	contextDescriptor json.RawMessage
 	contextQueried    bool
 	effortDescriptor  json.RawMessage
+	usageDescriptor   json.RawMessage
 	sessionModels     json.RawMessage
 	ContextAvailable  bool
 	ContextFields     map[string]string
@@ -459,6 +460,9 @@ func (r *inventoryReport) observe(n acp.Notification, session string) error {
 			seen[name] = true
 			if name == "effort" {
 				r.effortDescriptor = append(json.RawMessage(nil), raw...)
+			}
+			if name == "usage" {
+				r.usageDescriptor = append(json.RawMessage(nil), raw...)
 			}
 			if name == "context" {
 				r.ContextAvailable = true

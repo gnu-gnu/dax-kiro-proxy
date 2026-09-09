@@ -378,4 +378,18 @@ func TestClientRuntimeJoinsUsageAndReportsSanitizedCleanupFailure(t *testing.T) 
 	}
 }
 
+func TestClientRuntimeReportsUsageCleanupFailureOnEarlyExit(t *testing.T) {
+	var closed atomic.Int32
+	usage, err := status.NewUsageCache(status.UsageConfig{Close: func() error { closed.Add(1); return errors.New("private-usage-cleanup-sentinel") }})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+	_, err = launcher.RunClient(ctx, launcher.ClientRunConfig{Server: gateway.ServerConfig{Gateway: gateway.Config{Usage: usage}}})
+	if !errors.Is(err, context.Canceled) || !errors.Is(err, launcher.ErrRunCleanup) || strings.Contains(err.Error(), "private-usage-cleanup-sentinel") || closed.Load() != 1 {
+		t.Fatal("usage cleanup failure lost on early exit", err)
+	}
+}
+
 var _ inference.Backend = (*observedOwner)(nil)

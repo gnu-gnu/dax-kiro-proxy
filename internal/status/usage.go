@@ -26,7 +26,9 @@ type UsageSnapshot struct {
 }
 type UsageConfig struct {
 	// Fetch must honor cancellation and own bounded subprocess cleanup. Nil means unsupported.
-	Fetch        func(context.Context) (UsageData, error)
+	Fetch func(context.Context) (UsageData, error)
+	// Close runs once after Fetch joins, including when no refresh ever started.
+	Close        func() error
 	TTL, Timeout time.Duration
 	Now          func() time.Time
 }
@@ -40,6 +42,8 @@ type UsageCache struct {
 	ctx                           context.Context
 	cancel                        context.CancelFunc
 	workers                       sync.WaitGroup
+	closeOnce                     sync.Once
+	closeErr                      error
 }
 
 func NewUsageCache(cfg UsageConfig) (*UsageCache, error) {
@@ -108,12 +112,18 @@ func (c *UsageCache) refresh() {
 	c.available = true
 	c.state = "current"
 }
-func (c *UsageCache) Close() {
-	c.mu.Lock()
-	c.closed = true
-	c.cancel()
-	c.mu.Unlock()
-	c.workers.Wait()
+func (c *UsageCache) Close() error {
+	c.closeOnce.Do(func() {
+		c.mu.Lock()
+		c.closed = true
+		c.cancel()
+		c.mu.Unlock()
+		c.workers.Wait()
+		if c.cfg.Close != nil {
+			c.closeErr = c.cfg.Close()
+		}
+	})
+	return c.closeErr
 }
 func validUsage(data UsageData) bool {
 	any := false

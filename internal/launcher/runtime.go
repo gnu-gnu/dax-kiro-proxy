@@ -58,7 +58,7 @@ func RunClient(ctx context.Context, cfg ClientRunConfig) (result ClientRunResult
 		// Cancel HTTP, suspended backend turns, usage refresh and the attached client together.
 		// No open response is required for the backend owner to have pending relay work.
 		var jobs sync.WaitGroup
-		var serverErr, clientErr, backendErr error
+		var serverErr, clientErr, backendErr, usageErr error
 		if server != nil {
 			jobs.Go(func() { serverErr = server.Close() })
 		}
@@ -69,7 +69,7 @@ func RunClient(ctx context.Context, cfg ClientRunConfig) (result ClientRunResult
 			jobs.Go(func() { backendErr = cfg.Backend.Close() })
 		}
 		if cfg.Server.Gateway.Usage != nil {
-			jobs.Go(cfg.Server.Gateway.Usage.Close)
+			jobs.Go(func() { usageErr = cfg.Server.Gateway.Usage.Close() })
 		}
 		jobs.Wait()
 		// A delivered handler may still record its final model while server shutdown joins it.
@@ -91,7 +91,7 @@ func RunClient(ctx context.Context, cfg ClientRunConfig) (result ClientRunResult
 		if profile != nil {
 			profileErr = profile.Close()
 		}
-		if serverErr != nil || backendErr != nil || profileErr != nil || errors.Is(clientErr, childproc.ErrCleanup) || errors.Is(clientErr, childproc.ErrTerminal) {
+		if serverErr != nil || backendErr != nil || usageErr != nil || profileErr != nil || errors.Is(clientErr, childproc.ErrCleanup) || errors.Is(clientErr, childproc.ErrTerminal) {
 			// An adapter's arbitrary cleanup error must not expose paths, account data or tool values.
 			runErr = errors.Join(runErr, ErrRunCleanup)
 		}
