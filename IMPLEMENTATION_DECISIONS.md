@@ -2536,3 +2536,74 @@ pass after integration. Applicable uncached race suites with installed opt-ins o
 22.836s, interop 24.018s and command 1.571s. Whole-repository go vet, formatting, whitespace checks,
 the local build and executable help pass. The development executable includes the seed reference.
 No dependency is added.
+
+## D66: client plugin tool effects, refusal and bounded continuation
+
+D65 established source activation only. Independent black-box tests now distinguish immediate
+fresh print startup, a second print launch of the same owned private profile, and interactive startup
+whose input is held until the owned MCP peer has initialized/listed and the project prompt is visible.
+There is no Messages request before interactive input. The observer checks the echoed prompt before
+Enter and completion on the reconstructed terminal screen; no raw terminal data is saved.
+
+The fresh immediate print observations fail to find either the plugin declaration or a client wait
+tool: 25 default tools, zero MCP declarations, valid Messages decoding. They do not prove later
+unavailability. One local synthetic text warmup followed by a second launch of the same private
+profile advertises and invokes the owned effect-free plugin tool. This warmup is fixture-only; the
+launcher does not send a hidden model prompt or invent an undeclared client tool. The synthetic
+observer can request one advertised WaitForMcpServers only after isolated schema validation, but no
+passing case needed that fallback. Availability of that tool varies among these observations.
+
+The controlled cold interactive case also advertises the plugin before its tool turn. It completes
+with one exact fixed tool result. This is evidence for input after observed readiness, not arbitrary
+immediate input or general dynamic MCP registry changes. Its optional title request is narrowly
+classified and answered synthetically, separately from the main request budget.
+
+The stronger interactive pair uses the product's authenticated gateway, isolated schema worker,
+relay and session driver with independent fake ACP. Client allowance calls the owned MCP probe
+exactly once. A source user PreToolUse hook refuses the same advertised tool: zero native calls and
+one matching error result. The fake validates the exact result ID, error flag and owned result text,
+then completes. User settings, global state and plugin source tree entries/content/modes stay
+unchanged by prepared runs. Client/MCP processes and both observed backend groups are gone.
+
+In both cases the client replaces one standing system suffix (8,323 bytes to 49) after returning
+the result. Identity, model, effort, top-level system, metadata, tools and full prior history match.
+D63 retires and joins the old prompt/process before reconstructing once with the complete supplied
+history, result and new instruction. There are exactly two main requests and two backend processes,
+with no native tool replay. This validates the existing recovery against another real-client shape;
+it does not validate that recovery with Kiro or retain hidden backend context. No product behavior
+or launch gate changes in this decision.
+
+Recorded private normalized observations retain fixed labels, counts, equality flags and owned PIDs
+only; request content, tool payloads, credentials, terminal data and unrestricted stderr are not saved:
+
+- plugin-tool-shape.3mw6oI and plugin-tool-envelope.vyLy7s fail the immediate-print tool selection
+  (4.543s and 3.968s). The latter records valid decoding and absent plugin/wait declarations.
+- plugin-tool-warm.qP6Sbh passes the second-print exchange (6.323s race package), including one
+  native call, exact result, source preservation and cleanup.
+- plugin-tool-interactive.jSH3rO fails an observer's raw ANSI text check (5.340s) despite the
+  reconstructed screen and tool exchange completing. The corrected rendered-screen assertion
+  passes in plugin-tool-ui-shape.2cqGFU (5.900s). The failed attempt is not acceptance evidence.
+- plugin-tool-proxy.92MCxg passes the real gateway/relay/session allowed case (7.828s).
+- plugin-tool-permissions.bcnkOA passes allowed and hook-denied cases (14.143s), with native
+  call counts one and zero. Its zero tool-count summary was an unpopulated observer field, not an
+  absent registry; that summary is populated from the client envelope in the final regression.
+- plugin-tool-regression.3BY4Qd passes in 30.723s under race instrumentation: six D65 source
+  controls, warmed print, controlled interactive shape, both real-gateway plugin outcomes and D63
+  ordinary default-tool text/Read-hook refusal. Observed tool counts are 26 for warmed print,
+  29 for the synthetic interactive shape and 30 for the real-gateway pair. Both plugin main
+  continuations retain the same tool registry and complete after exactly one reconstruction.
+
+A detailed local-Claude consultation was rejected by automatic approval review before execution:
+the review did not establish authorization for the specific nonpublic payload and destination.
+That payload was not sent. A separately approved public-only question, containing public reference
+URLs and general startup questions, completed and was read and assessed in
+public-mcp-startup-review-3uuwo12e. Its suggestions about mode/origin controls were useful; its
+uncertainty about init-only and overbroad ordering claims were corrected using the public
+[CLI reference](https://code.claude.com/docs/en/cli-reference) and
+[MCP reference](https://code.claude.com/docs/en/mcp), checked 2026-09-09. Advice is not acceptance
+evidence. No previous implementation or user assets were accessed or transmitted.
+
+Applicable uncached opt-ins-off race suites pass: ACP 5.697s and interop 21.071s. Whole-repository
+go vet and formatting/whitespace checks pass. No dependency changes. Plugin-provided hooks, skills
+and agents, existing status commands, remote assets/OAuth, custom roots, dynamic registry changes,
+immediate fresh print bootstrap and actual Kiro plugin/reconstruction remain separate work.

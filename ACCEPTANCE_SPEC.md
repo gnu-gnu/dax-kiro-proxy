@@ -45,6 +45,11 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
   counterparts, with source tree entries/content/modes unchanged and observed peer cleanup. Finite
   CLI listings and successful peer initialization do not prove later model-visible tool availability
   or a complete plugin tool round trip (D65).
+- Plugin tool interoperability requires an advertised declaration, matching result, completed
+  continuation and native effect count: one for the owned allowed probe, zero for hook refusal.
+  Verify source preservation and joined client/MCP/backend cleanup through the real gateway/relay.
+  Distinguish controlled interactive readiness, a warmed private print profile and immediate fresh
+  print startup. Passing one does not establish the others or dynamic registry compatibility (D66).
 
 ## C. Anthropic compatibility
 

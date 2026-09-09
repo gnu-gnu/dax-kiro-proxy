@@ -6,6 +6,17 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D66 verifies the owned plugin tool with actual Claude 2.1.263 and independent fake ACP through
+  the real gateway, schema worker, relay and session driver. Controlled interactive readiness then
+  client allowance produces exactly one native call; a user PreToolUse refusal produces zero and
+  returns the matching error. Both complete after D63's single joined backend reconstruction, with
+  source bytes/tree/modes unchanged and client/MCP/backend processes gone. A second print launch
+  of the same private profile also completes the effect-free tool round trip; its initial warmup is
+  a local synthetic fixture observation, not product policy. Immediate fresh print, dynamic tool
+  changes, broader plugin assets and actual Kiro plugin/reconstruction remain unverified. Final
+  installed plugin-source/tool/default-Read regression passes in 30.723s with race instrumentation;
+  uncached opt-ins-off ACP and interop race suites pass in 5.697s and 21.071s. Whole-repository go vet
+  and whitespace/formatting checks pass. Only tests and evidence change; no dependency is added.
 - D65 supplies the standard user plugin directory through the client's read-only seed contract.
   Actual Claude 2.1.263 full print startup initializes an independently installed plugin's MCP peer
   and discovers its tools. Disable/re-enable choices, original source entries/content/modes and

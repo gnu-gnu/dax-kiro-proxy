@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/json"
+	"errors"
 	"io"
 	"io/fs"
 	"net/http"
@@ -13,19 +14,47 @@ import (
 	"path/filepath"
 	"reflect"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync/atomic"
+	"syscall"
 	"testing"
 	"time"
 
+	"dax-kiro-proxy/internal/acp"
+	"dax-kiro-proxy/internal/anthropic"
+	"dax-kiro-proxy/internal/catalog"
 	"dax-kiro-proxy/internal/childproc"
 	"dax-kiro-proxy/internal/gateway"
 	"dax-kiro-proxy/internal/launcher"
+	"dax-kiro-proxy/internal/requestfamily"
+	"dax-kiro-proxy/internal/schemacheck"
+	"dax-kiro-proxy/internal/session"
 )
 
 // The marketplace, plugin and MCP peer are owned fixtures. Public client commands install and
 // activate the plugin; this test never downloads a plugin or calls an external model/tool.
 func TestClaudeClientPluginSeedSources(t *testing.T) {
+	observeClaudePluginSources(t, "sources")
+}
+
+func TestClaudePluginToolRoundTripShape(t *testing.T) {
+	observeClaudePluginSources(t, "warm-tool")
+}
+
+func TestClaudePluginInteractiveFirstTool(t *testing.T) {
+	observeClaudePluginSources(t, "interactive-tool")
+}
+
+func TestClaudePluginToolThroughGatewayAndACP(t *testing.T) {
+	t.Run("allowed", func(t *testing.T) { observeClaudePluginSources(t, "proxy-tool") })
+	t.Run("hook_denied", func(t *testing.T) { observeClaudePluginSources(t, "proxy-tool-denied") })
+}
+
+func observeClaudePluginSources(t *testing.T, mode string) {
+	t.Helper()
+	proxyMode, denied := strings.HasPrefix(mode, "proxy-tool"), mode == "proxy-tool-denied"
+	toolRoundTrip, interactive := mode != "sources", mode == "interactive-tool" || proxyMode
 	executable := os.Getenv("DAX_INTEROP_CLAUDE_BINARY")
 	if executable == "" {
 		t.Skip("set DAX_INTEROP_CLAUDE_BINARY for owned plugin-source controls; no external inference")
@@ -51,6 +80,10 @@ func TestClaudeClientPluginSeedSources(t *testing.T) {
 	}
 	settings := filepath.Join(home, ".claude", "settings.json")
 	writeJSON(settings, map[string]any{})
+	if denied {
+		output := `{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"independent fixture denial"}}`
+		writeJSON(settings, map[string]any{"hooks": map[string]any{"PreToolUse": []any{map[string]any{"matcher": ownedPluginToolName, "hooks": []any{map[string]any{"type": "command", "command": "printf '%s' " + probeShellQuote(output), "timeout": 2}}}}}})
+	}
 	runner, err := childproc.New(childproc.Config{Timeout: 20 * time.Second, MaxOutputBytes: 128 << 10})
 	if err != nil {
 		t.Fatal(err)
@@ -58,12 +91,60 @@ func TestClaudeClientPluginSeedSources(t *testing.T) {
 	defer runner.Close()
 	ctx, cancel := context.WithTimeout(t.Context(), 2*time.Minute)
 	defer cancel()
+	var exchange *pluginToolExchange
+	if toolRoundTrip {
+		workerDir := filepath.Join(root, "worker")
+		if os.Mkdir(workerDir, 0700) != nil {
+			t.Fatal("cannot create owned schema worker directory")
+		}
+		proxy := filepath.Join(filepath.Dir(buildRelayObserver(t)), "owned-relay")
+		validator, err := schemacheck.New(schemacheck.Config{Executable: proxy, Directory: workerDir})
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer validator.Close()
+		exchange = &pluginToolExchange{validator: validator}
+	}
 	tokens, err := gateway.NewTokens()
 	if err != nil {
 		t.Fatal(err)
 	}
-	const model = "claude-dax-plugin-fixture"
+	model := "claude-dax-plugin-fixture"
+	var proxyHandler http.Handler
+	var proxyBackend *defaultClientBackend
+	processLedger := filepath.Join(root, "proxy-processes")
+	if proxyMode {
+		backendDir := filepath.Join(root, "backend")
+		if os.Mkdir(backendDir, 0700) != nil {
+			t.Fatal("cannot create owned plugin backend directory")
+		}
+		fake := buildDenialACPFixture(t, ctx, runner, root)
+		proxy := filepath.Join(filepath.Dir(buildRelayObserver(t)), "owned-relay")
+		args := []string{"chat-tools-plugin-client", ownedPluginToolName, processLedger}
+		if denied {
+			args = append(args, "denied")
+		}
+		driver, err := session.New(session.Config{Process: acp.Config{Executable: fake, Args: args, Directory: backendDir, Environment: []string{"HOME=" + home, "PATH=/usr/bin:/bin"}, ClientInfo: acp.Info{Name: "independent-plugin-client", Version: "1"}}, Validator: exchange.validator, RelayExecutable: proxy, SetupTimeout: 10 * time.Second, TurnTimeout: 15 * time.Second})
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer driver.Close()
+		models, err := catalog.New([]catalog.Backend{{ID: "fixture-backend", Name: "Independent plugin fixture"}}, "fixture-backend")
+		if err != nil {
+			t.Fatal(err)
+		}
+		model, err = models.ClientID("fixture-backend")
+		if err != nil {
+			t.Fatal(err)
+		}
+		proxyBackend = &defaultClientBackend{Driver: driver, catalog: models, limit: 2}
+		proxyHandler, err = gateway.New(gateway.Config{Tokens: tokens, Backend: proxyBackend, TurnTimeout: 15 * time.Second, FirstEventTimeout: 10 * time.Second})
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
 	var messageRequests, advertisedPlugin atomic.Int32
+	var exchangeEnabled atomic.Bool
 	var wantInitializations atomic.Int32
 	var wantToolListings atomic.Int32
 	var requireQuietWindow atomic.Bool
@@ -83,7 +164,7 @@ func TestClaudeClientPluginSeedSources(t *testing.T) {
 		case "/v1/messages/count_tokens":
 			_, _ = w.Write([]byte(`{"input_tokens":1}`))
 		case "/v1/messages":
-			if messageRequests.Add(1) > 3 {
+			if messageRequests.Add(1) > 4 {
 				w.WriteHeader(429)
 				return
 			}
@@ -102,6 +183,41 @@ func TestClaudeClientPluginSeedSources(t *testing.T) {
 				if tool.Name == "mcp__plugin_dax-owned_owned__owned_probe" {
 					advertisedPlugin.Add(1)
 				}
+			}
+			if proxyHandler != nil {
+				decoded, err := anthropic.DecodeRequest(body)
+				if err != nil {
+					w.WriteHeader(400)
+					return
+				}
+				if requestfamily.Classify(decoded) == requestfamily.Title {
+					writeObservedMessage(w, decoded.Stream, model, []map[string]any{{"type": "text", "text": `{"title":"Independent plugin fixture"}`}}, "end_turn")
+					return
+				}
+				r.Body = io.NopCloser(bytes.NewReader(body))
+				proxyHandler.ServeHTTP(w, r)
+				proxyBackend.mu.Lock()
+				comparison := proxyBackend.comparison
+				proxyBackend.mu.Unlock()
+				exchange.mu.Lock()
+				exchange.stage, exchange.comparison = "real_gateway", comparison
+				exchange.toolCount = len(input.Tools)
+				for _, tool := range input.Tools {
+					if strings.HasPrefix(tool.Name, "mcp__") {
+						exchange.mcpCount++
+					}
+					exchange.rawWait = exchange.rawWait || tool.Name == "WaitForMcpServers"
+					exchange.rawToolSearch = exchange.rawToolSearch || tool.Name == "ToolSearch"
+				}
+				exchange.toolRequested = proxyBackend.starts.Load() == 2
+				exchange.failed = proxyBackend.failed.Load()
+				exchange.complete = exchange.toolRequested && !exchange.failed && proxyBackend.State() == session.Idle
+				exchange.mu.Unlock()
+				return
+			}
+			if exchange != nil && exchangeEnabled.Load() {
+				exchange.respond(w, r, body, model)
+				return
 			}
 			// Do not finish the synthetic turn before the asynchronously loaded owned peer has
 			// completed initialization. This observes lifecycle readiness without asking for a tool.
@@ -146,6 +262,9 @@ func TestClaudeClientPluginSeedSources(t *testing.T) {
 		command.Args = append(append([]string(nil), command.Args...), args...)
 		result, err := runner.Run(ctx, command)
 		if err != nil {
+			if exchange != nil {
+				exchange.verify(t)
+			}
 			t.Fatalf("owned plugin command failed: exit=%d, stdout_bytes=%d", result.ExitCode, len(result.Stdout))
 		}
 		return result
@@ -181,7 +300,7 @@ func TestClaudeClientPluginSeedSources(t *testing.T) {
 		_, err := os.Stat(filepath.Join(seed, fixturePath))
 		t.Logf("owned_seed_entry=%s, exists=%v", fixturePath, err == nil)
 	}
-	for _, tc := range []struct {
+	cases := []struct {
 		name     string
 		expected int
 	}{
@@ -191,7 +310,16 @@ func TestClaudeClientPluginSeedSources(t *testing.T) {
 		{"seed_print", 2},
 		{"seed_print_disabled", 2},
 		{"seed_print_reenabled", 3},
-	} {
+	}
+	if toolRoundTrip {
+		cases = cases[:1]
+		cases[0].name = "seed_print_tool"
+		cases[0].expected = 2
+		if interactive {
+			cases[0].expected = 1
+		}
+	}
+	for _, tc := range cases {
 		if tc.name == "seed_print_disabled" {
 			run(t, natural, "plugin", "disable", pluginID, "--scope", "user")
 		}
@@ -252,10 +380,33 @@ func TestClaudeClientPluginSeedSources(t *testing.T) {
 				requireQuietWindow.Store(tc.name == "seed_print_disabled")
 				wantToolListings.Store(int32(listsBefore + 1))
 				beforeRequests := messageRequests.Load()
-				result = run(t, command, "--print", "--output-format", "json", "--no-session-persistence", "Return a short text response without calling any tool.")
+				prompt := "Return a short text response without calling any tool."
+				if toolRoundTrip && !interactive {
+					// A local synthetic warmup distinguishes first seed bootstrap from a second
+					// launch of the same private profile. This is an observation, not launcher policy.
+					wantInitializations.Store(1)
+					wantToolListings.Store(1)
+					warm := run(t, command, "--print", "--output-format", "json", "--no-session-persistence", "Return a short text response without calling any tool.")
+					started, initialized, calls := inspectClientAssetProcesses(t, filepath.Join(observations, "plugin"))
+					if !bytes.Contains(warm.Stdout, []byte("independent plugin observation complete")) || started != 1 || initialized != 1 || calls != 0 {
+						t.Fatal("owned profile warmup did not complete without tools")
+					}
+					t.Log("same_private_profile_warmed=true")
+					exchangeEnabled.Store(true)
+				}
+				if toolRoundTrip {
+					exchangeEnabled.Store(true)
+					command.Args = append(command.Args, "--allowedTools", ownedPluginToolName)
+					prompt = "Call the independent plugin's effect-free probe and return its result."
+				}
+				if interactive {
+					result = runPluginInteractive(t, ctx, command, root, project, observations, exchange, &messageRequests)
+				} else {
+					result = run(t, command, "--print", "--output-format", "json", "--no-session-persistence", prompt)
+				}
 				t.Logf("synthetic_messages=%d, plugin_advertisements=%d", messageRequests.Load(), advertisedPlugin.Load())
-				if messageRequests.Load() != beforeRequests+1 || !bytes.Contains(result.Stdout, []byte("independent plugin observation complete")) {
-					t.Error("synthetic plugin print conversation did not complete")
+				if (!toolRoundTrip && messageRequests.Load() != beforeRequests+1) || (!interactive && !bytes.Contains(result.Stdout, []byte("independent plugin observation complete"))) {
+					t.Error("synthetic plugin conversation did not complete")
 				}
 			} else {
 				result = run(t, command, "mcp", "list")
@@ -263,7 +414,15 @@ func TestClaudeClientPluginSeedSources(t *testing.T) {
 			started, initialized, called := inspectClientAssetProcesses(t, filepath.Join(observations, "plugin"))
 			listsAfter := bytes.Count(boundedAssetFile(t, filepath.Join(observations, "plugin")), []byte(" listed\n"))
 			t.Logf("plugin_named=%v, starts=%d, initializations=%d, calls=%d, tool_lists=%d", bytes.Contains(result.Stdout, []byte("plugin:dax-owned:owned")), started, initialized, called, listsAfter)
-			if started != tc.expected || initialized != started || called != 0 {
+			wantCalls := 0
+			if toolRoundTrip {
+				wantCalls = 1
+				if denied {
+					wantCalls = 0
+				}
+				exchange.verify(t)
+			}
+			if started != tc.expected || initialized != started || called != wantCalls {
 				t.Error("plugin connection did not match active source control")
 			}
 			if strings.HasPrefix(tc.name, "seed_print") && ((tc.name == "seed_print_disabled" && listsAfter != listsBefore) || (tc.name != "seed_print_disabled" && listsAfter <= listsBefore)) {
@@ -276,6 +435,22 @@ func TestClaudeClientPluginSeedSources(t *testing.T) {
 		if t.Failed() {
 			return
 		}
+	}
+	if proxyBackend != nil {
+		if err := proxyBackend.Close(); err != nil {
+			t.Error("plugin backend cleanup failed")
+		}
+		pids := strings.Fields(string(boundedAssetFile(t, processLedger)))
+		if len(pids) != 2 {
+			t.Error("expected one bounded backend reconstruction")
+		}
+		for _, raw := range pids {
+			pid, err := strconv.Atoi(raw)
+			if err != nil || pid <= 1 || !errors.Is(syscall.Kill(-pid, 0), syscall.ESRCH) {
+				t.Error("plugin backend process group survived cleanup")
+			}
+		}
+		t.Logf("proxy_main_requests=%d, proxy_failed=%v, backend_processes=%d", proxyBackend.starts.Load(), proxyBackend.failed.Load(), len(pids))
 	}
 	if err := p.Close(); err != nil {
 		t.Error("initial plugin profile cleanup failed")

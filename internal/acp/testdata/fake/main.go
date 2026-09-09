@@ -62,8 +62,9 @@ func main() {
 		signal.Ignore(syscall.SIGTERM)
 	}
 	defaultReplacement := false
-	if mode == "chat-tools-default-client" {
-		if len(os.Args) != 4 {
+	pluginDenied := mode == "chat-tools-plugin-client" && len(os.Args) == 5 && os.Args[4] == "denied"
+	if mode == "chat-tools-default-client" || mode == "chat-tools-plugin-client" {
+		if len(os.Args) != 4 && !pluginDenied {
 			os.Exit(94)
 		}
 		defaultReplacement = defaultClientProcess(os.Args[3])
@@ -175,6 +176,8 @@ func main() {
 				}
 				if mode == "chat-tools-default-client" {
 					relayChild = startFixtureRelayNamed(p.MCP[0], p.CWD, false, "Read")
+				} else if mode == "chat-tools-plugin-client" {
+					relayChild = startFixtureRelayNamed(p.MCP[0], p.CWD, false, os.Args[2])
 				} else {
 					relayChild = startFixtureRelayGroup(p.MCP[0], p.CWD, mode == "chat-tools-separate-group")
 				}
@@ -289,6 +292,14 @@ func main() {
 					reply(q.ID, map[string]any{"stopReason": "end_turn"})
 					continue
 				}
+				if mode == "chat-tools-plugin-client" && defaultReplacement {
+					if promptCount != 1 || !pluginClientHistory(p.Prompt, os.Args[2], pluginDenied) {
+						os.Exit(95)
+					}
+					write(map[string]any{"jsonrpc": "2.0", "method": "session/update", "params": map[string]any{"sessionId": session, "update": map[string]any{"sessionUpdate": "agent_message_chunk", "content": map[string]any{"type": "text", "text": "independent plugin observation complete"}}}})
+					reply(q.ID, map[string]any{"stopReason": "end_turn"})
+					continue
+				}
 				if (mode == "chat-tools-system-restart" || mode == "chat-tools-system-hold" || mode == "chat-tools-system-fail") && strings.Contains(string(q.Params), "Updated fixture standing instruction.") {
 					if mode == "chat-tools-system-fail" {
 						os.Exit(93)
@@ -361,6 +372,22 @@ func main() {
 							os.Exit(47)
 						}
 						emit("independent client relay complete")
+						reply(q.ID, map[string]any{"stopReason": "end_turn"})
+						continue
+					}
+					if mode == "chat-tools-plugin-client" {
+						relayChild.send(3, "tools/call", map[string]any{"name": relayChild.alias, "arguments": map[string]any{}})
+						var returned struct {
+							IsError bool                          `json:"isError"`
+							Content []struct{ Type, Text string } `json:"content"`
+						}
+						if json.Unmarshal(relayChild.read(), &returned) != nil || relayChild.responseError || returned.IsError != pluginDenied || len(returned.Content) != 1 || returned.Content[0].Type != "text" {
+							os.Exit(95)
+						}
+						if (pluginDenied && !strings.Contains(returned.Content[0].Text, "independent fixture denial")) || (!pluginDenied && returned.Content[0].Text != "independent client asset result") {
+							os.Exit(95)
+						}
+						emit("independent plugin observation complete")
 						reply(q.ID, map[string]any{"stopReason": "end_turn"})
 						continue
 					}

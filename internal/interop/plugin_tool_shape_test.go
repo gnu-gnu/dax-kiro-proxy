@@ -1,0 +1,130 @@
+package interop_test
+
+import (
+	"encoding/json"
+	"net/http"
+	"strings"
+	"sync"
+	"testing"
+
+	"dax-kiro-proxy/internal/anthropic"
+	"dax-kiro-proxy/internal/requestfamily"
+	"dax-kiro-proxy/internal/schemacheck"
+)
+
+const ownedPluginToolName = "mcp__plugin_dax-owned_owned__owned_probe"
+
+// Observe only owned result equality and fixed request-comparison flags. The synthetic gateway
+// requests exclusively client-advertised tools after independently checking their input schemas.
+type pluginToolExchange struct {
+	stage                                   string
+	toolCount, mcpCount                     int
+	rawWait, rawToolSearch                  bool
+	waitAdvertised, waitEmptyAccepted       bool
+	mu                                      sync.Mutex
+	validator                               *schemacheck.Pool
+	first                                   *anthropic.Request
+	waited, toolRequested, complete, failed bool
+	comparison                              defaultClientComparison
+}
+
+func (e *pluginToolExchange) respond(w http.ResponseWriter, httpRequest *http.Request, body []byte, model string) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	var envelope struct {
+		Tools []struct {
+			Name string `json:"name"`
+		} `json:"tools"`
+	}
+	if json.Unmarshal(body, &envelope) == nil {
+		e.toolCount = len(envelope.Tools)
+		for _, tool := range envelope.Tools {
+			e.rawWait = e.rawWait || tool.Name == "WaitForMcpServers"
+			e.rawToolSearch = e.rawToolSearch || tool.Name == "ToolSearch"
+			if strings.HasPrefix(tool.Name, "mcp__") {
+				e.mcpCount++
+			}
+		}
+	}
+	e.stage = "decode"
+	r, err := anthropic.DecodeRequest(body)
+	if err != nil {
+		e.failed = true
+		w.WriteHeader(400)
+		return
+	}
+	if requestfamily.Classify(r) == requestfamily.Title {
+		writeObservedMessage(w, r.Stream, model, []map[string]any{{"type": "text", "text": `{"title":"Independent plugin fixture"}`}}, "end_turn")
+		return
+	}
+	r.Identity = anthropic.ClientIdentity{Session: httpRequest.Header.Get("x-claude-code-session-id"), Agent: httpRequest.Header.Get("x-claude-code-agent-id"), ParentAgent: httpRequest.Header.Get("x-claude-code-parent-agent-id")}
+	if e.first == nil {
+		e.first = r
+	} else {
+		e.comparison = compareDefaultRequests(e.first, r)
+	}
+	e.stage = "results"
+	results, err := r.LatestToolResults()
+	if err != nil {
+		e.failed = true
+		w.WriteHeader(400)
+		return
+	}
+	if e.toolRequested {
+		e.stage = "plugin_result"
+		if len(results) != 1 || results[0].ID != "owned_plugin_call" || results[0].IsError || len(results[0].Content) != 1 || results[0].Content[0].Type != "text" || results[0].Content[0].Text != "independent client asset result" {
+			e.failed = true
+			w.WriteHeader(400)
+			return
+		}
+		e.complete = true
+		writeObservedMessage(w, r.Stream, model, []map[string]any{{"type": "text", "text": "independent plugin observation complete"}}, "end_turn")
+		return
+	}
+	wanted, id := ownedPluginToolName, "owned_plugin_call"
+	find := func(name string) json.RawMessage {
+		for _, raw := range r.Tools {
+			var tool struct {
+				Name   string          `json:"name"`
+				Schema json.RawMessage `json:"input_schema"`
+			}
+			if json.Unmarshal(raw, &tool) == nil && tool.Name == name {
+				return tool.Schema
+			}
+		}
+		return nil
+	}
+	schema := find(wanted)
+	if schema == nil && !e.waited {
+		wanted, id = "WaitForMcpServers", "owned_plugin_wait"
+		schema = find(wanted)
+		e.waitAdvertised = schema != nil
+	}
+	e.stage = "schema"
+	valid := schema != nil && e.validator.Validate(httpRequest.Context(), schema, []byte(`{}`)) == nil
+	if wanted == "WaitForMcpServers" {
+		e.waitEmptyAccepted = valid
+	}
+	if !valid || (e.waited && (len(results) != 1 || results[0].ID != "owned_plugin_wait" || results[0].IsError)) {
+		e.failed = true
+		w.WriteHeader(400)
+		return
+	}
+	if wanted == ownedPluginToolName {
+		e.toolRequested = true
+	} else {
+		e.waited = true
+	}
+	writeObservedMessage(w, r.Stream, model, []map[string]any{{"type": "tool_use", "id": id, "name": wanted, "input": json.RawMessage(`{}`)}}, "tool_use")
+}
+
+func (e *pluginToolExchange) verify(t *testing.T) {
+	t.Helper()
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	t.Logf("stage=%s, tools=%d, mcp_declarations=%d, raw_wait=%v, raw_tool_search=%v, wait_advertised=%v, wait_accepts_empty=%v, client_waited=%v, plugin_requested=%v, complete=%v, comparison=%+v", e.stage, e.toolCount, e.mcpCount, e.rawWait, e.rawToolSearch, e.waitAdvertised, e.waitEmptyAccepted, e.waited, e.toolRequested, e.complete, e.comparison)
+	if e.failed || !e.toolRequested || !e.complete {
+		t.Error("client plugin tool exchange did not complete")
+	}
+	e.first = nil
+}

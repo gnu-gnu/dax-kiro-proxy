@@ -48,6 +48,14 @@ func defaultClientProcess(path string) bool {
 // Inspect only the new project's documented projection. Never save the client's instructions or
 // tool payloads. The result must refer to the historical Read request and contain the owned denial.
 func defaultClientHistory(parts []json.RawMessage, target string) bool {
+	return recoveredClientHistory(parts, "Read", map[string]string{"file_path": target}, true)
+}
+
+func pluginClientHistory(parts []json.RawMessage, target string, denied bool) bool {
+	return recoveredClientHistory(parts, target, map[string]string{}, denied)
+}
+
+func recoveredClientHistory(parts []json.RawMessage, name string, arguments map[string]string, denied bool) bool {
 	var texts []string
 	for _, raw := range parts {
 		var p struct{ Type, Text string }
@@ -83,11 +91,26 @@ func defaultClientHistory(parts []json.RawMessage, target string) bool {
 		return false
 	}
 	prior := context.History[2]
-	if prior.Role != "assistant" || len(prior.Content) != 2 || prior.Content[0] != "before client tool" || json.Unmarshal([]byte(prior.Content[1]), &use) != nil || use.Type != "tool_use" || use.ID == "" || use.Name != "Read" || len(use.Input) != 1 || use.Input["file_path"] != target {
+	if prior.Role != "assistant" || len(prior.Content) != 2 || prior.Content[0] != "before client tool" || json.Unmarshal([]byte(prior.Content[1]), &use) != nil || use.Type != "tool_use" || use.ID == "" || use.Name != name || use.Input == nil || len(use.Input) != len(arguments) {
 		return false
 	}
-	if json.Unmarshal([]byte(texts[4]), &result) != nil || result.Type != "tool_result" || result.ID != use.ID || !result.Error || !strings.Contains(string(result.Content), "independent fixture denial") {
+	for key, value := range arguments {
+		if use.Input[key] != value {
+			return false
+		}
+	}
+	if json.Unmarshal([]byte(texts[4]), &result) != nil || result.Type != "tool_result" || result.ID != use.ID || result.Error != denied {
 		return false
+	}
+	if denied {
+		if !strings.Contains(string(result.Content), "independent fixture denial") {
+			return false
+		}
+	} else {
+		var blocks []struct{ Type, Text string }
+		if json.Unmarshal(result.Content, &blocks) != nil || len(blocks) != 1 || blocks[0].Type != "text" || blocks[0].Text != "independent client asset result" {
+			return false
+		}
 	}
 	if json.Unmarshal([]byte(texts[6]), &update) != nil || update.Role != "system" || len(update.Content) != 1 || len(update.Content[0]) == 0 {
 		return false
