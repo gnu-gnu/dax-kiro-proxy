@@ -132,6 +132,14 @@ successful result and separate client-expanded instructions through one joined r
 plugin assets, custom roots and actual Kiro skills remain unverified; full actual Kiro plugin
 acceptance remains open after D72's partial observation.
 
+Personal skills, legacy commands and agent definitions now retain their native user scope in the
+temporary profile (D76). Installed-client controls verify explicit skill/command expansion and
+same-name precedence against natural execution, with unchanged sources and joined cleanup. Each
+launch snapshots the standard `~/.claude/{skills,commands,agents}` trees: at most 1,024 entries,
+depth sixteen, 2 MiB per file and 32 MiB total. Unsafe links, special files, writable sources and
+exceeded limits reject preparation. Changes to the original assets take effect on a new launch;
+custom roots, actual agent execution and relative helper execution remain separate work.
+
 The product status display now yields to existing user/project/local status choices, including
 commands without a refresh interval. It supplies a bounded user-scope default only when no such
 choice or uncertain project source is found. Linked worktrees and unsafe/ambiguous sources suppress

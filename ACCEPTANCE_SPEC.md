@@ -63,6 +63,14 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
   Skill schema, observe exactly one matching successful result and the expanded body as separate
   client text, and complete through the real gateway/relay with fake ACP. Require preserved sources,
   native hook enable/disable behavior and joined old/replacement process cleanup (D73).
+- Personal skills, legacy commands and agent definitions must retain their native user scope in
+  the private profile. Compare active natural/prepared runs and a stripped-profile counterfactual;
+  verify direct skill/command expansion, personal-over-project skill selection and project-over-
+  personal agent selection with equal names. Declaration discovery does not prove agent execution.
+  Preserve source bytes/modes and private cleanup. Bound complete snapshots by bytes, entries and
+  depth; unsafe links, nonregular sources and exceeded limits reject before partial activation.
+  Preserve executable owner bits and exact bytes without parsing frontmatter or running commands;
+  exclude unrelated state. Existing profiles keep their snapshot; fresh preparation sees updates (D76).
 
 ## C. Anthropic compatibility
 

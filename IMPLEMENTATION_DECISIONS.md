@@ -3280,3 +3280,84 @@ pass. No application or dependency change; the D73 executable remains current. D
 admission stays enabled for the measured installation, but current login preflight prevents launch.
 Live process-loss/recovery acceptance remains open until the prepared sequence actually runs and
 passes; local fake-ACP recovery and read-only diagnostics do not substitute for that evidence.
+
+## D76: retain personal customization scope in the temporary client profile
+
+Independent Claude 2.1.263 controls reproduce a missing personal layer. Natural owned-HOME startup
+advertises personal/project skills and agent definitions and expands each scope's user-invoked
+skill/legacy command. The old prepared profile advertises only project assets. This is distinct
+from plugin registration and from model-selected Skill continuation. No actual user assets, Kiro
+model response or previous implementation input participates in these controls.
+
+Preparation now snapshots only standard HOME/.claude/skills, commands and agents into those same
+relative locations under the private client configuration root. No frontmatter, script or prompt
+is interpreted by the proxy. Full bytes and hierarchy remain intact; files are 0600, or 0700 when
+the source has the owner execution bit, and directories are 0700. Group/special permission bits are
+not propagated. Source files are never linked into the private tree. Native client scope resolution,
+permissions and execution remain with Claude; no additional-directory or command-line agent scope
+is introduced. Unrelated state, credentials and other customization roots are not migrated.
+
+Each aggregate snapshot is bounded to 1,024 entries including selected root directories, depth
+sixteen with each selected root at depth one, 2 MiB per regular file and 32 MiB total file content.
+Read directory names in bounded batches and descend through checked os.Root handles. Reject unsafe
+owner/mode/type checks, symbolic/hard links, changed opened-file identity/size/mtime, read failures
+and exceeded limits. Directory handle identity is checked against its original entry. No partial
+snapshot is activated: all source validation precedes creation of runtime artifacts. A private-write
+failure uses the existing profile cleanup owner. These checks do not promise a transactional snapshot
+of a concurrently edited source tree. Existing profiles retain their initial bytes; a fresh launch
+reads subsequent source edits. Absolute references inside an asset remain unchanged and may still
+name the original tree when the client executes them; this is not filesystem isolation of client tools.
+
+The public [skills documentation](https://code.claude.com/docs/en/skills) describes personal/project
+locations, legacy commands and personal skill precedence. The public
+[subagent documentation](https://code.claude.com/docs/en/sub-agents) describes the distinct agent
+scope order. The [settings documentation](https://code.claude.com/docs/en/settings) documents the
+private configuration-root override. Reviewed 2026-09-09; the snapshot is our own mechanism, while
+the need for it and the measured fidelity are pinned-client observations. Additional-directory
+loading is not assumed equivalent to keeping the original personal scope.
+
+The test's complete matrix has thirteen finite text-only invocations: six natural, one private
+profile with all three snapshots deliberately removed, and six prepared. All configured assets
+are independently authored. Exact body markers appear only on explicit slash invocation. With
+equal names, both natural and prepared runs select the personal skill and project agent; the
+stripped control loses personal advertisements while retaining project ones. Responses come only
+from a bounded loopback fixture and never request a tool or dispatch an agent. Each response must
+complete once, client groups must be gone and private profiles removed. Prepared/stripped runs
+preserve owned source trees, settings and global configuration. Natural global mutable state is
+not used as source-preservation evidence.
+
+Recorded failures and progression:
+
+- Initial test compilation exposes incorrect assumptions about the existing runner result API;
+  the harness is corrected to inspect its actual PID and owned process group.
+- personal-assets-red.pfShzA fails before a model request (1.689s package). A variadic MCP option
+  consumed the final prompt. Moving the following option boundary fixes only the test invocation.
+- personal-assets-args.AUOGX7 passes all five natural controls, then fails on missing personal
+  advertisements in the old prepared profile (3.513s package). This establishes the product defect.
+- Independent snapshot/unsafe-source tests first fail on the absent APIs; after implementation
+  the initial race suite passes in 5.544s. Controls cover links, FIFO, modes, individual/aggregate
+  bytes, entry/depth limits, private mutation, exact non-JSON/CRLF/Unicode bytes and source refresh.
+- personal-assets-snapshot.GMkyjb passes ten natural/prepared controls (6.948s package).
+- personal-assets-precedence.4SkKhX passes the final thirteen controls, including the active
+  missing-assets counterfactual and two distinct scope orders (6.79s test, 8.481s package).
+
+Public-only local Claude advice is saved, read and assessed in
+public-personal-assets-review-s5qj_xo8. Bounded traversal, source protection and collision controls
+are useful; universal claims about absent documented seeds are not adopted as facts. Advice to
+skip unsafe subtrees is rejected because silently dropping a policy-bearing asset changes behavior.
+No raw client request/response, credentials or user source is retained in observation logs. The
+consultation answer is advisory and does not count as acceptance evidence.
+
+No dependency is added. Actual Kiro personal skills/agents, relative helper execution, custom roots,
+linked asset compatibility and dynamic source synchronization remain unverified. Development
+execution-policy admission stays enabled. D75's unresolved login state still prevents live Kiro
+work; these local controls neither restore authentication nor close the alpha/release gates.
+
+The final applicable opt-ins-off race regression personal-assets-core.ImGOBO passes: launcher
+24.245s, interop 24.644s and command 1.597s. The six installed-client regression controls in
+personal-assets-client-regression.RJdYdB pass together in 47.157s, covering native MCP scopes,
+plugin skills/hooks, existing status precedence, ordinary default-tool requests, permission hooks
+and disabled hooks. Whole-repository go vet, formatting and whitespace checks pass. No whole-suite
+installed-client or actual-Kiro success is inferred from this targeted regression.
+The development executable is rebuilt with D76 and its public help command passes. Development run
+admission remains enabled for the pinned combination; login is still required before live work.

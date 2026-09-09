@@ -6,6 +6,18 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D76 fixes missing personal skills, legacy commands and agent definitions in the temporary Claude
+  profile. Bounded source snapshots retain native scope and exact bytes without executing assets
+  or modifying their original trees. Thirteen installed-Claude controls pass against local fake
+  responses (8.481s), including direct expansion, missing-assets counterfactual, personal skill
+  precedence and project agent precedence. No agent is dispatched and no Kiro model call runs.
+  Unsafe/oversized sources reject before partial activation; private writes and cleanup preserve
+  originals. Public-only local Claude advice is saved, read and assessed. Applicable opt-ins-off
+  race suites pass launcher 24.245s, interop 24.644s and command 1.597s. Six applicable installed-
+  client MCP/plugin/status/permission/default-tool regressions pass together in 47.157s; whole-
+  repository vet, formatting and whitespace pass. Custom roots, relative helper execution, dynamic
+  changes and live alpha/release work remain. The development executable is rebuilt with D76 and
+  its public help command passes; run admission is unchanged and live work awaits verified login.
 - D75 prepares and verifies process-loss/fresh-request recovery with actual Claude and independent
   fake ACP. One exact Read is intercepted before client delivery; the owned ACP group is killed,
   its real error reaches the client and old cleanup joins before a new text request completes in a

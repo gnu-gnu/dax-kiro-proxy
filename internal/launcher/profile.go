@@ -23,7 +23,7 @@ import (
 
 var (
 	ErrConfig   = errors.New("invalid or unsupported client launch configuration")
-	ErrSettings = errors.New("client settings must be a bounded, owned, regular JSON object")
+	ErrSettings = errors.New("client settings and assets must use bounded, owned, regular sources")
 	ErrRuntime  = errors.New("cannot prepare or remove private client runtime")
 )
 
@@ -74,6 +74,10 @@ func PrepareClient(cfg ClientConfig) (*ClientProfile, error) {
 	if err != nil {
 		return nil, err
 	}
+	customizations, err := clientCustomizations(cfg.Home)
+	if err != nil {
+		return nil, err
+	}
 	path, err := os.MkdirTemp(cfg.RuntimeParent, "dax-runtime-")
 	if err != nil {
 		return nil, ErrRuntime
@@ -95,6 +99,9 @@ func PrepareClient(cfg ClientConfig) (*ClientProfile, error) {
 		if os.Mkdir(dir, 0700) != nil {
 			return nil, ErrRuntime
 		}
+	}
+	if err := writeClientCustomizations(profile, customizations); err != nil {
+		return nil, err
 	}
 	store, err := privatefs.New(profile)
 	if err != nil {
