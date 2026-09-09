@@ -263,7 +263,10 @@ Personal `~/.claude/rules` now remains available at its native scope through a v
 reference (D77). Installed-client checks cover relative imports, original-path exclusions,
 conditional activation after Read and the full four-hop import limit. The source reference is
 not an immutable snapshot; preparation validates the shared asset bounds and cleanup removes only
-the private link. Personal `~/.claude/CLAUDE.md` is still not loaded by the temporary profile.
+the private link. D102 identifies a remaining exclusion gap: a pattern matching only the private
+rules alias can suppress a rule and its imports that natural startup includes. This is reproduced
+in user, project and local settings; the original-path exclusion controls still pass. Full personal
+rules preservation remains incomplete. Personal `~/.claude/CLAUDE.md` is also not loaded by the temporary profile.
 Tested adapters either bypass its original exclusion, lose one import hop or omit a root body
 with path frontmatter. None is enabled. This remains a client-environment compatibility gap.
 D93 also rejects using the public additional-directory memory option as a substitute: the measured

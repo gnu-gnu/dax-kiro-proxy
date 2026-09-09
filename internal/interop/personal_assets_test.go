@@ -109,6 +109,20 @@ func TestClaudePersonalRootAliasOverExclusionCounterfactual(t *testing.T) {
 	})
 }
 
+// This reproduces a current compatibility defect, not a passing preservation gate: an
+// exclusion matching only the private alias removes an otherwise active personal rule.
+func TestClaudePersonalRuleAliasExclusionCounterfactual(t *testing.T) {
+	for _, scope := range []string{"user", "project", "local"} {
+		t.Run(scope, func(t *testing.T) {
+			observePersonalCustomizationSources(t, personalSourceOptions{
+				instructions: true, rulesOnly: true, chainLength: 5, exclusionScope: scope,
+				ruleAliasExclusion: "**/client/rules/general.md",
+				modes:              []string{"natural", "prepared", "natural_excluded", "prepared_excluded"},
+			})
+		})
+	}
+}
+
 type personalSourceOptions struct {
 	instructions         bool
 	homePrefix           string
@@ -121,6 +135,7 @@ type personalSourceOptions struct {
 	persistSession       bool
 	skipHistory          bool
 	privatePathExclusion bool
+	ruleAliasExclusion   string
 }
 
 func observePersonalCustomizationSources(t *testing.T, options personalSourceOptions) {
@@ -392,6 +407,9 @@ func observePersonalCustomizationSources(t *testing.T, options personalSourceOpt
 				if options.privatePathExclusion {
 					source["claudeMdExcludes"] = []string{"**/client/CLAUDE.md"}
 				}
+				if options.ruleAliasExclusion != "" {
+					source["claudeMdExcludes"] = []string{options.ruleAliasExclusion}
+				}
 				if read {
 					source["permissions"] = map[string]any{"allow": []string{"Read(/" + readPath + ")"}, "deny": []string{"Bash", "Write", "Edit"}}
 				}
@@ -404,8 +422,8 @@ func observePersonalCustomizationSources(t *testing.T, options personalSourceOpt
 						name = "settings.local.json"
 					}
 					layer := map[string]any{}
-					if excluded {
-						layer["claudeMdExcludes"] = source["claudeMdExcludes"]
+					if patterns, present := source["claudeMdExcludes"]; present {
+						layer["claudeMdExcludes"] = patterns
 						delete(source, "claudeMdExcludes")
 					}
 					data, err := json.Marshal(layer)
@@ -564,6 +582,13 @@ func observePersonalCustomizationSources(t *testing.T, options personalSourceOpt
 					}
 					wantOrder = nativeOrder[2:]
 				}
+				ruleAliasHidden := options.ruleAliasExclusion != "" && strings.HasPrefix(mode, "prepared") && !excluded
+				if ruleAliasHidden {
+					if !options.rulesOnly || len(nativeOrder) != 4 {
+						t.Fatal("incomplete native rule-alias control")
+					}
+					wantOrder = nativeOrder[2:]
+				}
 				if instructions && !excluded && wantPersonal && !reflect.DeepEqual(wantOrder, seen.InstructionOrder) {
 					t.Error("native instruction ordering changed")
 				}
@@ -575,7 +600,7 @@ func observePersonalCustomizationSources(t *testing.T, options personalSourceOpt
 					if mode == "tilde" {
 						wantHops = []int{1, 2, 3} // Measured rejected wrapper defect, not product acceptance.
 					}
-					if excluded || additional || aliasHidden {
+					if excluded || additional || aliasHidden || ruleAliasHidden {
 						wantHops = nil
 					}
 					if !reflect.DeepEqual(seen.PersonalHops, wantHops) {
@@ -596,11 +621,12 @@ func observePersonalCustomizationSources(t *testing.T, options personalSourceOpt
 					t.Error("native personal skill precedence changed")
 				}
 				wantInstructions := instructions && wantPersonal && !excluded
+				wantRule := wantInstructions && !ruleAliasHidden
 				// The rejected direct-link candidate demonstrably bypasses this original-path
 				// CLAUDE.md exclusion. Keep it as a counterfactual, never a successful adapter.
 				wantMemory := (wantInstructions || mode == "linked_excluded") && !options.rulesOnly && !aliasHidden
 				wantProjectMemory := instructions && !options.rulesOnly
-				if seen.PersonalInstructions != (wantMemory && !missingRootBody) || seen.PersonalImport != (wantMemory && !additional) || seen.PersonalRule != wantInstructions || seen.PersonalRuleImport != wantInstructions || seen.ProjectInstructions != wantProjectMemory || seen.ProjectImport != wantProjectMemory || seen.ProjectRule != instructions || seen.ProjectRuleImport != instructions || seen.Conditional != read || seen.PersonalConditional != read || seen.ProjectConditional != read || seen.ReadRequested != read || seen.ReadMatched != read {
+				if seen.PersonalInstructions != (wantMemory && !missingRootBody) || seen.PersonalImport != (wantMemory && !additional) || seen.PersonalRule != wantRule || seen.PersonalRuleImport != wantRule || seen.ProjectInstructions != wantProjectMemory || seen.ProjectImport != wantProjectMemory || seen.ProjectRule != instructions || seen.ProjectRuleImport != instructions || seen.Conditional != read || seen.PersonalConditional != read || seen.ProjectConditional != read || seen.ReadRequested != read || seen.ReadMatched != read {
 					t.Error("instruction/import scope or conditional rule activation changed")
 				}
 				afterHome := boundedPluginTree(t, filepath.Join(home, ".claude"))

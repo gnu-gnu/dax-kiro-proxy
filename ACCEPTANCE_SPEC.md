@@ -77,6 +77,11 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
   source trees/import files, groups and private cleanup, including unusual HOME path characters.
   Validate rules with the shared asset bounds before creating runtime artifacts; a native rules
   reference is not an immutable snapshot and is not a filesystem sandbox (D77).
+  Full exclusion fidelity also requires a pattern matching only the private rules alias to leave
+  naturally included source rules active. D102 reproduces a current failure for user/project/local
+  settings: the prepared client drops the rule and its four import hops. Original-path exclusions
+  still work. Passing this counterfactual does not satisfy preservation; the compatibility gap
+  remains open alongside personal-root memory.
 - Personal CLAUDE.md compatibility additionally requires unconditional root-body loading, original
   path exclusions, all four import hops and native ordering without duplicated content. D77's
   explicit counterfactuals demonstrate rejected adapters, not successful product support. This

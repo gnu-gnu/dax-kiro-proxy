@@ -1914,3 +1914,27 @@ case passes in 10.25s, with a 7.311s refresh, one process/three post-initialize 
 settings and removed owned files/group. Native Claude status rendering, nonempty supplemental
 buckets and other versions remain separate. This read-only action does not authorize or bypass
 D100's rejected plugin model experiment.
+
+## D102: personal-rules alias exclusion controls without Kiro inference
+
+The temporary strict TestClaudePersonalRuleAliasExclusionPreservation comparison first fails in
+1.45s (2.514s race package), retained in d102-rule-alias-preservation.log. The user-level pattern
+**/client/rules/general.md does not match the natural source, but suppresses the prepared alias's
+rule body and all four relative-import hops. Project rules/imports remain and both local requests
+complete. The retained named TestClaudePersonalRuleAliasExclusionCounterfactual explicitly asserts
+this unresolved defect; it is not a preservation acceptance test.
+
+Its final three-scope matrix includes natural/prepared alias-only exclusions and natural/prepared
+original-path exclusions for user, project and local settings: twelve native client invocations,
+one authenticated local synthetic Messages request each, no client tool effect, empty MCP config
+and disabled hooks. Observe only fixed authored markers, order/depth/counts and lifecycle facts,
+never raw client context or source content. Prepared source/import fingerprints, observed process
+groups and private profile removal must pass. The matrix passes in 6.08s (8.194s package), recorded
+in d102-rule-alias-counterfactual.log. No Kiro process, model credit use or external inference occurs
+in these controls. The separate public-only Claude consultation has one turn and 6,346 output bytes;
+its answer and assessment are retained under public-memory-native-scope-review-dqfm0xka.
+
+d102-personal-scope-regressions.log passes existing native rule/import-depth/alias-scope controls
+in 12.709s. d102-interop-race.log passes the opt-ins-off suite in 26.279s and d102-interop-vet.log
+passes vet. Formatting/whitespace and D101's unchanged 141 artifact checks pass. No new product
+adapter is enabled; the original strict comparison remains failed evidence of an open requirement.

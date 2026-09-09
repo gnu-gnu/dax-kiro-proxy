@@ -6,6 +6,18 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D102 identifies an additional personal-rules compatibility gap. An exclusion matching only the
+  private rules alias drops an otherwise naturally included rule and all four imports. The first
+  strict natural/prepared comparison fails in 1.45s (2.514s package). Twelve separately named
+  counterfactual controls reproduce this behavior in user/project/local settings while confirming
+  original-path exclusions, retained project rules, source preservation and process/profile
+  cleanup (6.08s test, 8.194s race package). These passes verify the defect, not successful rules
+  preservation. A bounded public-only local Claude consultation is saved/read/assessed; it supplies
+  no separate documented personal-memory read root. Neither the personal-root nor rules-alias
+  gap is resolved. Production, D101's artifact and development admission remain unchanged.
+  Existing native rule/import-depth/alias-scope regressions pass in 12.709s; opt-ins-off interop
+  race tests pass in 26.279s. Interop vet, formatting/whitespace and all 141 D101 artifact checks
+  pass. These regression results do not change the newly identified preservation failure.
 - D101 connects lazy account usage to `run` using a separate empty-agent Kiro 2.21.2/v2 session.
   Independent parser/lifecycle tests cover malformed and ambiguous amounts, session/command/tool
   admission, cache coalescing, identity mismatch, timeout, repeated close and cleanup-failure

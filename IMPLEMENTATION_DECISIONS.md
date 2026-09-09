@@ -4711,3 +4711,49 @@ and new independent-peer vet passes; formatting and whitespace checks pass. The 
 binary replaces dist after retaining D99. Its 141 byte checks pass; the same 267 packages and four
 external dependencies remain selected. Two production files are added and five changed, with
 102 repository input records. DEPENDENCY_REVIEW.md records the exact artifact and open release work.
+
+## D102: expose unintended exclusions of the prepared personal-rules alias
+
+Revisit the unresolved personal-memory requirement using current public documentation and owned
+native-client controls. The public configuration-directory reference still relocates personal memory
+and mutable settings/state together. No independently verified separate read-root interface has been
+found in the examined surface; this is not a proof that every native solution is impossible. Do not
+repeat the rejected D77/D80/D93/D97 adapters or weaken root semantics to call them complete.
+
+The current memory reference documents that rules exclusions match either a symlink alias or its
+target, for directory links as well as file links. D77 had verified original-target exclusions;
+that does not establish fidelity for a pattern matching only the newly introduced private alias.
+A strict two-run experiment sets **/client/rules/general.md in an owned user settings file. The
+natural client loads the personal rule body, its relative import and four hops before project
+rules. The prepared production profile drops that personal rule and all its imports, while project
+rules and their four hops remain. Both local Messages requests decode, complete with the fixed
+synthetic response and join the observed client group. The initial preservation test fails
+(1.45s test, 2.514s race package); its log is retained, not described as a feature pass.
+
+A separately named counterfactual repeats the alias-only case and original-target exclusion
+controls in user, project and local settings. All twelve invocations match the observed defect
+(6.08s test, 8.194s package). Prepared sources/imports remain unchanged and private groups/profiles
+are removed. This narrows the fault to inclusion through the relocated name; it does not justify
+removing or reinterpreting user exclusions. Personal rules remain partially supported, with this
+additional open requirement recorded in ACCEPTANCE_SPEC.md and the user-facing README. Renaming
+the private directory to evade a particular test pattern would not restore general fidelity.
+
+The public-only local Claude consultation is saved in
+.cache/claude-consult/work/public-memory-native-scope-review-dqfm0xka/answer.md and assessed in
+review.md. Its both-path hypothesis matches the native observation and its narrow lack-of-known-
+interface statement is useful. Its proposed approximate byte/token deltas are not used as proof;
+the observer instead checks fixed synthetic marker presence, ordering and depth. No model recitation,
+private-client inspection, original implementation, custom instruction/glob parser or global
+configuration mutation is used. Official sources reviewed on 2026-09-10:
+https://code.claude.com/docs/en/memory, https://code.claude.com/docs/en/claude-directory and
+https://code.claude.com/docs/en/env-vars.
+
+This is a newly verified compatibility defect, not a production fix or completion of personal-memory
+support. Development admission is unchanged; D101's executable/dependencies remain unchanged.
+The still-pending D100 credit-consuming experiment is not attempted or implicitly authorized.
+
+Existing native rule sources, four-hop rules and original-root alias-scope controls pass together
+in 12.709s. The opt-ins-off interop race suite passes in 26.279s; interop vet, formatting/whitespace
+and all 141 D101 artifact checks pass. The shared helper now places a supplied test exclusion at
+its requested native settings scope, rather than only moving original-target exclusions. No
+production setting merge, exclusion interpretation or artifact is changed by these tests.
