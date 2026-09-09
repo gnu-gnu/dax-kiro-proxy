@@ -67,7 +67,14 @@ func observeCompletedToolRestart(t *testing.T, live bool, kind string) {
 }
 
 func observeNativeToolHistory(t *testing.T, live bool, kind, holdMode string) {
+	observeToolHistory(t, live, kind, holdMode, "")
+}
+
+func observeToolHistory(t *testing.T, live bool, kind, holdMode, followPolicy string) {
 	t.Helper()
+	if followPolicy != "" && (kind != "allow-bash" || holdMode != "") {
+		t.Fatal("resumed policy requires a completed first Bash operation")
+	}
 	client := os.Getenv("DAX_INTEROP_CLAUDE_BINARY")
 	if client == "" {
 		t.Skip("set pinned Claude for native tool resume")
@@ -113,6 +120,13 @@ func observeNativeToolHistory(t *testing.T, live bool, kind, holdMode string) {
 	if holdMode != "" {
 		held = prepareHeldRestart(t, ctx, runner, root, settings, effect, holdMode)
 	}
+	var followEffect *clientEffectProbe
+	var followSettings string
+	var followFingerprint [32]byte
+	if followPolicy != "" {
+		followEffect, followSettings = prepareFollowupEffect(t, root, project, followPolicy)
+		followFingerprint = fileFingerprint(t, followSettings)
+	}
 	beforeSettings, beforeGlobal := fileFingerprint(t, settings), fileFingerprint(t, global)
 	version, err := runner.Run(ctx, childproc.Command{Executable: client, Directory: root, Environment: []string{"HOME=" + home, "PATH=/usr/bin:/bin"}, Args: []string{"--version"}})
 	if err != nil || strings.TrimSpace(string(version.Stdout)) != launcher.SupportedClientVersion+" (Claude Code)" {
@@ -137,11 +151,19 @@ func observeNativeToolHistory(t *testing.T, live bool, kind, holdMode string) {
 	if interrupted {
 		prompts[1] = pendingRestartQuestion
 	}
+	if followEffect != nil {
+		prompts[1] = "EffectFollow_137: The earlier operation is complete. Request Bash once for this separate new operation with exactly this argument object: " + string(followEffect.expect.Input) + ". Never repeat the earlier operation. After the client returns success or refusal, do not retry or request any other tool. Reply only with the concatenation of ToolArchiveResumed and _137 without spaces."
+	}
 	var previous completedToolPair
 	var groups [2]int
 	var profiles, endpoints [2]string
 	var tokens [2]gateway.Tokens
 	for stage := range 2 {
+		currentEffect, currentSettings := effect, settings
+		followup := stage == 1 && followEffect != nil
+		if followup {
+			currentEffect, currentSettings = followEffect, followSettings
+		}
 		stageRoot := filepath.Join(root, strconv.Itoa(stage))
 		backend, worker := filepath.Join(stageRoot, "backend"), filepath.Join(stageRoot, "worker")
 		for _, path := range []string{stageRoot, backend, worker} {
@@ -151,7 +173,7 @@ func observeNativeToolHistory(t *testing.T, live bool, kind, holdMode string) {
 		}
 		models, _ := catalog.New([]catalog.Backend{{ID: "fixture-backend", Name: "Independent tool resume"}}, "fixture-backend")
 		backendModel := "fixture-backend"
-		process := acp.Config{Executable: fake, Args: []string{"native-tool-history", strconv.Itoa(stage), effect.manifest}, Directory: backend, ClientInfo: acp.Info{Name: "independent-tool-resume", Version: "1"}, Limits: acp.Limits{RequestTimeout: 45 * time.Second}}
+		process := acp.Config{Executable: fake, Args: []string{"native-tool-history", strconv.Itoa(stage), currentEffect.manifest}, Directory: backend, ClientInfo: acp.Info{Name: "independent-tool-resume", Version: "1"}, Limits: acp.Limits{RequestTimeout: 45 * time.Second}}
 		var execution launcher.KiroExecution
 		if live {
 			models, execution = prepareLiveKiroProbe(t, ctx, runner, os.Getenv("DAX_INTEROP_KIRO_BINARY"), stageRoot, backend, filepath.Join(stageRoot, "kiro-preflight"))
@@ -208,7 +230,12 @@ func observeNativeToolHistory(t *testing.T, live bool, kind, holdMode string) {
 			t.Fatal("tool restart manager")
 		}
 		defer manager.Close()
-		guard := &toolRestartBackend{backend: manager, models: models, stage: stage, identity: id, expect: effect.expect, previous: previous, beforeUse: effect.beforeUse, interrupted: interrupted, question: prompts[0]}
+		guard := &toolRestartBackend{backend: manager, models: models, stage: stage, identity: id, expect: currentEffect.expect, previous: previous, beforeUse: currentEffect.beforeUse, interrupted: interrupted, question: prompts[0], followup: followup, followQuestion: prompts[1]}
+		if followup {
+			guard.beforeUse = func() bool {
+				return effect != followEffect && toolRestartEffectsOnce(effect) && followEffect.beforeUse()
+			}
+		}
 		guard.observeProcess = func() error {
 			records, err := relayProcessRecords(relay)
 			if err != nil || len(records) != stage+1 {
@@ -235,7 +262,7 @@ func observeNativeToolHistory(t *testing.T, live bool, kind, holdMode string) {
 		if stage == 0 {
 			resumeID = ""
 		}
-		profile, err := launcher.PrepareClient(launcher.ClientConfig{RuntimeParent: stageRoot, Home: home, Project: project, UserSettings: settings, Executable: client, Version: launcher.SupportedClientVersion, Model: model, GatewayURL: server.URL(), ModelToken: tokens[stage].Model, KeepHistory: true, ResumeSession: resumeID, Environment: []string{"PATH=/usr/bin:/bin:/usr/sbin:/sbin", "TERM=dumb"}})
+		profile, err := launcher.PrepareClient(launcher.ClientConfig{RuntimeParent: stageRoot, Home: home, Project: project, UserSettings: currentSettings, Executable: client, Version: launcher.SupportedClientVersion, Model: model, GatewayURL: server.URL(), ModelToken: tokens[stage].Model, KeepHistory: true, ResumeSession: resumeID, Environment: []string{"PATH=/usr/bin:/bin:/usr/sbin:/sbin", "TERM=dumb"}})
 		if err != nil {
 			t.Fatal("tool restart profile")
 		}
@@ -269,7 +296,14 @@ func observeNativeToolHistory(t *testing.T, live bool, kind, holdMode string) {
 		if interrupted && guard.abandoned {
 			wantResults = 0
 		}
-		passed := runErr == nil && result.ExitCode == 0 && decoded && response.Type == "result" && response.Subtype == "success" && !response.IsError && nativeHistoryID(response.SessionID) && response.SessionID == guard.identity && strings.Count(response.Result, marker) == 1 && strings.Count(guard.text, marker) == 1 && !guard.failed && guard.starts == 2-stage && guard.uses == 1-stage && guard.results == wantResults && guard.ends == 1
+		wantStarts, wantUses := 2-stage, 1-stage
+		if followup {
+			wantStarts, wantUses = 2, 1
+		}
+		passed := runErr == nil && result.ExitCode == 0 && decoded && response.Type == "result" && response.Subtype == "success" && !response.IsError && nativeHistoryID(response.SessionID) && response.SessionID == guard.identity && strings.Count(response.Result, marker) == 1 && strings.Count(guard.text, marker) == 1 && !guard.failed && guard.starts == wantStarts && guard.uses == wantUses && guard.results == wantResults && guard.ends == 1
+		if followup {
+			passed = passed && guard.handoffs == 1 && guard.historyChecks == 2 && guard.pair.failed == followEffect.expect.IsError
+		}
 		if interrupted && stage == 0 {
 			passed = held.ready && errors.Is(runErr, context.Canceled) && !guard.failed && guard.starts == 1 && guard.uses == 1 && guard.handoffs == 1 && guard.results == 0 && guard.ends == 0 && !strings.Contains(guard.text, marker)
 			previous = completedToolPair{use: guard.issued, input: canonicalToolObject(guard.issued.Input), text: guard.text}
@@ -297,6 +331,14 @@ func observeNativeToolHistory(t *testing.T, live bool, kind, holdMode string) {
 		}
 		gone = gone && dialErr != nil
 		effectOnce := toolRestartEffectsOnce(effect)
+		if followEffect != nil {
+			if followup {
+				effectOnce = effectOnce && followupEffectMatches(followEffect)
+			} else {
+				effectOnce = effectOnce && followEffect.beforeUse()
+			}
+			t.Logf("resumed_policy=%s old_effect_once=%v history_checks=%d fresh_result_failed=%v", followPolicy, toolRestartEffectsOnce(effect), guard.historyChecks, guard.pair.failed)
+		}
 		if held != nil {
 			gone = gone && held.hookGone()
 			if interrupted {
@@ -312,6 +354,9 @@ func observeNativeToolHistory(t *testing.T, live bool, kind, holdMode string) {
 			t.Logf("abandoned_native_history=%v retained_tool_pairs=%d original_partial_text_bytes=%d resumed_assistant_text_bytes=%d native_noncompletion_placeholder=%v late_release_checked=%v", guard.abandoned, guard.results, len(guard.previous.text), guard.placeholder.AssistantBytes, guard.placeholder.NoResponseRequested, held.lateChecked)
 		}
 		sources := fileFingerprint(t, settings) == beforeSettings && fileFingerprint(t, global) == beforeGlobal
+		if followEffect != nil {
+			sources = sources && fileFingerprint(t, followSettings) == followFingerprint
+		}
 		if !passed {
 			t.Logf("public_request_shape=%+v", guard.shape)
 			if interrupted {
@@ -319,7 +364,7 @@ func observeNativeToolHistory(t *testing.T, live bool, kind, holdMode string) {
 			}
 		}
 		if !live {
-			data, readErr := readDenialArtifact(root, "peer-stage-"+strconv.Itoa(stage), 64)
+			data, readErr := readDenialArtifact(filepath.Dir(currentEffect.manifest), "peer-stage-"+strconv.Itoa(stage), 64)
 			fields := strings.Fields(string(data))
 			step := -1
 			if readErr == nil && len(fields) == 2 {

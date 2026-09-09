@@ -4208,3 +4208,75 @@ interop 22.879s. Whole-repository/fake-peer vet, formatting and whitespace pass.
 development artifact still passes all 139 frozen dependency/input byte checks; no release clearance
 is inferred. Final logs are `d90-final-native-controls.log`, `d90-core-regression.log` and
 `d90-final-vet.log` under the owned history-review cache.
+
+## D91: observe abandonment of an unexecuted native tool across resume
+
+The independent native hook validates one owned session, Bash command and public tool-use ID,
+stores only fixed receipts and process coordinates/ID digest, and waits at most thirty seconds.
+Require a completed HTTP handoff and the exact live hook before repeated runner cancellation.
+Join old hook/client/ACP/relay groups and private resources before releasing the old wait marker
+and preparing a fresh native profile, endpoint, credential and backend for the retained session.
+Neither the proxy nor the hook performs the tool effect. Native transcript files are not decoded,
+edited or used as fixture input.
+
+Claude 2.1.263 omits the unfinished pair in this measured print/SIGTERM path. With no preceding
+model text it inserts `No response requested.`; otherwise it preserves the partial response.
+Accept this only as the measured non-completion context alongside independent proof of no effect
+and joined cleanup. Do not invent an error/success result or describe it as an explicit cancellation
+notice. The new question explicitly prohibits execution; require the entire original question,
+exact prior partial text or placeholder and exact new question in order, with no old ID/tool pair,
+completed-answer marker or new handoff. Existing completed-result checks remain exact.
+
+The initial local strict error-pair assumption fails after safe cleanup, prompting a bounded
+public-request observation. Public-only Claude advice is saved/read/assessed in the D91 location
+listed by LIVE_KIRO_TEST_PLAN.md; its hypothetical explicit-notice premise is not an observed fact.
+Release/no-text/partial-text controls pass in 12.92s, and completed Write/Bash regressions in 7.83s.
+One actual Kiro 2.21.2 / Claude 2.1.263 episode passes in 30.19s (32.156s race package), without
+retry: two main prompts, two HTTP requests, one initial handoff, zero tool effects/results and a
+resumed text completion. Cancellation returns in 147ms; all 31 bytes of prior partial text remain
+exact. Old recorded ownership is gone before the late-release check and fresh resume; source
+settings are unchanged and private resources are removed. Final ACP/interop/hook race regressions
+pass in 5.738s/22.585s/1.306s; vet, formatting, whitespace and the unchanged artifact's 139 byte
+checks pass before checkpoint beae010. No production or dependency change.
+
+This does not establish implicit/interactive pending recovery, new post-resume permissions/hooks,
+multiple pending operations, uncertain effect/acknowledgement crash windows or full alpha/release
+completion. Those remain separate requirements.
+
+## D92: re-evaluate client tool policy after completed-history resume
+
+After one completed owned Bash append and joined old ownership, resume the same native conversation
+with fresh routing/profile/backend ownership and a separately supplied current user-settings file.
+Request a distinct new append. Compare an allow rule, an explicit deny alongside that rule, and
+a PreToolUse veto alongside allowance. Neither source settings file is edited by the runtime.
+
+The first resumed model request must preserve the old completed tool pair and answer before the
+exact new question. The next result continuation must preserve that pair again while supplying
+one new call/result after the new question. Require the new ID to differ from the old one, exact
+decoded operation arguments, expected success/refusal status and the hook refusal reason where
+applicable. A test-only backend checks this independently of the fake peer's MCP result validation.
+Require one old append/pre/post receipt throughout, one new effect/pre/post receipt for allowance,
+and no new effect/post receipt for either refusal. Hook veto requires one pre receipt; the explicit
+deny control accepts zero or one and makes no claim about native evaluation order.
+
+Each of six native stages owns one ACP process/session/launch and admits two HTTP requests and one
+tool. Preserve the D90 native/turn/overall limits, reject another operation or model prompt, and
+join all observed client/ACP/relay ownership, listener/profile and launch artifacts. Independent
+controls reject changed old/new history, reused IDs, wrong result status/reason, reordered/missing/
+duplicate blocks, unproven/repeated handoffs and effect/success-hook evidence after refusal.
+
+All three native fake-ACP cases pass in 16.22s (17.557s race package); observer controls pass in
+2.044s. Existing completed/interrupted native cases pass in 23.479s; ACP/interop/hook race suites
+pass in 6.017s/21.855s/1.308s. The first actual invocation stops before model work at preflight.
+After fresh read-only version/login, isolated identity and catalog checks pass, a new bounded
+invocation passes allowance, configured denial and hook veto in 142.13s (143.450s package).
+Across that episode: six main prompts, twelve HTTP requests, four owned append effects, two
+matching new refusals, exact retained old pairs and six clean stages with unchanged sources.
+No model prompt is retried and no limit or execution policy is relaxed. LIVE_KIRO_TEST_PLAN.md
+retains both invocation results and their diagnostic scope; the first preflight cause is unknown.
+
+No production/dependency/artifact change is required. Whole-repository/fake-peer/hook vet,
+formatting, whitespace and 139 artifact byte checks pass. This proves finite settings/hook policy
+after completed Bash history; interactive approval screens, new tools after interrupted history,
+arbitrary/default registries, simultaneous calls, authentication expiry and full alpha/release
+requirements remain open.

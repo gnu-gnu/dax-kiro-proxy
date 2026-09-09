@@ -207,6 +207,20 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
 
 ## F. Session continuity
 
+- A distinct new tool after completed-history resume must obey current client settings and hooks.
+  Preserve the old successful pair before the exact new question and again in the result request;
+  require a new ID, exact new operation and matching success/refusal, including the hook reason.
+  Old effects/hooks stay one. A new allowed append and its hooks occur once; refused targets and
+  success hooks stay absent. Join fresh and old ownership and preserve both source policies. D92
+  covers finite Bash allowance, configured denial and hook veto with actual Kiro/Claude. It does
+  not establish interactive approval screens or new work after an interrupted-history resume.
+- A finite native restart after cancellation at a delivered PreToolUse wait must join the original
+  hook/client/backend ownership before a fresh resume. Require no original effect/result, including
+  after a late release marker, and retain the exact original question and observed partial text or
+  native non-completion placeholder before the explicit non-executing follow-up. Do not manufacture
+  a tool result when the native client omits the unfinished pair. D91 covers one actual Bash wait
+  and independent release/no-text/partial-text controls. This does not establish an explicit native
+  cancellation notice, implicit/interactive continuation, new tool permissions or arbitrary crashes.
 - A completed client Write or Bash must remain historical context after native explicit-ID resume.
   Require one matching original tool ID/name/decoded input and successful result with exact text
   content, ordered before the new user instruction. Observe native effect counts and PreToolUse/

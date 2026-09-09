@@ -71,8 +71,20 @@ D90 additionally verifies completed Write/Bash history across two native print l
 Kiro/Claude. The resumed request retains the original tool ID, decoded input and successful result
 text in order; it completes without a new tool handoff. The owned file effect and both native tool
 hooks occur once across each episode. Old resources are joined before fresh profile/endpoint/token/
-backend ownership. Interrupted pending work and new permission/hook decisions after resume remain
-open; these finite single-tool results do not establish general exactly-once crash recovery.
+backend ownership. The interrupted-work and subsequent policy checks below extend this evidence;
+these finite single-tool results do not establish general exactly-once crash recovery.
+
+D91 verifies cancellation before a delivered Bash operation executes, joined old ownership, and a
+fresh native resume with an explicitly non-executing question. No old effect occurs after late hook
+release. The measured native client omits the unfinished tool pair and retains its partial response
+or a non-completion placeholder; this is not an explicit cancellation result. D92 below covers new
+tools after completed history; interactive pending recovery remains separate.
+
+D92 additionally verifies a distinct new Bash operation after completed-history resume under
+current allow/deny rules and a PreToolUse veto with actual Kiro/Claude. Old tool history stays exact
+and old effects remain once; the new operation executes once or returns its matching refusal.
+All six stages clean up and preserve source settings. Interactive approval after resume and new
+work following an interrupted history remain separate checks.
 
 The diagnostic checks support Kiro CLI 2.21.2 (including its adjacent `kiro-cli-chat` helper) and Claude Code
 2.1.263. They use the installed CLIs' finite version/account/catalog commands, without an ACP session

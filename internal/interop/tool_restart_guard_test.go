@@ -120,9 +120,12 @@ func sameCompletedPair(a, b completedToolPair) bool {
 }
 
 type toolRestartBackend struct {
-	question    string
-	abandoned   bool
-	placeholder struct {
+	followup       bool
+	followQuestion string
+	historyChecks  int
+	question       string
+	abandoned      bool
+	placeholder    struct {
 		AssistantBytes                                              int
 		NoResponseRequested, NoContent, Aborted, Cancelled, Stopped bool
 	}
@@ -228,6 +231,9 @@ func (b *toolRestartBackend) Start(ctx context.Context, r *anthropic.Request) (i
 		}
 	}
 	budget := 2 - b.stage
+	if b.followup {
+		budget = 2
+	}
 	if b.interrupted {
 		budget = 1
 	}
@@ -249,6 +255,16 @@ func (b *toolRestartBackend) Start(ctx context.Context, r *anthropic.Request) (i
 			}
 		}
 		valid = valid && count == 1
+	} else if valid && b.followup {
+		pair, err := resumedOperationPair(r, b.previous, b.issued, b.expect, b.followQuestion, n == 2)
+		valid = err == nil && (n == 1 || b.uses == 1 && b.handoffs == 1)
+		if valid {
+			b.historyChecks++
+			if n == 2 {
+				b.pair = pair
+				b.results++
+			}
+		}
 	} else if valid && b.interrupted && abandonedNativeToolHistory(r, b.question, b.previous.use.ID, b.previous.text) {
 		b.abandoned = true
 	} else if valid {
@@ -292,7 +308,7 @@ func (t *toolRestartTurn) Finish() {
 		t.Turn.Finish()
 		b := t.owner
 		b.mu.Lock()
-		if b.stage == 0 && t.request == 1 && b.uses == 1 {
+		if (b.stage == 0 || b.followup) && t.request == 1 && b.uses == 1 {
 			b.handoffs++
 		}
 		b.mu.Unlock()
@@ -309,9 +325,12 @@ func (t *toolRestartTurn) Next(ctx context.Context) (inference.Event, error) {
 	valid := b.observeProcess() == nil
 	switch event.Kind {
 	case inference.Tools:
-		valid = valid && b.stage == 0 && t.request == 1 && b.uses == 0 && len(event.Tools) == 1
+		valid = valid && (b.stage == 0 || b.followup) && t.request == 1 && b.uses == 0 && len(event.Tools) == 1
 		if valid {
 			valid = b.expect.matches(event.Tools[0]) && b.beforeUse()
+			if b.followup {
+				valid = valid && event.Tools[0].ID != b.previous.use.ID && b.historyChecks == 1
+			}
 			if valid {
 				b.issued = event.Tools[0]
 				b.uses++
@@ -324,9 +343,13 @@ func (t *toolRestartTurn) Next(ctx context.Context) (inference.Event, error) {
 		}
 	case inference.End:
 		if event.StopReason == "tool_use" {
-			valid = valid && b.stage == 0 && t.request == 1 && b.uses == 1
+			valid = valid && (b.stage == 0 || b.followup) && t.request == 1 && b.uses == 1
 		} else {
-			valid = valid && event.StopReason == "end_turn" && t.request == 2-b.stage && b.ends == 0 && (b.results == 1 || b.interrupted && b.abandoned)
+			lastRequest := 2 - b.stage
+			if b.followup {
+				lastRequest = 2
+			}
+			valid = valid && event.StopReason == "end_turn" && t.request == lastRequest && b.ends == 0 && (b.results == 1 || b.interrupted && b.abandoned)
 			if valid {
 				b.ends++
 			}

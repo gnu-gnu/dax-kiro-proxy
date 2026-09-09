@@ -6,6 +6,32 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D92 verifies a fresh Bash operation after completed-history resume under current allowance,
+  configured denial and PreToolUse veto with actual Kiro/Claude. The old successful pair remains
+  exact before the new question and in the new result continuation; the new call has a distinct ID
+  and matching success/refusal. Old effects/hooks stay one, the allowed new effect/hooks occur once,
+  and both refused targets/post hooks stay absent. Six stages remove observed processes/groups and
+  private resources with both settings sources unchanged. The completed live episode passes in
+  142.13s (143.450s race package), six main prompts/twelve HTTP requests, four allowed appends and
+  two fresh refusals. An earlier invocation stopped at preflight before model work; fresh public
+  version/login/isolated-identity/catalog checks precede the successful invocation. Its precise
+  initial failure cause is unknown; no limits change or model prompt retry occurs. Native fake-ACP
+  cases pass in 16.22s (17.557s package), observers in 2.044s and existing native resume cases in
+  23.479s. ACP/interop/hook race regressions pass in 6.017s/21.855s/1.308s; vet, formatting, whitespace
+  and 139 artifact byte checks pass. No production/dependency/artifact change. Interactive approval,
+  new tools after interrupted history, authentication expiry and remaining alpha/release work stay open.
+- D91 verifies native resume after cancellation before a delivered Bash operation executes. The
+  single actual Kiro/Claude episode passes in 30.19s (32.156s race package): two main prompts/two
+  HTTP requests, one original handoff, zero tool effects/results and one resumed text completion.
+  Cancellation returns in 147ms; old recorded groups/PIDs and private artifacts are gone before
+  a late-release check and new ownership. The resumed request preserves the original question and
+  all 31 bytes of prior partial text, omits the unfinished pair and carries the exact non-executing
+  follow-up. This is bounded runtime abandonment, not an explicit native cancellation result.
+  Release/no-text/partial-text native controls pass in 12.92s; completed Write/Bash regressions pass
+  in 7.83s. Final opt-ins-off race suites pass ACP 5.738s, interop 22.585s, hook 1.306s. Public-only
+  Claude advice was saved/read/assessed. Vet, formatting, whitespace and 139 unchanged-artifact byte
+  checks pass before checkpoint beae010. No production or dependency change. New tool policies
+  after resume, interactive pending recovery and the remaining alpha/release gates stay open.
 - D90 verifies completed Write/Bash history after native explicit-ID resume with the actual pinned
   Kiro/Claude pair. Each case has one original client effect, two native launches, two ACP main
   prompts and three HTTP model requests. Stage two preserves the exact original tool ID/name,

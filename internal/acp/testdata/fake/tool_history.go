@@ -25,7 +25,7 @@ func nativeToolHistory() {
 	}
 	expectationData, readErr := io.ReadAll(io.LimitReader(expectationFile, (64<<10)+1))
 	expectationCloseErr := expectationFile.Close()
-	var expectation struct{ Interrupted, Preface bool }
+	var expectation struct{ Interrupted, Preface, FollowupEffect bool }
 	if readErr != nil || expectationCloseErr != nil || len(expectationData) > 64<<10 || json.Unmarshal(expectationData, &expectation) != nil {
 		os.Exit(103)
 	}
@@ -123,6 +123,9 @@ func nativeToolHistory() {
 					os.Exit(109)
 				}
 				answer = "ToolArchiveResumed_137"
+				if expectation.FollowupEffect {
+					relay.effect(os.Args[3])
+				}
 			}
 			write(map[string]any{"jsonrpc": "2.0", "method": "session/update", "params": map[string]any{"sessionId": p.SessionID, "update": map[string]any{"sessionUpdate": "agent_message_chunk", "content": map[string]string{"type": "text", "text": answer}}}})
 			reply(q.ID, map[string]string{"stopReason": "end_turn"})

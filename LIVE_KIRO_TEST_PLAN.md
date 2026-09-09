@@ -1402,3 +1402,59 @@ Final opt-ins-off ACP, interop and independent hook race regressions pass in 5.7
 `d91-final-native-controls.log` and `d91-core-regression.log` under `.cache/history-review/`;
 they retain fixed facts/counts rather than model text or tool payloads. No production code or
 dependency change is included in this checkpoint.
+
+## D92: fresh native tool policy after completed-history resume
+
+Each episode first completes one owned append through native Bash under an allow policy. After
+joined old cleanup, resume the same native conversation with a fresh profile/endpoint/token/backend
+and a separate supplied user-settings source. Ask for exactly one new append to a distinct owned
+target. Compare allow, explicit deny (alongside an allow rule), and a PreToolUse veto with an allow
+rule. Source policy files remain unchanged; the test selects the second policy at preparation.
+
+Before exposing the new call, validate the old ID/name/decoded input/successful result text and
+completed answer in order before the exact new question. Require a distinct new ID and exact new
+operation. The result continuation must retain that same old pair and contain only the matching
+new pair after the new question, with expected success/refusal status and the hook refusal reason
+where applicable. Old/current IDs, result statuses and effect targets cannot substitute for one
+another. Independently mutated/reordered/duplicated/missing histories must reject.
+
+The old append and old pre/post receipts must remain exactly one. The new allowed append and both
+receipts occur once; both refusal cases leave the new target/post receipt absent, with exactly one
+pre receipt for the hook veto. Explicit deny may run its pre hook zero or one time; this control
+does not assert native hook/permission evaluation order. All recorded client/ACP/relay ownership,
+listeners, profiles and launch artifacts must be removed, and both policy sources stay unchanged.
+
+Reuse the finite D90 limits: three minutes per case, native invocations sixty seconds/128 KiB,
+forty-five-second turns and one ACP process/session/launch per stage. Each stage admits two HTTP
+model requests and one tool; no title, retry, extra operation or backend recreation. Across the
+three live cases the budget is six main ACP prompts, twelve HTTP model requests and four allowed
+owned appends total. A failed stage/case prevents following dispatch. Run the independent protocol/
+observer controls and all three native fake-ACP cases before the opt-in actual Kiro test. This
+finite settings/hook experiment does not replace interactive approval screens, interrupted-history
+new tools, multiple simultaneous calls or the remaining alpha/release requirements.
+
+All three native-Claude/fake-ACP cases pass in 16.22s (17.557s race package). Final independent
+history/handoff/refusal-witness controls pass in 2.044s; old IDs, changed operations, missing prior
+history, repeated calls, lost refusal reasons and a file/post hook after refusal all reject.
+Existing completed/interrupted native controls pass in 23.479s. Opt-ins-off ACP/interop/hook race
+regressions pass in 6.017s/21.855s/1.308s. Whole-repository/fake-peer/hook vet, formatting, whitespace
+and the unchanged D87 artifact's 139 byte checks pass. No production or dependency change.
+
+The first actual test invocation stops at version/account preflight in 6.89s (7.233s package),
+before any model work; no following stage/case is dispatched. Subsequent public read-only probes
+verify pinned main/helper versions and login (2.27s), then identity under a new owned KIRO_HOME
+with the same five-second bound (2.41s) and nineteen catalog entries without ACP (8.85s). A separate
+helper whoami observation times out after emitting output; that is not a successful command and
+does not establish the cause of the original preflight failure. Limits/pins/policy stay unchanged.
+
+A new bounded invocation after those fresh checks passes all three actual Kiro 2.21.2 / Claude
+2.1.263 cases in 142.13s (143.450s race package): allowance 51.49s, configured denial 45.22s,
+hook veto 45.42s. Six main prompts/twelve HTTP requests produce four allowed owned appends and two
+matching fresh refusals. Every resumed request and result continuation preserves its original
+successful pair; each new call has its own ID and expected result status. The old effects/hooks
+stay one, the two refused targets/post hooks stay absent, and all six stages join recorded
+ownership and remove private resources with both settings sources unchanged. No model prompt is
+retried. Logs under `.cache/history-review/`: `d92-native-policy-controls.log`,
+`d92-final-observer-controls.log`, `d92-prior-native-regressions.log`, `d92-core-regressions.log`,
+`d92-live-resumed-policy.log`, `d92-readonly-preflight.log`, `d92-isolated-preflight.log` and
+`d92-live-resumed-policy-verified-preflight.log`.
