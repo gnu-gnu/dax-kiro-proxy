@@ -62,7 +62,17 @@ func main() {
 		signal.Ignore(syscall.SIGTERM)
 	}
 	defaultReplacement := false
-	pluginDenied := mode == "chat-tools-plugin-client" && len(os.Args) == 5 && os.Args[4] == "denied"
+	pluginDenied := (mode == "chat-tools-plugin-client" || mode == "chat-tools-plugin-wait") && len(os.Args) == 5 && os.Args[4] == "denied"
+	pluginWaitStage := -1
+	if mode == "chat-tools-plugin-wait" {
+		if len(os.Args) != 4 && !pluginDenied {
+			os.Exit(94)
+		}
+		pluginWaitStage = 0
+		if defaultClientProcess(os.Args[3]) {
+			pluginWaitStage = 1
+		}
+	}
 	if mode == "chat-tools-default-client" || mode == "chat-tools-plugin-client" {
 		if len(os.Args) != 4 && !pluginDenied {
 			os.Exit(94)
@@ -178,6 +188,12 @@ func main() {
 					relayChild = startFixtureRelayNamed(p.MCP[0], p.CWD, false, "Read")
 				} else if mode == "chat-tools-plugin-client" {
 					relayChild = startFixtureRelayNamed(p.MCP[0], p.CWD, false, os.Args[2])
+				} else if mode == "chat-tools-plugin-wait" {
+					name := os.Args[2]
+					if pluginWaitStage == 0 {
+						name = "WaitForMcpServers"
+					}
+					relayChild = startFixtureRelayNamed(p.MCP[0], p.CWD, false, name)
 				} else {
 					relayChild = startFixtureRelayGroup(p.MCP[0], p.CWD, mode == "chat-tools-separate-group")
 				}
@@ -282,6 +298,31 @@ func main() {
 				}
 				if mode == "chat-before" {
 					hanging = append(hanging, q.ID)
+					continue
+				}
+				if mode == "chat-tools-plugin-wait" {
+					if promptCount != 1 || !pluginWaitHistory(p.Prompt, pluginWaitStage) {
+						os.Exit(95)
+					}
+					relayChild.send(3, "tools/call", map[string]any{"name": relayChild.alias, "arguments": map[string]any{}})
+					var returned struct {
+						IsError bool                          `json:"isError"`
+						Content []struct{ Type, Text string } `json:"content"`
+					}
+					decodeErr := json.Unmarshal(relayChild.read(), &returned)
+					if pluginWaitStage == 1 {
+						if decodeErr != nil || relayChild.responseError || returned.IsError != pluginDenied || len(returned.Content) != 1 || returned.Content[0].Type != "text" {
+							os.Exit(96)
+						}
+						if (!pluginDenied && returned.Content[0].Text != "independent client asset result") || (pluginDenied && !strings.Contains(returned.Content[0].Text, "independent fixture denial")) {
+							os.Exit(96)
+						}
+						write(map[string]any{"jsonrpc": "2.0", "method": "session/update", "params": map[string]any{"sessionId": session, "update": map[string]any{"sessionUpdate": "agent_message_chunk", "content": map[string]any{"type": "text", "text": "independent plugin observation complete"}}}})
+						reply(q.ID, map[string]any{"stopReason": "end_turn"})
+					} else if decodeErr == nil && !relayChild.responseError && !returned.IsError {
+						// The wait result belongs in the replacement's full history, never this call.
+						os.Exit(96)
+					}
 					continue
 				}
 				if mode == "chat-tools-default-client" && defaultReplacement {

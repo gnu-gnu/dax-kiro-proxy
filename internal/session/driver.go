@@ -43,6 +43,7 @@ const (
 type Config struct {
 	Process            acp.Config
 	TurnTimeout        time.Duration
+	MaxRecreations     int
 	SetupTimeout       time.Duration
 	InitialModel       string
 	InitialEffort      string
@@ -116,6 +117,12 @@ func normalizeConfig(cfg Config) (Config, error) {
 	}
 	if cfg.SetupTimeout == 0 {
 		cfg.SetupTimeout = 30 * time.Second
+	}
+	if cfg.MaxRecreations == 0 {
+		cfg.MaxRecreations = 16
+	}
+	if cfg.MaxRecreations < 1 || cfg.MaxRecreations > 64 {
+		return Config{}, acp.ErrParameters
 	}
 	if cfg.TurnTimeout <= 0 || cfg.TurnTimeout > time.Hour || cfg.SetupTimeout <= 0 || cfg.SetupTimeout > time.Minute {
 		return Config{}, acp.ErrParameters
@@ -213,13 +220,13 @@ func (d *Driver) Start(ctx context.Context, r *anthropic.Request) (inference.Tur
 	d.mu.Lock()
 	waiting := d.state == WaitingTools
 	d.mu.Unlock()
-	var instruction *instructionRestart
+	var recreation *continuationRestart
 	if waiting || len(results) > 0 {
-		instruction, err = d.restartForInstruction(ctx, r, registry, results)
+		recreation, err = d.restartForContinuation(ctx, r, registry, results)
 		if err != nil {
 			return nil, err
 		}
-		if instruction == nil {
+		if recreation == nil {
 			restart, err := d.restartAfterDenial(ctx, r, registry, results)
 			if err != nil {
 				return nil, err
@@ -229,9 +236,9 @@ func (d *Driver) Start(ctx context.Context, r *anthropic.Request) (inference.Tur
 			}
 		} else {
 			var cancel context.CancelFunc
-			ctx, cancel = context.WithDeadline(ctx, instruction.deadline)
+			ctx, cancel = context.WithDeadline(ctx, recreation.deadline)
 			defer cancel()
-			started = instruction.started
+			started = recreation.started
 		}
 	}
 	stamp, err := reusableCompatibility(r, registry)
@@ -343,8 +350,8 @@ func (d *Driver) Start(ctx context.Context, r *anthropic.Request) (inference.Tur
 	d.mu.Unlock()
 	t := &turn{driver: d, client: client, id: id, model: modelID, owned: owned, cancelOwned: stop, done: make(chan struct{}), released: make(chan struct{}), broker: broker, socket: socket, plan: plan, reuseCompat: stamp}
 	t.started = started
-	if instruction != nil {
-		t.instructionRestarts = instruction.count
+	if recreation != nil {
+		t.recreations = recreation.count
 	}
 	t.effort = d.effort.Status()
 	t.multiplier = selected.Multiplier
@@ -358,6 +365,9 @@ func (d *Driver) Start(ctx context.Context, r *anthropic.Request) (inference.Tur
 		t.inputEstimate, _ = d.estimator.Measure(r)
 	}
 	t.compat, err = compatibility(r, registry)
+	if err == nil {
+		t.policyCompat, err = compatibility(r, nil)
+	}
 	if err != nil {
 		stop()
 		d.failedStart(client)

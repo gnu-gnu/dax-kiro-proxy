@@ -33,6 +33,15 @@ type pluginToolExchange struct {
 	releaseWait                             func() error
 	blockDigests                            map[string]int
 	shapes                                  []string
+	duplicateMessageIDs, coalesced          bool
+}
+
+func (e *pluginToolExchange) write(w http.ResponseWriter, stream bool, model string, blocks []map[string]any, stop string) {
+	if e.duplicateMessageIDs {
+		writeObservedMessageID(w, stream, model, "msg_owned_duplicate", blocks, stop)
+		return
+	}
+	writeObservedMessage(w, stream, model, blocks, stop)
 }
 
 func (e *pluginToolExchange) respond(w http.ResponseWriter, httpRequest *http.Request, body []byte, model string) {
@@ -61,7 +70,7 @@ func (e *pluginToolExchange) respond(w http.ResponseWriter, httpRequest *http.Re
 		return
 	}
 	if requestfamily.Classify(r) == requestfamily.Title {
-		writeObservedMessage(w, r.Stream, model, []map[string]any{{"type": "text", "text": `{"title":"Independent plugin fixture"}`}}, "end_turn")
+		e.write(w, r.Stream, model, []map[string]any{{"type": "text", "text": `{"title":"Independent plugin fixture"}`}}, "end_turn")
 		return
 	}
 	r.Identity = anthropic.ClientIdentity{Session: httpRequest.Header.Get("x-claude-code-session-id"), Agent: httpRequest.Header.Get("x-claude-code-agent-id"), ParentAgent: httpRequest.Header.Get("x-claude-code-parent-agent-id")}
@@ -130,8 +139,9 @@ func (e *pluginToolExchange) respond(w http.ResponseWriter, httpRequest *http.Re
 			w.WriteHeader(400)
 			return
 		}
+		e.coalesced = waitCount == 1
 		e.complete = true
-		writeObservedMessage(w, r.Stream, model, []map[string]any{{"type": "text", "text": "independent plugin observation complete"}}, "end_turn")
+		e.write(w, r.Stream, model, []map[string]any{{"type": "text", "text": "independent plugin observation complete"}}, "end_turn")
 		return
 	}
 	wanted, id := ownedPluginToolName, "owned_plugin_call"
@@ -184,7 +194,7 @@ func (e *pluginToolExchange) respond(w http.ResponseWriter, httpRequest *http.Re
 		}
 		e.waited = true
 	}
-	writeObservedMessage(w, r.Stream, model, []map[string]any{{"type": "tool_use", "id": id, "name": wanted, "input": json.RawMessage(`{}`)}}, "tool_use")
+	e.write(w, r.Stream, model, []map[string]any{{"type": "tool_use", "id": id, "name": wanted, "input": json.RawMessage(`{}`)}}, "tool_use")
 }
 
 func (e *pluginToolExchange) verify(t *testing.T) {
@@ -197,6 +207,12 @@ func (e *pluginToolExchange) verify(t *testing.T) {
 	}
 	for i, shape := range e.shapes {
 		t.Logf("synthetic_main_request=%d, history_shape=%s", i+1, shape)
+	}
+	if e.releaseWait != nil && len(e.shapes) > 0 {
+		t.Logf("duplicate_message_id=%v, coalesced_results=%v", e.duplicateMessageIDs, e.coalesced)
+		if !e.waited || e.coalesced != e.duplicateMessageIDs {
+			t.Error("message identity control did not match observed grouping")
+		}
 	}
 	e.first = nil
 }

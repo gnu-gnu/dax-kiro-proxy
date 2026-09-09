@@ -138,13 +138,15 @@ support. Unknown models, invalid tool schemas, unsupported server tools, mismatc
 active/pending history divergence fail before changing their associated state. Proven idle divergence
 can still recreate a session under the existing history policy. D33's other explicit rejections remain.
 
-For the pinned client's default-tool traffic, one changed standing system message after a tool result
-can require a fresh backend session (D63). This preserves the full supplied conversation and new
-instruction after exact ownership/history validation and joined cleanup, with at most one restart
-inside the original turn deadline. It does not preserve hidden backend context and may add provider
-work. Repeated unchanged instructions keep the original prompt; broader changed-message sequences
-remain unsupported. This behavior is separately verified with the installed client and fake ACP;
-live Kiro lifecycle validation remains an alpha gate.
+For the pinned client's tool traffic, a changed tool registry or one changed standing system message
+after a tool result can require a fresh backend session (D63, extended by D70). The complete prior
+history, owner, model, effort, top-level system, metadata and tool-choice policy must still match.
+Validate the new registry and delivered results before joined cleanup and a full-history replacement.
+Reconstruction is bounded to sixteen times per logical turn by default and retains its original
+absolute deadline. It loses hidden backend context and may add provider work. An unchanged registry
+and repeated standing instructions keep the same prompt. Regrouped/altered history and broader
+changed-message sequences remain unsupported. Installed-client/fake-ACP tests verify MCP readiness
+followed by allowed or hook-denied plugin execution; actual Kiro recovery remains an alpha gate.
 
 Public ACP and Anthropic behavior form the stable core. Kiro methods beginning with a private namespace
 are optional, version-sensitive capabilities. Their absence must reduce metadata or effort features,

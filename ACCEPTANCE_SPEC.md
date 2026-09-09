@@ -57,7 +57,8 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
   available owned revision and a native update that actually applies it; a no-op is insufficient.
   Initialization/listing alone cannot establish client readiness: the current controlled interactive
   tool check also observes the client's connected MCP panel. This does not close immediate-input,
-  dynamic-registry or model-selected skill compatibility (D68).
+  arbitrary dynamic-registry or model-selected skill compatibility (D68). D70 adds the bounded
+  wait-to-plugin path below.
 
 ## C. Anthropic compatibility
 
@@ -126,17 +127,24 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
   starting another ACP prompt. Changed, partial, reordered or older instructions and extra user text
   reject on that same-prompt path before any pending result is consumed, except the separately
   validated recreation cases below.
-- One changed text-only standing system message may recreate after a result-only user message when
+- A changed text-only standing system message may recreate after a result-only user message when
   the preceding standing sequence also has exactly one message. Require an exact complete prior-
-  history prefix and unchanged owner/model/effort/top-level system/metadata/registry. Validate the
-  complete delivered batch, encoded result bounds and full projection before revocation. Wrong,
+  history prefix and unchanged owner/model/effort/top-level system/metadata/tool-choice policy.
+  A validated changed registry may also recreate, including without a changed system suffix. Validate
+  the complete delivered batch, encoded result bounds and full projection before revocation. Wrong,
   missing, duplicate, undelivered or oversized results and truncated overlap reject without mutation.
   Join the old group and relay before creating a replacement with the full request history. Neither
   the supplied results nor new instructions enter the old prompt; no tool is automatically replayed.
-  Permit at most one such recreation per logical turn, preserve its absolute deadline through setup
+  Bound recreations per logical turn (default sixteen), preserve the absolute deadline through setup
   and further tool handoffs, and reject replay after completion or failed replacement. Exact repeated
   suffixes continue normally, including after the restart allowance is exhausted. Multi-message
   changed sequences remain unsupported. Distinguish actual-client/fake-ACP evidence from live Kiro.
+- Use distinct message IDs for independent model responses. Compare fresh IDs with a duplicate-ID
+  counterfactual before attributing client history regrouping to ordinary tool use. Keep regrouped
+  history, prior results mixed into the new delivered batch and truncated replacement prefixes
+  rejected. Verify held MCP initialization followed by an advertised wait, a validated registry
+  replacement, exact allowed/refused plugin result and completion in the same replacement prompt.
+  Require effect counts one/zero, joined old/new groups and unchanged client sources (D70).
 - A new user question following all matching client error results may abandon the old prompt only
   with an exact compatible owner, proven history extension, results preceding text, and unchanged
   repeated standing instructions. Join old process/relay cleanup before a fresh full-history prompt;

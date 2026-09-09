@@ -141,8 +141,9 @@ Rules:
 - exact duplicate tool result: reject;
 - divergence while idle and without pending tools: recreate once and send full current history;
 - divergence during an active turn or with pending tools: reject;
-- a tool-result continuation must match the current tool registry/system compatibility and contain all
-  and only the IDs in the latest sealed, successfully delivered batch.
+- a same-prompt tool-result continuation must match the current registry/system compatibility and
+  contain all and only the IDs in the latest sealed, successfully delivered batch. D70's separate
+  replacement path accepts a validated registry change only after complete prior-history proof.
 
 History is committed only after a successful completed Kiro turn. A request that begins a new turn first
 invalidates the previously persisted idle snapshot so two processes cannot claim the same backend
@@ -158,16 +159,20 @@ resending those already-present instructions to ACP. Older, partial, reordered o
 reject on this same-prompt path. New system or user text cannot be injected into the already-running
 ACP prompt through that path.
 
-D63 handles a single changed standing system message through a separate, bounded fresh-session
-path. The latest user message must contain only the exact delivered tool results. The preceding
-standing sequence must have one system message, and the new suffix must be one text-only system
+D70 extends D63's bounded fresh-session path to changed tool registries. The latest user message
+must contain only the exact delivered tool results; owner/model/effort/top-level system/metadata and
+tool-choice policy stay unchanged. Validate the new registry before any state mutation. For changed
+standing instructions, the preceding standing sequence must have one system message, and the new
+suffix must be one text-only system
 message. All prior message anchors must match as a complete prefix; ordinary truncated-overlap
 acceptance does not authorize this transition. Result encoding and the complete new projection are
 validated before revocation. Old relay calls receive cancellation, never the actual supplied result,
 and old process cleanup joins before replacement setup. The replacement preserves all supplied
-history and instructions but not hidden backend context. It inherits the original deadline and a
-one-restart allowance, including through another tool handoff. A failed replacement cannot replay
-the consumed ownership. Existing multi-message standing-sequence rules remain unchanged.
+history and instructions but not hidden backend context. It inherits the original deadline and the
+same per-turn reconstruction counter, bounded to sixteen by default. A failed replacement cannot
+replay consumed ownership, and budget exhaustion does not prevent an otherwise compatible same-prompt
+continuation. Existing multi-message standing-sequence rules remain unchanged. Cumulative/regrouped
+call/result histories still reject: D70 proves D69's grouping was caused by reused fixture message IDs.
 
 ## 8. Persistent resume flow
 

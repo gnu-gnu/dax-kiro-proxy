@@ -2775,6 +2775,11 @@ permission hooks, standalone user skills/agents, custom roots and alpha/release 
 
 ## D69: reproducible client wait and cumulative tool history
 
+Correction: D70 isolates the cumulative grouping to this fixture's repeated message ID. Fresh IDs
+produce ordinary appended history. This section preserves the historical observation and proposed
+investigation; its grouping is not an ordinary-client requirement and no regrouping exception was
+adopted in the product.
+
 D68's startup race now has a controlled black-box reproduction. An optional mode of the independently
 authored MCP peer holds initialize for at most ten seconds. The interactive client receives input
 only after that hold is observed. The local synthetic responder requires an advertised
@@ -2842,3 +2847,86 @@ previous implementation were sent; this advice is not acceptance evidence.
 
 The uncached opt-ins-off interop race suite passes in 20.774s (plugin-wait-unit.dztEf5).
 Whole-repository go vet, explicit fixture vet, formatting and whitespace checks pass.
+
+## D70: fresh message identities and validated registry replacement
+
+The first real-gateway connection of D69's held-MCP experiment did not reproduce cumulative history.
+Inspection found that writeObservedMessage reused one message ID for every synthetic response,
+whereas the product already generates a fresh ID. A paired installed-client control varies only
+this response identity policy: unique IDs produce the normal appended sequence; duplicate IDs
+combine the earlier calls/results and replace an intermediate standing message. Both complete, but
+only the unique-ID control represents the product's response behavior. D69's grouping inference is
+therefore withdrawn. Ordinary synthetic responses now receive distinct IDs; one explicit duplicate
+counterfactual remains. The existing observer still requires exact earlier-result equality there.
+
+An uncommitted prototype for cumulative history was tested while investigating the initial shape.
+The message-ID control invalidated its need, and the helper, stored digest state and driver exception
+were removed. The final product continues to reject regrouped history and prior results mixed with
+the pending batch. Passing a fixture caused by repeated IDs cannot justify relaxing those checks.
+
+The real required extension is a registry change at an exact delivered tool-result boundary. The
+session now compares owner, model, effort, top-level system, metadata and tool-choice policy
+independently of the mutable registry fingerprint. The complete prior message prefix must still
+match; truncated overlap cannot authorize a replacement. All new tool declarations go through the
+existing validator first, and every supplied result must match the currently delivered batch.
+Changed single standing messages retain D63's cardinality/type requirements; unchanged or repeated
+standing instructions can accompany a registry-only replacement. Extra/new user content stays on
+the separate existing denial-interruption policy and cannot enter this path.
+
+Result encoding and the full replacement projection must fit their existing bounds before broker
+revocation. The old relay receives closure, not the supplied result. Old process/relay/prepared-policy
+cleanup joins before the replacement is prepared with the new registry and complete supplied history.
+The same original absolute deadline and start time carry across all replacements. MaxRecreations is
+an internal bound, default 16 and accepted range 1..64; one counter covers both instruction and
+registry replacements. This extends D63's original single-replacement limit to bounded repeated
+registry changes. Exhaustion rejects before mutation, while an unchanged continuation can still
+resume the owned prompt. No automatic tool replay or alternate provider is introduced. Hidden backend
+context is not transferred, and reconstructing full history may add provider work.
+
+The installed-client test holds an owned MCP initialization until the first request advertises a
+valid WaitForMcpServers schema. Independent fake ACP asks for that tool through the real relay.
+After the client returns its result and expanded registry, the driver reconstructs once. That
+replacement asks for the now-advertised plugin. Its matching allowed or hook-denied result resumes
+the same replacement prompt; there is no third process. Both cases have three main requests plus
+a separate synthetic title. The client supplies ordinary appended history (eight messages at the
+last request), one new result at a time, and unchanged later standing instructions. Native call
+counts are one for allowance and zero for the source PreToolUse refusal. Client settings/global
+state/plugin trees remain unchanged and all observed client/MCP/backend groups are gone.
+
+The fake checks the exact tool names, empty arguments, result IDs/error flags and owned plugin
+success/refusal text. It also accepts both public string and text-block result representations.
+The client uses a string for its wait result; insisting on an array caused the first failed
+gateway attempt. The fake never persists that text. Its process ledger requires the previous group
+to be gone before the next process starts and allows exactly two processes. Public ACP, relay and
+gateway semantics are exercised; no actual Kiro model turn or live recovery is claimed.
+
+Recorded private normalized observations:
+
+- The initial independently authored registry/cumulative state test fails against the prior driver
+  (3.927s package). Prototype cumulative tests pass but are not final acceptance evidence; that
+  code was subsequently removed after the controlled message-ID finding.
+- plugin-wait-proxy.UyKxmc fails in 25.011s before plugin execution because the fake rejects the
+  string-form wait result. plugin-wait-result-shape.FdWXN0 then reaches one plugin call but fails
+  completion in 24.633s: the real client appends messages and resumes the replacement prompt,
+  contrary to the fake's expectation of cumulative history and a third process.
+- plugin-message-identity.SefCLa passes the two identity controls in 8.966s. Unique IDs produce
+  eight messages with one latest result; the repeated-ID counterfactual produces five messages
+  with two latest results. Both preserve exact earlier blocks. No unrelated variable changes.
+- plugin-wait-real-continuation.HuZKSP passes the real-gateway allowance/refusal pair in 13.770s
+  under race instrumentation, with three main requests, two backend groups, effect counts one/zero,
+  expected result representation, visible completion, source preservation and joined cleanup.
+
+The D69 public-only local Claude advice remains available and assessed; no additional external
+consultation or transmission of project observations was needed. D70 resolves the misleading
+observation through an independent variable control, not advice or client-source inspection.
+No dependency is added. Actual Kiro replacement, broader live lifecycle and release gates remain.
+
+Final D70 validation: registry-core-regression.NPTavW passes the uncached whole-repository race
+suite with installed/model opt-ins off (session 25.882s, interop 22.255s, launcher 22.678s). The
+independent repeated-policy and strict-result matrix also passes in 10.632s. Whole-repository and
+fixture go vet, formatting, whitespace, build and executable help pass. The unused cumulative
+branch is removed from the wait fake before the final installed regression.
+registry-claude-regression.zpMDys passes all 27 existing TestClaude top-level controls in 223.639s
+under race instrumentation, including the fresh/duplicate identity pair, held wait allowance/refusal,
+default tools, native permission UI, bare refusal/deadline recovery, hooks, assets and status.
+Every model response in this regression comes from an owned synthetic server or fake ACP.

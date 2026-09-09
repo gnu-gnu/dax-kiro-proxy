@@ -277,8 +277,14 @@ func observeClientProfileHooks(t *testing.T, disabled bool) {
 	}
 }
 
+var observedMessageSequence atomic.Uint64
+
 func writeObservedMessage(w http.ResponseWriter, stream bool, model string, blocks []map[string]any, stop string) {
-	message := map[string]any{"id": "msg_profile_fixture", "type": "message", "role": "assistant", "model": model, "content": blocks, "stop_reason": stop, "stop_sequence": nil, "usage": map[string]int{"input_tokens": 0, "output_tokens": 0}}
+	writeObservedMessageID(w, stream, model, fmt.Sprintf("msg_owned_%d", observedMessageSequence.Add(1)), blocks, stop)
+}
+
+func writeObservedMessageID(w http.ResponseWriter, stream bool, model, id string, blocks []map[string]any, stop string) {
+	message := map[string]any{"id": id, "type": "message", "role": "assistant", "model": model, "content": blocks, "stop_reason": stop, "stop_sequence": nil, "usage": map[string]int{"input_tokens": 0, "output_tokens": 0}}
 	if !stream {
 		_ = json.NewEncoder(w).Encode(message)
 		return

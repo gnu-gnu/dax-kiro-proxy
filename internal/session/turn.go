@@ -34,11 +34,12 @@ type turn struct {
 	broker              *relay.Broker
 	socket              *relay.Socket
 	compat, reuseCompat [32]byte
+	policyCompat        [32]byte
 	plan                history.Plan
 	pendingHistory      history.Snapshot
 	lastIDs             []string
 	started             time.Time
-	instructionRestarts int
+	recreations         int
 	sessionState        string
 	multiplier          *float64
 	effort              kirofeature.Status

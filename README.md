@@ -86,12 +86,12 @@ both are actively inherited with suppression off and absent with it on. Persiste
 is disabled in this prepared launch path. Dynamic configuration changes and unmeasured source paths
 are outside the initial-session evidence; the proxy issues no configuration reload command.
 
-Default Claude Code traffic with 25 tools and its ordinary system prompt now passes text and a Read
-hook-denial round trip through the real gateway/validator/relay with fake ACP. The client changes its
-standing system suffix after that tool result. One exact full-history continuation can therefore
-recreate the backend after joined cleanup, retaining new instructions and the original deadline.
-This can add provider work and loses hidden backend context; actual Kiro validation of this new
-recovery path remains an alpha check. No general Messages/API or user-asset preservation is implied.
+Default Claude Code traffic with 25 tools and its ordinary system prompt passes text and a Read
+hook-denial round trip through the real gateway/validator/relay with fake ACP. Exact full-history
+continuations can recreate after a changed standing instruction or validated tool registry (D70),
+with joined cleanup, one original deadline and a default limit of sixteen recreations per turn.
+Unchanged continuations keep their prompt. Recreation adds provider work and loses hidden backend
+context; actual Kiro recovery remains an alpha check. No general Messages/API compatibility is implied.
 
 The temporary client profile now retains standard-HOME user/local MCP declarations and decisions
 at their native scopes. Installed-client controls verify all three MCP scopes, disabled/re-enabled
@@ -105,7 +105,9 @@ preservation. Finite list commands do not establish that startup behavior. Plugi
 hook refusal also pass through the real gateway/relay with fake ACP. The current interactive control
 checks the client's `/mcp` connected screen before input; server initialization/listing alone proved
 insufficient. A second print launch of the same private profile also completes a tool round trip.
-Immediate input and dynamic registry changes remain separate compatibility work (D65-D66, D68).
+The held-startup wait-to-plugin flow also passes through the real gateway/relay with fake ACP, for
+both allowance and hook refusal: three main requests, two backend processes and one/zero native
+calls. Other dynamic changes and arbitrary immediate-input coverage remain separate work (D70).
 
 The private profile now also snapshots the two bounded native plugin registration files. This lets
 the first session load installed plugin skills and hooks while retaining the read-only content seed.

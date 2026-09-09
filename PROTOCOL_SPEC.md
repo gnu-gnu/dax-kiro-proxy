@@ -177,17 +177,23 @@ The next client request must return all and only the tool-result IDs in that res
 successfully delivered batch. Later relay calls remain queued for a subsequent response. Validate
 the complete result set and final encoded result sizes before completing any suspended call.
 
-An exact repeated standing system suffix continues the same ACP prompt. D63 additionally permits
-one changed text-only system message after a result-only user message when the last standing
-sequence also had exactly one message. This requires the entire prior history as an exact prefix,
-unchanged owner/model/effort/top-level system/registry/metadata and the complete delivered result set.
+An exact repeated standing system suffix and unchanged registry continue the same ACP prompt. D70
+extends D63's replacement path to a changed validated registry, with or without changed standing
+instructions. A changed suffix must be one text-only system message after a result-only user message,
+and the last standing sequence must also have exactly one message. This requires the entire prior
+history as an exact prefix, unchanged owner/model/effort/top-level system/metadata/tool-choice policy,
+and the complete delivered result set. Regrouped history and repeated prior results still reject.
 Validate the full replacement projection and result encoding before revoking the old relay. Join
 old ACP/relay cleanup, then create a fresh session with all supplied history, including the tool
 request, its result and the new instruction. Actual results never resolve into the retired prompt.
-This may happen only once per logical turn and retains its original absolute deadline, including
-replacement setup. Expired work, truncated history, multiple changed standing messages or an
+Recreation is bounded to sixteen times per logical turn by default and retains the original absolute
+deadline, including replacement setup. Expired work, truncated history, multiple changed messages or an
 exhausted restart allowance reject. Full-history recreation loses unreported backend context and
 may add provider work; it is not equivalent to keeping the original backend conversation.
+
+Each HTTP completion uses a fresh message ID, including tool handoffs. D70's installed-client
+counterfactual shows that reusing one ID across separate responses can regroup earlier calls/results;
+that fixture behavior is not an accepted history transformation.
 
 ### Server web search
 

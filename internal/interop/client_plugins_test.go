@@ -50,6 +50,15 @@ func TestClaudePluginWaitThenToolShape(t *testing.T) {
 	observeClaudePluginSources(t, "wait-tool")
 }
 
+func TestClaudePluginDuplicateMessageIDControl(t *testing.T) {
+	observeClaudePluginSources(t, "wait-tool-duplicate")
+}
+
+func TestClaudePluginWaitThroughGatewayAndACP(t *testing.T) {
+	t.Run("allowed", func(t *testing.T) { observeClaudePluginSources(t, "proxy-wait-tool") })
+	t.Run("hook_denied", func(t *testing.T) { observeClaudePluginSources(t, "proxy-wait-tool-denied") })
+}
+
 func TestClaudePluginToolThroughGatewayAndACP(t *testing.T) {
 	t.Run("allowed", func(t *testing.T) { observeClaudePluginSources(t, "proxy-tool") })
 	t.Run("hook_denied", func(t *testing.T) { observeClaudePluginSources(t, "proxy-tool-denied") })
@@ -57,8 +66,12 @@ func TestClaudePluginToolThroughGatewayAndACP(t *testing.T) {
 
 func observeClaudePluginSources(t *testing.T, mode string) {
 	t.Helper()
-	proxyMode, denied := strings.HasPrefix(mode, "proxy-tool"), mode == "proxy-tool-denied"
-	waitMode := mode == "wait-tool"
+	proxyMode, denied := strings.HasPrefix(mode, "proxy-tool") || strings.HasPrefix(mode, "proxy-wait-tool"), strings.HasSuffix(mode, "-denied")
+	waitMode := strings.HasPrefix(mode, "wait-tool") || strings.HasPrefix(mode, "proxy-wait-tool")
+	proxyRequests := int32(2)
+	if waitMode {
+		proxyRequests = 3
+	}
 	toolRoundTrip, interactive := mode != "sources", mode == "interactive-tool" || proxyMode || waitMode
 	executable := os.Getenv("DAX_INTEROP_CLAUDE_BINARY")
 	if executable == "" {
@@ -109,6 +122,7 @@ func observeClaudePluginSources(t *testing.T, mode string) {
 		}
 		defer validator.Close()
 		exchange = &pluginToolExchange{validator: validator}
+		exchange.duplicateMessageIDs = mode == "wait-tool-duplicate"
 	}
 	tokens, err := gateway.NewTokens()
 	if err != nil {
@@ -126,6 +140,9 @@ func observeClaudePluginSources(t *testing.T, mode string) {
 		fake := buildDenialACPFixture(t, ctx, runner, root)
 		proxy := filepath.Join(filepath.Dir(buildRelayObserver(t)), "owned-relay")
 		args := []string{"chat-tools-plugin-client", ownedPluginToolName, processLedger}
+		if waitMode {
+			args[0] = "chat-tools-plugin-wait"
+		}
 		if denied {
 			args = append(args, "denied")
 		}
@@ -142,7 +159,7 @@ func observeClaudePluginSources(t *testing.T, mode string) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		proxyBackend = &defaultClientBackend{Driver: driver, catalog: models, limit: 2}
+		proxyBackend = &defaultClientBackend{Driver: driver, catalog: models, limit: proxyRequests}
 		proxyHandler, err = gateway.New(gateway.Config{Tokens: tokens, Backend: proxyBackend, TurnTimeout: 15 * time.Second, FirstEventTimeout: 10 * time.Second})
 		if err != nil {
 			t.Fatal(err)
@@ -199,6 +216,45 @@ func observeClaudePluginSources(t *testing.T, mode string) {
 					writeObservedMessage(w, decoded.Stream, model, []map[string]any{{"type": "text", "text": `{"title":"Independent plugin fixture"}`}}, "end_turn")
 					return
 				}
+				if waitMode {
+					for _, block := range decoded.Messages[decoded.LatestUserIndex()].Content {
+						if block.Type == "tool_result" {
+							var value struct{ Content json.RawMessage }
+							if json.Unmarshal(block.Raw, &value) == nil {
+								t.Logf("wait_path_result_string=%v", len(value.Content) > 0 && value.Content[0] == '"')
+							}
+						}
+					}
+					exchange.mu.Lock()
+					if !exchange.waited {
+						var waitSchema json.RawMessage
+						for _, raw := range decoded.Tools {
+							var tool struct {
+								Name   string
+								Schema json.RawMessage `json:"input_schema"`
+							}
+							if json.Unmarshal(raw, &tool) == nil && tool.Name == "WaitForMcpServers" {
+								waitSchema = tool.Schema
+							}
+						}
+						exchange.waitAdvertised = waitSchema != nil
+						exchange.waitEmptyAccepted = waitSchema != nil && exchange.validator.Validate(r.Context(), waitSchema, []byte(`{}`)) == nil
+						if !exchange.waitEmptyAccepted || exchange.releaseWait == nil {
+							exchange.failed = true
+							exchange.mu.Unlock()
+							w.WriteHeader(400)
+							return
+						}
+						if err := exchange.releaseWait(); err != nil {
+							exchange.failed = true
+							exchange.mu.Unlock()
+							w.WriteHeader(500)
+							return
+						}
+						exchange.waited = true
+					}
+					exchange.mu.Unlock()
+				}
 				r.Body = io.NopCloser(bytes.NewReader(body))
 				proxyHandler.ServeHTTP(w, r)
 				proxyBackend.mu.Lock()
@@ -214,7 +270,7 @@ func observeClaudePluginSources(t *testing.T, mode string) {
 					exchange.rawWait = exchange.rawWait || tool.Name == "WaitForMcpServers"
 					exchange.rawToolSearch = exchange.rawToolSearch || tool.Name == "ToolSearch"
 				}
-				exchange.toolRequested = proxyBackend.starts.Load() == 2
+				exchange.toolRequested = proxyBackend.starts.Load() == proxyRequests
 				exchange.failed = proxyBackend.failed.Load()
 				exchange.complete = exchange.toolRequested && !exchange.failed && proxyBackend.State() == session.Idle
 				exchange.mu.Unlock()
@@ -475,7 +531,7 @@ func observeClaudePluginSources(t *testing.T, mode string) {
 		}
 		pids := strings.Fields(string(boundedAssetFile(t, processLedger)))
 		if len(pids) != 2 {
-			t.Error("expected one bounded backend reconstruction")
+			t.Error("unexpected bounded backend reconstruction count")
 		}
 		for _, raw := range pids {
 			pid, err := strconv.Atoi(raw)

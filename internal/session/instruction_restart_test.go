@@ -60,7 +60,9 @@ func TestChangedStandingInstructionRecreatesFromCompleteOwnedHistory(t *testing.
 				func(r *anthropic.Request) { r.Identity.Session = "another-owner" },
 				func(r *anthropic.Request) { r.Model = "claude-dax-absent" },
 				func(r *anthropic.Request) { r.Effort = "high" },
-				func(r *anthropic.Request) { r.Tools = nil },
+				func(r *anthropic.Request) {
+					r.Tools = []json.RawMessage{json.RawMessage(`{"name":"invalid","input_schema":{"type":"array"}}`)}
+				},
 				func(r *anthropic.Request) { r.Messages[0].Content[0].Text = "altered history" },
 				func(r *anthropic.Request) { r.Messages = r.Messages[1:] },
 				func(r *anthropic.Request) { r.Messages = r.Messages[2:] },
@@ -128,7 +130,7 @@ func TestInstructionRecoveryPreservesDeadlineAndJoinsFailedReplacement(t *testin
 }
 
 func TestInstructionRecoveryBudgetCannotRestartEachToolHandoff(t *testing.T) {
-	d := toolDriver(t, "chat-tools-system-repeat", 3*time.Second)
+	d := toolDriver(t, "chat-tools-system-repeat", 3*time.Second, func(c *session.Config) { c.MaxRecreations = 1 })
 	next, oldPID := instructionHandoff(t, t.Context(), d)
 	turn, err := d.Start(t.Context(), next)
 	if err != nil {

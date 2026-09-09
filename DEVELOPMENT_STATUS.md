@@ -6,14 +6,28 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D70 corrects D69: cumulative tool history was caused by the synthetic responder reusing a message
+  ID. A paired actual-client control proves unique IDs append history normally (8.966s). All ordinary
+  synthetic responses now get distinct IDs; the duplicate-ID case is an explicit counterfactual.
+  The product keeps regrouped history and mixed prior/new results rejected. The required registry
+  replacement now validates full prior history, exact delivered results and unchanged ownership/
+  policy, joins old cleanup and preserves the original deadline under a default 16-recreation bound.
+  Actual Claude with the real gateway/relay and fake ACP passes held MCP wait followed by plugin
+  allowance/refusal in 13.770s: three main requests, one replacement, native counts one/zero,
+  unchanged sources and joined processes. The subsequent plugin result resumes that same prompt.
+  Final uncached whole-repository race tests pass (session 25.882s, interop 22.255s, launcher 22.678s).
+  All 27 existing installed-Claude top-level controls pass together in 223.639s under race,
+  including permission UI, bare refusal/deadline recovery, hooks, assets and status. Whole-repository/
+  fixture vet, formatting, whitespace, build and executable help pass; the development binary is rebuilt.
+  No actual Kiro turn runs; live recovery and remaining alpha/release gates are still open.
 - D69 deterministically reproduces WaitForMcpServers followed by an owned plugin call. The MCP
   fixture holds initialization until the synthetic responder has validated the advertised wait
   schema; the actual client then changes its registry and combines prior/new calls and results.
   Canonical block comparisons prove the original prefix and earlier results remain equal while
   trailing standing messages change. The final six-test installed regression passes in 36.175s,
   with one native call, source preservation and joined cleanup. This is client-shape evidence,
-  not support for that sequence through the driver/Kiro. Exact history/result validation and a
-  bounded replacement design are the next implementation step; D69 records its negative cases.
+  not support for that sequence through the driver/Kiro. D70 corrects the grouping inference and
+  implements registry replacement while retaining strict history/result validation.
   Public-only local Claude advice was saved, read and assessed. The uncached opt-ins-off interop
   race suite passes in 20.774s; whole-repository/fixture vet, formatting and whitespace pass.
   No product code/dependency changes.

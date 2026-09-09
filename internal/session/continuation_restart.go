@@ -14,56 +14,70 @@ import (
 	"dax-kiro-proxy/internal/toolregistry"
 )
 
-type instructionRestart struct {
+type continuationRestart struct {
 	deadline, started time.Time
 	count             int
 }
 
-// A changed single standing system message cannot be injected into a suspended ACP prompt.
-// For one exact full-history continuation, revoke the delivered batch and recreate with all supplied
-// history. Repetition stays in the original prompt; ambiguous/truncated history remains rejected.
-func (d *Driver) restartForInstruction(ctx context.Context, r *anthropic.Request, registry *toolregistry.Registry, results []anthropic.ToolResult) (*instructionRestart, error) {
+// A changed registry or standing instruction requires a fresh ACP prompt. Validate
+// the complete delivered batch and immutable prior content before revoking any old ownership.
+func (d *Driver) restartForContinuation(ctx context.Context, r *anthropic.Request, registry *toolregistry.Registry, results []anthropic.ToolResult) (*continuationRestart, error) {
 	i := r.LatestUserIndex()
-	if i < 0 || len(results) == 0 || len(r.Messages[i].Content) != len(results) || len(r.Messages) != i+2 {
+	if i < 0 || len(results) == 0 || len(r.Messages[i].Content) != len(results) {
 		return nil, nil
 	}
 	suffix := r.Messages[i+1:]
-	if suffix[0].Role != "system" || len(suffix[0].Content) == 0 {
-		return nil, nil
-	}
-	for _, block := range suffix[0].Content {
-		if block.Type != "text" {
-			return nil, inference.ErrRequest
-		}
-	}
 	stamp, err := compatibility(r, registry)
 	if err != nil {
 		return nil, inference.ErrRequest
 	}
-	converted, err := relayResults(results)
-	if err != nil {
-		return nil, inference.ErrRequest
-	}
-	nodes, err := d.hasher.Nodes(r.Messages[:i])
+	policy, err := compatibility(r, nil)
 	if err != nil {
 		return nil, inference.ErrRequest
 	}
 	d.mu.Lock()
 	previous := d.current
-	if d.state != WaitingTools || previous == nil || d.repeatedSystem(previous.pendingHistory, suffix) {
+	if d.state != WaitingTools || previous == nil {
 		d.mu.Unlock()
 		return nil, nil
 	}
-	pending := previous.pendingHistory
-	// Initially support a single standing message before the handoff and after the result.
-	// Existing multi-message suffix rules are unchanged, including their order/partial safeguards.
-	n := len(pending.Nodes)
-	valid := pending.Valid() && n >= 2 && pending.Nodes[n-2].Role == "system" && (n < 3 || pending.Nodes[n-3].Role != "system") && slices.Equal(nodes, pending.Nodes) && stamp == previous.compat && sameResultIDs(previous.lastIDs, results) && previous.instructionRestarts == 0
-	if !valid {
+	repeated := d.repeatedSystem(previous.pendingHistory, suffix)
+	if stamp == previous.compat && repeated {
+		d.mu.Unlock()
+		return nil, nil
+	}
+	if policy != previous.policyCompat || previous.recreations >= d.cfg.MaxRecreations {
 		d.mu.Unlock()
 		return nil, inference.ErrRequest
 	}
-	window := &instructionRestart{started: previous.started, count: previous.instructionRestarts + 1}
+	// A complete repeated sequence keeps its existing semantics; a new sequence is restricted
+	// to one nonempty text-only standing message. All other changed instructions reject.
+	if !repeated {
+		if len(suffix) != 1 || suffix[0].Role != "system" || len(suffix[0].Content) == 0 {
+			d.mu.Unlock()
+			return nil, inference.ErrRequest
+		}
+		for _, block := range suffix[0].Content {
+			if block.Type != "text" {
+				d.mu.Unlock()
+				return nil, inference.ErrRequest
+			}
+		}
+	}
+	pending := previous.pendingHistory
+	nodes, err := d.hasher.Nodes(r.Messages[:i])
+	n := len(pending.Nodes)
+	if err != nil || !pending.Valid() || !slices.Equal(nodes, pending.Nodes) || (!repeated && (n < 2 || pending.Nodes[n-2].Role != "system" || (n >= 3 && pending.Nodes[n-3].Role == "system"))) || !sameResultIDs(previous.lastIDs, results) {
+		d.mu.Unlock()
+		return nil, inference.ErrRequest
+	}
+	converted, err := relayResults(results)
+	if err != nil {
+		d.mu.Unlock()
+		return nil, inference.ErrRequest
+	}
+	window := &continuationRestart{started: previous.started, count: previous.recreations + 1}
+	var valid bool
 	window.deadline, valid = previous.owned.Deadline()
 	if !valid || !time.Now().Before(window.deadline) || ctx.Err() != nil {
 		d.mu.Unlock()
