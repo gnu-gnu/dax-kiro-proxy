@@ -859,7 +859,13 @@ The first opted-in invocation, live-process-loss.8PHpmH, stops at login prefligh
 package); it creates no ACP process and sends no model request. The installed pair remains 2.21.2.
 A fresh-state compiled doctor also stops at login verification, and the main/helper read-only
 diagnostic process-loss-account-diagnostic.9j2vIn records exit 1/account:null for both (4.816s).
-The account has no currently verified login. The user has been asked to complete public CLI login;
+At that point the account had no verified login. The user was asked to complete public CLI login;
 no credentials or authentication state are modified by this work. No actual sequence is retried.
 The full live process-loss gate remains open. The fake-ACP rehearsal and applicable core race
 regression pass, as recorded in D75, without external model inference.
+
+D80 later rechecks both pinned entry points: whoami now exits 0, and the product identity/scope
+preflight passes with its bounded-postamble handling. No account value is logged and no login
+command or state mutation is performed. The absent-login condition is resolved, so the bounded
+sequence above may proceed after its applicable local controls. This read-only check alone does
+not close the live process-loss gate.

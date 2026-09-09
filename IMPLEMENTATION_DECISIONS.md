@@ -3587,3 +3587,92 @@ are useful advice; deleting invalid stages by name and a mistaken extra path seg
 The response supplies no validation or implementation-source authority. No earlier implementation
 is consulted, no real client/user configuration changes and no Kiro model request occurs. Development
 run policy remains enabled; D75 login renewal and D77 personal-root-memory fidelity remain open.
+
+## D80: distinguish native memory observations from a source-preserving adapter
+
+Personal CLAUDE.md remains an open compatibility requirement. Do not enable either a renamed
+rules entry or a settings-stage configuration redirect. Do not infer effective exclusion from an
+absent context entry, and do not treat explicit fixture alias exclusions as a general policy mapper.
+No production code, dependency, development executable or frozen artifact changes in this decision.
+
+Twelve installed Claude 2.1.263 controls independently put an exact original-root exclusion in user,
+project or local settings. Supplying the exact private alias as an additional flag-level exclusion
+preserves the expected root body, ordering, four import hops and original exclusion in these fixtures.
+The alias is deliberately supplied by the test; no effective-settings discovery or glob translation
+has been implemented. Managed policy, glob edge cases and later settings changes are not established
+by this result. Naming a rules entry CLAUDE.md still loses the path-frontmatter root body and also
+changes the observed order of its imports relative to general rules. The existing acceptance bar
+is retained, rather than reducing import depth or dropping the root body.
+
+Five bounded streaming-control sessions independently test initialize, get_settings and
+get_context_usage requests against the unmodified pinned client. Effective exclusions match the
+owned input; context inspection makes zero model and zero token-count requests. A plain rules link
+is listed by original path; a direct user-root alias is listed by alias, even when the original
+path is excluded. Both a conditional rules entry and an excluded one are absent. Thus an absent
+entry is not an exclusion oracle. Exact path identities, original files, private cleanup and joined
+process groups are checked. Control frames are limited to 64 KiB each, 32 total, with a five-second
+read deadline and fifteen-second process lifetime. No SDK is installed or executed.
+
+Public [memory documentation](https://code.claude.com/docs/en/memory) supplies the native import,
+path and exclusion concepts. The [Agent SDK reference](https://code.claude.com/docs/en/agent-sdk/typescript)
+describes local context inspection and alpha resolveSettings; that snapshot API does not run a
+policy helper or fetch server-managed settings and has trust-related differences. It is distinct from the
+live get_settings control observed here. The public function documentation does not specify every
+CLI envelope: wire probes are authored independently and validated only for the pinned executable.
+The SDK package metadata refers to its README license, whose commercial-terms statement is not
+assumed to be an MIT grant. No new dependency or license clearance follows from reading these docs.
+
+A separate candidate keeps the process-level configuration path private, but puts the original
+owned HOME/.claude path in the temporary flag overlay's env.CLAUDE_CONFIG_DIR. It initially passes
+finite print memory controls. With normal persistence enabled it adds one completed transcript in
+the original projects tree; positive controls check the synthetic answer inside the new bounded
+file without printing its content. Existing originals, global JSON and project settings remain
+unchanged in that finite candidate run. The native comparison also positively saves a transcript.
+
+The public [environment reference](https://code.claude.com/docs/en/env-vars) documents
+CLAUDE_CODE_SKIP_PROMPT_HISTORY, and the [CLI reference](https://code.claude.com/docs/en/cli-reference)
+distinguishes it from print-only --no-session-persistence. Setting the environment option suppresses
+the candidate's source transcript write. Six natural/candidate print sessions then match root body,
+ordering, four import hops, original exclusion and conditional-rule activation after one owned Read.
+This is a scoped observation, not approval to use the candidate in normal run.
+
+The independent plugin fixture establishes the missing distinction. Finite plugin skill expansion
+passes, but interactive startup changes the original settings.json. A separate native uninstall
+changes original enabledPlugins and removes the original installed_plugins.json registration.
+The original marketplace, global JSON and Git configuration remain unchanged in the candidate
+controls. Disabling transcript persistence therefore does not isolate settings/plugin writes.
+Initial acceptance attempts fail; the retained counterfactual explicitly requires these rejected
+effects and never weakens the ordinary product-profile preservation assertions. All changed source
+files belong to disposable fixtures, never the user's actual HOME. Settings diagnostics contain
+fixed categories and field-presence/change facts; no prompts, tool outputs, credentials or raw
+client stderr are printed or persisted as diagnostic logs.
+
+The public-only local Claude consultation public-root-exclusions-review-4jid6djz is saved, fully read
+and assessed. Its cautions about all settings scopes, glob anchoring, ordering and false inclusion/
+exclusion are useful. Its suggestion to reduce the import limit is rejected. Its claim that no
+effective-settings inspection exists is corrected by the public API and live-control observations;
+neither proves a complete adapter. No earlier implementation or private client implementation is
+consulted, no Kiro model request or login mutation occurs, and no feature is published.
+
+The six observation/counterfactual controls pass together under race detection in 22.428s, covering
+39 client control/conversation sessions plus finite version/plugin-management commands. Passing
+counterfactuals mean the rejected defects remain reproducible, not that personal-root support is
+complete. Required product preservation and memory semantics remain unchanged. Development run
+policy stays enabled. Full client-environment preservation, live lifecycle, soak, clean-host release and
+rights/license gates remain open.
+
+After closing parent pipe ends and registering cleanup immediately in the new control fixture,
+all seven applicable installed-client regression controls pass under race detection in 40.373s,
+including native memory identity, personal assets/rules and the ordinary plugin preservation gates.
+Opt-ins-off race suites pass interop 24.864s and launcher 28.615s. Whole-repository vet, formatting
+and whitespace checks pass. The D79 development executable and its reviewed selected inputs are
+unchanged; no rebuild or inventory refresh is required for these test/documentation changes.
+The unchanged installation snapshot again verifies all 138 file records, including that executable,
+without granting release clearance.
+
+At the end of this work, a fresh read-only identity check observes whoami exit 0 for both pinned
+Kiro entry points (5.140s package). The correctly named product login-preflight test then passes in
+1.686s, verifying the identity, private scope and bounded trailing notice. An earlier misnamed test
+selection ran no tests and is not counted as validation. No account values or credentials are retained.
+This supersedes D75's absent-login observation: no further login action is currently required, and
+bounded live testing can resume. It does not establish the still-unrun live acceptance cases.

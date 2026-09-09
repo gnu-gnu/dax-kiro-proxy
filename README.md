@@ -124,8 +124,9 @@ checks. No general Messages/API compatibility is implied.
 
 Actual Claude with fake ACP also verifies process loss before Read delivery, a client-visible error,
 joined old cleanup and a fresh text request in a new process (D75). Its actual-Kiro invocation stops
-before model work because both CLI entry points currently report no logged-in account. Login renewal
-is required for further live work; development execution-policy admission remains enabled.
+before model work because both CLI entry points reported no logged-in account at that time. A later
+read-only check (D80) now verifies the logged-in identity with the product preflight, so live testing
+can resume. Development execution-policy admission remains enabled.
 
 The temporary client profile now retains standard-HOME user/local MCP declarations and decisions
 at their native scopes. Installed-client controls verify all three MCP scopes, disabled/re-enabled
@@ -168,6 +169,9 @@ not an immutable snapshot; preparation validates the shared asset bounds and cle
 the private link. Personal `~/.claude/CLAUDE.md` is still not loaded by the temporary profile.
 Tested adapters either bypass its original exclusion, lose one import hop or omit a root body
 with path frontmatter. None is enabled. This remains a client-environment compatibility gap.
+Further controls (D80) reject redirecting the settings-stage configuration path to the original
+HOME: history suppression helps finite print runs, but interactive startup still changes original
+settings and plugin uninstall changes the original registration. The private profile stays in use.
 
 The product status display now yields to existing user/project/local status choices, including
 commands without a refresh interval. It supplies a bounded user-scope default only when no such

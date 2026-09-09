@@ -81,6 +81,9 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
   path exclusions, all four import hops and native ordering without duplicated content. D77's
   explicit counterfactuals demonstrate rejected adapters, not successful product support. This
   acceptance item remains open; the private profile currently omits personal CLAUDE.md.
+  Any replacement must also preserve original settings and plugin registrations through interactive
+  startup and native plugin management. A no-history print pass is insufficient (D80). Tests named
+  counterfactual deliberately reproduce rejected adapter defects and do not satisfy this gate.
 
 ## C. Anthropic compatibility
 

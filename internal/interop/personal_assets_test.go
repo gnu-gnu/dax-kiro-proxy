@@ -64,6 +64,34 @@ func TestClaudePersonalMemoryAdapterCounterfactuals(t *testing.T) {
 	t.Run("rules-entry-body-loss", func(t *testing.T) {
 		observePersonalCustomizationSources(t, personalSourceOptions{instructions: true, rootFrontmatter: true, chainLength: 5, modes: []string{"natural", "rule_entry"}})
 	})
+	t.Run("named-rules-entry-body-and-order-loss", func(t *testing.T) {
+		observePersonalCustomizationSources(t, personalSourceOptions{instructions: true, rootFrontmatter: true, chainLength: 5, modes: []string{"natural", "rule_named"}})
+	})
+}
+
+// An explicitly supplied alias exclusion is an experimental control, not an inferred
+// effective policy or a production adapter. Native root semantics remain the acceptance bar.
+func TestClaudePersonalRootAliasExclusionControls(t *testing.T) {
+	for _, scope := range []string{"user", "project", "local"} {
+		t.Run(scope, func(t *testing.T) {
+			observePersonalCustomizationSources(t, personalSourceOptions{
+				instructions: true, chainLength: 5, rootFrontmatter: true, aliasExclusion: true,
+				exclusionScope: scope,
+				modes:          []string{"natural", "linked", "natural_excluded", "linked_alias_excluded"},
+			})
+		})
+	}
+}
+
+// These observations describe a rejected adapter, not product acceptance. Without history
+// suppression it writes a source transcript; suppression alone still fails the separate
+// interactive/plugin source-preservation counterfactual.
+func TestClaudePersonalRootEnvironmentTranscriptCounterfactual(t *testing.T) {
+	observePersonalCustomizationSources(t, personalSourceOptions{instructions: true, chainLength: 5, rootFrontmatter: true, persistSession: true, modes: []string{"natural", "redirect_env"}})
+}
+
+func TestClaudePersonalRootEnvironmentNoHistoryObservations(t *testing.T) {
+	observePersonalCustomizationSources(t, personalSourceOptions{instructions: true, chainLength: 5, rootFrontmatter: true, persistSession: true, skipHistory: true, modes: []string{"natural", "redirect_env", "natural_excluded", "redirect_env_excluded", "natural_read", "redirect_env_read"}})
 }
 
 type personalSourceOptions struct {
@@ -73,6 +101,10 @@ type personalSourceOptions struct {
 	rootFrontmatter bool
 	rulesOnly       bool
 	modes           []string
+	aliasExclusion  bool
+	exclusionScope  string
+	persistSession  bool
+	skipHistory     bool
 }
 
 func observePersonalCustomizationSources(t *testing.T, options personalSourceOptions) {
@@ -347,6 +379,22 @@ func observePersonalCustomizationSources(t *testing.T, options personalSourceOpt
 				if excluded {
 					source["claudeMdExcludes"] = []string{filepath.Join(home, ".claude", "CLAUDE.md"), filepath.Join(home, ".claude", "rules", "general.md")}
 				}
+				if options.exclusionScope == "project" || options.exclusionScope == "local" {
+					name := "settings.json"
+					if options.exclusionScope == "local" {
+						name = "settings.local.json"
+					}
+					layer := map[string]any{}
+					if excluded {
+						layer["claudeMdExcludes"] = source["claudeMdExcludes"]
+						delete(source, "claudeMdExcludes")
+					}
+					data, err := json.Marshal(layer)
+					if err != nil {
+						t.Fatal("cannot encode independent settings layer")
+					}
+					write(filepath.Join(project, ".claude", name), string(data))
+				}
 				encoded, err := json.Marshal(source)
 				if err != nil {
 					t.Fatal("cannot encode independent exclusion")
@@ -370,6 +418,21 @@ func observePersonalCustomizationSources(t *testing.T, options personalSourceOpt
 							t.Fatal("cannot create independent instruction reference")
 						}
 					}
+					if options.aliasExclusion && excluded {
+						// This exact path is deliberately given by the fixture. This control
+						// does not implement a glob matcher or obtain effective native settings.
+						data, err := os.ReadFile(profile.SettingsPath())
+						var overlay map[string]any
+						if err != nil || json.Unmarshal(data, &overlay) != nil {
+							t.Fatal("cannot read owned overlay")
+						}
+						overlay["claudeMdExcludes"] = []string{filepath.Join(profile.Path(), "client", "CLAUDE.md")}
+						data, err = json.Marshal(overlay)
+						if err != nil {
+							t.Fatal("cannot encode owned alias control")
+						}
+						write(profile.SettingsPath(), string(data))
+					}
 				}
 				if strings.HasPrefix(mode, "tilde") {
 					write(filepath.Join(profile.Path(), "client", "CLAUDE.md"), "@~/.claude/CLAUDE.md\n")
@@ -377,9 +440,13 @@ func observePersonalCustomizationSources(t *testing.T, options personalSourceOpt
 						t.Fatal("cannot prepare native HOME import candidate")
 					}
 				}
-				if mode == "rule_entry" {
+				if mode == "rule_entry" || mode == "rule_named" {
 					rules := filepath.Join(profile.Path(), "client", "rules")
-					if os.Mkdir(rules, 0700) != nil || os.Symlink(filepath.Join(home, ".claude", "CLAUDE.md"), filepath.Join(rules, "00-personal-instructions.md")) != nil || os.Symlink(filepath.Join(home, ".claude", "rules"), filepath.Join(rules, "source")) != nil {
+					name := "00-personal-instructions.md"
+					if mode == "rule_named" {
+						name = "CLAUDE.md"
+					}
+					if os.Mkdir(rules, 0700) != nil || os.Symlink(filepath.Join(home, ".claude", "CLAUDE.md"), filepath.Join(rules, name)) != nil || os.Symlink(filepath.Join(home, ".claude", "rules"), filepath.Join(rules, "source")) != nil {
 						t.Fatal("cannot create independent native rules entry")
 					}
 				}
@@ -389,6 +456,9 @@ func observePersonalCustomizationSources(t *testing.T, options personalSourceOpt
 							t.Fatal("cannot prepare independent missing-assets counterfactual")
 						}
 					}
+				}
+				if strings.HasPrefix(mode, "redirect_env") {
+					redirectOwnedClientConfig(t, profile, home, options.skipHistory)
 				}
 				command := profile.Command()
 				if strings.HasPrefix(mode, "natural") {
@@ -420,7 +490,11 @@ func observePersonalCustomizationSources(t *testing.T, options personalSourceOpt
 				if read {
 					prompt = "Read the one independently owned conditional fixture and give a brief text response."
 				}
-				command.Args = append(command.Args, "--strict-mcp-config", "--mcp-config", `{"mcpServers":{}}`, "--print", "--output-format", "json", "--no-session-persistence", prompt)
+				command.Args = append(command.Args, "--strict-mcp-config", "--mcp-config", `{"mcpServers":{}}`, "--print", "--output-format", "json")
+				if !options.persistSession {
+					command.Args = append(command.Args, "--no-session-persistence")
+				}
+				command.Args = append(command.Args, prompt)
 				result, err := runner.Run(ctx, command)
 				mu.Lock()
 				seen := got
@@ -440,9 +514,15 @@ func observePersonalCustomizationSources(t *testing.T, options personalSourceOpt
 					nativeOrder = append([]string(nil), seen.InstructionOrder...)
 				}
 				wantOrder := nativeOrder
-				missingRootBody := mode == "rule_entry" && options.rootFrontmatter
+				missingRootBody := (mode == "rule_entry" || mode == "rule_named") && options.rootFrontmatter
 				if missingRootBody {
 					wantOrder = append([]string(nil), nativeOrder[1:]...)
+				}
+				if mode == "rule_named" {
+					if len(nativeOrder) != 8 {
+						t.Fatal("incomplete native ordering control")
+					}
+					wantOrder = append([]string{nativeOrder[2], nativeOrder[3], nativeOrder[1]}, nativeOrder[4:]...)
 				}
 				if instructions && !excluded && wantPersonal && !reflect.DeepEqual(wantOrder, seen.InstructionOrder) {
 					t.Error("native instruction ordering changed")
@@ -483,7 +563,51 @@ func observePersonalCustomizationSources(t *testing.T, options personalSourceOpt
 				if seen.PersonalInstructions != (wantMemory && !missingRootBody) || seen.PersonalImport != wantMemory || seen.PersonalRule != wantInstructions || seen.PersonalRuleImport != wantInstructions || seen.ProjectInstructions != wantProjectMemory || seen.ProjectImport != wantProjectMemory || seen.ProjectRule != instructions || seen.ProjectRuleImport != instructions || seen.Conditional != read || seen.PersonalConditional != read || seen.ProjectConditional != read || seen.ReadRequested != read || seen.ReadMatched != read {
 					t.Error("instruction/import scope or conditional rule activation changed")
 				}
-				if !strings.HasPrefix(mode, "natural") && (!reflect.DeepEqual(beforeHome, boundedPluginTree(t, filepath.Join(home, ".claude"))) || !reflect.DeepEqual(beforeProject, boundedPluginTree(t, project)) || beforeGlobal != fileFingerprint(t, filepath.Join(home, ".claude.json"))) {
+				afterHome := boundedPluginTree(t, filepath.Join(home, ".claude"))
+				projectChanged := !reflect.DeepEqual(beforeProject, boundedPluginTree(t, project))
+				globalChanged := beforeGlobal != fileFingerprint(t, filepath.Join(home, ".claude.json"))
+				rejectedTranscriptWrite := mode == "redirect_env" && options.persistSession && !options.skipHistory
+				if options.persistSession {
+					categories := map[string]int{}
+					transcripts, existingChanged := 0, false
+					paths := make(map[string]bool)
+					for path := range beforeHome {
+						paths[path] = true
+					}
+					for path := range afterHome {
+						paths[path] = true
+					}
+					for path := range paths {
+						before, hadBefore := beforeHome[path]
+						after, hasAfter := afterHome[path]
+						if hadBefore == hasAfter && before == after {
+							continue
+						}
+						existingChanged = existingChanged || hadBefore
+						rel, err := filepath.Rel(filepath.Join(home, ".claude"), path)
+						if err != nil {
+							t.Fatal("cannot classify owned source change")
+						}
+						category := strings.SplitN(rel, string(filepath.Separator), 2)[0]
+						switch category {
+						case "settings.json", "projects", "plugins", "debug", "todos", "session-env", "history.jsonl":
+						default:
+							category = "other"
+						}
+						categories[category]++
+						if !hadBefore && hasAfter && category == "projects" && strings.HasSuffix(path, ".jsonl") && after.mode.IsRegular() && bytes.Contains(boundedAssetFile(t, path), []byte(answer)) {
+							transcripts++
+						}
+					}
+					t.Logf("owned_source_changes=%v, new_answer_transcripts=%d, existing_source_changed=%v, project_changed=%v, global_changed=%v", categories, transcripts, existingChanged, projectChanged, globalChanged)
+					if strings.HasPrefix(mode, "natural") && transcripts != 1 {
+						t.Error("native persistence control did not save one completed owned transcript")
+					}
+					if rejectedTranscriptWrite && (transcripts != 1 || existingChanged || len(categories) != 1 || categories["projects"] != 1 || projectChanged || globalChanged) {
+						t.Error("rejected environment adapter no longer reproduces the source transcript write")
+					}
+				}
+				if !strings.HasPrefix(mode, "natural") && !rejectedTranscriptWrite && (!reflect.DeepEqual(beforeHome, afterHome) || projectChanged || globalChanged) {
 					t.Error("prepared run changed an owned source")
 				}
 				for path, before := range importFingerprints {

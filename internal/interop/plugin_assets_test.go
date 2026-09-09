@@ -41,11 +41,21 @@ func TestClaudeGitPluginSourcePreservation(t *testing.T) {
 	observePluginAssets(t, true)
 }
 
+// Passing this control reproduces rejected source writes. The product profile must continue
+// passing the ordinary preservation tests, which do not permit these writes.
+func TestClaudeRedirectedProfilePluginCounterfactual(t *testing.T) {
+	observePluginAssetProfile(t, false, pluginAssetsOnly, true)
+}
+
 func observePluginAssets(t *testing.T, gitSource bool) {
 	observePluginAssetMode(t, gitSource, pluginAssetsOnly)
 }
 
 func observePluginAssetMode(t *testing.T, gitSource bool, mode pluginAssetMode) {
+	observePluginAssetProfile(t, gitSource, mode, false)
+}
+
+func observePluginAssetProfile(t *testing.T, gitSource bool, mode pluginAssetMode, redirectProfile bool) {
 	t.Helper()
 	modelSelected, gatewayMode := mode != pluginAssetsOnly, mode == pluginGatewaySkill
 	executable := os.Getenv("DAX_INTEROP_CLAUDE_BINARY")
@@ -351,6 +361,9 @@ func observePluginAssetMode(t *testing.T, gitSource bool, mode pluginAssetMode) 
 	if gatewayMode {
 		cases = cases[1:2]
 	}
+	if redirectProfile {
+		cases = append(cases[:1:1], cases[2], cases[3], cases[8])
+	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			if tc.management != "" {
@@ -364,6 +377,10 @@ func observePluginAssetMode(t *testing.T, gitSource bool, mode pluginAssetMode) 
 			writeJSON(settings, source)
 			beforeSeed, beforeMarket := boundedPluginTree(t, seed), boundedPluginTree(t, market)
 			beforeSettings, beforeGlobal := fileFingerprint(t, settings), fileFingerprint(t, global)
+			var sourceSettings map[string]any
+			if redirectProfile && json.Unmarshal(boundedAssetFile(t, settings), &sourceSettings) != nil {
+				t.Fatal("invalid owned settings diagnostic source")
+			}
 			beforeGit := fileFingerprint(t, filepath.Join(home, ".gitconfig"))
 			oldStarts, oldStops := inspectPluginHookProcesses(t, observations)
 			mu.Lock()
@@ -376,6 +393,9 @@ func observePluginAssetMode(t *testing.T, gitSource bool, mode pluginAssetMode) 
 				t.Fatal(err)
 			}
 			defer profile.Close()
+			if redirectProfile && !strings.HasPrefix(tc.name, "natural_") {
+				redirectOwnedClientConfig(t, profile, home, true)
+			}
 			prompt := "Return a short text response without calling tools."
 			if tc.skill {
 				prompt = "/dax-assets:owned-skill"
@@ -458,7 +478,42 @@ func observePluginAssetMode(t *testing.T, gitSource bool, mode pluginAssetMode) 
 					t.Error("private plugin uninstall failed")
 				}
 			}
-			if !strings.HasPrefix(tc.name, "natural_") && (!reflect.DeepEqual(beforeSeed, boundedPluginTree(t, seed)) || !reflect.DeepEqual(beforeMarket, boundedPluginTree(t, market)) || beforeSettings != fileFingerprint(t, settings) || beforeGlobal != fileFingerprint(t, global) || beforeGit != fileFingerprint(t, filepath.Join(home, ".gitconfig"))) {
+			seedChanged := !reflect.DeepEqual(beforeSeed, boundedPluginTree(t, seed))
+			marketChanged := !reflect.DeepEqual(beforeMarket, boundedPluginTree(t, market))
+			settingsChanged, globalChanged := beforeSettings != fileFingerprint(t, settings), beforeGlobal != fileFingerprint(t, global)
+			gitChanged := beforeGit != fileFingerprint(t, filepath.Join(home, ".gitconfig"))
+			if redirectProfile {
+				t.Logf("owned_seed_changed=%v, owned_market_changed=%v, owned_settings_changed=%v, owned_global_changed=%v, owned_git_changed=%v", seedChanged, marketChanged, settingsChanged, globalChanged, gitChanged)
+				var afterSettings map[string]any
+				if json.Unmarshal(boundedAssetFile(t, settings), &afterSettings) != nil {
+					t.Fatal("invalid owned settings diagnostic result")
+				}
+				changed := []string{}
+				for _, key := range []string{"$schema", "effortLevel", "enabledPlugins", "permissions", "autoMemoryEnabled", "model", "voiceEnabled"} {
+					if !reflect.DeepEqual(sourceSettings[key], afterSettings[key]) {
+						changed = append(changed, key)
+					}
+					delete(sourceSettings, key)
+					delete(afterSettings, key)
+				}
+				t.Logf("owned_settings_changed_known_keys=%v, other_settings_fields_changed=%v", changed, !reflect.DeepEqual(sourceSettings, afterSettings))
+			}
+			if redirectProfile && (interactive || tc.name == "private_uninstall_skill") {
+				if !settingsChanged || seedChanged != (tc.name == "private_uninstall_skill") || marketChanged || globalChanged || gitChanged {
+					t.Error("rejected profile no longer reproduces its source-write defect")
+				}
+				if tc.name == "private_uninstall_skill" {
+					var installed struct {
+						Plugins map[string]json.RawMessage `json:"plugins"`
+					}
+					if json.Unmarshal(boundedAssetFile(t, filepath.Join(seed, "installed_plugins.json")), &installed) != nil || installed.Plugins == nil {
+						t.Fatal("invalid owned plugin registration result")
+					}
+					if _, exists := installed.Plugins[pluginID]; exists {
+						t.Error("rejected profile did not remove the original owned plugin registration")
+					}
+				}
+			} else if !strings.HasPrefix(tc.name, "natural_") && (seedChanged || marketChanged || settingsChanged || globalChanged || gitChanged) {
 				t.Error("prepared plugin startup changed original sources")
 			}
 			if profile.Close() != nil {

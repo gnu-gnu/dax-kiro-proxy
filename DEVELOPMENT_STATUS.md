@@ -6,6 +6,24 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D80 adds bounded personal-memory observations without enabling a production adapter. Explicit
+  alias exclusions pass twelve user/project/local controls, but do not implement general policy
+  mapping. Five native read-only control sessions verify effective exclusions and exact context
+  path identities with zero model/token-count calls; an absent entry is ambiguous between an
+  excluded and conditional rule. A renamed rules entry still loses root body/order. Redirecting
+  the settings-stage configuration path preserves finite print memory behavior, but normal
+  persistence writes an original transcript; suppressing history still allows interactive startup
+  to change original settings and uninstall to remove original plugin registration. These rejected
+  effects are retained as explicit counterfactuals, not accepted product behavior. Six top-level
+  controls, comprising 39 sessions, pass under race detection in 22.428s. Local public-only Claude
+  advice is saved/read/assessed; its import-depth compromise and introspection absence claim are
+  not adopted. No production/dependency/artifact change, actual-user-source write or Kiro model request.
+  Seven applicable installed-client regressions pass in 40.373s; opt-ins-off race suites pass
+  interop 24.864s and launcher 28.615s. Whole-repository vet, formatting and whitespace pass.
+  The unchanged D79 artifact still passes 138 inventory checks. A final read-only Kiro recheck now
+  returns whoami exit 0 for both entry points (5.140s); product identity/scope preflight passes in
+  1.686s. This supersedes D75's absent login and permits live tests to resume. Personal CLAUDE.md
+  remains absent; run policy is enabled, while live alpha and release acceptance remain incomplete.
 - D79 adds per-user `install`, `install --force` and `uninstall`, copying only this executable and
   seven retained notice/reference files. Shared process/helper leases prevent replacement/removal
   while in use; exclusive publication and validated cleanup preserve user/client state and foreign
