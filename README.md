@@ -63,6 +63,11 @@ passes: the client refuses the tool, Kiro receives that refusal and completes th
 execution restrictions and the complete product acceptance gates remain unfinished. This development
 build is not a release or installation procedure.
 
+The initial-session native-effect challenge also passes with unchanged files and no observed tool
+effects. Six actual Claude/fake ACP cases verify allowed Read/Write/Bash, denied Write/Bash and Bash
+hook vetoes. Interactive approval/diff UI, remaining isolation paths and the real Kiro variants still
+need verification; these partial results do not automatically enable run.
+
 Development launch and release readiness are separate milestones in ACCEPTANCE_SPEC.md. The next
 priority is effective Kiro isolation and real client tool approval/denial/hook round trips, followed
 by client-environment preservation and the documented request subset. Optional web/account-usage

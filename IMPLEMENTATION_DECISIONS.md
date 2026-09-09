@@ -1821,3 +1821,62 @@ first assistant text 20 and the sole model prompt at most 45 seconds within a tw
 Existing read-only cases retain their prior request/whole-probe bounds. No production timeout or
 policy changed. D52's MCP exclusion result remains valid; native restriction, resources/reload/load
 and client-approved effects remain unfinished. Production run still returns ErrPolicyUnverified.
+
+## D54: completed native-effect challenge (review R06)
+
+The user's instruction to continue and exercise readiness decisions authorized one fresh D53 probe.
+No automatic retry loop, timeout increase, prompt change, alternate model or provider was introduced.
+The same Kiro 2.21.1/v2 candidate, exact auto catalog/selection, isolated workspace and closed relay
+admission passed the inventory prerequisites and completed the prompt in 6,437ms. It returned
+end_turn and 865 assistant-text bytes; 64 notifications totaled 9,633 bytes. No tool-status event or
+canary was observed, all sentinel/policy files remained unchanged, the relay was authenticated and
+its observed PID and ACP group disappeared after closure. Pending work and private relay artifacts
+were removed. The test passed in 26.16s (28.003s race-enabled package), exit 0; the normalized record
+is .cache/interop-observations/native-effects.hbnAnS. Raw model content is not retained.
+
+This is positive evidence for completion without the requested native effects in the tested fresh
+session. It does not retroactively turn D53's incomplete attempt into a pass or prove its underlying
+cause. The limitation of a black-box sentinel challenge remains: unreported internal reads, future
+prompts, inherited resources and reload/load are not exhaustively proven. Development run still
+requires the other applicable isolation and client permission/hook checks. Production policy remains
+unverified; no production implementation or dependency changed for this milestone.
+
+## D55: actual client permission rules and tool effects through fake ACP (review R06)
+
+The existing single-prompt guard now also accepts a test-only exact tool/input/result expectation.
+The original live Read-denial experiment retains its hook-specific refusal requirement. New state
+controls initially failed on absent expectation/result APIs; they then passed with the previous
+single-turn guards in 1.728s under race instrumentation. Wrong paths, changed write content, extra
+arguments, wrong result status and a successful Read without its expected canary are rejected before
+client exposure or backend continuation. A valid Read may return the canary solely as its tool
+result; generated inputs and model output still cannot expose it. No raw result is retained.
+
+The new fake ACP launch mode consumes only an owned request/expectation manifest and the relay launch
+manifest. It never performs the requested file or shell effect. The sole relay call must return the
+expected error status and required synthetic content before its one ACP prompt completes. The first
+actual-client Read control failed before that fake mode existed, with no exposed tool or completion.
+This negative result was not considered a permission or cleanup pass.
+
+The unmodified Claude Code 2.1.263 then passed six owned scenarios: allow Read, allow Write, allow Bash,
+deny Write, deny Bash and a PreToolUse Bash veto despite the allow rule. Each accepts exactly two
+backend requests, exposes one tool, accepts its one matching result and completes the same ACP turn.
+Allowed Read returns the exact synthetic file content; allowed Write and Bash create the exact owned
+file content and trigger PreToolUse/PostToolUse hooks. The two rule denials and hook veto return errors
+without creating the target or firing PostToolUse. The Read canary and source settings are unchanged.
+Every observed relay PID/group and prepared launch/profile artifact is cleaned up. All client exits
+are zero. The six scenarios passed in 19.92s (21.621s race-enabled package), exit 0, recorded privately
+in .cache/interop-observations/client-effects.GbT2Ej. No Kiro prompt or external model call ran.
+
+The [public permission reference](https://code.claude.com/docs/en/permissions), checked 2026-09-09,
+specifies Edit rules for Write paths and double-leading-slash absolute paths. The synthetic settings
+use that contract, exact owned Edit/Read paths, a printf-scoped Bash rule and manual mode. They retain
+normal permission enforcement. The [hook reference](https://code.claude.com/docs/en/hooks) supplies the
+PreToolUse deny envelope; a silent/empty decision leaves the ordinary permission rules in control.
+These passing rule-based cases do not establish interactive approval/diff/denial UI, sequential
+different tools within one turn or the corresponding real Kiro-generated requests. Those remain
+separate development/alpha evidence, and the production gate is unchanged.
+
+Final uncached ACP and interop race suites passed in 5.718s and 21.814s with installed opt-ins off.
+The original actual-Claude/fake-ACP single Read-denial control passed after the shared refactoring
+in 3.52s (4.809s package), still requiring its exact client hook denial. No existing live Kiro test
+was rerun for that refactoring.

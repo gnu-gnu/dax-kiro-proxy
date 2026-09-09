@@ -6,13 +6,23 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D55 passes six actual Claude/fake ACP tool cases: allowed Read/Write/Bash, denied Write/Bash and
+  a Bash hook veto. The exact returned result resumes the same ACP prompt; allowed effects and
+  hooks occur, denied effects do not, and observed relay/process/private artifact cleanup passes.
+  The six race-enabled cases pass in 21.621s. Interactive permission/diff UI and real Kiro-generated
+  successful tool requests remain separate unfinished checks. No external inference ran in D55.
+  The final uncached ACP/interop race suites pass in 5.718s/21.814s with installed opt-ins disabled.
+  The existing actual-Claude/fake-ACP Read-hook denial also passes after the shared guard change
+  (3.52s test, 4.809s package); it still requires the original exact hook refusal.
 - D52 establishes an active MCP inclusion/exclusion comparison on Kiro 2.21.1/v2: true starts the
   owned global/workspace settings/mcp.json servers, false excludes both, and the candidate retains
   only its relay. All observed processes and private relay artifacts are removed. This closes the
   missing initial-session positive control for those paths, not resource/reload/load restrictions.
-- D53's one native-effect model probe did not complete: no assistant text arrived, so unchanged
-  files, absent canary and successful cleanup cannot count as a restriction pass. Fixed error/timer
-  diagnostics were added and independently tested after that attempt. It has not been repeated.
+- D54's fresh native-effect challenge passes with unchanged prompt/deadlines: end_turn, 865 assistant
+  text bytes, no observed canary/tool event/file change and complete observed process cleanup. The
+  prompt took 6,437ms; the race-enabled package passed in 28.003s. D53's earlier incomplete attempt
+  remains a failure with an unproven cause. This initial-session result does not close resource,
+  reload/load or successful client tool gates, and does not open production run by itself.
 - D52's installed inclusion/exclusion comparison passed in 43.20s, while D53's model attempt failed
   in 37.64s. Those results are retained separately. The new native observer's first build failed on
   missing probe APIs; its final ten fake controls passed in 3.196s under race instrumentation.
@@ -1464,7 +1474,7 @@ the exact scope: interactive UI and actual-client tool continuation remain unver
 | 1 | All acceptance A plus applicable G; independent fake child, framing, negotiation, correlation, notifications, stderr, deadlines, process-group cleanup | Passed on local macOS with fake ACP |
 | 2 | Authenticated HTTP text path, exact SSE/non-streaming responses, authentication fallback, disconnect tests | Passed with independent fake ACP; broader B/C requirements tracked below |
 | 3 | Model catalog/mapping/cache/selection and optional effort state | Passed independent module/process tests; launcher and live interoperability remain below |
-| 4 | Restricted Kiro agent proof, MCP relay, schema validation, client-only tool effects and result ownership | Fake-process/HTTP implementation and one live client Read-denial continuation pass; full R06 restriction proof and additional hardening remain |
+| 4 | Restricted Kiro agent proof, MCP relay, schema validation, client-only tool effects and result ownership | Initial native-effect challenge, one live client Read-denial continuation and six actual-client/fake-ACP permission/effect cases pass; interactive UI, broader R06 and hardening remain |
 | 5 | Request families/history/pool/persistence/resume and crash tests | Independent implementation tests pass; live client/Kiro and extended hardening remain |
 | 6 | Media/web capabilities, cached usage/metrics, isolated launcher/profile and client interoperability | Pending |
 | 7 | Full acceptance, fuzz/race/load, license inventory, macOS packaging/install/uninstall and opt-in live gates | Pending |

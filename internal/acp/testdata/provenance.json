@@ -11,6 +11,7 @@
     "https://modelcontextprotocol.io/specification/2025-06-18/basic/lifecycle",
     "https://modelcontextprotocol.io/specification/2025-06-18/server/tools",
     "https://code.claude.com/docs/en/hooks",
+    "https://code.claude.com/docs/en/permissions",
     "https://kiro.dev/docs/cli/acp/",
     "https://kiro.dev/docs/cli/2x-reference/"
   ],
@@ -30,7 +31,8 @@
     "The other-cwd inventory case requires the exact independently supplied session directory and checks that its inode differs from the fake process working directory",
     "Catalog inventory cases provide independent matching, mismatching and malformed session model state; no model selector or prompt call is supported",
     "The chat-tools-client-launch case combines an independently supplied relay launch manifest with one Read request and requires the synthetic client-hook denial before its sole ACP prompt completes",
-    "MCP tool requests are answered by synthetic test clients or an opt-in unmodified public client with an independently authored denying hook; the fake backend does not execute client tools",
+    "MCP tool requests are answered by synthetic test clients or an opt-in unmodified public client with independently authored permission rules and hooks; the fake backend does not execute client tools",
+    "The chat-tools-effect-launch case reads only the owned request/expectation manifest, relays one exact argument object and validates its returned status/content before completion; only the public client reads/writes the separate effect file or executes the specified shell command",
     "The native-control peer verifies empty ACP capabilities, one inventory/model selection/prompt, rejection of permission/filesystem/terminal requests, and terminal completion",
     "Native observer contamination controls deliberately create one synthetic marker or read and emit an owned random canary; these are independent test instrumentation that must fail the isolation observer, never real user data or client tool execution",
     "Other native controls supply a foreign session, tool status, absent text, cancelled stop reason or silent turn to prevent those outcomes from counting as restriction proof"

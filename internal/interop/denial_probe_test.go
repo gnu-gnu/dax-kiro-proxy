@@ -55,6 +55,14 @@ func TestKiroLiveOnePromptClientDenial(t *testing.T) {
 
 func runOnePromptDenialProbe(t *testing.T, clientExecutable, kiroExecutable string) {
 	t.Helper()
+	runClientToolProbe(t, clientExecutable, kiroExecutable, "")
+}
+
+func runClientToolProbe(t *testing.T, clientExecutable, kiroExecutable, effectKind string) {
+	t.Helper()
+	if effectKind != "" && kiroExecutable != "" {
+		t.Fatal("client effect controls require the independent fake ACP")
+	}
 	root, err := os.MkdirTemp("/private/tmp", "dax-denial-probe-")
 	if err != nil {
 		t.Fatal("cannot create owned denial-probe root")
@@ -91,6 +99,10 @@ func runOnePromptDenialProbe(t *testing.T, clientExecutable, kiroExecutable stri
 	if os.WriteFile(settings, raw, 0600) != nil {
 		t.Fatal("cannot write owned client settings")
 	}
+	var effect *clientEffectProbe
+	if effectKind != "" {
+		effect = prepareClientEffect(t, root, project, filename, canary, effectKind, settings)
+	}
 	emptyMCP := filepath.Join(root, "client-mcp.json")
 	if os.WriteFile(emptyMCP, []byte(`{"mcpServers":{}}`), 0600) != nil {
 		t.Fatal("cannot write empty strict client MCP configuration")
@@ -109,6 +121,9 @@ func runOnePromptDenialProbe(t *testing.T, clientExecutable, kiroExecutable stri
 	if kiroExecutable == "" {
 		process.Executable = buildDenialACPFixture(t, ctx, runner, root)
 		process.Args = []string{"chat-tools-client-launch", filename}
+		if effect != nil {
+			process.Args = []string{"chat-tools-effect-launch", effect.manifest}
+		}
 	} else {
 		if os.WriteFile(filepath.Join(configuration, "settings", "cli.json"), []byte(`{"chat.disableInheritingDefaultResources":true}`), 0600) != nil {
 			t.Fatal("cannot write owned Kiro probe settings")
@@ -200,6 +215,9 @@ func runOnePromptDenialProbe(t *testing.T, clientExecutable, kiroExecutable stri
 		relayGroup.Store(int32(group))
 		return nil
 	}}
+	if effect != nil {
+		b.effect = effect.expect
+	}
 	tokens, err := gateway.NewTokens()
 	if err != nil {
 		t.Fatal("cannot allocate local probe credentials")
@@ -216,7 +234,11 @@ func runOnePromptDenialProbe(t *testing.T, clientExecutable, kiroExecutable stri
 	defer profile.Close()
 	command := profile.Command()
 	command.Environment = append(command.Environment, "CLAUDE_CODE_DISABLE_THINKING=1", "CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS=1")
-	command.Args = append(command.Args, "--strict-mcp-config", "--mcp-config", emptyMCP, "--print", "--output-format", "json", "--tools", "Read", "--no-session-persistence", "--system-prompt", denialSystemPrompt, denialUserPrompt(filename))
+	tool, systemText, userText := "Read", denialSystemPrompt, denialUserPrompt(filename)
+	if effect != nil {
+		tool, systemText, userText = effect.expect.Tool, "Independent client permission exercise.", "Perform the single declared operation, accept the client result, then finish."
+	}
+	command.Args = append(command.Args, "--strict-mcp-config", "--mcp-config", emptyMCP, "--print", "--output-format", "json", "--tools", tool, "--no-session-persistence", "--system-prompt", systemText, userText)
 	clientContext, stop := context.WithTimeout(ctx, time.Minute)
 	result, runErr := runner.Run(clientContext, command)
 	stop()
@@ -242,6 +264,10 @@ func runOnePromptDenialProbe(t *testing.T, clientExecutable, kiroExecutable stri
 	marker, markerErr := readDenialArtifact(root, filepath.Base(hookMarker), 32)
 	canaryUnchanged := canaryErr == nil && string(canaryAfter) == canary
 	hookDenied := markerErr == nil && string(marker) == "denied\n"
+	policyOK, wantDenials := hookDenied, 1
+	if effect != nil {
+		policyOK, wantDenials = effect.check(t), btoi(effect.expect.IsError)
+	}
 	if bytes.Contains(result.Stdout, []byte(canary)) {
 		stats.CanaryObserved = true
 	}
@@ -250,9 +276,9 @@ func runOnePromptDenialProbe(t *testing.T, clientExecutable, kiroExecutable stri
 	if preparedCount.Load() != 1 || cleanupCount.Load() != 1 || !errors.Is(launchErr, os.ErrNotExist) || !errors.Is(relayErr, os.ErrNotExist) {
 		t.Error("one prepared launch and its artifact cleanup were not established")
 	}
-	t.Logf("live_kiro=%v, initial_request_budget=1, accepted_backend_requests=%d, exposed_read_calls=%d, matched_denials=%d, final_completions=%d, client_hook_denied=%v, canary_unchanged=%v, canary_observed=%v, relay_gone=%v, observed_group_gone=%v, client_exit=%d, client_output_bytes=%d", kiroExecutable != "", stats.Starts, stats.Uses, stats.Denials, stats.Completions, hookDenied, canaryUnchanged, stats.CanaryObserved, relayGone, groupGone, result.ExitCode, len(result.Stdout))
+	t.Logf("live_kiro=%v, initial_request_budget=1, accepted_backend_requests=%d, exposed_tool_calls=%d, matched_results=%d, matched_denials=%d, final_completions=%d, policy_effect_verified=%v, canary_unchanged=%v, canary_in_model_output=%v, relay_gone=%v, observed_group_gone=%v, client_exit=%d, client_output_bytes=%d", kiroExecutable != "", stats.Starts, stats.Uses, stats.Results, stats.Denials, stats.Completions, policyOK, canaryUnchanged, stats.CanaryObserved, relayGone, groupGone, result.ExitCode, len(result.Stdout))
 	serverState := server.Stats()
-	if runErr != nil || result.ExitCode != 0 || state != session.Idle || serverErr != nil || serverState.Connections != 0 || serverState.Handlers != 0 || closeErr != nil || poolErr != nil || pool.Stats().Processes != 0 || stats.Starts != 2 || stats.Uses != 1 || stats.Denials != 1 || stats.Completions != 1 || !hookDenied || !canaryUnchanged || stats.CanaryObserved || !relayGone || !groupGone {
+	if runErr != nil || result.ExitCode != 0 || state != session.Idle || serverErr != nil || serverState.Connections != 0 || serverState.Handlers != 0 || closeErr != nil || poolErr != nil || pool.Stats().Processes != 0 || stats.Starts != 2 || stats.Uses != 1 || stats.Results != 1 || stats.Denials != wantDenials || stats.Completions != 1 || !policyOK || !canaryUnchanged || stats.CanaryObserved || !relayGone || !groupGone {
 		t.Fatal("the bounded client-denial path or its cleanup was not established")
 	}
 	if fileFingerprint(t, settings) != settingsBefore || profile.Close() != nil {

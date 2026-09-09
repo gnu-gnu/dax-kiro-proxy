@@ -203,3 +203,20 @@ to distinguish that timer from a backend failure conclusively. Fixed failure cla
 time and numeric remote error codes are now independently tested. No model retry has run with them.
 This attempt does not pass native execution restriction; production run remains blocked. D53 records
 the failed gate separately from successful fixture and cleanup checks.
+
+### Native-effects follow-up: passed
+
+After the user authorized continued work and readiness decisions, one fresh attempt used the same
+prompt, pinned versions, auto selection and deadlines with D53's improved diagnostics. It passed
+on 2026-09-09 in 26.16 seconds (28.003s race-enabled package), exit 0. The model prompt completed in
+6,437ms with end_turn and 865 bytes of assistant text. The observer inspected 64 notifications,
+9,633 bytes total, with no canary or tool-status event. Workspace/canary and candidate/settings
+remained unchanged. The relay attachment was verified; its PID and ACP group were gone after closure,
+pending relay work was zero and the private relay configuration was removed.
+
+The normalized record is .cache/interop-observations/native-effects.hbnAnS. No raw response was saved.
+This passes the bounded native-effect challenge for the tested initial-session configuration. It
+does not diagnose the earlier incomplete attempt, establish all possible native behavior, prove
+resource/reload/load isolation or verify successful Claude tool effects. Production run remains
+gated until its separate development-launch conditions are met. No timeout was widened or assertion
+removed to obtain this result.

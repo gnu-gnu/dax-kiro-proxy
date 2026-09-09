@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"reflect"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -25,17 +26,18 @@ type denialDriver interface {
 }
 
 type denialProbeStats struct {
-	Starts, Uses, Denials, Completions int
-	CanaryObserved                     bool
+	Starts, Uses, Results, Denials, Completions int
+	CanaryObserved                              bool
 }
 
-// This test-only adapter admits one initial request and one matching error-result continuation.
+// This test-only adapter admits one initial request and one matching result continuation.
 // A second ordinary request cannot start another model turn, including after timeout or failure.
 type onePromptBackend struct {
 	driver           denialDriver
 	models           *catalog.Catalog
 	readPath, canary string
 	observeUse       func() error
+	effect           *toolEffectExpectation
 	attempts         atomic.Int32
 	mu               sync.Mutex
 	callID, tail     string
@@ -57,7 +59,11 @@ func (b *onePromptBackend) Start(ctx context.Context, r *anthropic.Request) (inf
 		}
 	}
 	tool, err := ndjson.Object(r.Tools[0])
-	if err != nil || string(tool["name"]) != `"Read"` {
+	expectedTool := "Read"
+	if b.effect != nil {
+		expectedTool = b.effect.Tool
+	}
+	if err != nil || string(tool["name"]) != `"`+expectedTool+`"` {
 		return nil, inference.ErrRequest
 	}
 	results, err := r.LatestToolResults()
@@ -72,24 +78,34 @@ func (b *onePromptBackend) Start(ctx context.Context, r *anthropic.Request) (inf
 		b.mu.Lock()
 		id := b.callID
 		b.mu.Unlock()
-		if len(results) != 1 || id == "" || results[0].ID != id || !results[0].IsError || b.driver.State() != session.WaitingTools {
+		wantError := b.effect == nil || b.effect.IsError
+		if len(results) != 1 || id == "" || results[0].ID != id || results[0].IsError != wantError || b.driver.State() != session.WaitingTools {
 			return nil, inference.ErrRequest
 		}
-		denied := false
-		for _, block := range results[0].Content {
-			if block.Type != "text" {
-				return nil, inference.ErrRequest
-			}
+		if b.effect != nil {
 			b.mu.Lock()
-			leaked := b.observeCanary(block.Text)
+			valid := b.effect.acceptResult(b, results[0].Content)
 			b.mu.Unlock()
-			if leaked {
+			if !valid {
 				return nil, inference.ErrRequest
 			}
-			denied = denied || strings.Contains(block.Text, clientDenialReason)
-		}
-		if !denied {
-			return nil, inference.ErrRequest
+		} else {
+			denied := false
+			for _, block := range results[0].Content {
+				if block.Type != "text" {
+					return nil, inference.ErrRequest
+				}
+				b.mu.Lock()
+				leaked := b.observeCanary(block.Text)
+				b.mu.Unlock()
+				if leaked {
+					return nil, inference.ErrRequest
+				}
+				denied = denied || strings.Contains(block.Text, clientDenialReason)
+			}
+			if !denied {
+				return nil, inference.ErrRequest
+			}
 		}
 	}
 	b.mu.Lock()
@@ -101,7 +117,10 @@ func (b *onePromptBackend) Start(ctx context.Context, r *anthropic.Request) (inf
 	}
 	if n == 2 {
 		b.mu.Lock()
-		b.stats.Denials++
+		b.stats.Results++
+		if results[0].IsError {
+			b.stats.Denials++
+		}
 		b.mu.Unlock()
 	}
 	return &denialProbeTurn{Turn: turn, owner: b}, nil
@@ -148,7 +167,11 @@ func (t *denialProbeTurn) Next(ctx context.Context) (inference.Event, error) {
 			var args struct {
 				File string `json:"file_path"`
 			}
-			if use.Name != "Read" || use.ID == "" || json.Unmarshal(use.Input, &args) != nil || args.File != b.readPath || b.observeCanary(string(use.Input)) {
+			callMatches := use.Name == "Read" && json.Unmarshal(use.Input, &args) == nil && args.File == b.readPath
+			if b.effect != nil {
+				callMatches = b.effect.matches(use)
+			}
+			if !callMatches || use.ID == "" || b.observeCanary(string(use.Input)) {
 				valid = false
 			} else {
 				if b.observeUse != nil && b.observeUse() != nil {
@@ -170,6 +193,46 @@ func (t *denialProbeTurn) Next(ctx context.Context) (inference.Event, error) {
 		return inference.Event{}, inference.ErrRequest
 	}
 	return event, nil
+}
+
+// Owned experiments authorize a single exact argument object, not a tool-wide permission bypass.
+type toolEffectExpectation struct {
+	Tool                string
+	Input               json.RawMessage
+	IsError, ReadCanary bool
+	RequiredText        string
+}
+
+func (e *toolEffectExpectation) matches(use anthropic.ToolUse) bool {
+	if use.Name != e.Tool {
+		return false
+	}
+	a, errA := ndjson.Object(e.Input)
+	b, errB := ndjson.Object(use.Input)
+	return errA == nil && errB == nil && reflect.DeepEqual(a, b)
+}
+
+// The caller holds the observation mutex. Only the allowed Read can return its canary; neither
+// generated tool inputs nor model output can expose it. Retain only a match-length fragment.
+func (e *toolEffectExpectation) acceptResult(b *onePromptBackend, content []anthropic.Block) bool {
+	found, tail, size := e.RequiredText == "", "", 0
+	if e.ReadCanary && (e.Tool != "Read" || e.IsError || e.RequiredText != b.canary) {
+		return false
+	}
+	for _, block := range content {
+		size += len(block.Text)
+		if block.Type != "text" || size > 64<<10 {
+			return false
+		}
+		if !e.ReadCanary && b.observeCanary(block.Text) {
+			return false
+		}
+		joined := tail + block.Text
+		found = found || strings.Contains(joined, e.RequiredText)
+		keep := min(len(joined), max(0, len(e.RequiredText)-1))
+		tail = strings.Clone(joined[len(joined)-keep:])
+	}
+	return found
 }
 
 type denialDriverFixture struct {

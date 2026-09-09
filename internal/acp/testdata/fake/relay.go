@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"strings"
 	"syscall"
 	"time"
 )
@@ -103,6 +104,43 @@ func (f *fixtureRelay) read() json.RawMessage {
 func (f *fixtureRelay) call() json.RawMessage {
 	f.send(3, "tools/call", map[string]any{"name": f.alias, "arguments": map[string]any{"n": 1}})
 	return f.read()
+}
+
+// This manifest supplies only the synthetic request and expected result. The peer never opens the
+// requested file or runs the requested command: the unmodified client alone performs that effect.
+func (f *fixtureRelay) effect(manifest string) {
+	file, err := os.Open(manifest)
+	if err != nil {
+		os.Exit(92)
+	}
+	data, err := io.ReadAll(io.LimitReader(file, (64<<10)+1))
+	closeErr := file.Close()
+	var spec struct {
+		Input        map[string]any `json:"input"`
+		IsError      bool           `json:"isError"`
+		RequiredText string         `json:"requiredText"`
+	}
+	if err != nil || closeErr != nil || len(data) > 64<<10 || json.Unmarshal(data, &spec) != nil || len(spec.Input) == 0 || len(spec.RequiredText) > 128 {
+		os.Exit(93)
+	}
+	f.send(3, "tools/call", map[string]any{"name": f.alias, "arguments": spec.Input})
+	var returned struct {
+		IsError bool                          `json:"isError"`
+		Content []struct{ Type, Text string } `json:"content"`
+	}
+	if json.Unmarshal(f.read(), &returned) != nil || f.responseError || returned.IsError != spec.IsError {
+		os.Exit(94)
+	}
+	var text strings.Builder
+	for _, block := range returned.Content {
+		if block.Type != "text" || text.Len()+len(block.Text) > 64<<10 {
+			os.Exit(95)
+		}
+		text.WriteString(block.Text)
+	}
+	if !strings.Contains(text.String(), spec.RequiredText) {
+		os.Exit(96)
+	}
 }
 func (f *fixtureRelay) close() {
 	_ = f.input.Close()

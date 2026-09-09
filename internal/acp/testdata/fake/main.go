@@ -149,9 +149,9 @@ func main() {
 				os.Exit(26)
 			}
 			if strings.HasPrefix(mode, "chat-tools") {
-				if mode == "chat-tools-launch" || mode == "chat-tools-client-launch" {
+				if mode == "chat-tools-launch" || mode == "chat-tools-client-launch" || mode == "chat-tools-effect-launch" {
 					manifestIndex := 2
-					if mode == "chat-tools-client-launch" {
+					if mode == "chat-tools-client-launch" || mode == "chat-tools-effect-launch" {
 						manifestIndex = 3
 					}
 					if len(p.MCP) != 0 || len(os.Args) != manifestIndex+1 {
@@ -311,6 +311,15 @@ func main() {
 							os.Exit(47)
 						}
 						emit("independent client relay complete")
+						reply(q.ID, map[string]any{"stopReason": "end_turn"})
+						continue
+					}
+					if mode == "chat-tools-effect-launch" {
+						if len(os.Args) != 4 {
+							os.Exit(91)
+						}
+						relayChild.effect(os.Args[2])
+						emit("independent client effect complete")
 						reply(q.ID, map[string]any{"stopReason": "end_turn"})
 						continue
 					}
