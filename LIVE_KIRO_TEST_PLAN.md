@@ -394,3 +394,19 @@ Explicit inclusion matches two absolute paths; inheritance matches the configura
 absolutely and the launch skill relatively; suppression has zero matched items and zero context
 estimate. No owned skill command is advertised. All sources remain unchanged and process cleanup
 passes. This establishes the two tested initial skill paths, with no model prompt or billed-usage claim.
+
+## Prepared launcher configuration check
+
+After D61, the actual tool harness uses the shared launcher configuration generator. It owns a fresh
+KIRO_HOME and scratch directory beneath the caller's private runtime, suppresses default resources,
+and prepares each exact relay agent in a separate launch directory. The six fixed environment
+variables, v2 engine, original account HOME, client capabilities and tool authority remain those
+tested above; the Kiro authentication classifier is also connected. Model turns and cleanup retain
+the prior bounds. Independent launcher/interoperability suites pass before selecting only allow-bash
+and hook-bash to verify this shared generator with actual clients. Production run remains gated while
+that integration is checked. The other four D60 cases retain their identical agent/relay semantics.
+
+Both cases pass in prepared-execution-effects.bruomf (46.78s test, 48.099s race package), with exact
+tool/results, allowed file and pre/post hooks, blocked hook effect, client exit 0 and observed cleanup.
+D62 then connects this generator to production startup and admits the measured development policy.
+This does not extend the experiment to default full-tool client traffic or complete alpha/release gates.

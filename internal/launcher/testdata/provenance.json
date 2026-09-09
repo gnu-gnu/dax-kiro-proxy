@@ -9,7 +9,7 @@
     "The supplied gateway must use HTTP with a literal loopback IP",
     "The catalog-text mode checks that local model discovery includes its explicit startup alias",
     "Version, account and catalog responses are independently authored protocol controls, not installed-client observations",
-    "Preflight writes fixed command labels only to the explicitly supplied temporary HOME; it supports no ACP or inference command",
+    "Preflight writes fixed command labels only to the explicitly supplied temporary HOME; its ACP path checks owned agent/environment facts and execs the independent fake peer beside it",
     "All prompts, tools, arguments, results and settings are independently chosen synthetic values",
     "The fixture executes no client tool or hook and modifies no user or project file",
     "Observed stdout contains only its owned process ID, local address, runtime path and fixed state",

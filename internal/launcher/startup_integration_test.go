@@ -11,6 +11,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
+	"strconv"
 	"strings"
 	"sync/atomic"
 	"syscall"
@@ -182,7 +184,10 @@ func TestStartupOwnedCompositionWithIndependentExecutables(t *testing.T) {
 	}
 }
 
-func TestStartupCommandBoundaryReportsUnverifiedPolicy(t *testing.T) {
+func TestStartupCommandBoundaryReportsDevelopmentPolicy(t *testing.T) {
+	if runtime.GOOS != "darwin" || runtime.GOARCH != "arm64" {
+		t.Skip("development execution is measured only on macOS arm64")
+	}
 	bins := buildStartupBinaries(t)
 	t.Run("separate-command-budgets", func(t *testing.T) {
 		opts := startupOptions(t)
@@ -226,17 +231,65 @@ func TestStartupCommandBoundaryReportsUnverifiedPolicy(t *testing.T) {
 			if command != "run" {
 				args = append(args, "--json")
 			}
-			result, err := r.Run(t.Context(), childproc.Command{Executable: bins.proxy, Directory: opts.Project, Environment: []string{"HOME=" + opts.Home, "PATH=/usr/bin:/bin"}, Args: args})
+			commandSpec := childproc.Command{Executable: bins.proxy, Directory: opts.Project, Environment: []string{"HOME=" + opts.Home, "PATH=/usr/bin:/bin", "TERM=tools-complete"}, Args: args}
 			if command == "run" {
-				if !errors.Is(err, childproc.ErrExit) || result.ExitCode != 3 {
-					t.Fatalf("run bypassed policy: %v, exit=%d", err, result.ExitCode)
+				// The real command owns a foreground terminal. A pipe-only invocation cannot
+				// establish that lifecycle; script provides an owned PTY without UI automation.
+				marker, wrapper := filepath.Join(opts.Home, "owned-proxy-pid"), filepath.Join(opts.Home, "owned-proxy.sh")
+				quoted := "'" + strings.ReplaceAll(marker, "'", "'\\''") + "'"
+				if os.WriteFile(wrapper, []byte("#!/bin/sh\numask 077\nprintf '%s' \"$$\" > "+quoted+"\nexec \"$@\"\n"), 0700) != nil {
+					t.Fatal("cannot prepare owned terminal launcher")
+				}
+				t.Cleanup(func() {
+					raw, err := os.ReadFile(marker)
+					pid, parseErr := strconv.Atoi(string(raw))
+					if err != nil || parseErr != nil || pid <= 1 {
+						t.Error("terminal launcher owner was not observed")
+						return
+					}
+					if !errors.Is(syscall.Kill(-pid, 0), syscall.ESRCH) {
+						_ = syscall.Kill(-pid, syscall.SIGKILL)
+						t.Error("terminal launcher group survived")
+					}
+				})
+				commandSpec.Executable = "/usr/bin/script"
+				commandSpec.Args = append([]string{"-q", os.DevNull, "/bin/sh", wrapper, bins.proxy}, args...)
+			}
+			result, err := r.Run(t.Context(), commandSpec)
+			if command == "run" {
+				if err != nil || result.ExitCode != 0 {
+					labels, _ := os.ReadFile(filepath.Join(opts.Home, "preflight-observations"))
+					t.Fatalf("prepared run did not complete the independent client tool round trip: %v, exit=%d, fixed_fixture_labels=%q", err, result.ExitCode, labels)
+				}
+				observed := false
+				for _, line := range strings.Split(string(result.Stdout), "\n") {
+					// PTYs may echo their initial EOF marker before the fixture's JSON line.
+					start := strings.IndexByte(line, '{')
+					if start < 0 {
+						continue
+					}
+					var observation struct {
+						ClientPID int `json:"clientPID"`
+						State     string
+					}
+					if json.Unmarshal([]byte(strings.TrimSpace(line[start:])), &observation) == nil && observation.ClientPID > 1 && observation.State == "tools-complete" {
+						observed = true
+						if !errors.Is(syscall.Kill(-observation.ClientPID, 0), syscall.ESRCH) {
+							_ = syscall.Kill(-observation.ClientPID, syscall.SIGKILL)
+							t.Error("compiled run left the client process group")
+						}
+					}
+				}
+				if !observed {
+					labels, _ := os.ReadFile(filepath.Join(opts.Home, "preflight-observations"))
+					t.Fatalf("terminal wrapper exited without a client completion; fixed_fixture_labels=%q, output_bytes=%d, client_marker=%v", labels, len(result.Stdout), strings.Contains(string(result.Stdout), `"clientPID"`))
 				}
 			} else if err != nil || result.ExitCode != 0 {
 				t.Fatal("diagnostic command failed", err, result.ExitCode)
 			}
 			if command == "doctor" {
 				var report StartupReport
-				if json.Unmarshal(result.Stdout, &report) != nil || report.Policy != "unverified" || report.LaunchAvailable || len(report.Models) != 1 {
+				if json.Unmarshal(result.Stdout, &report) != nil || report.Policy != "verified" || !report.LaunchAvailable || len(report.Models) != 1 {
 					t.Fatal("doctor misreported launch readiness")
 				}
 			}
@@ -247,7 +300,11 @@ func TestStartupCommandBoundaryReportsUnverifiedPolicy(t *testing.T) {
 				}
 			}
 			observations, err := os.ReadFile(filepath.Join(opts.Home, "preflight-observations"))
-			if err != nil || strings.Count(string(observations), "\n") != 6 {
+			wantCalls := 6
+			if command == "run" {
+				wantCalls++
+			}
+			if err != nil || strings.Count(string(observations), "\n") != wantCalls {
 				t.Fatal("incorrect public preflight commands", err, string(observations))
 			}
 			entries, _ := os.ReadDir(opts.RuntimeParent)

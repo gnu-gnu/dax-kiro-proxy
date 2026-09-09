@@ -6,6 +6,13 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D62 enables development run on macOS arm64 for exact Kiro 2.21.2/v2 and Claude 2.1.263 after the
+  D59-D61 isolation/tool gates. The shared configuration generator passes actual Bash approval and
+  hook refusal (48.099s race package), with exact results/effects and complete observed cleanup.
+  Compiled doctor/models/run with independent CLIs/ACP and an owned PTY passes in 7.965s. Actual
+  installed doctor reports policy verified and launch_available true, with 19 models and no model
+  prompt. The development executable is rebuilt. Default-client compatibility, environment overlay
+  preservation and live alpha/release gates remain; persisted load is disabled for this launch path.
 - D61 passes active initial skill controls on Kiro 2.21.2: explicit inclusion, default inheritance
   and suppression across owned launch and KIRO_HOME skill roots (17.755s race package). Both active
   sources disappear under suppression. The relative launch skill name is recorded separately from
@@ -1536,7 +1543,7 @@ the exact scope: interactive UI and actual-client tool continuation remain unver
 | 1 | All acceptance A plus applicable G; independent fake child, framing, negotiation, correlation, notifications, stderr, deadlines, process-group cleanup | Passed on local macOS with fake ACP |
 | 2 | Authenticated HTTP text path, exact SSE/non-streaming responses, authentication fallback, disconnect tests | Passed with independent fake ACP; broader B/C requirements tracked below |
 | 3 | Model catalog/mapping/cache/selection and optional effort state | Passed independent module/process tests; launcher and live interoperability remain below |
-| 4 | Restricted Kiro agent proof, MCP relay, schema validation, client-only tool effects and result ownership | Initial native-effect challenge, one live Read-denial continuation, six rule/hook cases and five interactive client/fake-ACP cases pass; bare refusal, broader R06/live checks and hardening remain |
+| 4 | Restricted Kiro agent proof, MCP relay, schema validation, client-only tool effects and result ownership | Initial native/inheritance controls and all six actual Kiro/client rule/hook cases pass; interactive and bare-refusal controls pass with fake ACP; development run enabled, broader alpha/release paths remain |
 | 5 | Request families/history/pool/persistence/resume and crash tests | Independent implementation tests pass; live client/Kiro and extended hardening remain |
 | 6 | Media/web capabilities, cached usage/metrics, isolated launcher/profile and client interoperability | Pending |
 | 7 | Full acceptance, fuzz/race/load, license inventory, macOS packaging/install/uninstall and opt-in live gates | Pending |

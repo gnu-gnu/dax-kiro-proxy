@@ -109,8 +109,8 @@ func scopeFileUnchanged(before, after os.FileInfo) bool {
 		before.Size() == after.Size() && before.Mode() == after.Mode() && before.ModTime().Equal(after.ModTime())
 }
 
-// These cache identities explicitly describe an unverified launch policy and unknown ACP support.
-// They confer no execution authority and must change when the versioned adapter gains evidence.
+// Catalog identity includes the measured development launch policy. ACP capabilities remain unknown
+// until negotiated by each process; a cached catalog itself confers no execution authority.
 func makeLaunchIdentity(key [32]byte, home string, info KiroInfo, model, effort string) (catalog.Identity, error) {
 	if key == ([32]byte{}) || !identityPath(home) || !identityPath(info.Executable) ||
 		!identityToken(info.Version, 256, false) || !identityToken(model, 256, true) ||
@@ -125,7 +125,7 @@ func makeLaunchIdentity(key [32]byte, home string, info KiroInfo, model, effort 
 	mac := hmac.New(sha256.New, key[:])
 	mac.Write([]byte("dax-launch-profile-v1\x00"))
 	mac.Write(profile)
-	agent := sha256.Sum256([]byte("dax-relay-policy-v1\x00unverified\x00single-session\x00native-tools-not-requested"))
+	agent := sha256.Sum256([]byte(kiroDevelopmentPolicy))
 	capabilities := sha256.Sum256([]byte("dax-acp-capability-scope-v1\x00unknown\x00not-negotiated"))
 	identity := catalog.Identity{
 		Executable: info.Executable, Version: info.Version,

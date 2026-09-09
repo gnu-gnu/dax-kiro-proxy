@@ -2249,3 +2249,59 @@ suite passes in 3.266s. Its cause is not established or attributed to the observ
 interop race suite passes in 24.082s, with installed opt-ins disabled. Whole-repository go vet passes.
 No production policy or dependency changes; this closes the measured skill-source gap before the
 prepared development launch policy is connected.
+
+## D62: admit the measured initial-session development run (review R06/R14)
+
+D59-D61 establish the development gate's initial native-effect challenge, active configuration/MCP/
+resource exclusion, actual client-approved Read/Write/Bash, matching denials and hook vetoes, source
+preservation and observed cleanup. On that evidence, the built-in launcher policy now admits Kiro
+2.21.2/v2 on macOS arm64 with the separately pinned Claude Code 2.1.263. The execution version has
+its own literal pin: changing finite preflight support alone cannot inherit this verification.
+There is no user-provided trust assertion or override. This is development admission, not alpha or
+release completion. Persisted-session loading stays rejected for prepared launches.
+
+PrepareKiroExecution is shared by startup and the actual tool harness. The caller owns its private
+runtime until all backend cleanup joins. The generator creates a fresh KIRO_HOME, suppression settings,
+scratch and agent parent; each prepared process gets a separate agent directory and the exact supplied
+registry/relay. Its fixed environment carries only HOME, KIRO_HOME, PATH, TMPDIR, TERM and LANG. Existing
+HOME serves Kiro authentication; no credentials or user Kiro configuration are copied. Public ACP keeps
+empty client capabilities and request refusal, and the Kiro authentication classifier is connected.
+The original project remains session cwd while process cwd stays owned. Preparation checks the runtime
+inode and suppression bytes; callback cleanup checks its original directory and is repeatable.
+
+Startup passes its own temporary root to policy preparation and removes it after joined owners, even
+for doctor or a failed setup. Configuration errors retain their own classification instead of being
+misreported as unverified policy. Catalog identity now includes the development policy identifier;
+ACP capabilities remain unknown until negotiated. No dependency changes.
+
+Independent generator tests cover exact empty/Read/Bash relay policies, immutable wire bindings,
+private settings/environment, repeated cleanup, cancellation, changed settings and unknown versions.
+The stub first fails the positive preparation test. Initial fixture-name compilation errors are fixed
+before that behavioral regression. Pre-wiring launcher/interop race suites pass in 22.462s/23.687s.
+
+The shared generator then passes actual Bash approval and hook refusal in
+prepared-execution-effects.bruomf: 46.78s test / 48.099s race package. Each has one call/result, two
+requests and one same-prompt completion. The allowed file and pre/post hooks match; the hook refusal
+creates no target/post marker and returns the exact denial. Both client exits are zero, source/canary
+checks pass and all observed process/relay/artifact cleanup joins. Prompts, results, arguments and
+canaries are not retained. These bounded model checks may consume credits; billed usage is unmeasured.
+
+The compiled command test now uses an owned PTY because run requires a foreground terminal. Its fake
+Kiro validates the generated agent/environment and execs the independent ACP peer, which requests a
+synthetic client tool and receives its result. Initial pipe-only execution fails before ACP; the PTY
+control exposes a fixture assumption about /var versus /private/var, corrected by comparing the actual
+owned directories. The observer also separates the terminal's leading EOF echo from the fixture JSON.
+The final doctor/models/run command suite passes in 7.965s, with client/launcher groups gone and runtime
+and source settings checked. Earlier failures are not claimed as passing execution evidence.
+
+The rebuilt executable's actual doctor passes in development-doctor.bcBw5G with temporary state and
+settings: exact installed versions, login verified, 19 catalog models, fresh auto selection, policy
+verified and launch_available true. Login takes 2,554ms, catalog 8,432ms and policy preparation 15ms.
+No ACP session, client launch or model prompt is sent by doctor; client_initialization remains
+unverified. Full default-client traffic, environment overlay preservation and live alpha/release
+lifecycle gates remain subsequent work.
+
+Final applicable uncached race suites pass with installed opt-ins disabled: launcher 21.902s,
+interop 23.100s, session 17.055s, catalog 1.416s and command 1.326s. Whole-repository go vet,
+formatting, whitespace checks and the local build pass. The actual doctor's temporary runtime is
+empty after return and its owned source settings remain unchanged.

@@ -52,7 +52,8 @@ type LaunchResult struct {
 }
 
 // Run has no caller-provided permission assertion, backend, or policy adapter. Only a built-in,
-// independently verified adapter can admit model traffic. The pinned adapter is still unavailable.
+// independently verified adapter can admit model traffic. The current adapter enables development
+// initial sessions on the measured CLI/engine/platform; it does not enable persisted-session loading.
 func Run(ctx context.Context, opts LaunchOptions, files childproc.AttachedIO) (LaunchResult, error) {
 	return start(ctx, opts, files, false, productionStartup())
 }
@@ -88,7 +89,7 @@ func productionStartup() startupServices {
 			return nil, err
 		}
 		return &startupCommandRunner{inner: inner, ordinary: 5 * time.Second, catalog: 15 * time.Second}, nil
-	}, policy: unverifiedKiroPolicy, client: RunClient}
+	}, policy: preparedKiroPolicy, client: RunClient}
 }
 
 // The installed public listing command can emit JSON well before exiting. Require its successful
@@ -113,6 +114,11 @@ func unverifiedKiroPolicy(ctx context.Context, _ LaunchOptions, _ KiroInfo) (lau
 		return launchPolicy{}, ctx.Err()
 	}
 	return launchPolicy{}, ErrPolicyUnverified
+}
+
+func preparedKiroPolicy(ctx context.Context, opts LaunchOptions, info KiroInfo) (launchPolicy, error) {
+	execution, err := PrepareKiroExecution(ctx, KiroExecutionConfig{Installation: info, Home: opts.Home, Project: opts.Project, RuntimeDirectory: opts.RuntimeParent})
+	return launchPolicy{process: execution.Process, prepare: execution.Prepare}, err
 }
 
 func start(ctx context.Context, opts LaunchOptions, files childproc.AttachedIO, inspect bool, services startupServices) (result LaunchResult, runErr error) {
@@ -258,11 +264,16 @@ func start(ctx context.Context, opts LaunchOptions, files childproc.AttachedIO, 
 	}
 	var policy launchPolicy
 	err = phase("execution_policy", func() error {
-		policy, err = services.policy(setup, opts, info)
+		policyOptions := opts
+		policyOptions.RuntimeParent = runtime
+		policy, err = services.policy(setup, policyOptions, info)
 		if setup.Err() != nil {
 			return setup.Err()
 		}
-		if err != nil || policy.prepare == nil {
+		if err != nil {
+			return err
+		}
+		if policy.prepare == nil {
 			return ErrPolicyUnverified
 		}
 		return nil

@@ -47,25 +47,26 @@ go build -o ./dist/dax-kiro-proxy ./cmd/dax-kiro-proxy
 ./dist/dax-kiro-proxy --help
 ./dist/dax-kiro-proxy doctor --json --timing
 ./dist/dax-kiro-proxy models
+./dist/dax-kiro-proxy run
 ```
 
-The checks support Kiro CLI 2.21.2 (including its adjacent `kiro-cli-chat` helper) and Claude Code
+The diagnostic checks support Kiro CLI 2.21.2 (including its adjacent `kiro-cli-chat` helper) and Claude Code
 2.1.263. They use the installed CLIs' finite version/account/catalog commands, without an ACP session
 or model prompt. `--kiro` and `--client` accept absolute executable paths. Private scope/cache state
 defaults to `~/.dax-kiro-proxy`; `--state-dir` selects a different private directory. Temporary runtime
 files are removed when the command finishes. Source client settings are not modified.
 
-The local Kiro main/helper migration to 2.21.2 passes fresh account and CLI/ACP catalog checks.
-Other versions and mismatched main/helper pairs fail preflight. Historical 2.21.1 execution results
-do not establish 2.21.2 readiness; the production execution-policy gate remains closed.
+Development `run` is enabled on macOS arm64 for the measured Kiro 2.21.2/v2 and Claude Code 2.1.263
+combination. Run it from a foreground terminal. Other versions, mismatched main/helper pairs and
+unverified execution platforms are rejected; there is no trust override. Each launch owns a temporary
+Kiro configuration with default-resource suppression, and each ACP process has a separate relay-only
+agent directory. The client continues to decide tool permissions and execute tools.
 
 `doctor` succeeding means its checks completed; inspect `launch_available` and `policy` separately.
-The current `run` command stops with exit 3 after successful preflight because effective Kiro execution
-restrictions remain unverified. There is no override. Its full startup/runtime/shutdown composition is
-tested with independent fake processes. One explicitly approved live Kiro Read-denial round trip also
-passes: the client refuses the tool, Kiro receives that refusal and completes the turn. Broader Kiro
-execution restrictions and the complete product acceptance gates remain unfinished. This development
-build is not a release or installation procedure.
+The current installed combination reports `launch_available: true` and `policy: verified`. This means
+the measured development policy is available, not that the client has initialized or all release
+gates have passed. The compiled run command's full terminal/startup/tool/shutdown composition passes
+with independent fake processes. This development build is not a release or installation procedure.
 
 The initial-session native-effect challenge and real-client Read-hook refusal both pass freshly on
 Kiro 2.21.2, with unchanged files and joined process cleanup. Six actual Kiro 2.21.2 / Claude 2.1.263
@@ -74,19 +75,20 @@ matching results, effects and cleanup. Relay descriptions explicitly associate o
 with original client names. Interactive Write/Bash approval and refusal with a comment pass with fake ACP;
 the Write content/permission screen is checked before input. Bare refusal now verifies cleanup at
 the existing deadline and safe recreation for a following question, using actual Claude with fake
-ACP. Remaining isolation paths and real Kiro variants still need verification; these results do not
-enable run.
+ACP. The shared launcher configuration also passes actual Bash approval and hook refusal. Further
+live cancellation, process-loss, model-switch, authentication and resume checks remain alpha work.
 
 On Kiro 2.21.2, seven initial-session file-resource controls pass: active inherited files disappear
 when default-resource inheritance is disabled, including with a separate session workspace. An
 override in the process launch directory can re-enable inheritance; the launch directory must stay
 owned and isolated. Initial skill controls now also pass for the owned launch and KIRO_HOME roots:
-both are actively inherited with suppression off and absent with it on. Dynamic reload/load and
-unmeasured source paths remain separate; the prepared production policy is not yet connected.
+both are actively inherited with suppression off and absent with it on. Persisted-session loading
+is disabled in this prepared launch path. Dynamic configuration changes and unmeasured source paths
+are outside the initial-session evidence; the proxy issues no configuration reload command.
 
 Development launch and release readiness are separate milestones in ACCEPTANCE_SPEC.md. The next
-priority is effective Kiro isolation and real client tool approval/denial/hook round trips, followed
-by client-environment preservation and the documented request subset. Optional web/account-usage
+priority is client-environment preservation, broader default-client request compatibility and the
+live alpha lifecycle checks. Optional web/account-usage
 features, full Anthropic API coverage and release soak tests are not development-launch prerequisites.
 
 ## Naming

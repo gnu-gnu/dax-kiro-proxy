@@ -126,6 +126,7 @@ func runClientToolProbe(t *testing.T, clientExecutable, kiroExecutable, effectKi
 	proxyExecutable := filepath.Join(filepath.Dir(relayExecutable), "owned-relay")
 	models, _ := catalog.New([]catalog.Backend{{ID: "fixture-backend", Name: "Independent denial control"}}, "fixture-backend")
 	process := acp.Config{Directory: backend, ClientInfo: acp.Info{Name: "dax-owned-denial-probe", Version: "1"}, Limits: acp.Limits{RequestTimeout: 45 * time.Second}}
+	var execution launcher.KiroExecution
 	if kiroExecutable == "" {
 		process.Executable = buildDenialACPFixture(t, ctx, runner, root)
 		process.Args = []string{"chat-tools-client-launch", filename}
@@ -154,7 +155,8 @@ func runClientToolProbe(t *testing.T, clientExecutable, kiroExecutable, effectKi
 			return runner.Run(bounded, command)
 		})
 		kiroConfig := launcher.KiroConfig{Executable: kiroExecutable, Home: os.Getenv("HOME"), Directory: backend, ScopeKey: key}
-		if _, err := launcher.CheckKiro(ctx, bounded, kiroConfig); err != nil {
+		info, err := launcher.CheckKiro(ctx, bounded, kiroConfig)
+		if err != nil {
 			t.Fatal("Kiro version/account preflight failed before model work")
 		}
 		catalogContext, stop := context.WithTimeout(ctx, 15*time.Second)
@@ -163,8 +165,12 @@ func runClientToolProbe(t *testing.T, clientExecutable, kiroExecutable, effectKi
 		if err != nil {
 			t.Fatal("Kiro catalog preflight failed before model work")
 		}
-		process.Executable, process.Args = kiroExecutable, []string{"acp", "--agent-engine", "v2"}
-		process.Environment = []string{"HOME=" + os.Getenv("HOME"), "KIRO_HOME=" + configuration, "PATH=" + filepath.Dir(kiroExecutable) + ":/usr/bin:/bin:/usr/sbin:/sbin", "TMPDIR=" + scratch, "TERM=dumb", "LANG=en_US.UTF-8"}
+		execution, err = launcher.PrepareKiroExecution(ctx, launcher.KiroExecutionConfig{Installation: info, Home: os.Getenv("HOME"), Project: backend, RuntimeDirectory: root})
+		if err != nil {
+			t.Fatal("cannot prepare built-in Kiro execution configuration")
+		}
+		process = execution.Process
+		process.Limits.RequestTimeout = 45 * time.Second
 	}
 	backendModel := "fixture-backend"
 	if kiroExecutable != "" {
@@ -207,6 +213,16 @@ func runClientToolProbe(t *testing.T, clientExecutable, kiroExecutable, effectKi
 			}
 			retiredBeforeRestart.Store(true)
 		}
+		if kiroExecutable != "" {
+			owned, err := execution.Prepare(ctx, input)
+			if owned.Cleanup != nil {
+				cleanup := owned.Cleanup
+				owned.Cleanup = func() error { cleanupCount.Add(1); return cleanup() }
+			}
+			launchPath, relayConfig = owned.Directory, input.RelayConfig
+			artifacts = append(artifacts, launchPath, relayConfig)
+			return owned, err
+		}
 		directory, createErr := os.MkdirTemp(root, "owned-agent-")
 		if createErr != nil {
 			return session.LaunchResources{}, errors.New("cannot prepare owned probe agent")
@@ -215,20 +231,12 @@ func runClientToolProbe(t *testing.T, clientExecutable, kiroExecutable, effectKi
 		relayConfig = input.RelayConfig
 		artifacts = append(artifacts, launchPath, relayConfig)
 		owned := session.LaunchResources{Directory: launchPath, RelayAtLaunch: true, Cleanup: func() error { cleanupCount.Add(1); return os.RemoveAll(directory) }}
-		if kiroExecutable == "" {
-			manifest := filepath.Join(launchPath, "independent-relay.json")
-			data, _ := json.Marshal(map[string]any{"name": "independent-probe-relay", "command": input.RelayExecutable, "args": []string{"relay", "--config", input.RelayConfig}, "env": []any{}})
-			if os.WriteFile(manifest, data, 0600) != nil {
-				return owned, errors.New("cannot prepare independent launch manifest")
-			}
-			owned.Args = []string{manifest}
-		} else {
-			agent, err := launcher.WriteCandidateAgent(launcher.AgentConfig{Directory: launchPath, Registry: input.Registry, RelayExecutable: input.RelayExecutable, RelayConfig: input.RelayConfig})
-			if err != nil || agent.ExecutionVerified {
-				return owned, errors.New("cannot prepare the unverified probe-only candidate")
-			}
-			owned.Args = []string{"--agent", agent.Name}
+		manifest := filepath.Join(launchPath, "independent-relay.json")
+		data, _ := json.Marshal(map[string]any{"name": "independent-probe-relay", "command": input.RelayExecutable, "args": []string{"relay", "--config", input.RelayConfig}, "env": []any{}})
+		if os.WriteFile(manifest, data, 0600) != nil {
+			return owned, errors.New("cannot prepare independent launch manifest")
 		}
+		owned.Args = []string{manifest}
 		return owned, ctx.Err()
 	}
 	driver, err := session.New(config)
