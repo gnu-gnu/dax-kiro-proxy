@@ -62,6 +62,10 @@ func PrepareClient(cfg ClientConfig) (*ClientProfile, error) {
 	if err != nil {
 		return nil, err
 	}
+	mcpState, err := clientMCPState(cfg.Home)
+	if err != nil {
+		return nil, err
+	}
 	path, err := os.MkdirTemp(cfg.RuntimeParent, "dax-runtime-")
 	if err != nil {
 		return nil, ErrRuntime
@@ -89,6 +93,9 @@ func PrepareClient(cfg ClientConfig) (*ClientProfile, error) {
 		return nil, ErrRuntime
 	}
 	if store.Write("settings.json", user) != nil {
+		return nil, ErrRuntime
+	}
+	if store.Write(".claude.json", mcpState) != nil {
 		return nil, ErrRuntime
 	}
 	env["HOME"], env["TMPDIR"], env["CLAUDE_CONFIG_DIR"] = cfg.Home, scratch, profile

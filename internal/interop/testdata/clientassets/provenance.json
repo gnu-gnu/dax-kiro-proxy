@@ -1,0 +1,1 @@
+{"origin":"Independently authored from public MCP JSON-RPC contracts for this repository.","dependencies":"Go standard library only.","behavior":"No-effect tool; bounded own-process and lifecycle observations only."}

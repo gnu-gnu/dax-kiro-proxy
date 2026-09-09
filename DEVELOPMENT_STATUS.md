@@ -6,6 +6,22 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D64 restores standard-HOME user/local MCP declarations and existing decisions in the private
+  client profile without copying unrelated provider or conversation state. Actual Claude 2.1.263
+  passes fourteen natural/prepared configuration controls in 8.137s under race instrumentation:
+  three active scopes, server disable/re-enable, project refusal, and local/project/user precedence
+  for equal names. Prepared commands leave source bytes unchanged; all observed MCP processes and
+  private profiles are cleaned up, and no tool/model call runs. Natural client commands do change
+  the owned global file, so simply removing the private profile is not a preservation solution.
+  Plugin/skill/agent assets, existing status commands, custom configuration roots and remote MCP
+  OAuth remain open. Development launch admission is unchanged; no dependency is added.
+- D64's final installed regression, client-mcp-regression.qMLLwo, passes in 15.642s with fake ACP
+  and local gateway only: MCP controls (6.36s), ordinary default-tool text/Read denial (4.90s), user/
+  project hook and permission preservation (1.70s), and disabled hooks (1.43s). Routing stays local,
+  denied content remains unavailable, and enabled/disabled hooks retain their expected behavior.
+  Applicable uncached race suites with installed opt-ins off pass: launcher 22.466s, interop 22.239s
+  and command 1.775s. Whole-repository go vet, formatting, whitespace checks and the rebuilt
+  development executable pass.
 - D63 verifies ordinary Claude 2.1.263 text with 25 default tools and fixes a default-tool Read
   denial continuation whose standing system text changes. One exact full-history continuation can
   revoke/join old work and recreate with the supplied result and new instruction under the original

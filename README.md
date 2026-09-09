@@ -93,6 +93,12 @@ recreate the backend after joined cleanup, retaining new instructions and the or
 This can add provider work and loses hidden backend context; actual Kiro validation of this new
 recovery path remains an alpha check. No general Messages/API or user-asset preservation is implied.
 
+The temporary client profile now retains standard-HOME user/local MCP declarations and decisions
+at their native scopes. Installed-client controls verify all three MCP scopes, disabled/re-enabled
+servers, project refusal and local/project/user precedence, with unchanged source files and joined
+process cleanup. Plugins, skills, existing status commands and remote MCP OAuth remain separate
+preservation work; see decision D64 for the measured limits.
+
 Development launch and release readiness are separate milestones in ACCEPTANCE_SPEC.md. The next
 priority is client-environment preservation, broader client request compatibility and the
 live alpha lifecycle checks. Optional web/account-usage

@@ -2388,3 +2388,79 @@ Anthropic validation 8.089s, gateway 3.362s, interop 21.739s, launcher 21.774s, 
 and ACP 4.851s. Whole-repository go vet, formatting, whitespace checks and the rebuilt development
 executable pass. All added fixtures and requests are independently authored from this repository's
 contracts, the public protocols and unmodified-client observations; no earlier implementation is used.
+
+## D64: preserve native client MCP scopes in the private runtime
+
+The temporary Claude configuration root hid user and local MCP declarations. Independent public
+`mcp add --scope` and `mcp list` controls establish that all three native scopes connect with the
+ordinary owned HOME, but only project MCP connects with the old prepared profile, even when that
+profile is created after registration. The natural list command also changes the owned global
+configuration file. Simply removing CLAUDE_CONFIG_DIR therefore fails the existing byte-preservation
+requirement; that requirement is retained.
+
+PrepareClient now reads the standard HOME/.claude.json through the same bounded, owner-checked,
+regular-file, no-follow reader as source settings. A missing file remains absent in the source.
+Before creating runtime artifacts, strict JSON validation projects only MCP state into the private
+client root's .claude.json. Public client writer commands independently establish this destination
+and the native top-level mcpServers / projects[original path].mcpServers shape. Server declarations
+are not combined into a command-line MCP scope: validation, connection, precedence and permissions
+remain the client's responsibilities. The proxy does not run these servers or their tools.
+
+The projection keeps mcpServers objects; enabledMcpjsonServers, disabledMcpjsonServers,
+enabledMcpServers, disabledMcpServers and mcpContextUris string arrays; enableAllProjectMcpServers;
+and per-project hasTrustDialogAccepted Booleans. It preserves original project keys and declaration
+values, including tool-specific MCP authentication, in owner-only temporary files. It excludes
+unrelated provider sign-in, model defaults, conversation and other global state. Unrecognized
+MCP-related keys reject rather than silently dropping a possibly restrictive policy. Malformed
+objects, duplicate keys, null array elements, unsafe source modes/links and files over 2 MiB reject
+before runtime creation. This is a pinned mapping, not a general client-state migration facility.
+
+The public [MCP reference](https://code.claude.com/docs/en/mcp) documents native scopes and the
+distinct per-project server toggles versus .mcp.json approvals. The public
+[settings reference](https://code.claude.com/docs/en/settings) distinguishes user settings from
+mutable global state. Both were checked on 2026-09-09. The installed-client tests use only owned
+temporary inputs and an independently authored standard-library MCP peer. The peer returns an
+effect-free tool and records only its own PID and fixed lifecycle events. No tool is called in
+these configuration controls, and no Kiro model request is made.
+
+Recorded observations, preserving failures and their narrower conclusions:
+
+- client-mcp-sources.YPZNUt fails because an unapproved project server does not initialize.
+  This is not exclusion proof; the later positive control explicitly approves that owned server.
+- client-mcp-approved.n3PXAE activates all three scopes but fails source byte equality after the
+  natural client changes its global file. It does not satisfy profile preservation.
+- client-mcp-profile.Vs1DCc (3.412s) and client-mcp-writer.SLzlqW (3.944s) confirm missing user/local
+  connections in the old profile; the latter also proves the private writer location/scope shape.
+- client-mcp-preserved.F5bngO passes after projection: all three scopes connect in both natural
+  and prepared runs, while the prepared run and private writer leave all source bytes unchanged
+  (2.43s test / 4.221s race package).
+- client-mcp-policy.PJfmri passes fourteen natural/prepared controls (6.33s test / 8.137s race
+  package). A disabled user/project server does not initialize, re-enabling restores both, and a
+  project refusal defeats a matching approval. For equal server names, only the local declaration
+  starts; removing it activates project, and removing project activates user. Fresh prepared
+  profiles reproduce every result. All observed peer processes are gone, no tools were called,
+  original sources remain unchanged by prepared commands, and temporary profile cleanup succeeds.
+
+Unit regressions cover provider-state exclusion, native scope/decision retention, temporary secret
+file permissions, repeated cleanup and unsafe/ambiguous inputs. Added tests first expose rejection
+of documented enabledMcpServers and incorrect acceptance of null string-array elements; both are
+corrected. These tests verify retention of default-off opt-ins, not actual activation of built-in
+servers. Broader installed-client regression results are recorded in DEVELOPMENT_STATUS.md.
+
+The authorized local Claude consultation is saved and independently assessed in
+client-assets-review-xyum00fk. Its active preservation controls are useful. Its suggestion to relax
+byte preservation is not adopted; symlinks do not themselves prevent writes. Its claim that no
+read-only asset path is documented is too broad: the public
+[plugin seed contract](https://code.claude.com/docs/en/plugin-marketplaces#pre-populate-plugins-for-containers)
+provides one. That contract needs its own installed-client controls before integration.
+
+This closes the measured standard-HOME MCP declaration/decision gap only. Plugin/skill/agent assets,
+existing status commands, custom configuration roots, remote MCP OAuth and environment-dependent
+credentials remain separate preservation work. General asset compatibility and release readiness
+are not claimed. Development run admission and provider routing are unchanged; no dependency is added.
+
+The final installed regression client-mcp-regression.qMLLwo passes in 15.642s with the final mapping:
+MCP controls, ordinary default-tool text/Read denial, user/project permission and hook preservation,
+and disabled hooks. Applicable uncached race suites pass with installed opt-ins off: launcher
+22.466s, interop 22.239s and command 1.775s. Whole-repository go vet, formatting, whitespace checks,
+the local build and executable help pass. The development executable includes this MCP correction.
