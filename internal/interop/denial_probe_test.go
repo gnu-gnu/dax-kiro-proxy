@@ -60,6 +60,10 @@ func runOnePromptDenialProbe(t *testing.T, clientExecutable, kiroExecutable stri
 
 func runClientToolProbe(t *testing.T, clientExecutable, kiroExecutable, effectKind string) {
 	t.Helper()
+	fullClient := effectKind == "default-read-denial"
+	if fullClient {
+		effectKind = ""
+	}
 	root, err := os.MkdirTemp("/private/tmp", "dax-denial-probe-")
 	if err != nil {
 		t.Fatal("cannot create owned denial-probe root")
@@ -108,7 +112,7 @@ func runClientToolProbe(t *testing.T, clientExecutable, kiroExecutable, effectKi
 		}
 	}
 	launchBudget := int32(1)
-	if effect != nil && effect.recoverNext {
+	if fullClient || effect != nil && effect.recoverNext {
 		launchBudget = 2
 	}
 	emptyMCP := filepath.Join(root, "client-mcp.json")
@@ -130,6 +134,9 @@ func runClientToolProbe(t *testing.T, clientExecutable, kiroExecutable, effectKi
 	if kiroExecutable == "" {
 		process.Executable = buildDenialACPFixture(t, ctx, runner, root)
 		process.Args = []string{"chat-tools-client-launch", filename}
+		if fullClient {
+			process.Args = []string{"chat-tools-default-client-launch", filename, filepath.Join(backend, "owned-processes")}
+		}
 		if effect != nil {
 			process.Args = []string{"chat-tools-effect-launch", effect.manifest}
 			if effect.recoverNext {
@@ -191,6 +198,9 @@ func runClientToolProbe(t *testing.T, clientExecutable, kiroExecutable, effectKi
 	}
 	defer pool.Close()
 	config := session.Config{Process: process, Pool: pool, InitialModel: backendModel, Validator: validator, RelayExecutable: relayExecutable, SetupTimeout: 20 * time.Second, TurnTimeout: 45 * time.Second}
+	if fullClient {
+		config.MaxRecreations = 1
+	}
 	var launchPath, relayConfig string
 	var artifacts []string
 	var relayGroup atomic.Int32
@@ -245,6 +255,13 @@ func runClientToolProbe(t *testing.T, clientExecutable, kiroExecutable, effectKi
 	}
 	defer driver.Close()
 	b := &onePromptBackend{driver: driver, models: models, readPath: filename, canary: canary, observeUse: func() error {
+		if fullClient {
+			data, err := readDenialArtifact(project, filepath.Base(filename), 128)
+			_, markerErr := os.Lstat(hookMarker)
+			if err != nil || string(data) != canary || !errors.Is(markerErr, os.ErrNotExist) {
+				return errors.New("default-client handoff preceded by unexpected activity")
+			}
+		}
 		if effect != nil && !effect.beforeUse() {
 			return errors.New("client handoff already has an effect or tool activity")
 		}
@@ -265,6 +282,11 @@ func runClientToolProbe(t *testing.T, clientExecutable, kiroExecutable, effectKi
 		b.inspectResume = effect.inspectNext
 		b.recoverResume = effect.recoverNext
 	}
+	if fullClient {
+		input, _ := json.Marshal(map[string]string{"file_path": filename})
+		b.fullClient = true
+		b.effect = &toolEffectExpectation{Tool: "Read", Input: input, IsError: true, RequiredText: clientDenialReason}
+	}
 	tokens, err := gateway.NewTokens()
 	if err != nil {
 		t.Fatal("cannot allocate local probe credentials")
@@ -280,7 +302,9 @@ func runClientToolProbe(t *testing.T, clientExecutable, kiroExecutable, effectKi
 	}
 	defer profile.Close()
 	command := profile.Command()
-	command.Environment = append(command.Environment, "CLAUDE_CODE_DISABLE_THINKING=1", "CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS=1")
+	if !fullClient {
+		command.Environment = append(command.Environment, "CLAUDE_CODE_DISABLE_THINKING=1", "CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS=1")
+	}
 	tool, systemText, userText := "Read", denialSystemPrompt, denialUserPrompt(filename)
 	if effect != nil {
 		tool, systemText, userText = effect.expect.Tool, "Independent client permission exercise.", "Perform the single declared operation, accept the client result, then finish."
@@ -288,11 +312,18 @@ func runClientToolProbe(t *testing.T, clientExecutable, kiroExecutable, effectKi
 			systemText, userText = effectSystem, effectUser
 		}
 	}
-	command.Args = append(command.Args, "--strict-mcp-config", "--mcp-config", emptyMCP, "--tools", tool)
+	command.Args = append(command.Args, "--strict-mcp-config", "--mcp-config", emptyMCP)
+	if !fullClient {
+		command.Args = append(command.Args, "--tools", tool)
+	}
 	if effect == nil || !effect.interactive {
 		command.Args = append(command.Args, "--print", "--output-format", "json", "--no-session-persistence")
 	}
-	command.Args = append(command.Args, "--system-prompt", systemText, userText)
+	if fullClient {
+		command.Args = append(command.Args, denialSystemPrompt+"\n"+userText)
+	} else {
+		command.Args = append(command.Args, "--system-prompt", systemText, userText)
+	}
 	clientContext, stop := context.WithTimeout(ctx, time.Minute)
 	var result childproc.Result
 	var runErr error
@@ -305,6 +336,18 @@ func runClientToolProbe(t *testing.T, clientExecutable, kiroExecutable, effectKi
 	}
 	stop()
 	state := driver.State()
+	finalGroup := 0
+	if fullClient {
+		var completion struct {
+			Result  string
+			IsError bool `json:"is_error"`
+		}
+		clientOK = clientOK && json.Unmarshal(result.Stdout, &completion) == nil && !completion.IsError && strings.TrimSpace(completion.Result) != ""
+		records, err := relayProcessRecords(relayExecutable)
+		if err == nil && len(records) == 2 {
+			finalGroup, _ = syscall.Getpgid(records[1].pid)
+		}
+	}
 	serverErr := server.Close()
 	closeErr := driver.Close()
 	poolErr := pool.Close()
@@ -322,6 +365,9 @@ func runClientToolProbe(t *testing.T, clientExecutable, kiroExecutable, effectKi
 		}
 	}
 	groupGone := relayGroup.Load() > 1 && errors.Is(syscall.Kill(-int(relayGroup.Load()), 0), syscall.ESRCH)
+	if fullClient {
+		groupGone = groupGone && finalGroup > 1 && finalGroup != int(relayGroup.Load()) && errors.Is(syscall.Kill(-finalGroup, 0), syscall.ESRCH)
+	}
 	canaryAfter, canaryErr := readDenialArtifact(project, filepath.Base(filename), 128)
 	marker, markerErr := readDenialArtifact(root, filepath.Base(hookMarker), 32)
 	canaryUnchanged := canaryErr == nil && string(canaryAfter) == canary
@@ -342,6 +388,14 @@ func runClientToolProbe(t *testing.T, clientExecutable, kiroExecutable, effectKi
 		t.Error("prepared launch budget or joined retirement was not established")
 	}
 	t.Logf("acp_launches=%d, old_runtime_retired_before_recovery=%v", preparedCount.Load(), retiredBeforeRestart.Load())
+	if fullClient {
+		t.Logf("default_client=true, shape=%+v, exact_arguments=%+v, final_group_observed=%v", stats.LastShape, stats.Arguments, finalGroup > 1)
+		t.Logf("default_continuation=%+v", stats.Continuation)
+		c := stats.Continuation
+		if stats.LastShape.Tools < 3 || !stats.LastShape.Thinking || !stats.LastShape.Context || !c.Seen || !c.PrefixSame || !c.IdentitySame || !c.ModelSame || !c.EffortSame || !c.SystemSame || !c.MetadataSame || !c.ToolsSame || c.TrailingSystems != 1 || c.TrailingSame {
+			t.Error("default-client changed-standing-instruction shape was not established")
+		}
+	}
 	if effect != nil {
 		t.Logf("tool_argument_comparison=%+v, handoff_group_observed=%v", stats.Arguments, relayGroup.Load() > 1)
 	}

@@ -1,5 +1,9 @@
 # Bounded Kiro interoperability experiments
 
+Current development status: D62 enables `run` for the measured installation and policy. Statements
+below about blocked production launch describe their historical checkpoints. The default-client
+recreation experiment at the end has now passed separately from the earlier single-tool cases.
+
 The installed Kiro main/helper now report 2.21.2, and D59 moves production preflight to that exact
 pair after fresh finite account/catalog checks. The 2.21.1 live results below remain historical
 evidence for that version. D58's resource observations sent no model prompt. The native-effect
@@ -410,3 +414,90 @@ Both cases pass in prepared-execution-effects.bruomf (46.78s test, 48.099s race 
 tool/results, allowed file and pre/post hooks, blocked hook effect, client exit 0 and observed cleanup.
 D62 then connects this generator to production startup and admits the measured development policy.
 This does not extend the experiment to default full-tool client traffic or complete alpha/release gates.
+
+## Default-client denial and joined session recreation
+
+Prepared after D70's independent state tests and installed-client/fake-ACP registry replacement.
+The continuing user authorization covers one bounded actual-Kiro attempt after its local rehearsal
+and guard tests pass. A failure requires diagnosis before another attempt; there is no automatic
+retry. Credit opt-in remains separate from every fixture-only invocation.
+
+This experiment preserves Claude 2.1.263's default tool list, system instructions, thinking and
+experimental declarations. Strict MCP configuration stays empty, and HOME/project/settings are
+new owned fixtures. A local PreToolUse hook refuses Read. The user prompt is the existing
+single-Read instruction and owned temporary path above, combined into the user message; no custom
+system prompt or `--tools` restriction is passed. The synthetic canary is not included. No actual
+project, repository source or user asset is sent to either model or client.
+
+The guarded gateway permits exactly one Read with the exact owned `file_path` argument, followed
+by one matching error result containing the owned hook refusal. Other tools, extra arguments,
+another call, a successful result or a third request reject before dispatch. All advertised tools
+still undergo the product's schema validation and map only to relay aliases in the shared restricted
+Kiro launch policy. The guard's broader request declarations do not broaden tool effect admission.
+
+At most two ACP processes and one recreation are allowed. Before preparing the replacement, require
+the first observed process group/relay to be absent and its private launch/relay files removed.
+The product validates the immutable complete history, incorporates the supplied denial in a fresh
+prompt, and retains the original 45-second turn deadline. Setup/first-event bounds stay 20 seconds,
+client execution one minute and whole harness three minutes; the replacement gets no new deadline.
+The existing exact-version/account/catalog checks and auto model selection remain prerequisites.
+
+Passing requires the expected default declarations, exactly one client hook denial, two admitted
+backend requests, two joined prepared processes, a nonempty final client completion, unchanged
+canary/settings and complete observed group/relay/profile/HTTP/pool cleanup. Raw prompts, client
+instructions, outputs, credentials and unrestricted stderr are not retained. Only fixed classes,
+counts and Boolean outcomes are logged. Full-history reconstruction may add provider work and loses
+hidden Kiro context; neither billed-call count nor fixed credit usage is claimed.
+
+The local rehearsal uses an independently authored fake ACP which checks the supplied full history
+and denial before completing the replacement's only prompt. Select only that local control first.
+The separately opted-in live invocation is:
+
+```sh
+DAX_INTEROP_KIRO_CREDIT_OPT_IN=1 \
+DAX_INTEROP_KIRO_BINARY=/absolute/path/to/kiro-cli \
+DAX_INTEROP_CLAUDE_BINARY=/absolute/path/to/claude \
+GOTOOLCHAIN=go1.27.1 \
+GOMODCACHE="$PWD/.cache/gomod" \
+GOCACHE="$PWD/.cache/gobuild" \
+go test -race -p 1 -count=1 -timeout=5m -v \
+  -run '^TestKiroLiveDefaultClientDenialRecreation$' ./internal/interop
+```
+
+This experiment does not verify a live registry change, plugin turn, arbitrary default-tool operation
+or the remaining alpha/release gates.
+
+The local rehearsal passes in default-denial-rehearsal.gHGa9W (14.364s race package): the new
+prepared-process control takes 3.26s, with 25 default tools, thinking/context declarations, one
+exact Read/hook refusal, two backend requests and two ACP processes. The original system/history/
+registry/identity remain exact while the trailing standing message changes. Old ownership is gone
+before replacement; final text, canary/settings preservation and all observed cleanup pass. The
+existing default-request and single-tool controls pass in the same run. Independent declaration,
+operation and request-count guards pass in 1.285s after the final observation fields are added.
+The guard test first failed to build against the prior test adapter's missing full-client policy.
+
+The actual Kiro 2.21.2/v2 and Claude 2.1.263 attempt passes in live-default-denial.KGeiR1
+(24.81s test, 26.304s race package), using the advertised auto model. It retains 25 tools and the
+thinking/context declarations, exposes exactly one Read with the exact argument, and receives the
+matching hook refusal. Two admitted requests use two ACP processes with old ownership removed
+before replacement. The full prior history, identity, model, effort, top-level system, metadata and
+registry stay exact; one trailing standing message changes. The fresh session returns nonempty final
+text, and Claude exits zero. The canary remains unchanged/unobserved and settings plus all observed
+process/group/relay/private-artifact cleanup pass. The 1,888-byte client output is inspected in bounded
+memory only. Fixture-specific assistant text does not match the live model's text, as expected; exact
+history is independently validated by the driver, not by that diagnostic field.
+
+The first command submission never executed: automatic approval review timed out before process
+creation. Its explicit one-retry allowance was used, and the second submission ran the sole live
+attempt above. No model attempt was retried and no safety rejection was inferred from the review
+timeout. This may consume credits; billed usage is not measured.
+
+The pre-live opt-ins-off race regression passes ACP in 5.955s and interop in 25.058s
+(default-denial-unit.q0Xkpf). Whole-repository/fixture vet, formatting and whitespace pass. No
+application code or dependency changes in this experiment; the development binary remains D70's build.
+
+Post-live review tightens only the test adapter: a new negative control finds that a matching result
+plus a new question could enter the separate denial-interruption path. Default-client mode now
+admits only one result block in that latest user message. The recorded live request already meets
+this condition; it is not repeated. The final updated guards and installed-client/fake-ACP rehearsal
+pass in default-denial-final.ZqVfcB (5.399s), with vet/formatting/whitespace passing afterward.

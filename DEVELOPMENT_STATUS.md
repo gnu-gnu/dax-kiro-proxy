@@ -6,6 +6,19 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D71 verifies default-tool Read refusal and joined session recreation with actual Kiro 2.21.2/v2
+  and Claude 2.1.263 in 24.81s (26.304s race package). All 25 default tools and thinking/context
+  declarations remain present. The exact single Read is hook-denied; its matching result and changed
+  standing instruction reach a fresh session after old process/artifact cleanup. Two requests/two
+  ACP processes complete with nonempty client output, unchanged canary/settings and observed cleanup.
+  The local prepared-process rehearsal and earlier controls pass in 14.364s; guard tests pass in
+  1.285s. Pre-live opt-ins-off race tests pass ACP 5.955s and interop 25.058s. A final guard control
+  excludes results mixed with new questions; the recorded live request already meets this condition.
+  Updated guards and installed-client/fake-ACP rehearsal pass in 5.399s; whole-repository/fixture vet,
+  formatting and whitespace pass. One command submission was stopped by an approval-review
+  timeout before execution; its permitted resubmission ran the sole live attempt. Actual registry
+  changes/plugin turns and the remaining lifecycle/alpha/release gates remain open. Only tests and
+  evidence change; no dependency or application code is added.
 - D70 corrects D69: cumulative tool history was caused by the synthetic responder reusing a message
   ID. A paired actual-client control proves unique IDs append history normally (8.966s). All ordinary
   synthetic responses now get distinct IDs; the duplicate-ID case is an explicit counterfactual.

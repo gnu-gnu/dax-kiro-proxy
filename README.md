@@ -91,7 +91,9 @@ hook-denial round trip through the real gateway/validator/relay with fake ACP. E
 continuations can recreate after a changed standing instruction or validated tool registry (D70),
 with joined cleanup, one original deadline and a default limit of sixteen recreations per turn.
 Unchanged continuations keep their prompt. Recreation adds provider work and loses hidden backend
-context; actual Kiro recovery remains an alpha check. No general Messages/API compatibility is implied.
+context. Actual Kiro also passes default-tool Read hook refusal and one joined recreation (D71), with
+all 25 client tools and ordinary thinking/context declarations. Live registry changes and other
+lifecycle paths remain alpha checks. No general Messages/API compatibility is implied.
 
 The temporary client profile now retains standard-HOME user/local MCP declarations and decisions
 at their native scopes. Installed-client controls verify all three MCP scopes, disabled/re-enabled

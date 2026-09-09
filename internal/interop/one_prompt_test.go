@@ -28,6 +28,7 @@ type denialDriver interface {
 }
 
 type denialProbeStats struct {
+	Continuation                                defaultClientComparison
 	Arguments                                   effectArgumentShape
 	AfterInterruption                           interruptedRequestShape
 	Starts, Uses, Results, Denials, Completions int
@@ -120,6 +121,8 @@ type probeRequestShape struct {
 // This test-only adapter admits one initial request and one matching result continuation.
 // A second ordinary request cannot start another model turn, including after timeout or failure.
 type onePromptBackend struct {
+	fullClient       bool
+	firstDefault     *anthropic.Request
 	inspectResume    bool
 	recoverResume    bool
 	inspected        atomic.Bool
@@ -172,20 +175,7 @@ func (b *onePromptBackend) Start(ctx context.Context, r *anthropic.Request) (inf
 		b.stats.LastShape = shape
 		b.mu.Unlock()
 	}
-	if n > 2 || r == nil || len(r.Tools) != 1 {
-		return nil, inference.ErrRequest
-	}
-	for _, field := range []string{"thinking", "context_management"} {
-		if _, present := r.Extra[field]; present {
-			return nil, inference.ErrRequest
-		}
-	}
-	tool, err := ndjson.Object(r.Tools[0])
-	expectedTool := "Read"
-	if b.effect != nil {
-		expectedTool = b.effect.Tool
-	}
-	if err != nil || string(tool["name"]) != `"`+expectedTool+`"` {
+	if n > 2 || r == nil || !b.acceptDeclarations(r) {
 		return nil, inference.ErrRequest
 	}
 	results, err := r.LatestToolResults()
@@ -197,6 +187,10 @@ func (b *onePromptBackend) Start(ctx context.Context, r *anthropic.Request) (inf
 			return nil, inference.ErrRequest
 		}
 	} else {
+		// This live reconstruction experiment cannot start the separate new-question recovery path.
+		if b.fullClient && (r.LatestUserIndex() < 0 || len(r.Messages[r.LatestUserIndex()].Content) != 1) {
+			return nil, inference.ErrRequest
+		}
 		b.mu.Lock()
 		id := b.callID
 		b.mu.Unlock()
@@ -231,6 +225,14 @@ func (b *onePromptBackend) Start(ctx context.Context, r *anthropic.Request) (inf
 		}
 	}
 	b.mu.Lock()
+	if b.fullClient {
+		if n == 1 {
+			b.firstDefault = r
+		} else {
+			b.stats.Continuation = compareDefaultRequests(b.firstDefault, r)
+			b.firstDefault = nil
+		}
+	}
 	b.stats.Starts++
 	b.mu.Unlock()
 	turn, err := b.driver.Start(ctx, r)
@@ -246,6 +248,36 @@ func (b *onePromptBackend) Start(ctx context.Context, r *anthropic.Request) (inf
 		b.mu.Unlock()
 	}
 	return &denialProbeTurn{Turn: turn, owner: b}, nil
+}
+
+func (b *onePromptBackend) acceptDeclarations(r *anthropic.Request) bool {
+	if len(r.Tools) == 0 || len(r.Tools) > 128 || !b.fullClient && len(r.Tools) != 1 {
+		return false
+	}
+	if !b.fullClient {
+		for _, field := range []string{"thinking", "context_management"} {
+			if _, present := r.Extra[field]; present {
+				return false
+			}
+		}
+	}
+	names := make(map[string]bool, len(r.Tools))
+	for _, raw := range r.Tools {
+		fields, err := ndjson.Object(raw)
+		var name string
+		if err != nil || json.Unmarshal(fields["name"], &name) != nil || name == "" || names[name] {
+			return false
+		}
+		names[name] = true
+	}
+	if b.fullClient {
+		return names["Read"] && names["Write"] && names["Bash"]
+	}
+	expected := "Read"
+	if b.effect != nil {
+		expected = b.effect.Tool
+	}
+	return names[expected]
 }
 
 func (b *onePromptBackend) snapshot() denialProbeStats {

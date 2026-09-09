@@ -2930,3 +2930,51 @@ registry-claude-regression.zpMDys passes all 27 existing TestClaude top-level co
 under race instrumentation, including the fresh/duplicate identity pair, held wait allowance/refusal,
 default tools, native permission UI, bare refusal/deadline recovery, hooks, assets and status.
 Every model response in this regression comes from an owned synthetic server or fake ACP.
+
+## D71: actual default-client denial reconstruction
+
+The next live check retains the pinned client's default tools, system prompt, thinking and
+experimental declarations. A separate test-only mode extends the existing single-operation guard
+to accept bounded default declarations containing Read/Write/Bash, with unique names. It still
+exposes only one Read with the exact owned path/argument object and accepts only its matching
+hook refusal. Any other operation, extra argument, successful result or third request rejects.
+The original single-tool guard retains its narrower declaration policy. Independent tests first
+fail against the missing mode, then establish declaration, argument, result and request bounds.
+
+The shared prepared-process harness allows exactly two launches and one recreation under the
+original 45-second deadline. It proves old relay/group/artifact removal before the next preparation,
+checks the final live group before shutdown and requires both groups gone afterward. The client's
+ordinary changed standing message triggers the existing full-history path; no product exception is
+added. The fake's launch-manifest variant checks the full projection, exact historical Read and
+owned denial before completing its replacement prompt. Raw request/output data is not persisted.
+
+default-denial-rehearsal.gHGa9W passes the prepared default-client control plus earlier default and
+single-tool controls in 14.364s under race. The new case takes 3.26s, with 25 tools, unchanged policy/
+history, one changed standing message, one exact refusal, two requests, two processes, nonempty
+completion, source/canary preservation and joined cleanup. Pre-live guard checks pass in 1.285s.
+
+The separately opted-in actual Kiro 2.21.2/v2, Claude 2.1.263 and auto-model attempt passes in
+live-default-denial.KGeiR1 (24.81s test, 26.304s race package). It observes the same counts and
+standing-message change, keeps thinking/context declarations, and completes after the refusal in
+a fresh session. All source/canary and observed process/group/relay/artifact checks pass. Only fixed
+flags/counts are retained; its 1,888-byte client completion is inspected in bounded memory. The
+synthetic assistant-text diagnostic is false for live model text and is not a history invariant;
+the driver's canonical full-prefix validation establishes the actual immutable history.
+
+Automatic approval review timed out before the first submission could create a process. The tool
+explicitly permitted one resubmission; it ran the sole live attempt. There was no automatic retry of
+a failed model attempt, and no safety finding is inferred from the review timeout. The existing
+authorization covers this bounded experiment; LIVE_KIRO_TEST_PLAN.md records its inputs and limits.
+
+Pre-live opt-ins-off race tests pass ACP 5.955s and interop 25.058s in default-denial-unit.q0Xkpf.
+Whole-repository/fixture vet, formatting and whitespace pass. No application code/dependency changes;
+the existing D70 development binary is current. This verifies one actual changed-standing-message
+recovery. Live registry changes, plugin turns, other alpha lifecycle and release checks remain.
+
+Post-live review adds a negative guard control for a result mixed with a new question. It fails in
+0.842s because the shared adapter also serves the separate new-question recovery experiment. The
+default-client mode now requires one result-only latest user message before dispatch, preserving
+the intended single logical turn. The recorded live request already has exactly that shape. Final
+default-denial-final.ZqVfcB passes the updated guard suite and installed-client/fake-ACP rehearsal in
+5.399s, followed by whole-repository/fixture vet and formatting/whitespace checks. No extra model
+attempt runs; the separate bare-denial/new-question experiment retains its original behavior.

@@ -62,6 +62,8 @@ func main() {
 		signal.Ignore(syscall.SIGTERM)
 	}
 	defaultReplacement := false
+	defaultLaunch := mode == "chat-tools-default-client-launch"
+	defaultClient := mode == "chat-tools-default-client" || defaultLaunch
 	pluginDenied := (mode == "chat-tools-plugin-client" || mode == "chat-tools-plugin-wait") && len(os.Args) == 5 && os.Args[4] == "denied"
 	pluginWaitStage := -1
 	if mode == "chat-tools-plugin-wait" {
@@ -73,8 +75,12 @@ func main() {
 			pluginWaitStage = 1
 		}
 	}
-	if mode == "chat-tools-default-client" || mode == "chat-tools-plugin-client" {
-		if len(os.Args) != 4 && !pluginDenied {
+	if defaultClient || mode == "chat-tools-plugin-client" {
+		wantArgs := 4
+		if defaultLaunch {
+			wantArgs = 5
+		}
+		if len(os.Args) != wantArgs && !pluginDenied {
 			os.Exit(94)
 		}
 		defaultReplacement = defaultClientProcess(os.Args[3])
@@ -167,10 +173,13 @@ func main() {
 				os.Exit(26)
 			}
 			if strings.HasPrefix(mode, "chat-tools") {
-				if mode == "chat-tools-launch" || mode == "chat-tools-client-launch" || mode == "chat-tools-effect-launch" || mode == "chat-tools-effect-restart-launch" {
+				if mode == "chat-tools-launch" || mode == "chat-tools-client-launch" || mode == "chat-tools-effect-launch" || mode == "chat-tools-effect-restart-launch" || defaultLaunch {
 					manifestIndex := 2
 					if mode == "chat-tools-client-launch" || mode == "chat-tools-effect-launch" || mode == "chat-tools-effect-restart-launch" {
 						manifestIndex = 3
+					}
+					if defaultLaunch {
+						manifestIndex = 4
 					}
 					if len(p.MCP) != 0 || len(os.Args) != manifestIndex+1 {
 						os.Exit(46)
@@ -184,7 +193,7 @@ func main() {
 				if len(p.MCP) != 1 {
 					os.Exit(34)
 				}
-				if mode == "chat-tools-default-client" {
+				if defaultClient {
 					relayChild = startFixtureRelayNamed(p.MCP[0], p.CWD, false, "Read")
 				} else if mode == "chat-tools-plugin-client" {
 					relayChild = startFixtureRelayNamed(p.MCP[0], p.CWD, false, os.Args[2])
@@ -325,7 +334,7 @@ func main() {
 					}
 					continue
 				}
-				if mode == "chat-tools-default-client" && defaultReplacement {
+				if defaultClient && defaultReplacement {
 					if promptCount != 1 || !defaultClientHistory(p.Prompt, os.Args[2]) {
 						os.Exit(95)
 					}
@@ -389,10 +398,13 @@ func main() {
 						write(map[string]any{"jsonrpc": "2.0", "id": q.ID, "error": map[string]any{"code": 401, "message": "login required"}})
 						continue
 					}
-					if mode == "chat-tools-client" || mode == "chat-tools-client-launch" || mode == "chat-tools-default-client" {
+					if mode == "chat-tools-client" || mode == "chat-tools-client-launch" || defaultClient {
 						expectedArgs := 3
-						if mode == "chat-tools-client-launch" || mode == "chat-tools-default-client" {
+						if mode == "chat-tools-client-launch" || defaultClient {
 							expectedArgs = 4
+						}
+						if defaultLaunch {
+							expectedArgs = 5
 						}
 						if len(os.Args) != expectedArgs {
 							os.Exit(45)
