@@ -1123,3 +1123,19 @@ Fixed facts are saved in `.cache/terminal-review/live-interrupted-followup-stric
 live episodes there are four main and three title admissions. This is deliberate revalidation after
 a discovered observer defect, not an automatic retry of a failed provider call. Marker presence
 does not prove complete native-history byte equivalence; that broader claim is not made here.
+
+## Native model-picker control before a live model change (D85)
+
+`TestCompiledRunModelSelectionWithFakeACP` now verifies the ordinary compiled command with actual
+Claude and two independent fake models. Both picker entries, unchanged/switch selection, successful
+idle ACP acknowledgement, next-response model, visible completion, last-model preflight restoration,
+source preservation and keyboard cleanup pass. Final fixed results are in
+`.cache/model-review/native-picker-restore-fake-acp.log`; no actual Kiro model call runs.
+
+The next live experiment must discover currently advertised exact Kiro IDs, retain strict alias
+mapping and select two available models without assuming a historical catalog. Bind observations
+to that catalog and its advertised ACP selector; this fixture currently witnesses the legacy model
+surface and two declared model IDs. Preserve the finite main/title budget and passive forwarding.
+Keep full model IDs, session IDs, ACP bodies and UI captures out of retained diagnostics. A failed
+live episode must not be retried automatically. Native Kiro selection and persisted conversation
+resume remain open until their respective real-client observations pass.

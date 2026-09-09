@@ -25,6 +25,8 @@ import (
 )
 
 type config struct {
+	ModelCheck                                      bool
+	ModelIDs                                        [2]string
 	AllowFollowup                                   bool
 	HeldHook                                        bool
 	Root, Proxy, Client, Kiro, AccountHome, Project string
@@ -70,6 +72,7 @@ func main() {
 	if err != nil || len(data) > 16<<10 || json.Unmarshal(data, &cfg) != nil || !filepath.IsAbs(cfg.Root) {
 		os.Exit(70)
 	}
+	observedModel.models = cfg.ModelIDs
 	timer := time.AfterFunc(90*time.Second, func() { record("guard-failed", nil); os.Exit(74) })
 	defer timer.Stop()
 	role := filepath.Base(os.Args[0])
@@ -133,7 +136,11 @@ func main() {
 			case "whoami --format json":
 				fmt.Println(`{"accountType":"fixture","email":"terminal@example.invalid"}`)
 			case "chat --list-models --format json":
-				fmt.Println(`{"default_model":"fixture-backend","models":[{"model_id":"fixture-backend","model_name":"Independent terminal stream"}]}`)
+				if cfg.ModelCheck {
+					fmt.Println(`{"default_model":"fixture-backend","models":[{"model_id":"fixture-backend","model_name":"Independent first"},{"model_id":"fixture-target","model_name":"Independent second"}]}`)
+				} else {
+					fmt.Println(`{"default_model":"fixture-backend","models":[{"model_id":"fixture-backend","model_name":"Independent terminal stream"}]}`)
+				}
 			default:
 				os.Exit(71)
 			}
@@ -203,6 +210,9 @@ func forward(r io.Reader, w io.Writer, from string, g *frameGuard) error {
 			notePrompt(line)
 		}
 		kind, err := g.inspect(from, line)
+		if err == nil {
+			err = noteModel(from, line)
+		}
 		if err != nil {
 			record("guard-failed", nil)
 			return err
@@ -226,6 +236,9 @@ func notePrompt(raw []byte) {
 		lower := bytes.ToLower(raw)
 		titleScope.Store(bytes.Contains(lower, []byte("title")))
 		followScope.Store(bytes.Contains(raw, []byte("concatenation of Follow and _49")))
+		if cfg.ModelCheck {
+			followScope.Store(bytes.Contains(raw, []byte("concatenation of ModelSecond and _67")))
+		}
 		record("prompt-attempt", map[string]any{
 			"main_hint":      bytes.Contains(raw, []byte("concatenation of Ready and _47")),
 			"title_hint":     bytes.Contains(lower, []byte("title")),
@@ -326,6 +339,9 @@ func fakeACP() {
 		defer output.Unlock()
 		data, _ := json.Marshal(value)
 		kind, err := g.inspect("agent", data)
+		if err == nil {
+			err = noteModel("agent", data)
+		}
 		if err != nil {
 			record("guard-failed", nil)
 			os.Exit(71)
@@ -347,6 +363,9 @@ func fakeACP() {
 		}
 		notePrompt(line)
 		kind, err := g.inspect("client", line)
+		if err == nil {
+			err = noteModel("client", line)
+		}
 		if err != nil {
 			record("guard-failed", nil)
 			return
@@ -369,7 +388,11 @@ func fakeACP() {
 		case "initialize":
 			reply(r.ID, map[string]any{"protocolVersion": 1, "agentCapabilities": map[string]any{}, "agentInfo": map[string]string{"name": "independent-terminal", "version": "1"}})
 		case "session/new":
-			reply(r.ID, map[string]any{"sessionId": "owned-stream", "models": map[string]any{"currentModelId": "fixture-backend", "availableModels": []any{map[string]string{"modelId": "fixture-backend", "name": "Independent"}}}})
+			models := []any{map[string]string{"modelId": "fixture-backend", "name": "Independent first"}}
+			if cfg.ModelCheck {
+				models = append(models, map[string]string{"modelId": "fixture-target", "name": "Independent second"})
+			}
+			reply(r.ID, map[string]any{"sessionId": "owned-stream", "models": map[string]any{"currentModelId": "fixture-backend", "availableModels": models}})
 		case "session/set_model":
 			reply(r.ID, map[string]any{})
 		case "session/prompt":
@@ -379,6 +402,15 @@ func fakeACP() {
 				continue
 			}
 			cancel = make(chan struct{})
+			if cfg.ModelCheck {
+				text := "ModelFirst_61"
+				if followScope.Load() {
+					text = "ModelSecond_67"
+				}
+				send(map[string]any{"jsonrpc": "2.0", "method": "session/update", "params": map[string]any{"sessionId": "owned-stream", "update": map[string]any{"sessionUpdate": "agent_message_chunk", "content": map[string]string{"type": "text", "text": text}}}})
+				reply(r.ID, map[string]string{"stopReason": "end_turn"})
+				continue
+			}
 			if followScope.Load() {
 				send(map[string]any{"jsonrpc": "2.0", "method": "session/update", "params": map[string]any{"sessionId": "owned-stream", "update": map[string]any{"sessionUpdate": "agent_message_chunk", "content": map[string]string{"type": "text", "text": "Follow_49"}}}})
 				reply(r.ID, map[string]string{"stopReason": "end_turn"})

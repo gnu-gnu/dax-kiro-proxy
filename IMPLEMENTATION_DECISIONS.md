@@ -3908,3 +3908,39 @@ clean-host release and rights/license requirements remain open.
 Final opt-ins-off race suites pass interop 25.113s and the complete observer package 1.242s.
 Whole-repository/observer vet, formatting and whitespace checks pass. The frozen production inputs
 are unchanged, so no executable rebuild or inventory refresh is required.
+
+## D85: observe native model selection before the following foreground question
+
+The public [Claude model configuration documentation](https://code.claude.com/docs/en/model-config)
+describes both typed selection and the native picker, including persistence to user settings. Add
+an ordinary compiled-command control with actual Claude 2.1.263 and two independent fake-ACP models.
+The temporary profile must absorb native selection writes while the original owned settings remain
+unchanged. No actual Kiro model request is required for this control.
+
+After one visible end_turn completion on the initial model, open the picker and require both catalog
+entries to be visible. Navigate from an observed selected row, with at most eight key actions; select
+either the unchanged model or the second model. Only after the native selection confirmation may
+the parent admit and type the independently supplied second question. Distinct generated markers
+are absent from the typed prompts. Both completions must reach the same observed client, proxy,
+profile and address. The model witness follows correlated session/new and idle session/set_model
+replies, retaining only model slots in receipts. Unknown/session-mismatched selections, outstanding
+prompts, missing acknowledgements and error/null/non-object results cannot establish a change.
+The existing frame/admission guards bound two main and at most two auxiliary prompts across process
+replacement. Non-success prompt results invalidate the observation.
+
+An initial typed model-ID control produces an additional prompt attempt that the declared budget
+rejects; that failed control requires emergency owned-group cleanup. Its cause is not established
+as native model validation. The final controls use the observed picker, without increasing the
+request budget. Both pass in 6.74s (8.548s race package): the first keeps model slot one; the second
+has one successful target acknowledgement and its next prompt uses slot two. Each has two main
+completions and one title, restored terminal, unchanged sources, and all four recorded groups/five
+PIDs, listener/runtime/profile gone. A following ordinary doctor preflight restores the selected
+model without another recorded client/ACP identity or prompt. This establishes startup selection,
+not a resumed conversation or the behavior of a second interactive client.
+
+Saved fixed results are in `.cache/model-review/native-picker-restore-fake-acp.log`. Independent
+negative controls precede integration. The six existing native-Claude/fake-ACP keyboard controls
+pass in 32.959s. Opt-ins-off race suites pass interop 24.745s and observer 1.251s; whole-repository
+and observer vet, formatting and whitespace checks pass. No production, dependency or frozen
+artifact changes. Actual Kiro model selection, arbitrary catalogs, effort changes, persisted
+resume and the remaining alpha/release gates stay open.

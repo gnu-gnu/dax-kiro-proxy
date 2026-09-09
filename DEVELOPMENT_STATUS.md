@@ -6,6 +6,22 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D85 adds native Claude model-picker controls through the ordinary compiled command and two
+  independent fake-ACP models. Observer and readiness negatives first fail on missing APIs, then
+  pass. Both catalog entries appear before selection. Unchanged selection and switching each produce
+  two visible, correlated end_turn completions in the same observed client/proxy/profile/address;
+  the latter has one successful target-model acknowledgement before the next prompt. A following
+  doctor preflight restores the last model without another recorded client/ACP session. The final
+  two controls pass in 6.74s (8.548s race package); each removes four recorded groups/five PIDs,
+  listener/runtime/profile, restores the terminal and preserves source settings. An earlier typed
+  model-ID attempt produces an additional prompt attempt which the declared budget rejects; it is
+  retained as a failed control, not attributed to a particular native validation mechanism.
+  No production/dependency/artifact change or actual Kiro model call. Actual Kiro selection,
+  authentication, pending-tool recovery, persisted resume, personal-root memory and release gates
+  remain open.
+  The six existing native-Claude/fake-ACP keyboard controls pass in 32.959s; opt-ins-off race suites
+  pass interop 24.745s and observer 1.251s. Whole-repository/observer vet, formatting and whitespace
+  checks pass.
 - D84 verifies a new question after streamed Ctrl+C in the same foreground Claude 2.1.263 / Kiro
   2.21.2 run. Admission/correlation/readiness tests first fail on missing APIs, then pass. An initial
   actual observation passes, but review finds that its end counter also accepts correlated errors.

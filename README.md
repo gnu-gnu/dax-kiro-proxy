@@ -153,6 +153,12 @@ Two main and two title prompts stay within the declared budget; subsequent keybo
 the terminal and removes all recorded processes and private artifacts. This does not establish
 complete history equivalence, pending-tool recovery or persisted restart/resume.
 
+D85 verifies the native Claude model picker with two independent fake-ACP models. Both entries are
+visible; unchanged selection and switching both complete the next question on the observed model.
+The switch follows a correlated successful idle ACP selection. After keyboard exit, a new doctor
+preflight restores that model without another recorded client/ACP session or source-settings change.
+Actual Kiro model changes and persisted conversation resume remain separate live checks.
+
 The temporary client profile now retains standard-HOME user/local MCP declarations and decisions
 at their native scopes. Installed-client controls verify all three MCP scopes, disabled/re-enabled
 servers, project refusal and local/project/user precedence, with unchanged source files and joined

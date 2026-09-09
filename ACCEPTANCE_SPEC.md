@@ -125,6 +125,12 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
 - Known unsupported effort is skipped; absent `/effort` is unavailable; unknown capability probes at
   most once per model/effort pair; a rejected effort does not fail the turn.
 - A model switch clears the effective effort synchronization state.
+- A compiled-command native picker control must display both independently advertised test models,
+  distinguish unchanged selection from a successful idle ACP model change, and complete the next
+  visible foreground response on the selected model. Failed/unmatched selection acknowledgements
+  and auxiliary-only observations cannot prove a switch. After exit, the next diagnostic preflight
+  must restore the delivered model without another client/ACP session or source-settings change.
+  This fake-ACP control does not replace actual Kiro selection or conversation-resume gates (D85).
 
 ## E. Tool safety
 

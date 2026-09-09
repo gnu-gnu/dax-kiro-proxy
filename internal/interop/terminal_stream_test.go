@@ -14,11 +14,43 @@ import (
 	"testing"
 	"time"
 
+	"dax-kiro-proxy/internal/catalog"
 	"dax-kiro-proxy/internal/childproc"
 )
 
 const terminalStreamPrompt = `Begin with the concatenation of Ready and _47 without spaces. Then list integers 1 through 2000, one per line, without tools or any other text.`
 const terminalFollowupPrompt = `Stop the counting task. Reply with the concatenation of Follow and _49 without spaces, and no other text.`
+const terminalModelFirst = `Reply with the concatenation of ModelFirst and _61 without spaces, and no other text.`
+const terminalModelSecond = `Reply with the concatenation of ModelSecond and _67 without spaces, and no other text.`
+
+func terminalModelPickerKey(screen, target string) (string, int) {
+	if !strings.Contains(strings.ToLower(screen), "select model") {
+		return "", -1
+	}
+	selected, wanted := -1, -1
+	for i, line := range strings.Split(strings.ToLower(screen), "\n") {
+		if strings.Contains(line, "❯") {
+			selected = i
+		}
+		if strings.Contains(line, target) {
+			wanted = i
+		}
+	}
+	if selected < 0 || wanted < 0 {
+		return "", -1
+	}
+	if selected == wanted {
+		return "\r", selected
+	}
+	if selected < wanted {
+		return "\x1b[B", selected
+	}
+	return "\x1b[A", selected
+}
+
+func terminalModelComplete(r terminalTrace, slot int) bool {
+	return r.Clients == 1 && r.Prompts == 1 && r.Texts > 0 && r.Ends == 1 && r.Cancels == 0 && r.Canceled == 0 && r.FollowPrompts == 1 && r.FollowTexts > 0 && r.FollowEnds == 1 && r.FollowCancels == 0 && r.FollowCanceled == 0 && r.ModelFirstRecords == 1 && r.ModelFollowRecords == 1 && r.ModelFirstSlot == 1 && r.ModelFollowSlot == slot && (slot == 1 || slot == 2 && r.ModelTargetAcks > 0) && r.TitlePrompts <= 2 && r.Failures == 0 && r.PromptFailures == 0 && !r.Exited
+}
 
 func terminalCancelEligible(trace terminalTrace) bool {
 	return trace.Prompts == 1 && trace.TitlePrompts <= 1 && trace.Texts >= 2 && trace.Ends == 0 && trace.Cancels == 0 && trace.Canceled == 0 && trace.Failures == 0 && trace.PromptFailures == 0 && !trace.Exited
@@ -38,6 +70,7 @@ func terminalExitConfirmation(screen string) bool {
 }
 
 type terminalReceipt struct {
+	ModelSlot     int    `json:"model_slot"`
 	NullMarker    bool   `json:"null_marker"`
 	FollowScope   bool   `json:"follow_scope"`
 	OldInput      bool   `json:"old_input"`
@@ -59,6 +92,7 @@ type terminalReceipt struct {
 }
 
 type terminalTrace struct {
+	ModelFirstRecords, ModelFollowRecords, ModelFirstSlot, ModelFollowSlot, ModelTargetAcks   int
 	PromptFailures                                                                            int
 	FollowNull                                                                                bool
 	Clients, FollowPrompts, FollowACP, FollowTexts, FollowEnds, FollowCancels, FollowCanceled int
@@ -105,6 +139,22 @@ func readTerminalTrace(root string) (terminalTrace, error) {
 				pids[r.Child] = true
 			}
 			switch r.Kind {
+			case "model-ack", "prompt-model":
+				if r.ModelSlot < 1 || r.ModelSlot > 2 {
+					return trace, errors.New("unknown observed model slot")
+				}
+				if r.Kind == "model-ack" && r.ModelSlot == 2 {
+					trace.ModelTargetAcks++
+				}
+				if r.Kind == "prompt-model" && !r.TitleScope {
+					if r.FollowScope {
+						trace.ModelFollowRecords++
+						trace.ModelFollowSlot = r.ModelSlot
+					} else {
+						trace.ModelFirstRecords++
+						trace.ModelFirstSlot = r.ModelSlot
+					}
+				}
 			case "relay":
 			case "relay-called":
 				trace.RelayCalls++
@@ -241,6 +291,14 @@ func TestCompiledRunInterruptedFollowupWithFakeACP(t *testing.T) {
 	runCompiledTerminalStream(t, "cancel-followup", "")
 }
 
+func TestCompiledRunModelSelectionWithFakeACP(t *testing.T) {
+	for _, mode := range []string{"model-unchanged", "model-switch"} {
+		if !t.Run(mode, func(t *testing.T) { runCompiledTerminalStream(t, mode, "") }) {
+			return
+		}
+	}
+}
+
 func TestKiroLiveCompiledRunInterruptedFollowup(t *testing.T) {
 	if os.Getenv("DAX_INTEROP_KIRO_CREDIT_OPT_IN") != "1" {
 		t.Skip("explicit live interrupted-followup opt-in required")
@@ -256,6 +314,13 @@ func runCompiledTerminalStream(t *testing.T, mode, kiro string) {
 	t.Helper()
 	heldHook := strings.HasPrefix(mode, "held-hook-")
 	followup := mode == "cancel-followup"
+	modelCheck := strings.HasPrefix(mode, "model-")
+	modelSlot := 1
+	if mode == "model-switch" {
+		modelSlot = 2
+	}
+	modelIDs := [2]string{"fixture-backend", "fixture-target"}
+	modelLabel := []string{"independent first", "independent second"}[modelSlot-1]
 	client := os.Getenv("DAX_INTEROP_CLAUDE_BINARY")
 	if client == "" {
 		t.Skip("set DAX_INTEROP_CLAUDE_BINARY for an owned compiled-run terminal")
@@ -277,6 +342,9 @@ func runCompiledTerminalStream(t *testing.T, mode, kiro string) {
 	settings := filepath.Join(home, ".claude", "settings.json")
 	settingsData := []byte(`{"disableAllHooks":true,"statusLine":{"type":"command","command":"/usr/bin/true"}}`)
 	readFixture, prompt := filepath.Join(project, "read-fixture"), terminalStreamPrompt
+	if modelCheck {
+		prompt = terminalModelFirst
+	}
 	if heldHook {
 		prompt = "Use Read exactly once with file_path " + readFixture + ". Then reply with the concatenation of HookControl and _47 without spaces. Do not use any other tool."
 		hooks := map[string]any{}
@@ -321,7 +389,7 @@ func runCompiledTerminalStream(t *testing.T, mode, kiro string) {
 		}
 	}
 	args := []string{"run", "--client", filepath.Join(bin, "claude"), "--kiro", filepath.Join(bin, "kiro-cli"), "--settings", settings, "--runtime-dir", artifacts, "--state-dir", filepath.Join(root, "state")}
-	config, _ := json.Marshal(map[string]any{"Root": root, "Proxy": proxy, "Client": client, "Kiro": kiro, "AccountHome": os.Getenv("HOME"), "Project": project, "Args": args, "HeldHook": heldHook, "AllowFollowup": followup})
+	config, _ := json.Marshal(map[string]any{"Root": root, "Proxy": proxy, "Client": client, "Kiro": kiro, "AccountHome": os.Getenv("HOME"), "Project": project, "Args": args, "HeldHook": heldHook, "AllowFollowup": followup || modelCheck, "ModelCheck": modelCheck, "ModelIDs": modelIDs})
 	if os.WriteFile(filepath.Join(bin, "terminal.json"), config, 0600) != nil {
 		t.Fatal("cannot write terminal role configuration")
 	}
@@ -371,6 +439,9 @@ func runCompiledTerminalStream(t *testing.T, mode, kiro string) {
 	var originalClient, originalProxy int
 	var originalProfile, originalEndpoint string
 	var followupObserved bool
+	var modelObserved, modelPickerObserved bool
+	modelPreviousRow, modelMoves := -1, 0
+	var modelScreenHints uint32
 	groupsBeforeFollowup := make(map[int]bool)
 	var receiptErr error
 	var canceledAlive, foregroundObserved, exitKey bool
@@ -386,6 +457,13 @@ func runCompiledTerminalStream(t *testing.T, mode, kiro string) {
 			observedGroups[group] = true
 		}
 		lower := strings.ToLower(strings.Join(strings.Fields(screen), " "))
+		if modelCheck {
+			for i, marker := range []string{"select model", "independent first", "independent second", "set model to", "model changed", "modelsecond_67"} {
+				if strings.Contains(lower, marker) {
+					modelScreenHints |= 1 << i
+				}
+			}
+		}
 		if stage >= 3 {
 			for i, marker := range []string{"exit", "again", "ctrl", "interrupted", "thinking", "esc to cancel", "do you want", "continue"} {
 				if strings.Contains(lower, marker) {
@@ -411,7 +489,12 @@ func runCompiledTerminalStream(t *testing.T, mode, kiro string) {
 				return "\r"
 			}
 		case 2:
-			if heldHook {
+			if modelCheck {
+				if trace.Prompts == 1 && trace.Ends == 1 && trace.ModelFirstRecords == 1 && trace.ModelFirstSlot == 1 && strings.Contains(screen, "ModelFirst_61") {
+					stage = 10
+					return "/model"
+				}
+			} else if heldHook {
 				if terminalHookEligible(trace) && (kiro != "" || trace.RelayCalls == 1 && trace.RelayResults == 0) && syscall.Kill(trace.Hook, 0) == nil && syscall.Kill(trace.Client, 0) == nil && syscall.Kill(trace.Proxy, 0) == nil {
 					if heldAt.IsZero() {
 						heldAt = time.Now()
@@ -501,6 +584,45 @@ func runCompiledTerminalStream(t *testing.T, mode, kiro string) {
 				stage, exitKey = 5, true
 				return "\x04"
 			}
+		case 10:
+			if strings.Contains(screen, "/model") {
+				stage = 11
+				return "\r"
+			}
+		case 11:
+			if strings.Contains(lower, "independent first") && strings.Contains(lower, "independent second") {
+				modelPickerObserved = true
+				key, selected := terminalModelPickerKey(screen, modelLabel)
+				if key != "" && selected != modelPreviousRow && modelMoves < 8 {
+					modelMoves++
+					modelPreviousRow = selected
+					if key == "\r" {
+						stage = 14
+					}
+					return key
+				}
+			}
+		case 14:
+			if strings.Contains(lower, "set model to") && strings.Contains(lower, modelLabel) {
+				if os.WriteFile(filepath.Join(root, "followup-allowed"), []byte("owned-new-question"), 0600) != nil {
+					receiptErr = errors.New("cannot admit post-selection question")
+					stop()
+					return ""
+				}
+				stage = 15
+				return terminalModelSecond
+			}
+		case 15:
+			if strings.Contains(strings.Join(strings.Fields(screen), " "), terminalModelSecond) {
+				stage = 16
+				return "\r"
+			}
+		case 16:
+			if terminalModelComplete(trace, modelSlot) && strings.Contains(screen, "ModelSecond_67") && trace.Client == originalClient && trace.Proxy == originalProxy && trace.Profile == originalProfile && trace.Endpoint == originalEndpoint && syscall.Kill(originalClient, 0) == nil && syscall.Kill(originalProxy, 0) == nil {
+				modelObserved = true
+				stage, exitKey = 5, true
+				return "\x04"
+			}
 		}
 		return ""
 	}, true)
@@ -529,6 +651,22 @@ func runCompiledTerminalStream(t *testing.T, mode, kiro string) {
 		}
 	}
 	sources := beforeSettings == fileFingerprint(t, settings) && beforeGlobal == fileFingerprint(t, filepath.Join(home, ".claude.json"))
+	modelRestored := false
+	if modelCheck && modelObserved && groupsGone && pidsGone {
+		before := trace
+		inspection, inspectErr := runner.Run(ctx, childproc.Command{Executable: proxy, Directory: project, Environment: command.Environment, Args: []string{"doctor", "--json", "--kiro", filepath.Join(bin, "kiro-cli"), "--client", filepath.Join(bin, "claude"), "--settings", settings, "--runtime-dir", artifacts, "--state-dir", filepath.Join(root, "state")}})
+		var report struct {
+			SelectedModel string `json:"selected_model"`
+		}
+		models, modelErr := catalog.New([]catalog.Backend{{ID: modelIDs[0]}, {ID: modelIDs[1]}}, modelIDs[0])
+		if modelErr != nil {
+			t.Fatal("independent model expectation")
+		}
+		expected, _ := models.ClientID(modelIDs[modelSlot-1])
+		after, afterErr := readTerminalTrace(root)
+		modelRestored = inspectErr == nil && json.Unmarshal(inspection.Stdout, &report) == nil && report.SelectedModel == expected && afterErr == nil && after.Clients == before.Clients && len(after.PIDs) == len(before.PIDs) && len(after.Groups) == len(before.Groups) && after.Attempts == before.Attempts
+		sources = sources && beforeSettings == fileFingerprint(t, settings) && beforeGlobal == fileFingerprint(t, filepath.Join(home, ".claude.json"))
+	}
 	lateReleaseQuiet := true
 	if heldHook {
 		content, readErr := os.ReadFile(readFixture)
@@ -544,6 +682,10 @@ func runCompiledTerminalStream(t *testing.T, mode, kiro string) {
 		t.Logf("held_observed=%v hook_held=%d hook_released=%d hook_interrupted=%d hook_post=%d hook_alive_at_exit_confirmation=%v relay_calls=%d relay_results=%d late_release_quiet=%v exit_ms=%d", heldObserved, trace.HookHeld, trace.HookReleased, trace.HookInterrupted, trace.HookPost, hookAtConfirmation, trace.RelayCalls, trace.RelayResults, lateReleaseQuiet, exitLatency.Milliseconds())
 	}
 	t.Logf("non_success_prompt_results=%d", trace.PromptFailures)
+	if modelCheck {
+		t.Logf("next_preflight_restored_model_without_client_or_acp=%v", modelRestored)
+		t.Logf("model_picker_observed=%v model_transition_observed=%v model_screen_hint_bits=%d first_model_records=%d first_model_slot=%d next_model_records=%d next_model_slot=%d target_acknowledgements=%d", modelPickerObserved, modelObserved, modelScreenHints, trace.ModelFirstRecords, trace.ModelFirstSlot, trace.ModelFollowRecords, trace.ModelFollowSlot, trace.ModelTargetAcks)
+	}
 	t.Logf("fixed_screen_hint_bits=%d observed_groups=%d observed_pids=%d", screenHints, len(trace.Groups), len(trace.PIDs))
 	if followup {
 		t.Logf("absent_marker_detected=%v followup_group_previously_observed=%v", trace.FollowNull, groupsBeforeFollowup[trace.FollowACP])
@@ -552,11 +694,13 @@ func runCompiledTerminalStream(t *testing.T, mode, kiro string) {
 	t.Logf("prompt_attempts=%d main_hints=%d title_hints=%d summary_hints=%d title_prompts=%d title_ends=%d", trace.Attempts, trace.MainHints, trace.TitleHints, trace.SummaryHints, trace.TitlePrompts, trace.TitleEnds)
 	t.Logf("live_kiro=%v mode=%s stage=%d setup=%d prompts=%d texts=%d cancels=%d ends=%d cancelled_replies=%d guard_failures=%d key_after_texts=%d foreground_observed=%v client_alive_after_cancel=%v keyboard_exit=%v proxy_exited=%v proxy_exit=%d terminal_restored=%v groups_gone=%v recorded_pids_gone=%v listener_gone=%v runtime_removed=%v profile_removed=%v sources_unchanged=%v output_bytes=%d command_exit=%d", kiro != "", mode, stage, setup, trace.Prompts, trace.Texts, trace.Cancels, trace.Ends, trace.Canceled, trace.Failures, beforeKey, foregroundObserved, canceledAlive, exitKey, trace.Exited, trace.ExitCode, trace.Restored, groupsGone, pidsGone, listenerGone, artifactErr == nil && len(entries) == 0, os.IsNotExist(profileErr), sources, len(result.Stdout), result.ExitCode)
 	titleLimit := 1
-	if followup {
+	if followup || modelCheck {
 		titleLimit = 2
 	}
 	valid := runErr == nil && result.ExitCode == 0 && receiptErr == nil && err == nil && foregroundObserved && exitKey && trace.Exited && trace.ExitCode == 0 && trace.Restored && groupsGone && pidsGone && listenerGone && artifactErr == nil && len(entries) == 0 && os.IsNotExist(profileErr) && sources && trace.Prompts == 1 && trace.TitlePrompts <= titleLimit && trace.Failures == 0 && trace.PromptFailures == 0
-	if mode == "held-hook-exit" {
+	if modelCheck {
+		valid = valid && modelPickerObserved && modelObserved && modelRestored && trace.FollowEnds == 1
+	} else if mode == "held-hook-exit" {
 		valid = valid && heldObserved && trace.HookReleased == 0 && trace.HookPost == 0 && trace.RelayResults == 0 && trace.Ends == 0 && !strings.Contains(string(result.Stdout), "OwnedHookRead_47") && exitLatency < 8*time.Second && lateReleaseQuiet
 	} else if mode == "held-hook-release" {
 		valid = valid && heldObserved && trace.HookReleased == 1 && trace.HookPost == 1 && trace.RelayResults == 1 && trace.Ends == 1 && trace.Cancels == 0

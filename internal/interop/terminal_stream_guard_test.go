@@ -7,6 +7,52 @@ import (
 	"testing"
 )
 
+func TestModelPickerMovesOnlyFromAnObservedSelection(t *testing.T) {
+	for _, tc := range []struct{ screen, target, key string }{
+		{"Select model\n❯ 1. Independent first\n  2. Independent second", "independent second", "\x1b[B"},
+		{"Select model\n  1. Independent first\n❯ 2. Independent second", "independent first", "\x1b[A"},
+		{"Select model\n❯ 1. Independent first\n  2. Independent second", "independent first", "\r"},
+		{"❯ input\nIndependent first", "independent first", ""},
+		{"Select model\nIndependent first", "independent first", ""},
+		{"Select model\n❯ 1. Independent first", "independent absent", ""},
+	} {
+		key, _ := terminalModelPickerKey(tc.screen, tc.target)
+		if key != tc.key {
+			t.Fatal("unobserved model menu navigation")
+		}
+	}
+}
+
+func TestTerminalModelCompletionNeedsBothPromptsOnTheirObservedModels(t *testing.T) {
+	good := terminalTrace{Clients: 1, Prompts: 1, Texts: 1, Ends: 1, FollowPrompts: 1, FollowTexts: 1, FollowEnds: 1, ModelFirstRecords: 1, ModelFollowRecords: 1, ModelFirstSlot: 1, ModelFollowSlot: 2, ModelTargetAcks: 1}
+	for _, tc := range []struct {
+		name   string
+		change func(*terminalTrace)
+	}{
+		{"wrong-model", func(r *terminalTrace) { r.ModelFollowSlot = 1 }},
+		{"missing-ack", func(r *terminalTrace) { r.ModelTargetAcks = 0 }},
+		{"missing-observation", func(r *terminalTrace) { r.ModelFollowRecords = 0 }},
+		{"only-title", func(r *terminalTrace) { r.FollowPrompts = 0; r.TitlePrompts = 1 }},
+		{"failed", func(r *terminalTrace) { r.PromptFailures = 1 }},
+		{"cancelled", func(r *terminalTrace) { r.FollowCancels = 1 }},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			r := good
+			tc.change(&r)
+			if terminalModelComplete(r, 2) {
+				t.Fatal("unproven model selection accepted")
+			}
+		})
+	}
+	if !terminalModelComplete(good, 2) {
+		t.Fatal("complete selection rejected")
+	}
+	good.ModelFollowSlot, good.ModelTargetAcks = 1, 0
+	if !terminalModelComplete(good, 1) {
+		t.Fatal("unchanged model control rejected")
+	}
+}
+
 func TestTerminalCancellationRequiresAnActiveMainResponse(t *testing.T) {
 	active := terminalTrace{Prompts: 1, Texts: 2}
 	for _, tc := range []struct {
