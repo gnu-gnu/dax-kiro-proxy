@@ -4280,3 +4280,33 @@ formatting, whitespace and 139 artifact byte checks pass. This proves finite set
 after completed Bash history; interactive approval screens, new tools after interrupted history,
 arbitrary/default registries, simultaneous calls, authentication expiry and full alpha/release
 requirements remain open.
+
+## D93: reject additional-directory loading as a personal memory adapter
+
+The [public memory interface](https://code.claude.com/docs/en/memory) and
+[environment reference](https://code.claude.com/docs/en/env-vars) document loading additional-directory
+memory, but do not establish equivalence with personal user scope. A public-only local Claude
+consultation is saved/read/assessed at the D93 location in LIVE_KIRO_TEST_PLAN.md. Correct its
+five-hop assertion and uncertainty about the environment variable using current official docs;
+do not use model recitation or absence from CLI help as conclusive evidence.
+
+An owned native-Claude/local-Messages experiment first requires natural equivalence, including
+unconditional root text with path frontmatter, four-hop relative imports, ordering and original
+absolute-path exclusions. The candidate adds only the original owned .claude directory through
+--add-dir and enables its documented memory variable; personal rules keep their existing native
+source reference. It is not installed in the product. No external inference or client tool is used
+in this candidate experiment, and the public request is reduced to bounded synthetic marker facts.
+
+The initial comparison fails: the natural root and four import hops precede project instructions,
+while the candidate's root loads after the project instructions and its root imports/hops are
+absent. This establishes two observable incompatibilities, not their internal native cause or a
+claim about every additional-directory import. The client completes and its group exits in both
+cases. Keep that failed equivalence evidence rather than calling the adapter supported.
+
+A separately named counterfactual reproduces those defects and checks original-path exclusions;
+all four cases pass in 1.93s, including root/rule suppression with retained project instructions,
+candidate source preservation and joined group/profile cleanup. Existing rule/depth/adapter
+controls pass too, combined race package 14.722s. This is a passing rejection regression, not a
+passing personal-memory acceptance gate. No production/dependency/artifact change. A solution must
+still preserve the required original personal semantics and source settings; neither plain text
+loading nor this additional-directory candidate is enabled as a substitute.

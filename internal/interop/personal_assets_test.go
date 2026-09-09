@@ -94,6 +94,12 @@ func TestClaudePersonalRootEnvironmentNoHistoryObservations(t *testing.T) {
 	observePersonalCustomizationSources(t, personalSourceOptions{instructions: true, chainLength: 5, rootFrontmatter: true, persistSession: true, skipHistory: true, modes: []string{"natural", "redirect_env", "natural_excluded", "redirect_env_excluded", "natural_read", "redirect_env_read"}})
 }
 
+// The measured additional-directory candidate loses imports and moves personal root text after
+// project instructions. A passing counterfactual records that defect, not product compatibility.
+func TestClaudeAdditionalDirectoryMemoryCounterfactual(t *testing.T) {
+	observePersonalCustomizationSources(t, personalSourceOptions{instructions: true, chainLength: 5, rootFrontmatter: true, modes: []string{"natural", "additional", "natural_excluded", "additional_excluded"}})
+}
+
 type personalSourceOptions struct {
 	instructions    bool
 	homePrefix      string
@@ -470,6 +476,13 @@ func observePersonalCustomizationSources(t *testing.T, options personalSourceOpt
 					}
 					command.Environment = env
 				}
+				if strings.HasPrefix(mode, "additional") {
+					if os.Symlink(filepath.Join(home, ".claude", "rules"), filepath.Join(profile.Path(), "client", "rules")) != nil {
+						t.Fatal("cannot retain the independent native personal rules source")
+					}
+					command.Args = append(command.Args, "--add-dir", filepath.Join(home, ".claude"))
+					command.Environment = append(command.Environment, "CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD=1")
+				}
 				version := command
 				version.Args = []string{"--version"}
 				v, err := runner.Run(ctx, version)
@@ -524,6 +537,13 @@ func observePersonalCustomizationSources(t *testing.T, options personalSourceOpt
 					}
 					wantOrder = append([]string{nativeOrder[2], nativeOrder[3], nativeOrder[1]}, nativeOrder[4:]...)
 				}
+				additional := strings.HasPrefix(mode, "additional")
+				if additional && !excluded {
+					if len(nativeOrder) != 8 {
+						t.Fatal("incomplete additional-directory ordering control")
+					}
+					wantOrder = append(append([]string{}, nativeOrder[2:]...), nativeOrder[0])
+				}
 				if instructions && !excluded && wantPersonal && !reflect.DeepEqual(wantOrder, seen.InstructionOrder) {
 					t.Error("native instruction ordering changed")
 				}
@@ -535,7 +555,7 @@ func observePersonalCustomizationSources(t *testing.T, options personalSourceOpt
 					if mode == "tilde" {
 						wantHops = []int{1, 2, 3} // Measured rejected wrapper defect, not product acceptance.
 					}
-					if excluded {
+					if excluded || additional {
 						wantHops = nil
 					}
 					if !reflect.DeepEqual(seen.PersonalHops, wantHops) {
@@ -560,7 +580,7 @@ func observePersonalCustomizationSources(t *testing.T, options personalSourceOpt
 				// CLAUDE.md exclusion. Keep it as a counterfactual, never a successful adapter.
 				wantMemory := (wantInstructions || mode == "linked_excluded") && !options.rulesOnly
 				wantProjectMemory := instructions && !options.rulesOnly
-				if seen.PersonalInstructions != (wantMemory && !missingRootBody) || seen.PersonalImport != wantMemory || seen.PersonalRule != wantInstructions || seen.PersonalRuleImport != wantInstructions || seen.ProjectInstructions != wantProjectMemory || seen.ProjectImport != wantProjectMemory || seen.ProjectRule != instructions || seen.ProjectRuleImport != instructions || seen.Conditional != read || seen.PersonalConditional != read || seen.ProjectConditional != read || seen.ReadRequested != read || seen.ReadMatched != read {
+				if seen.PersonalInstructions != (wantMemory && !missingRootBody) || seen.PersonalImport != (wantMemory && !additional) || seen.PersonalRule != wantInstructions || seen.PersonalRuleImport != wantInstructions || seen.ProjectInstructions != wantProjectMemory || seen.ProjectImport != wantProjectMemory || seen.ProjectRule != instructions || seen.ProjectRuleImport != instructions || seen.Conditional != read || seen.PersonalConditional != read || seen.ProjectConditional != read || seen.ReadRequested != read || seen.ReadMatched != read {
 					t.Error("instruction/import scope or conditional rule activation changed")
 				}
 				afterHome := boundedPluginTree(t, filepath.Join(home, ".claude"))

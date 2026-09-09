@@ -1458,3 +1458,42 @@ retried. Logs under `.cache/history-review/`: `d92-native-policy-controls.log`,
 `d92-final-observer-controls.log`, `d92-prior-native-regressions.log`, `d92-core-regressions.log`,
 `d92-live-resumed-policy.log`, `d92-readonly-preflight.log`, `d92-isolated-preflight.log` and
 `d92-live-resumed-policy-verified-preflight.log`.
+
+## D93: additional-directory personal instruction candidate
+
+Use the existing bounded personal-assets observer and a fresh disposable HOME/project, actual
+Claude 2.1.263, a local synthetic Messages responder and no external inference. Compare natural
+personal instructions with an experimental --add-dir of the owned original .claude directory plus
+CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD=1. Retain personal rules at their existing native scope;
+do not enable this candidate in production. Repeat both with original absolute-path exclusions.
+
+Before any acceptance claim, require the same unconditional root body (including path frontmatter),
+original relative-import bases, exactly four import hops with the fifth absent, instruction order,
+no duplicates and exact exclusion behavior. Observe the public Messages request rather than asking
+a model to describe its context. Existing asset discovery, source-tree/import bytes and process/
+private-profile cleanup assertions remain active. Each native invocation has fifteen seconds and
+64 KiB output; the case has two minutes, at most four text-only Messages requests, no client tool
+effect, no ACP process or real model prompt. A failed mode stops following modes.
+
+Public-only local Claude advice was saved and read at
+`.cache/claude-consult/work/public-instruction-paths-review-mzdhgkrx`. Review corrects its five-hop
+claim and uncertainty about the documented additional-directory environment variable, and rejects
+model recitation as evidence of loaded content. Official memory/directory/CLI/permission/env-var
+pages were independently checked. An option loading text does not by itself establish native
+personal scope or safe additional-configuration/file-access behavior.
+
+The initial equivalence test fails in 1.33s (2.302s race package) after the natural control and first
+candidate. Natural personal memory retains four import hops before project instructions. The
+candidate retains the unconditional root body, but no personal root import/hop and moves that body
+after project instructions. Both requests complete and their client groups exit. Later modes are
+not run after this failure. This rejects the candidate; it does not change product acceptance.
+
+The separately named `TestClaudeAdditionalDirectoryMemoryCounterfactual` then reproduces those exact
+defects and compares original-path exclusions. All four controls pass in 1.93s: the two excluded
+cases omit the personal root/general rule while retaining project instructions, candidate source
+trees/imports remain unchanged, and groups/private profiles are cleaned. Existing personal-rule,
+four-hop and rejected-adapter controls also pass; combined race package 14.722s. A passing defect
+reproduction is not successful personal-memory support. Logs are
+`.cache/history-review/d93-additional-directory-memory.log` and
+`d93-native-memory-counterfactuals.log`. No production adapter, dependency, ACP session or external
+inference is added by this experiment. Original personal memory fidelity remains open.

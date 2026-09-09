@@ -6,6 +6,15 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D93 rejects the public additional-directory memory option as an equivalent personal CLAUDE.md
+  adapter. The initial natural-equivalence comparison fails in 1.33s: root text remains, but its
+  four relative-import hops disappear and its ordering moves after project instructions. Both
+  local Messages requests complete with joined client groups. A separately named counterfactual
+  reproduces those exact defects and matching original-path exclusions in 1.93s, with candidate
+  sources unchanged and private cleanup. Existing native rule/depth/adapter controls also pass,
+  combined race package 14.722s. Public-only Claude advice is saved/read/assessed and corrected
+  against current official docs. No production adapter or external inference is added; personal
+  root-memory fidelity remains an unmet requirement, not a passed gate.
 - D92 verifies a fresh Bash operation after completed-history resume under current allowance,
   configured denial and PreToolUse veto with actual Kiro/Claude. The old successful pair remains
   exact before the new question and in the new result continuation; the new call has a distinct ID

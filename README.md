@@ -243,6 +243,8 @@ not an immutable snapshot; preparation validates the shared asset bounds and cle
 the private link. Personal `~/.claude/CLAUDE.md` is still not loaded by the temporary profile.
 Tested adapters either bypass its original exclusion, lose one import hop or omit a root body
 with path frontmatter. None is enabled. This remains a client-environment compatibility gap.
+D93 also rejects using the public additional-directory memory option as a substitute: the measured
+candidate loses the root's relative imports and moves its text after project instructions.
 Further controls (D80) reject redirecting the settings-stage configuration path to the original
 HOME: history suppression helps finite print runs, but interactive startup still changes original
 settings and plugin uninstall changes the original registration. The private profile stays in use.
