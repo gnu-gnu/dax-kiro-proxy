@@ -1497,3 +1497,58 @@ reproduction is not successful personal-memory support. Logs are
 `.cache/history-review/d93-additional-directory-memory.log` and
 `d93-native-memory-counterfactuals.log`. No production adapter, dependency, ACP session or external
 inference is added by this experiment. Original personal memory fidelity remains open.
+
+## D94: independent concurrent HTTP/process churn
+
+This is a local fixture experiment, not a live Kiro credit-consuming test. Keep all real-client
+opt-ins disabled. The session test harness builds the independently authored http-churn ACP peer;
+it accepts one session, two prompts, twelve frames, 64 KiB frames and thirty seconds at most.
+No client tool, relay, external service or original user setting is involved.
+
+Keep a single HTTP server/transport/manager/pool for the episode. For each of eight concurrent owned
+identities, complete one buffered request, then open a held streamed continuation. Match the actual
+leader/group identity, retained backend session, second prompt count and exact one-question delta.
+All eight streams must emit their observations and remain active before eight repeated calls to the
+shared caller cancel function. Require zero handlers, connections and pool ownership, and absence
+of each observed leader/group before new identities in the following wave. Shutdown all owners
+four times after the last wave. The peer never completes its second prompt; terminal/error data
+cannot count as a cancellation witness.
+
+Use eight one-session processes, eight manager bindings, eight client connections and a server cap
+of sixteen connections. Each wave has fifteen seconds, the episode three minutes and observed HTTP
+input/output at most sixteen KiB. Default waves are eight; DAX_FIXTURE_CHURN_WAVES accepts 8..64.
+Measure descriptors through /dev/fd (Linux: /proc/self/fd), and test-process goroutines/HeapAlloc after
+GC at each settled wave. Record the fourth wave as warmup baseline and fail later samples above
+baseline +2 FDs, +16 goroutines or +8 MiB heap. These deliberately stated envelopes do not exclude
+smaller leaks. Observe actual retained-file-descriptor and malformed/history/terminal counterfactuals.
+
+With the reviewed offline Go 1.27.1 environment, the finite extended command is:
+
+```sh
+DAX_FIXTURE_CHURN_WAVES=64 DAX_INTEROP_KIRO_CREDIT_OPT_IN=0 \
+  DAX_INTEROP_KIRO_BINARY= DAX_INTEROP_CLAUDE_BINARY= \
+  go test -race -p 1 -count=1 -timeout 4m \
+  -run '^TestConcurrentHTTPProcessChurn$' -v ./internal/session
+```
+
+The first invocation fails before model requests on a mismatched test pool/session timeout. After
+matching their immutable process configuration, all eight-wave and observer controls pass: 128
+requests, 64 joined groups, 1.25s episode / 4.404s package. The separate 64-wave run passes in 4.48s
+/ 6.856s package, with 1,024 requests and 512 joined process/group instances. Every held continuation
+has matching ownership/history and all next waves admit fresh sessions after cleanup.
+
+| Test-process observation | Warmup baseline | Post-warmup peak | Final shutdown |
+| --- | ---: | ---: | ---: |
+| OS descriptor count | 6 | 6 | 5 |
+| Go goroutines | 4 | 4 | 2 |
+| GC-retained Go heap bytes | 813,696 | 1,017,664 | 836,344 |
+
+Private fixed-class logs: `.cache/history-review/d94-churn-initial.log`, `d94-churn-controls.log`
+and `d94-churn-1024.log`. No raw request/reply, PID, credential or tool output is logged. This four-
+second stress episode does not establish actual Kiro/Claude or relay behavior, native RSS bounds,
+pending-tool/shared-process churn or long-duration release soak. No product/dependency/artifact
+change is made.
+
+Applicable opt-ins-off race regressions pass in `d94-core-regressions.log`: ACP 5.183s, pool
+2.435s, gateway 3.502s, session 29.327s and interop 23.569s. Whole-repository/fake-peer vet passes
+(`d94-vet.log`), along with formatting, whitespace and the unchanged D87 artifact's 139 byte checks.

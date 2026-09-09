@@ -296,6 +296,13 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
   terminal ownership/settings and existing signal handling are restored after success, failure,
   cancellation and failed exec without closing the caller's descriptors.
 - Pool limits and idle/session TTLs hold under concurrency and do not evict active or pending-tool state.
+- Exercise repeated concurrent HTTP completion, same-session streaming, cancellation and fresh-session
+  admission through independent ACP processes. Require live response readiness before cancellation,
+  exact continuation ownership/deltas, joined recorded groups and zero remaining handlers/connections
+  before each next wave. Observe OS descriptors and post-GC Go heap/goroutines with a declared finite
+  budget, and reject observer controls with retained descriptors, wrong history or terminal output
+  substituted for cancellation. D94 covers 64 waves/1,024 requests with eight concurrent sessions;
+  its short text-only fixture run does not complete actual-client, pending-tool or long-duration soak.
 - Prepared policy cleanup occurs once after ACP/router shutdown and before releasing capacity.
   Repeated idle release joins the same cleanup result. A retired cleanup failure remains visible to
   pool shutdown and prevents admission of further launch artifacts.

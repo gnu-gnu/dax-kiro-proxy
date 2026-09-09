@@ -4310,3 +4310,45 @@ controls pass too, combined race package 14.722s. This is a passing rejection re
 passing personal-memory acceptance gate. No production/dependency/artifact change. A solution must
 still preserve the required original personal semantics and source settings; neither plain text
 loading nor this additional-directory candidate is enabled as a substitute.
+
+## D94: bounded concurrent HTTP and ACP process churn
+
+Use one loopback HTTP server, client transport, session manager and process pool across the complete
+episode. Eight simultaneous client identities each complete one buffered response, then send the
+exact retained assistant text and a distinct second question. Each continuation must reach the same
+observed ACP PID/session with prompt count two and only that new question. Wait until all eight have
+emitted text and all eight handlers/backend turns remain active before repeated caller-context
+cancellation. Reject terminal/error events as evidence of a cancelled held response. Require zero
+pool ownership, connections and handlers, plus ESRCH for each recorded PID and process group, before
+admitting the next wave with new client identities. The next wave exercises bounded binding eviction
+and fresh admission; four final shutdown calls must join the same outcome.
+
+The independently authored peer has one session, at most two prompts/twelve frames, a 64 KiB frame
+bound and thirty-second lifetime. Its first response completes and its second emits an observation
+but no final reply; it accepts public cancellation and remains subject to transport retirement.
+It imports no proxy code, executes no tool, starts no child and accesses no files or network. This
+experiment configures eight processes with one session per process and eight retained idle slots;
+it does not exercise shared-process sibling cancellation or the prepared relay policy.
+
+Default execution uses eight waves (128 requests); DAX_FIXTURE_CHURN_WAVES accepts only 8 through 64.
+Each wave has fifteen seconds, the episode three minutes, HTTP input/output observation sixteen KiB,
+eight client connections and a sixteen-connection server cap. After four warmup waves, every settled
+wave records OS descriptor count, Go goroutines and GC-retained HeapAlloc for the test process hosting
+the gateway/manager. Fixed failure bounds are baseline plus two FDs, sixteen goroutines and eight MiB
+of heap. These are a finite regression envelope, not proof against smaller leaks, native RSS growth
+or accumulation over arbitrary duration. The descriptor observer is independently challenged with
+eight retained handles; response controls reject changed ownership/history and premature completion.
+
+The first invocation fails before requests because the test's external pool configuration does not
+match the session's normalized request timeout. Matching the test configurations fixes that setup
+error without changing production code. The eight-wave run and observer controls pass in 1.25s /
+4.404s race package. A separate 64-wave episode passes in 4.48s / 6.856s race package: 1,024 requests,
+512 completed responses, 512 observed active-stream cancellations and 512 joined process/group
+instances. After warmup FD/goroutine counts stay 6/4; final shutdown yields 5/2. Heap baseline is
+813,696 bytes, measured peak 1,017,664, and final 836,344. No real client, external inference, native
+tool, dependency or production change is involved. Actual-client/relay soak, pending-tool churn,
+shared-process stress, native RSS and long-duration release evidence remain separate requirements.
+
+Applicable opt-ins-off race regressions pass: ACP 5.183s, pool 2.435s, gateway 3.502s, session
+29.327s and interop 23.569s. Whole-repository/fake-peer vet, formatting, whitespace and the frozen
+D87 artifact's 139 byte checks pass. The fixture provenance inventory includes the new peer.

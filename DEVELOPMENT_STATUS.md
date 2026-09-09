@@ -6,6 +6,19 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D94 adds a bounded HTTP/process churn regression using one gateway/manager/pool for 64 waves of
+  eight concurrent client identities. All 1,024 requests succeed through their expected phase:
+  512 buffered completions and 512 same-backend active streams followed by caller cancellation.
+  Each wave joins eight recorded PID/groups and clears handlers/connections/pool ownership before
+  fresh session admission. The 4.48s episode passes under race detection (6.856s package): 512 joined
+  process/group instances, post-warmup FD/goroutine counts fixed at 6/4 and final 5/2; GC-retained
+  Go heap baseline/peak/final 813,696/1,017,664/836,344 bytes. Eight-wave and history/terminal/descriptor
+  counterfactual controls pass too (4.404s package). Initial test-only timeout mismatch fails before
+  requests and is corrected without a production change. Opt-ins-off race regressions pass: ACP
+  5.183s, pool 2.435s, gateway 3.502s, session 29.327s and interop 23.569s. Whole-repository/fake-peer
+  vet, formatting, whitespace and 139 unchanged-artifact byte checks pass. This is short, text-only
+  fixture evidence;
+  real-client/relay, pending-tool, shared-process, native-RSS and long-duration soak remain open.
 - D93 rejects the public additional-directory memory option as an equivalent personal CLAUDE.md
   adapter. The initial natural-equivalence comparison fails in 1.33s: root text remains, but its
   four relative-import hops disappear and its ordering moves after project instructions. Both

@@ -261,6 +261,11 @@ priority is client-environment preservation, broader client request compatibilit
 live alpha lifecycle checks. Optional web/account-usage
 features, full Anthropic API coverage and release soak tests are not development-launch prerequisites.
 
+A bounded independent-process concurrency test now covers 1,024 local HTTP requests across 64 waves
+and eight simultaneous sessions. All 512 observed ACP process/group instances are joined, with
+stable settled descriptor/goroutine counts and recorded Go heap bounds (D94). This short fixture
+test does not complete actual-client, pending-tool or long-duration release soak.
+
 Phase 7 has frozen dependency inventories and retained scoped notices. For the D87 native-history
 development artifact, run `python3 tools/verify_dependency_inventory.py --gomodcache .cache/gomod
 --snapshot native-history --binary dist/dax-kiro-proxy`. The default `development` snapshot identifies

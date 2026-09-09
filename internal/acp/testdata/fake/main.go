@@ -46,6 +46,10 @@ func main() {
 		nativeToolHistory()
 		return
 	}
+	if mode == "http-churn" {
+		churnFixture()
+		return
+	}
 	if strings.HasPrefix(mode, "inventory-") {
 		inventoryFixture(mode)
 		return

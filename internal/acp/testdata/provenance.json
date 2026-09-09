@@ -16,8 +16,9 @@
     "https://kiro.dev/docs/cli/2x-reference/"
   ],
   "repository_sources": ["PROTOCOL_SPEC.md", "ACCEPTANCE_SPEC.md", "IMPLEMENTATION_DECISIONS.md"],
-  "fixtures": ["fake/main.go", "fake/relay.go", "fake/pool.go", "fake/inventory.go", "fake/native.go", "fake/recovery.go", "fake/tool_history.go"],
+  "fixtures": ["fake/main.go", "fake/relay.go", "fake/pool.go", "fake/inventory.go", "fake/native.go", "fake/recovery.go", "fake/tool_history.go", "fake/churn.go"],
   "constraints": [
+    "The HTTP churn peer accepts one session, two prompts, twelve frames and thirty seconds at most; it returns its own PID and public prompt projection, then holds the second prompt for caller cancellation. It has no proxy imports, subprocesses, tool effects, file reads or network access",
     "The native-tool-history peer relays one owned Write or Bash through the client; a fresh peer requires the declared completed or interrupted history in its only prompt and returns text by default. An explicit owned followup-effect mode relays one distinct newly requested operation and verifies its success or refusal; the peer never reads native transcripts or effect files",
     "No imports from proxy implementation packages",
     "fixture/* methods are synthetic test controls, not Kiro capabilities",
