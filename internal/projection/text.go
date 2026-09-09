@@ -71,10 +71,17 @@ func Full(r *anthropic.Request) ([]Text, error) {
 		parts = append(parts, Text{"text", "Conversation context follows as JSON; preserve its role and content order."}, Text{"text", string(encoded)}, Text{"text", "Current user content follows."})
 	}
 	for _, b := range r.Messages[latest].Content {
-		if b.Type != "text" {
+		switch b.Type {
+		case "text":
+			parts = append(parts, Text{"text", b.Text})
+		case "tool_result":
+			if _, err := anthropic.DecodeToolResult(b.Raw); err != nil {
+				return nil, err
+			}
+			parts = append(parts, Text{"text", "Client tool result follows as JSON."}, Text{"text", string(b.Raw)})
+		default:
 			return nil, anthropic.ErrRequest
 		}
-		parts = append(parts, Text{"text", b.Text})
 	}
 	for _, message := range r.Messages[latest+1:] {
 		update := historyMessage{Role: message.Role, Content: []string{}}

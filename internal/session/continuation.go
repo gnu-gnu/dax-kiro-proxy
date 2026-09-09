@@ -19,6 +19,7 @@ import (
 type terminalOutcome struct {
 	compat  [32]byte
 	ids     []string
+	pending history.Snapshot
 	err     error
 	expires time.Time
 }

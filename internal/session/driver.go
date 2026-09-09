@@ -214,7 +214,13 @@ func (d *Driver) Start(ctx context.Context, r *anthropic.Request) (inference.Tur
 	waiting := d.state == WaitingTools
 	d.mu.Unlock()
 	if waiting || len(results) > 0 {
-		return d.resume(ctx, r, registry, results)
+		restart, err := d.restartAfterDenial(ctx, r, registry, results)
+		if err != nil {
+			return nil, err
+		}
+		if !restart {
+			return d.resume(ctx, r, registry, results)
+		}
 	}
 	stamp, err := reusableCompatibility(r, registry)
 	if err != nil {
@@ -363,6 +369,7 @@ func (d *Driver) Start(ctx context.Context, r *anthropic.Request) (inference.Tur
 	}
 	d.client = client
 	d.current = t
+	d.outcome = nil
 	t.previousEstimate = d.lastEstimate
 	d.state = Prompting
 	d.fresh = false

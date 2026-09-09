@@ -103,6 +103,10 @@ func runClientToolProbe(t *testing.T, clientExecutable, kiroExecutable, effectKi
 	if effectKind != "" {
 		effect = prepareClientEffect(t, root, project, filename, canary, effectKind, settings)
 	}
+	launchBudget := int32(1)
+	if effect != nil && effect.recoverNext {
+		launchBudget = 2
+	}
 	emptyMCP := filepath.Join(root, "client-mcp.json")
 	if os.WriteFile(emptyMCP, []byte(`{"mcpServers":{}}`), 0600) != nil {
 		t.Fatal("cannot write empty strict client MCP configuration")
@@ -123,6 +127,9 @@ func runClientToolProbe(t *testing.T, clientExecutable, kiroExecutable, effectKi
 		process.Args = []string{"chat-tools-client-launch", filename}
 		if effect != nil {
 			process.Args = []string{"chat-tools-effect-launch", effect.manifest}
+			if effect.recoverNext {
+				process.Args[0] = "chat-tools-effect-restart-launch"
+			}
 		}
 	} else {
 		if os.WriteFile(filepath.Join(configuration, "settings", "cli.json"), []byte(`{"chat.disableInheritingDefaultResources":true}`), 0600) != nil {
@@ -169,10 +176,26 @@ func runClientToolProbe(t *testing.T, clientExecutable, kiroExecutable, effectKi
 	defer pool.Close()
 	config := session.Config{Process: process, Pool: pool, InitialModel: backendModel, Validator: validator, RelayExecutable: relayExecutable, SetupTimeout: 20 * time.Second, TurnTimeout: 45 * time.Second}
 	var launchPath, relayConfig string
+	var artifacts []string
+	var relayGroup atomic.Int32
+	var retiredBeforeRestart atomic.Bool
 	var preparedCount, cleanupCount atomic.Int32
 	config.PrepareLaunch = func(ctx context.Context, input session.LaunchInput) (session.LaunchResources, error) {
-		if preparedCount.Add(1) != 1 {
+		n := preparedCount.Add(1)
+		if n > launchBudget {
 			return session.LaunchResources{}, errors.New("probe launch budget exhausted")
+		}
+		if n == 2 {
+			records, recordErr := relayProcessRecords(relayExecutable)
+			if recordErr != nil || len(records) != 1 || cleanupCount.Load() != 1 || !errors.Is(syscall.Kill(records[0].pid, 0), syscall.ESRCH) || relayGroup.Load() <= 1 || !errors.Is(syscall.Kill(-int(relayGroup.Load()), 0), syscall.ESRCH) {
+				return session.LaunchResources{}, errors.New("old process was not retired before recovery")
+			}
+			for _, path := range artifacts {
+				if _, err := os.Lstat(path); !errors.Is(err, os.ErrNotExist) {
+					return session.LaunchResources{}, errors.New("old runtime survived recovery")
+				}
+			}
+			retiredBeforeRestart.Store(true)
 		}
 		directory, createErr := os.MkdirTemp(root, "owned-agent-")
 		if createErr != nil {
@@ -180,7 +203,8 @@ func runClientToolProbe(t *testing.T, clientExecutable, kiroExecutable, effectKi
 		}
 		launchPath = directory
 		relayConfig = input.RelayConfig
-		owned := session.LaunchResources{Directory: launchPath, RelayAtLaunch: true, Cleanup: func() error { cleanupCount.Add(1); return os.RemoveAll(launchPath) }}
+		artifacts = append(artifacts, launchPath, relayConfig)
+		owned := session.LaunchResources{Directory: launchPath, RelayAtLaunch: true, Cleanup: func() error { cleanupCount.Add(1); return os.RemoveAll(directory) }}
 		if kiroExecutable == "" {
 			manifest := filepath.Join(launchPath, "independent-relay.json")
 			data, _ := json.Marshal(map[string]any{"name": "independent-probe-relay", "command": input.RelayExecutable, "args": []string{"relay", "--config", input.RelayConfig}, "env": []any{}})
@@ -202,7 +226,6 @@ func runClientToolProbe(t *testing.T, clientExecutable, kiroExecutable, effectKi
 		t.Fatal("cannot prepare owned session driver")
 	}
 	defer driver.Close()
-	var relayGroup atomic.Int32
 	b := &onePromptBackend{driver: driver, models: models, readPath: filename, canary: canary, observeUse: func() error {
 		records, err := relayProcessRecords(relayExecutable)
 		if err != nil || len(records) != 1 {
@@ -218,6 +241,8 @@ func runClientToolProbe(t *testing.T, clientExecutable, kiroExecutable, effectKi
 	if effect != nil {
 		b.effect = effect.expect
 		b.allowTitles = effect.interactive
+		b.inspectResume = effect.inspectNext
+		b.recoverResume = effect.recoverNext
 	}
 	tokens, err := gateway.NewTokens()
 	if err != nil {
@@ -261,7 +286,7 @@ func runClientToolProbe(t *testing.T, clientExecutable, kiroExecutable, effectKi
 	poolErr := pool.Close()
 	stats := b.snapshot()
 	records, recordErr := relayProcessRecords(relayExecutable)
-	relayGone := recordErr == nil && len(records) == 1
+	relayGone := recordErr == nil && len(records) == int(launchBudget)
 	for _, record := range records {
 		if !errors.Is(syscall.Kill(record.pid, 0), syscall.ESRCH) {
 			relayGone = false
@@ -284,16 +309,29 @@ func runClientToolProbe(t *testing.T, clientExecutable, kiroExecutable, effectKi
 	if bytes.Contains(result.Stdout, []byte(canary)) {
 		stats.CanaryObserved = true
 	}
-	_, launchErr := os.Lstat(launchPath)
-	_, relayErr := os.Lstat(relayConfig)
-	if preparedCount.Load() != 1 || cleanupCount.Load() != 1 || !errors.Is(launchErr, os.ErrNotExist) || !errors.Is(relayErr, os.ErrNotExist) {
-		t.Error("one prepared launch and its artifact cleanup were not established")
+	for _, path := range artifacts {
+		if _, err := os.Lstat(path); !errors.Is(err, os.ErrNotExist) {
+			t.Error("prepared artifact cleanup was not established")
+		}
 	}
+	if preparedCount.Load() != launchBudget || cleanupCount.Load() != launchBudget || launchBudget == 2 && !retiredBeforeRestart.Load() {
+		t.Error("prepared launch budget or joined retirement was not established")
+	}
+	t.Logf("acp_launches=%d, old_runtime_retired_before_recovery=%v", preparedCount.Load(), retiredBeforeRestart.Load())
 	t.Logf("live_kiro=%v, initial_request_budget=1, accepted_backend_requests=%d, exposed_tool_calls=%d, matched_results=%d, matched_denials=%d, final_completions=%d, policy_effect_verified=%v, canary_unchanged=%v, canary_in_model_output=%v, relay_gone=%v, observed_group_gone=%v, client_exit=%d, client_output_bytes=%d", kiroExecutable != "", stats.Starts, stats.Uses, stats.Results, stats.Denials, stats.Completions, policyOK, canaryUnchanged, stats.CanaryObserved, relayGone, groupGone, result.ExitCode, len(result.Stdout))
 	serverState := server.Stats()
 	wantState, wantStarts, wantResults, wantCompletions := session.Idle, 2, 1, 1
 	if effect != nil && effect.noDecision {
 		wantState, wantStarts, wantResults, wantCompletions = session.WaitingTools, 1, 0, 0
+	}
+	if effect != nil && effect.bare {
+		wantState, wantStarts, wantResults, wantCompletions, wantDenials = session.Unstarted, 1, 0, 0, 0
+		if effect.inspectNext {
+			wantState = session.WaitingTools
+			if effect.recoverNext {
+				wantState, wantStarts, wantResults, wantCompletions, wantDenials = session.Idle, 2, 1, 1, 1
+			}
+		}
 	}
 	if !clientOK || state != wantState || serverErr != nil || serverState.Connections != 0 || serverState.Handlers != 0 || closeErr != nil || poolErr != nil || pool.Stats().Processes != 0 || stats.Starts != wantStarts || stats.Uses != 1 || stats.Results != wantResults || stats.Denials != wantDenials || stats.Completions != wantCompletions || !policyOK || !canaryUnchanged || stats.CanaryObserved || !relayGone || !groupGone {
 		t.Fatal("the bounded client-denial path or its cleanup was not established")

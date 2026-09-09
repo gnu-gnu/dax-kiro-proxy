@@ -326,7 +326,7 @@ func (t *turn) abort(reason error) {
 			return
 		}
 		if d.state == WaitingTools {
-			d.outcome = &terminalOutcome{compat: t.compat, ids: append([]string(nil), t.lastIDs...), err: reason, expires: time.Now().Add(5 * time.Minute)}
+			d.outcome = &terminalOutcome{compat: t.compat, ids: append([]string(nil), t.lastIDs...), pending: t.pendingHistory, err: reason, expires: time.Now().Add(5 * time.Minute)}
 		}
 		d.current = nil
 		d.snapshot = history.Snapshot{}

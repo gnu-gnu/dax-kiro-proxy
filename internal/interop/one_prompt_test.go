@@ -27,10 +27,87 @@ type denialDriver interface {
 }
 
 type denialProbeStats struct {
+	AfterInterruption                           interruptedRequestShape
 	Starts, Uses, Results, Denials, Completions int
 	CanaryObserved                              bool
 	LastShape                                   probeRequestShape
 	Titles                                      int
+}
+
+type interruptedRequestShape struct {
+	Messages, LatestUser, Uses, Results, MatchingResults, Errors, ResultMessage int
+	LatestTypes                                                                 []string
+	NextQuestion, InterruptionText                                              bool
+}
+
+func inspectInterruptedRequest(r *anthropic.Request, id string) interruptedRequestShape {
+	s := interruptedRequestShape{Messages: len(r.Messages), LatestUser: r.LatestUserIndex(), ResultMessage: -1}
+	for i, message := range r.Messages {
+		for _, block := range message.Content {
+			if i == s.LatestUser && len(s.LatestTypes) < 8 {
+				kind := block.Type
+				if kind != "text" && kind != "tool_result" {
+					kind = "other"
+				}
+				s.LatestTypes = append(s.LatestTypes, kind)
+			}
+			if block.Type == "tool_use" {
+				s.Uses++
+			}
+			if block.Type == "text" && i == s.LatestUser && strings.Contains(block.Text, "Next independent question.") {
+				s.NextQuestion = true
+			}
+			if block.Type != "tool_result" {
+				continue
+			}
+			result, err := anthropic.DecodeToolResult(block.Raw)
+			if err != nil {
+				continue
+			}
+			s.Results++
+			s.ResultMessage = i
+			if result.ID == id {
+				s.MatchingResults++
+			}
+			if result.IsError {
+				s.Errors++
+			}
+			for _, content := range result.Content {
+				if content.Type == "text" && strings.Contains(strings.ToLower(content.Text), "interrupted") {
+					s.InterruptionText = true
+				}
+			}
+		}
+	}
+	return s
+}
+
+func TestInterruptedRequestObservationIsBoundedAndDoesNotDispatch(t *testing.T) {
+	b, f := newDenialBackendFixture()
+	b.inspectResume = true
+	first, err := b.Start(t.Context(), denialRequestFixture("", "", false))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := first.Next(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	r := denialRequestFixture("fixture-use", "private-denial-content", true)
+	r.Messages[0].Content = append(r.Messages[0].Content, anthropic.Block{Type: "text", Text: "Next independent question."})
+	for range 20 {
+		r.Messages[0].Content = append(r.Messages[0].Content, anthropic.Block{Type: "private-type-content"})
+	}
+	if _, err := b.Start(t.Context(), r); !errors.Is(err, inference.ErrRequest) {
+		t.Fatal("observation dispatched a second prompt")
+	}
+	s := b.snapshot().AfterInterruption
+	raw, _ := json.Marshal(s)
+	if f.starts != 1 || !b.inspected.Load() || s.Results != 1 || s.MatchingResults != 1 || s.Errors != 1 || !s.NextQuestion || len(s.LatestTypes) != 8 || strings.Contains(string(raw), "private-") || strings.Contains(string(raw), "fixture-use") {
+		t.Fatal("observation exceeded its bounds or retained content")
+	}
+	if _, err := b.Start(t.Context(), r); !errors.Is(err, inference.ErrRequest) || f.starts != 1 {
+		t.Fatal("observation budget allowed a retry")
+	}
 }
 
 type probeRequestShape struct {
@@ -41,6 +118,9 @@ type probeRequestShape struct {
 // This test-only adapter admits one initial request and one matching result continuation.
 // A second ordinary request cannot start another model turn, including after timeout or failure.
 type onePromptBackend struct {
+	inspectResume    bool
+	recoverResume    bool
+	inspected        atomic.Bool
 	driver           denialDriver
 	models           *catalog.Catalog
 	readPath, canary string
@@ -69,6 +149,15 @@ func (b *onePromptBackend) Start(ctx context.Context, r *anthropic.Request) (inf
 		return &completionDisplayTurn{model: r.Model, text: `{"title":"Owned permission exercise"}`}, nil
 	}
 	n := b.attempts.Add(1)
+	if n == 2 && r != nil && b.inspectResume {
+		b.mu.Lock()
+		b.stats.AfterInterruption = inspectInterruptedRequest(r, b.callID)
+		b.mu.Unlock()
+		b.inspected.Store(true)
+		if !b.recoverResume {
+			return nil, inference.ErrRequest
+		}
+	}
 	if r != nil {
 		shape := probeRequestShape{Tools: len(r.Tools), Messages: len(r.Messages), Thinking: r.Extra["thinking"] != nil, Context: r.Extra["context_management"] != nil}
 		for _, raw := range r.Tools {

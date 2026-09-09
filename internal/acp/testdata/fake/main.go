@@ -149,9 +149,9 @@ func main() {
 				os.Exit(26)
 			}
 			if strings.HasPrefix(mode, "chat-tools") {
-				if mode == "chat-tools-launch" || mode == "chat-tools-client-launch" || mode == "chat-tools-effect-launch" {
+				if mode == "chat-tools-launch" || mode == "chat-tools-client-launch" || mode == "chat-tools-effect-launch" || mode == "chat-tools-effect-restart-launch" {
 					manifestIndex := 2
-					if mode == "chat-tools-client-launch" || mode == "chat-tools-effect-launch" {
+					if mode == "chat-tools-client-launch" || mode == "chat-tools-effect-launch" || mode == "chat-tools-effect-restart-launch" {
 						manifestIndex = 3
 					}
 					if len(p.MCP) != 0 || len(os.Args) != manifestIndex+1 {
@@ -270,6 +270,20 @@ func main() {
 					hanging = append(hanging, q.ID)
 					continue
 				}
+				if mode == "chat-tools-restart" && strings.Contains(string(q.Params), "Next independent question.") {
+					body, _ := json.Marshal(map[string]any{"pid": os.Getpid(), "session": session, "promptCount": promptCount, "prompt": p.Prompt})
+					write(map[string]any{"jsonrpc": "2.0", "method": "session/update", "params": map[string]any{"sessionId": session, "update": map[string]any{"sessionUpdate": "agent_message_chunk", "content": map[string]any{"type": "text", "text": string(body)}}}})
+					reply(q.ID, map[string]any{"stopReason": "end_turn"})
+					continue
+				}
+				if mode == "chat-tools-effect-restart-launch" && strings.Contains(string(q.Params), "Next independent question.") {
+					if promptCount != 1 {
+						os.Exit(92)
+					}
+					write(map[string]any{"jsonrpc": "2.0", "method": "session/update", "params": map[string]any{"sessionId": session, "update": map[string]any{"sessionUpdate": "agent_message_chunk", "content": map[string]any{"type": "text", "text": "independent client effect complete"}}}})
+					reply(q.ID, map[string]any{"stopReason": "end_turn"})
+					continue
+				}
 				if strings.HasPrefix(mode, "chat-tools") {
 					if relayChild == nil || promptCount != 1 {
 						os.Exit(35)
@@ -277,7 +291,11 @@ func main() {
 					emit := func(text string) {
 						write(map[string]any{"jsonrpc": "2.0", "method": "session/update", "params": map[string]any{"sessionId": session, "update": map[string]any{"sessionUpdate": "agent_message_chunk", "content": map[string]any{"type": "text", "text": text}}}})
 					}
-					emit("before client tool")
+					if mode == "chat-tools-restart" {
+						emit(fmt.Sprintf("first process %d", os.Getpid()))
+					} else {
+						emit("before client tool")
+					}
 					for range 2 {
 						write(map[string]any{"jsonrpc": "2.0", "method": "session/update", "params": map[string]any{"sessionId": session, "update": map[string]any{"sessionUpdate": "tool_call", "toolCallId": "diagnostic-only", "title": "fixture status", "status": "pending"}}})
 					}
@@ -314,7 +332,7 @@ func main() {
 						reply(q.ID, map[string]any{"stopReason": "end_turn"})
 						continue
 					}
-					if mode == "chat-tools-effect-launch" {
+					if mode == "chat-tools-effect-launch" || mode == "chat-tools-effect-restart-launch" {
 						if len(os.Args) != 4 {
 							os.Exit(91)
 						}

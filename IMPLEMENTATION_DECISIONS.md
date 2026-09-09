@@ -1939,3 +1939,73 @@ record is .cache/interop-observations/permission-ui-final.xSZ4qu, exit 0.
 The final uncached interop and requestfamily race suites pass with installed opt-ins disabled in
 21.854s and 2.216s. Whole-repository go vet, formatting and whitespace checks pass. These changes are
 test/observation infrastructure and records; no production execution gate or dependency changed.
+
+## D57: new questions after a silent client permission refusal (review R06)
+
+The pinned interactive client stops its main turn on bare No. In the owned experiment, no model
+request, Stop or PostToolBatch hook appeared during the three-second post-denial window; ACP remained
+WaitingTools, with no file effect. The initial test's immediate-cancellation expectation failed.
+The [public permissions](https://code.claude.com/docs/en/permissions) and
+[hooks reference](https://code.claude.com/docs/en/hooks), checked 2026-09-09, distinguish bare No from
+refusal with a comment and exclude user interruption from Stop. A completed HTTP tool handoff has no
+remaining response to cancel. Silence alone cannot distinguish refusal from a user still deciding.
+No new hook, terminal parser, transcript reader, inferred tool result or shorter product timeout is
+used to make that distinction. Existing absolute tool/turn limits and launcher shutdown remain owners.
+
+One subsequent ordinary question was observed before dispatch. Its five-message request contains one
+matching error result followed by two text blocks in user message index 3, and a trailing standing
+instruction. It contains the new question; the error result need not contain the word interrupted.
+The fixed-label observer retains only counts, at most eight allowlisted block types and Booleans.
+It rejects the observed request before driver dispatch in observation-only mode. The successful
+record is .cache/interop-observations/bare-next.YVuAOj (8.733s package). Earlier attempts failed to
+send the new text because their screen readiness predicates did not match the installed UI; those
+attempts supplied no request-shape evidence. Input now requires the observed interruption/rejection,
+then the new text's echo before a single Enter. Raw screens and tool-result content are not saved.
+
+The adopted transition applies only to a complete set of matching is_error=true results, followed
+by at least one nonblank text block. The authenticated identity, model/effort, registry, metadata and
+system compatibility must match; the history must prove extension at that user message. A trailing
+system sequence must exactly repeat the most recent standing sequence. Missing, duplicate, partial,
+successful, reordered, cross-owner or divergent result sets and changed instructions reject before
+consuming ownership. Result-only requests retain the existing same-prompt continuation behavior.
+
+For a valid new question, join the old relay/process and policy-artifact retirement before creating
+a fresh full-history prompt. No result is delivered to the old prompt, no tool is replayed, and no
+canceled backend state is reused. Client denial data stays in a JSON boundary separate from new user
+text. The existing five-minute terminal outcome additionally retains bounded keyed history nodes,
+never raw content, so an already expired owner can establish the same proof. A new admitted prompt
+clears that outcome; replay of the mixed request cannot restart it. Failed cleanup prevents admission.
+
+Independent fake-process regressions first failed for both pending and expired owners. They also
+found that fresh projection rejected the latest user tool_result; projection now preserves that
+validated result as JSON before the new text. Pending/expired recovery, invalid model/identity/history,
+altered system suffix, wrong/duplicate/successful results and blank new text pass together with the
+existing continuation and original-deadline tests (6.158s race-enabled session package). New-process
+identity, one prompt, full original context, no replay and disappearance of the old PID are checked.
+
+The actual Claude/fake-ACP pair passes in
+.cache/interop-observations/bare-recovery.EXrUf9, exit 0, 57.245s package. Without further input, the
+existing 45-second turn deadline retires ACP while the client remains open (48.13s test, zero results
+or completions). The test terminal lifetime alone increases from 25 to 55 seconds to observe this
+unchanged limit. With a new question, the old ACP group/relay and private artifacts are verified gone
+before a second prepared launch; one new completion is displayed (7.37s test). Both cases retain the
+unchanged canary/settings, absent target and project permission-settings file, and joined cleanup.
+The interactive client is intentionally terminated afterward (exit 143), not observed exiting normally.
+No Kiro inference ran, and real-Kiro interruption/recovery and other isolation gates remain open.
+
+The authorized isolated local Claude consultation received only a generic protocol question. The
+first question timed out without output; the narrowed question returned exit 0 and one answer in
+.cache/claude-consult/work/bare-signal-review-5vxj8s4b. answer.md/result.json were read, and review.md
+records the assessment. Accepted points are the missing signal, bounded ownership and no fabricated
+results/replay. Its suggested latency-based idle cutoff and permissive history retirement were not
+adopted. No repository or previous-implementation content was transmitted. Dependencies and the
+production execution-policy gate are unchanged.
+
+Final relevant uncached race suites pass with installed opt-ins disabled: session 17.193s,
+projection 1.911s, interop 23.582s, gateway 3.759s, Anthropic 8.240s and ACP 5.066s. Whole-repository
+go vet, formatting and whitespace checks pass. The final installed-client regression in
+.cache/interop-observations/bare-final.C81OMn passes in 58.111s: original Read-hook denial, six
+permission-rule/hook cases, five interactive approval/comment-denial/no-input cases, the bounded
+next-request observation and actual recovery. Recovery again verifies old-owner retirement before
+replacement and no denied effect (7.27s). The separate unchanged-deadline result above remains the
+deadline evidence; it was not rerun merely to repeat a passing test.

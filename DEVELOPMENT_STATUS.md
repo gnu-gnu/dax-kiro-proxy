@@ -6,12 +6,24 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D57 fixes the next-question path after bare permission refusal. The client defers its matching
+  error result until the next question and combines it with new text; no immediate cancellation
+  request or Stop/PostToolBatch hook was observed. Exact owner/history/result validation now retires
+  the old ACP before a fresh full-history prompt. Independent tests cover pending and expired owners,
+  invalid inputs and replay rejection. Actual Claude/fake ACP passes both unchanged 45-second
+  deadline cleanup (48.13s) and next-question recovery (7.37s), package 57.245s. The old process and
+  private artifacts were gone before the replacement launched; the denied file stayed absent.
+  This does not establish an immediate signal for silent UI interruption or real Kiro recovery.
+  Final installed-client regression passes in 58.111s, retaining the original Read denial, six
+  rule/hook cases and five interactive controls alongside observation/recovery. Relevant uncached
+  race suites pass: session 17.193s, projection 1.911s, interop 23.582s, gateway 3.759s,
+  Anthropic 8.240s and ACP 5.066s. Whole-repository go vet, formatting and whitespace checks pass.
 - D56 adds actual interactive Claude/fake-ACP Write/Bash approval and refusal with an entered reason,
   plus a no-input Write counterfactual. The first five-case race run passes in 22.338s. The current
   screen, exact pending operation, displayed file content/command, absence before approval, returned
   denial reason, actual effects/hooks and process cleanup are checked independently. Narrow title
-  requests have a separate bounded synthetic response and cannot count as tool continuation. Bare
-  No/cancellation, real Kiro-generated successful tools and broader isolation remain open.
+  requests have a separate bounded synthetic response and cannot count as tool continuation. D57
+  adds bare No evidence; real Kiro-generated successful tools and broader isolation remain open.
   The final installed regression passes in 52.612s: five interactive cases, six rule/hook cases,
   the original Read denial and status-only UI. No project permission-settings file was created by
   any interactive case. Whole-repository go vet and whitespace checks also pass.

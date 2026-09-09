@@ -65,13 +65,18 @@ Allowed transitions:
 - idle to prompting after model/effort synchronization and prompt dispatch;
 - prompting to waiting-for-tools when Kiro requests client tools;
 - waiting-for-tools to prompting when the complete matching result set arrives;
+- waiting-for-tools to joined retirement and a fresh session when D57 proves a complete matching
+  error-result batch followed by a new question; a bounded retired outcome can establish the same proof;
 - prompting to idle on successful end-turn;
 - any live state to canceling on client disconnect, timeout, or explicit cancellation;
 - transport/protocol/auth failures to unhealthy;
 - canceling or unhealthy to closed after cleanup.
 
-Model switching and new ordinary prompts are allowed only in idle. Tool-result continuation is allowed
-only in waiting-for-tools. A session is never persisted while prompting or waiting for tools.
+Model switching and ordinary prompts on a retained session are allowed only in idle. Tool-result
+continuation is allowed only in waiting-for-tools. D57 recreation requires matching ownership, proven
+history extension and unchanged standing instructions. It never supplies results to the old prompt
+or reuses its partial state. A bare UI refusal with no new HTTP or hook event remains pending until
+an existing deadline or launcher exit. A session is never persisted while prompting or waiting for tools.
 
 Idle sessions expire after a configurable TTL, initially one hour. Expiration runs lazily and only when
 there is no active turn or pending tool. Each session key has its own lock; unrelated keys remain

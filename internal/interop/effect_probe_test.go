@@ -95,11 +95,14 @@ func TestClaudeClientToolEffectPoliciesWithFakeACP(t *testing.T) {
 }
 
 type clientEffectProbe struct {
+	inspectNext               bool
+	recoverNext               bool
 	expect                    *toolEffectExpectation
 	path, manifest, pre, post string
 	kind                      string
 	interactive               bool
 	noDecision                bool
+	bare                      bool
 }
 
 const ownedEffectText = "owned client effect"
@@ -113,6 +116,16 @@ func prepareClientEffect(t *testing.T, root, project, readPath, canary, kind, se
 		if kind == "hold-write" {
 			kind = "allow-write"
 			e.noDecision = true
+		}
+		if kind == "bare-write" {
+			kind = "deny-write"
+			e.bare = true
+		}
+		if kind == "bare-next-write" || kind == "bare-recover-write" {
+			e.recoverNext = kind == "bare-recover-write"
+			kind = "deny-write"
+			e.bare = true
+			e.inspectNext = true
 		}
 	}
 	e.expect = &toolEffectExpectation{Tool: "Write", IsError: strings.HasPrefix(kind, "deny-") || kind == "hook-bash"}
@@ -140,7 +153,7 @@ func prepareClientEffect(t *testing.T, root, project, readPath, canary, kind, se
 	if e.interactive {
 		delete(permissions, "allow")
 		delete(permissions, "deny")
-		if e.expect.IsError {
+		if e.expect.IsError && !e.bare {
 			e.expect.RequiredText = clientDenialReason
 		}
 	}
@@ -152,6 +165,16 @@ func prepareClientEffect(t *testing.T, root, project, readPath, canary, kind, se
 		preOutput = string(data)
 	}
 	hooks := map[string]any{}
+	if e.bare {
+		for _, event := range []string{"Stop", "PostToolBatch"} {
+			path := filepath.Join(root, event+"-bare.sh")
+			script := "#!/bin/sh\nset -eu\numask 077\nprintf '%s' observed > " + probeShellQuote(filepath.Join(root, event+"-bare-observed")) + "\nprintf '%s' '{}'\n"
+			if os.WriteFile(path, []byte(script), 0700) != nil {
+				t.Fatal("cannot prepare bounded hook-presence observation")
+			}
+			hooks[event] = []any{map[string]any{"hooks": []any{map[string]any{"type": "command", "command": probeShellQuote(path), "timeout": 2}}}}
+		}
+	}
 	for _, h := range []struct{ event, marker, output string }{{"PreToolUse", e.pre, preOutput}, {"PostToolUse", e.post, `{}`}} {
 		path := filepath.Join(root, h.event+"-effect.sh")
 		script := "#!/bin/sh\nset -eu\numask 077\nprintf '%s' observed > " + probeShellQuote(h.marker) + "\nprintf '%s' " + probeShellQuote(h.output) + "\n"

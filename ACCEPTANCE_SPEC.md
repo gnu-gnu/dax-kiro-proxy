@@ -100,7 +100,13 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
   session; a matching later request observes only the scoped terminal outcome, never tool replay.
 - A tool-result request may repeat the complete most recent standing system-message sequence without
   starting another ACP prompt. Changed, partial, reordered or older instructions and extra user text
-  reject before any pending result is consumed.
+  reject before any pending result is consumed, except the separately validated new-turn case below.
+- A new user question following all matching client error results may abandon the old prompt only
+  with an exact compatible owner, proven history extension, results preceding text, and unchanged
+  repeated standing instructions. Join old process/relay cleanup before a fresh full-history prompt;
+  never resolve those results into the abandoned prompt, replay a tool or reuse canceled state.
+  The same proof may use the bounded five-minute retired outcome. Missing, duplicate, partial,
+  successful, cross-owner or divergent results reject without consuming recovery ownership.
 - Cancellation and timeout resolve all suspended relay calls and remove owner-only socket/config data.
 - MCP starts only after authenticated supervisor/child PID checks and verified ACP group membership.
   A peer cannot supply its own PID/group, forge a join, replay an attachment or replace a valid child.
@@ -132,6 +138,10 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
 
 - Client disconnect before first event, during text streaming, and while waiting for tools each cancel
   and discard the session.
+- A bare permission refusal after a completed HTTP tool handoff may emit no immediate model request
+  or hook. Silence alone is not observable cancellation. Existing absolute tool/turn deadlines and
+  launcher exit still retire the suspended owner; no shorter heuristic deadline or invented result
+  substitutes for a signal. A later request follows the exact new-turn proof in section E.
 - First-event and total-turn timeouts produce distinct diagnostics.
 - SSE keepalives maintain a silent stream without satisfying or extending either model deadline;
   recognized authentication expiry after a keepalive still completes one normal assistant message.

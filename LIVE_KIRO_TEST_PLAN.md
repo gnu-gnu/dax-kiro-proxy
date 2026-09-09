@@ -1,5 +1,12 @@
 # Bounded Kiro interoperability experiments
 
+The D57 bare-refusal controls use actual Claude and independent fake ACP only. One observes silent
+refusal until the unchanged 45-second turn deadline, with a 55-second test terminal lifetime; another
+observes one following request without dispatch; a third admits one new question after proving that
+the old process/artifacts were removed. Only that last fake-only variant allows two sequential ACP
+launches. The real Kiro single-Read experiment below retains its one-prompt budget and explicit opt-in.
+The passed local results and their limitations are recorded in IMPLEMENTATION_DECISIONS.md D57.
+
 Prepared: 2026-09-09. Status: the explicitly approved live attempt passed on 2026-09-09; results
 appear below. This is an interoperability experiment, not a release or an override of the product's
 execution-policy gate. The full product objective and remaining acceptance requirements are unchanged.

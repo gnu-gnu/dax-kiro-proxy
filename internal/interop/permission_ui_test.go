@@ -105,7 +105,38 @@ func TestPermissionScreenWaitsAndDenialRequiresNewSelectedFrames(t *testing.T) {
 	}
 }
 
+func TestBarePermissionDenialDoesNotTypeAComment(t *testing.T) {
+	const base = "Create file\neffect-fixture\n1 owned client effect\nDo you want to create effect-fixture?\n"
+	p := &permissionScreenProbe{tool: "Write", file: "effect-fixture", content: ownedEffectText, deny: true, bare: true}
+	if p.next(base+"❯ 1. Yes\n2. Yes, allow all edits\n3. No\n", true) != "\x1b[B" {
+		t.Fatal("bare denial did not start with bounded selection")
+	}
+	no := base + "1. Yes\n2. Yes, allow all edits\n❯ 3. No\n"
+	if p.next(no, true) != "\r" || p.stage != 5 || p.submitted.Load() == 0 {
+		t.Fatal("bare denial typed a comment or failed to submit No")
+	}
+	if p.next(no, true) != "" {
+		t.Fatal("bare denial was repeated")
+	}
+	p.resumeAllowed.Store(true)
+	if p.next(no, true) != "" {
+		t.Fatal("new text was submitted before interruption appeared")
+	}
+	interrupted := base + "Interrupted · What should Claude do instead?\n❯ Ask another question\n"
+	if p.next(interrupted, true) != "Next independent question." || p.next(interrupted, true) != "" {
+		t.Fatal("post-interruption question was absent or repeated")
+	}
+	echo := interrupted + "Next independent question.\n"
+	if p.next(echo, true) != "\r" || p.next(echo, true) != "" {
+		t.Fatal("post-interruption submission did not require its own echo")
+	}
+}
+
 type permissionScreenProbe struct {
+	resumeAllowed                atomic.Bool
+	bare                         bool
+	submitted                    atomic.Int64
+	interrupted                  atomic.Bool
 	lastInputScreen              [32]byte
 	deny, noDecision             bool
 	held                         atomic.Bool
@@ -134,6 +165,17 @@ func (p *permissionScreenProbe) next(screen string, pending bool) string {
 	}
 	if strings.Contains(lower, "independent client effect complete") {
 		p.completed.Store(true)
+	}
+	if p.bare && p.stage == 5 && (strings.Contains(lower, "interrupted") || strings.Contains(lower, "rejected")) {
+		p.interrupted.Store(true)
+	}
+	if p.bare && p.stage == 5 && p.resumeAllowed.Load() && (strings.Contains(lower, "interrupted") || strings.Contains(lower, "rejected")) {
+		p.stage = 6
+		return "Next independent question."
+	}
+	if p.bare && p.stage == 6 && strings.Contains(screen, "Next independent question.") {
+		p.stage = 7
+		return "\r"
 	}
 	operation := strings.Contains(lower, p.file) && strings.Contains(lower, p.content)
 	if p.tool == "Write" {
@@ -187,6 +229,12 @@ func (p *permissionScreenProbe) next(screen string, pending bool) string {
 	isNo := strings.HasPrefix(strings.ToLower(strings.TrimSpace(choice[2])), "no")
 	if p.stage == 1 {
 		if isNo {
+			if p.bare {
+				p.stage = 5
+				p.lastInputScreen = frame
+				p.submitted.Store(time.Now().UnixNano())
+				return "\r"
+			}
 			p.stage = 2
 			p.lastInputScreen = frame
 			return "\t"
@@ -220,11 +268,40 @@ func TestClaudeInteractiveToolPermissionsWithFakeACP(t *testing.T) {
 	}
 }
 
+func TestClaudeBarePermissionDenialRetiresOnOriginalDeadline(t *testing.T) {
+	executable := os.Getenv("DAX_INTEROP_CLAUDE_BINARY")
+	if executable == "" {
+		t.Skip("set DAX_INTEROP_CLAUDE_BINARY for owned bare-denial observation; no external inference")
+	}
+	runClientToolProbe(t, executable, "", "ui-bare-write")
+}
+
+func TestClaudeBarePermissionNextRequestShape(t *testing.T) {
+	executable := os.Getenv("DAX_INTEROP_CLAUDE_BINARY")
+	if executable == "" {
+		t.Skip("set DAX_INTEROP_CLAUDE_BINARY for one owned post-interruption request observation")
+	}
+	runClientToolProbe(t, executable, "", "ui-bare-next-write")
+}
+
+func TestClaudeBarePermissionDenialRecoversOnNextQuestion(t *testing.T) {
+	executable := os.Getenv("DAX_INTEROP_CLAUDE_BINARY")
+	if executable == "" {
+		t.Skip("set DAX_INTEROP_CLAUDE_BINARY for owned denial recovery with fake ACP")
+	}
+	runClientToolProbe(t, executable, "", "ui-bare-recover-write")
+}
+
 func runClientEffectTerminal(t *testing.T, parent context.Context, root, project string, profile *launcher.ClientProfile, command childproc.Command, effect *clientEffectProbe, backend *onePromptBackend) (childproc.Result, bool) {
 	t.Helper()
-	ctx, cancel := context.WithTimeout(parent, 25*time.Second)
+	lifetime := 25 * time.Second
+	if effect.bare && !effect.inspectNext {
+		// Observe the existing 45-second turn limit while the interactive client stays open.
+		lifetime = 55 * time.Second
+	}
+	ctx, cancel := context.WithTimeout(parent, lifetime)
 	defer cancel()
-	owner, err := childproc.NewAttached(childproc.AttachedConfig{Lifetime: 25 * time.Second})
+	owner, err := childproc.NewAttached(childproc.AttachedConfig{Lifetime: lifetime})
 	if err != nil {
 		t.Fatal("cannot create owned permission terminal")
 	}
@@ -248,6 +325,7 @@ func runClientEffectTerminal(t *testing.T, parent context.Context, root, project
 	command.Executable = "/usr/bin/script"
 	command.Args = append([]string{"-q", os.DevNull, "/bin/sh", wrapper}, command.Args...)
 	p := &permissionScreenProbe{tool: effect.expect.Tool, file: filepath.Base(effect.path), content: ownedEffectText, deny: effect.expect.IsError, noDecision: effect.noDecision, delay: 500 * time.Millisecond}
+	p.bare = effect.bare
 	if effect.noDecision {
 		p.delay = time.Second
 	}
@@ -280,6 +358,7 @@ func runClientEffectTerminal(t *testing.T, parent context.Context, root, project
 	defer tick.Stop()
 	pid, group := 0, 0
 	owned, completed, held, exited := false, false, false, false
+	bareObserved, bareSettled, pendingAfterDenial := false, false, false
 	var got outcome
 wait:
 	for {
@@ -302,6 +381,29 @@ wait:
 				}
 			}
 			stats := backend.snapshot()
+			if effect.bare && p.submitted.Load() > 0 && time.Since(time.Unix(0, p.submitted.Load())) >= 3*time.Second {
+				if !bareObserved {
+					pendingAfterDenial = backend.driver.State() == session.WaitingTools && stats.Results == 0 && stats.Completions == 0
+				}
+				bareObserved = true
+				bareSettled = backend.driver.State() == session.Unstarted && stats.Results == 0 && stats.Completions == 0
+				if effect.inspectNext {
+					p.resumeAllowed.Store(true)
+					if effect.recoverNext {
+						if owned && p.completed.Load() && stats.Completions == 1 && stats.Results == 1 && backend.driver.State() == session.Idle {
+							completed = true
+							break wait
+						}
+					} else if backend.inspected.Load() {
+						break wait
+					}
+					continue
+				}
+				if bareSettled {
+					break wait
+				}
+				continue
+			}
 			if owned && p.completed.Load() && stats.Completions == 1 && stats.Results == 1 && backend.driver.State() == session.Idle {
 				completed = true
 				break wait
@@ -310,6 +412,16 @@ wait:
 				held = true
 				break wait
 			}
+		}
+	}
+	if effect.bare {
+		for _, event := range []string{"Stop", "PostToolBatch"} {
+			value, err := readDenialArtifact(root, event+"-bare-observed", 32)
+			t.Logf("bare_hook=%s, observed_before_client_shutdown=%v", event, err == nil && string(value) == "observed")
+		}
+		t.Logf("bare_denial_observed=%v, client_interrupted_visible=%v, pending_after_denial=%v, backend_before_shutdown=%s, backend_settled=%v", bareObserved, p.interrupted.Load(), pendingAfterDenial, backend.driver.State(), bareSettled)
+		if effect.inspectNext {
+			t.Logf("post_interruption_request_observed=%v, shape=%+v", backend.inspected.Load(), backend.snapshot().AfterInterruption)
 		}
 	}
 	if owned {
@@ -341,7 +453,25 @@ wait:
 	if p.noDecision {
 		wantStage = 0
 	}
+	if p.bare {
+		wantStage = 5
+		if effect.inspectNext {
+			wantStage = 7
+		}
+	}
 	valid := (completed || held) && p.seen && p.stage == wantStage && !p.unexpectedEffect && groupGone && noSavedProjectRule && owner.Active() == 0 && !errors.Is(got.err, childproc.ErrCleanup) && !errors.Is(got.err, childproc.ErrIO) && !errors.Is(got.err, childproc.ErrOutputLimit)
+	if p.bare {
+		expectedState := bareSettled
+		if effect.inspectNext {
+			shape := backend.snapshot().AfterInterruption
+			observed := backend.inspected.Load() && shape.NextQuestion && shape.Uses == 1 && shape.Results == 1 && shape.MatchingResults == 1 && shape.Errors == 1 && shape.ResultMessage == shape.LatestUser && len(shape.LatestTypes) > 1 && shape.LatestTypes[0] == "tool_result"
+			expectedState = observed && backend.driver.State() == session.WaitingTools
+			if effect.recoverNext {
+				expectedState = observed && completed && backend.driver.State() == session.Idle
+			}
+		}
+		valid = bareObserved && pendingAfterDenial && expectedState && p.interrupted.Load() && p.seen && p.stage == wantStage && !p.unexpectedEffect && groupGone && noSavedProjectRule && owner.Active() == 0 && !errors.Is(got.err, childproc.ErrCleanup) && !errors.Is(got.err, childproc.ErrIO) && !errors.Is(got.err, childproc.ErrOutputLimit)
+	}
 	t.Logf("permission_ui_seen=%v, decision_stage=%d, completed_before_shutdown=%v, effect_before_approval=%v, client_group_gone=%v, setup_stage=%d, terminal_bytes=%d, markers=%v", p.seen, p.stage, completed, p.unexpectedEffect, groupGone, got.answers, len(got.result.Stdout), p.markers)
 	t.Logf("backend_attempts=%d, auxiliary_titles=%d, last_request_shape=%+v", backend.attempts.Load(), backend.snapshot().Titles, backend.snapshot().LastShape)
 	t.Logf("permission_without_input=%v, pending_without_effect=%v", effect.noDecision, held)
