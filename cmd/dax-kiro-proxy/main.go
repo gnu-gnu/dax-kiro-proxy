@@ -131,6 +131,9 @@ launch/diagnostic options:
   --effort VALUE   initial effort
   --timing         write measured startup phases to stderr
   --json           JSON output for doctor or models
+run options:
+  --client-history retain native conversation data in ~/.claude/projects
+  --resume UUID    resume a native conversation; implies --client-history
 `
 
 func execute(ctx context.Context, args []string, files childproc.AttachedIO, out, diagnostics io.Writer, services commandServices) int {
@@ -203,6 +206,9 @@ func execute(ctx context.Context, args []string, files childproc.AttachedIO, out
 	flags.BoolVar(&timing, "timing", false, "")
 	if command != "run" {
 		flags.BoolVar(&structured, "json", false, "")
+	} else {
+		flags.BoolVar(&options.KeepHistory, "client-history", false, "")
+		flags.StringVar(&options.ResumeSession, "resume", "", "")
 	}
 	if err := flags.Parse(args[1:]); errors.Is(err, flag.ErrHelp) {
 		return writeResult(out, diagnostics, []byte(helpText))
@@ -214,9 +220,15 @@ func execute(ctx context.Context, args []string, files childproc.AttachedIO, out
 		if option.Value.String() == "" {
 			emptyOption = true
 		}
+		if option.Name == "client-history" && !options.KeepHistory && options.ResumeSession != "" {
+			emptyOption = true
+		}
 	})
 	if emptyOption {
 		return usageError(diagnostics)
+	}
+	if options.ResumeSession != "" {
+		options.KeepHistory = true
 	}
 	if services.defaults == nil {
 		return failure(diagnostics, launcher.ErrConfig, launcher.ClientRunResult{})

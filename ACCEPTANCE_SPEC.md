@@ -207,6 +207,14 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
 
 ## F. Session continuity
 
+- Optional native client history survives removal of its temporary configuration. Explicit-ID resume
+  uses a fresh endpoint, credential and backend owner; previous completed text appears once in the
+  subsequent request. The native client remains the only transcript writer. Default ephemeral
+  operation and native persistence suppression remain negative controls. Reject malformed resume IDs
+  before finite startup commands, and reject unsafe source directory roots without following them.
+  Verify source settings and joined runtime cleanup separately from intentionally retained native
+  data. D87 covers finite text resume; interactive selection, pending tools, media/checkpoints,
+  concurrent writers and retention behavior remain broader gates.
 - Simultaneous title and main requests receive separate Kiro sessions.
 - The combined title classifier accepts explicit disabled thinking or omission with all other
   title signals present. Ordinary structured output, loose title mentions, tools and explicit

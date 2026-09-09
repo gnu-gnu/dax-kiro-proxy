@@ -95,11 +95,11 @@ def main():
     parser.add_argument("--gomodcache", type=Path, required=True)
     parser.add_argument("--binary", type=Path,
                         help="also require byte identity with the recorded development artifact")
-    parser.add_argument("--snapshot", choices=("development", "installation"),
-                        default="development", help="select the frozen D78 or D79 artifact record")
+    parser.add_argument("--snapshot", choices=("development", "installation", "native-history"),
+                        default="development", help="select the frozen D78, D79 or D87 artifact record")
     args = parser.parse_args()
     try:
-        report = REPORT if args.snapshot == "development" else ROOT / "third_party/inventory/macos-arm64-installation.json"
+        report = ROOT / ("third_party/inventory/macos-arm64-" + args.snapshot + ".json")
         result = verify(args.gomodcache, args.binary, report)
     except (OSError, ValueError, KeyError, TypeError):
         print("dependency snapshot verification failed", file=sys.stderr)

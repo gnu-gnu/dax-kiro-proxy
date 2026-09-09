@@ -140,6 +140,36 @@ func TestLaunchFlagsAndDescriptorOwnership(t *testing.T) {
 	}
 }
 
+func TestNativeHistoryFlagsStayOnRun(t *testing.T) {
+	const id = "197326ab-1597-4268-a129-426853197ace"
+	for _, args := range [][]string{{"run", "--client-history"}, {"run", "--resume", id}} {
+		services := fixtureServices()
+		called := false
+		services.run = func(_ context.Context, got launcher.LaunchOptions, _ childproc.AttachedIO) (launcher.LaunchResult, error) {
+			called = true
+			if !got.KeepHistory || (args[1] == "--resume" && got.ResumeSession != id) {
+				t.Fatal("native history option lost")
+			}
+			return launcher.LaunchResult{}, nil
+		}
+		var out, diagnostics bytes.Buffer
+		if execute(t.Context(), args, childproc.AttachedIO{}, &out, &diagnostics, services) != 0 || !called {
+			t.Fatal("native history option rejected")
+		}
+	}
+	for _, args := range [][]string{{"doctor", "--client-history"}, {"models", "--resume", id}, {"run", "--client-history=false", "--resume", id}, {"run", "--resume", ""}} {
+		services := fixtureServices()
+		services.defaults = func() (launcher.LaunchOptions, error) {
+			t.Fatal("invalid history arguments reached startup")
+			return launcher.LaunchOptions{}, nil
+		}
+		var out, diagnostics bytes.Buffer
+		if execute(t.Context(), args, childproc.AttachedIO{}, &out, &diagnostics, services) == 0 {
+			t.Fatal("invalid history option accepted")
+		}
+	}
+}
+
 func TestErrorsUseFixedDiagnosticsAndExitClasses(t *testing.T) {
 	cases := []struct {
 		name   string

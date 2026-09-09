@@ -595,3 +595,29 @@ selects a named frozen report, does not discover current dependencies and does n
 Unchanged external licensing evidence is carried forward explicitly; full historical-resource,
 native/build/test attribution, advisory/reachability, clean-host release packaging and owner-rights
 work remains open. No new dependency or client/model work is needed for this local installer.
+
+## Native history artifact snapshot — D87, 2026-09-09
+
+`third_party/inventory/macos-arm64-native-history.json` records the rebuilt 13,605,778-byte development
+command, SHA-256 `7eb688d6a9e78d6c361ee6a89f1ff93dd458f0918a5b70b338c884333c529e46`.
+It identifies Go 1.27.1, darwin/arm64, CGO_ENABLED=1 and D86's Git revision with vcs.modified=true.
+Its 100 repository input records capture 91 selected production Go files, seven embedded notice
+texts and go.mod/go.sum. The only added production input is launcher/client_history.go; main.go,
+profile.go and startup.go are the three changed inputs relative to the frozen D79 report.
+
+A fresh command-package collection matches D79's 267 import paths exactly. All four external module
+versions, sums and selected package sets match, as do dependency Go/native/embed filename selections.
+All eight retained notice/reference bytes and seven embedded notice files match. This carries the
+scoped existing review forward; it does not repeat or complete licensing, advisory or native symbol
+analysis. The D79 report remains unchanged and is hashed as this snapshot's predecessor. A retained
+D79 executable remains under the ignored history-review directory; its source snapshot no longer
+matches the current modified production files.
+
+```sh
+python3 tools/verify_dependency_inventory.py --gomodcache .cache/gomod --snapshot native-history --binary dist/dax-kiro-proxy
+```
+
+The new record passes 139 checks. Like its predecessors, it explicitly reports release_clearance=false.
+Native transcript retention introduces no new dependency. Historical embedded resources, complete
+native/build/test attribution, security advisory/reachability review, clean-host distribution and
+owner rights remain open.

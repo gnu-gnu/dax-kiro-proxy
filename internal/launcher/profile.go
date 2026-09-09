@@ -35,6 +35,8 @@ type ClientConfig struct {
 	Executable, Version, Model, GatewayURL, ModelToken string
 	Environment                                        []string
 	StatusExecutable, UIToken                          string
+	KeepHistory                                        bool
+	ResumeSession                                      string
 }
 
 type ClientProfile struct {
@@ -182,11 +184,22 @@ func PrepareClient(cfg ClientConfig) (*ClientProfile, error) {
 	}
 	p.settings = filepath.Join(path, "host-settings.json")
 	p.command = childproc.Command{Executable: cfg.Executable, Directory: cfg.Project, Args: []string{"--settings", p.settings, "--model", cfg.Model}, Environment: sortedEnvironment(env)}
+	if cfg.KeepHistory {
+		if err := referenceClientHistory(cfg.Home, profile); err != nil {
+			return nil, err
+		}
+	}
+	if cfg.ResumeSession != "" {
+		p.command.Args = append(p.command.Args, "--resume", cfg.ResumeSession)
+	}
 	ok = true
 	return p, nil
 }
 
 func validClient(cfg ClientConfig) bool {
+	if cfg.ResumeSession != "" && (!cfg.KeepHistory || !validNativeSessionID(cfg.ResumeSession)) {
+		return false
+	}
 	if cfg.Version != SupportedClientVersion {
 		return false
 	}

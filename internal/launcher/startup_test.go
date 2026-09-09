@@ -150,7 +150,7 @@ func TestStartupFailureAndCancellationOrder(t *testing.T) {
 	}
 }
 func TestStartupUnknownModelAndInvalidSettingsFailBeforePolicy(t *testing.T) {
-	for _, kind := range []string{"model", "settings", "missing-client", "invalid-effort"} {
+	for _, kind := range []string{"model", "settings", "missing-client", "invalid-effort", "invalid-resume"} {
 		t.Run(kind, func(t *testing.T) {
 			opts := startupOptions(t)
 			switch kind {
@@ -165,6 +165,8 @@ func TestStartupUnknownModelAndInvalidSettingsFailBeforePolicy(t *testing.T) {
 				opts.ClientExecutable = filepath.Join(opts.Home, "missing")
 			case "invalid-effort":
 				opts.InitialEffort = "invented"
+			case "invalid-resume":
+				opts.ResumeSession = "invalid-session"
 			}
 			r := new(startupRunnerFixture)
 			services := startupServicesFor(r)
@@ -195,6 +197,7 @@ func TestStartupPostPreflightCancellationJoinsTransferredOwners(t *testing.T) {
 	for _, where := range []string{"policy", "client-entry"} {
 		t.Run(where, func(t *testing.T) {
 			opts := startupOptions(t)
+			opts.ResumeSession = "197326ab-1597-4268-a129-426853197ace"
 			r := new(startupRunnerFixture)
 			services := startupServicesFor(r)
 			ctx, cancel := context.WithCancel(t.Context())
@@ -211,6 +214,9 @@ func TestStartupPostPreflightCancellationJoinsTransferredOwners(t *testing.T) {
 			called := false
 			services.client = func(ctx context.Context, cfg ClientRunConfig) (ClientRunResult, error) {
 				called = true
+				if !cfg.Client.KeepHistory || cfg.Client.ResumeSession != opts.ResumeSession {
+					t.Error("native resume did not reach client preparation")
+				}
 				cancel()
 				result, err := RunClient(ctx, cfg)
 				if cfg.Schema.Stats().Started != 0 {

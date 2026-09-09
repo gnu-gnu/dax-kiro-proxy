@@ -3995,3 +3995,69 @@ opt-ins-off race suites pass interop 24.109s and observer 1.428s. Whole-reposito
 formatting and whitespace checks pass. Production, dependencies and the D79 frozen artifact do not
 change. Authentication expiry, pending-tool recovery, persisted restart/resume, complete environment
 preservation, other model/effort paths and the remaining full release gates remain open.
+
+## D87: retain optional native conversation data across private profiles
+
+The temporary client profile previously lost its transcripts when removed. The installed-client
+baseline reproduces this: the first conversation succeeds, then explicit-ID resume makes no model
+request and fails after a fresh profile is prepared. A data-directory reference succeeds without
+redirecting the settings root. This supplies a native source of client history for restart, while
+the proxy's persistent backend records continue to contain no conversation text.
+
+`run --client-history` opts into a reference from the private profile's projects directory to
+`HOME/.claude/projects`. `run --resume UUID` implies retention and appends the native resume argument
+alongside freshly generated routing settings and the selected model. Explicit retention=false plus
+resume is a usage error; diagnostic commands do not accept either option. Malformed UUIDs reject
+before finite preflight commands. The native client reports a valid but absent session itself.
+
+The ordinary profile remains ephemeral without either option. Retention includes native data under
+projects, not just transcript text: this is shared application data that ordinary Claude can access.
+It is not a private proxy log, an immutable snapshot or a promise of all native history features.
+Native settings continue to govern native retention. The proxy does not scan, parse, copy, merge,
+prune or fabricate transcript content. It creates missing directory roots with mode 0700, requires
+same-account directories without group/other write permissions, rejects links and file substitutes,
+and compares held directory identities during reference preparation. Existing modes are not changed.
+The check does not lock against later same-account changes or validate every descendant. Cleanup
+removes the temporary link and configuration, preserving the explicitly retained native directory.
+
+The public [session interface](https://code.claude.com/docs/en/sessions) documents explicit-ID resume
+for print-created conversations and requires launch-specific configuration to be supplied again.
+The [native directory reference](https://code.claude.com/docs/en/claude-directory) distinguishes
+projects data from file-history, media and other native locations. These sources describe a public
+storage/interface contract; no native transcript schema is used as an implementation input.
+
+The following independent checks establish the current scope:
+
+- Profile safety and CLI tests first fail on absent fields/flags, then check retention, cleanup,
+  wrong source shapes/modes, UUIDs, diagnostic rejection and startup-to-client forwarding.
+- Four installed-Claude local-HTTP controls pass: explicit retention, the manual reference control,
+  an ordinary private profile and native persistence suppression. Both successful runs use new
+  profiles, tokens and ports, with exactly one previous user/assistant and one new user marker at
+  HTTP. Selected source files remain byte-identical; bounded owned data contains no generated
+  model/UI credentials. No native file is decoded or edited.
+- Actual gateway/session-manager restart with an independent ACP process passes. Each process
+  accepts only initialize/new/prompt and verifies the projected old/new marker counts; session/load
+  rejects even though load support is advertised. A random token appears only in the initial user
+  question, and the second client result recovers it from restored context.
+- One actual Kiro/Claude two-turn episode passes the same text scenario. Each stage has one admitted
+  request and one successful end_turn, new backend/profile/address/token, and joined cleanup before
+  the next stage. The second answer recovers the random initial token. The first stage also leaves
+  no listener, observed process group or temporary profile. No live retry or tool effect occurs.
+
+Actual prepared Kiro loading remains disabled: a fresh manager has no old backend record and creates
+a new restricted session from the native client's supplied history. Hidden backend context can be
+lost and full-history reconstruction adds provider work. This text-only finite check does not prove
+interactive picker/continue behavior, pending-tool recovery, file checkpoints, external media
+sidecars, concurrent writers or retention cleanup. Those remain work toward full alpha/release.
+
+Local public-interface Claude advice is saved/read/assessed in
+`.cache/claude-consult/work/public-native-history-review-t309qo98/`. The hypothetical question contains
+no project implementation or runtime data. Its fresh endpoint/token, source preservation, sidecar
+and concurrency concerns inform the controls. A blanket claim that narrow references make source
+mutation impossible is rejected; only measured preservation is claimed. Its proposed source-format
+assumptions and advice to waive unresolved concurrency/retention gates are not adopted.
+
+The complete opt-ins-off race suite and whole-repository/new-peer vet pass. Formatting and whitespace
+checks pass. The rebuilt D87 development executable has an independently collected 267-package graph,
+four unchanged external modules, 100 repository input records and seven retained embedded notices.
+Its named native-history inventory passes 139 offline byte checks. This is not release clearance.

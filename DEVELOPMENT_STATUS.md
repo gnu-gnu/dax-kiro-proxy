@@ -6,6 +6,26 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D87 adds optional native conversation retention and explicit-ID resume. `run --client-history`
+  connects only the native projects data directory to each temporary profile; `run --resume UUID`
+  enables retention and forwards the validated ID. Default profiles remain ephemeral. Owned roots,
+  non-writable-by-others permissions and preparation-time directory identities are checked; links,
+  regular files in place of directories and malformed IDs reject. Native transcripts are not copied,
+  parsed or edited, and source settings stay private. A baseline first reproduces lost history.
+  Four installed-Claude controls then pass in 4.14s (6.022s race package), including fresh token/port,
+  exact prior marker counts, native suppression, unchanged sources, no credential bytes in bounded
+  owned data and removed profiles. The actual gateway/manager plus independent ACP restart passes
+  in 4.02s (5.988s package); the peer rejects session/load and verifies the projected old/new markers.
+  One actual Kiro episode passes in 26.50s (27.783s package): two main requests, two successful ends,
+  distinct cleaned process groups/profiles/endpoints/tokens, and exact recovery of a random token
+  supplied only in the first question. Each old stage is joined before the next is dispatched. This
+  is finite text resume with recreated backend state, not interactive picker or pending-tool proof.
+  Public-only local Claude advice is saved/read/assessed. Full alpha/release gates stay open.
+  The complete opt-ins-off race suite passes, including interop 23.625s, launcher 26.580s and session
+  28.264s. A rebuilt development executable and D87 inventory retain 267 selected packages, four
+  unchanged external modules and 100 repository input records; 139 offline byte checks pass.
+  Whole-repository/new-peer vet, formatting and whitespace checks pass. The retained earlier D79
+  artifact remains historical; the current executable uses the named native-history snapshot.
 - D86 completes one actual Kiro 2.21.2 / Claude 2.1.263 model-selection episode: 23.90s test,
   25.365s race package, two main prompts and one title. Fresh finite discovery and prompt-free
   CLI/ACP comparison first establish nineteen equal IDs/aliases and a legacy selector. All nineteen

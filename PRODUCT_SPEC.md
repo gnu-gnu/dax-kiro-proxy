@@ -170,3 +170,13 @@ permissions, hooks and assets without modifying source settings. Optional produc
 yield when explicit client settings, safe mode or an existing status command prevent a compatible
 overlay. Mandatory local routing and credential separation must still hold. Replacing the current
 private profile requires independent installed-client precedence and preservation tests first.
+
+Native client conversation retention is optional and distinct from the text-free proxy session
+records (D87). `run --client-history` permits Claude to use its ordinary `~/.claude/projects` data
+through a reference in the temporary profile. `run --resume <UUID>` implies retention and passes the
+validated ID to the native client. The option covers native conversation text and any other data
+Claude keeps under that directory; it does not promise retention of native data stored elsewhere.
+The proxy does not parse, copy, merge or edit transcript formats. Source settings and routing remain
+in the existing isolated configuration path. Without either option, client history stays ephemeral.
+Prepared Kiro sessions still do not load persisted backend state; restart creates a new restricted
+session from client-supplied history and can add provider work or lose hidden backend context.

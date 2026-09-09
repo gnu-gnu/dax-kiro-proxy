@@ -50,6 +50,19 @@ go build -o ./dist/dax-kiro-proxy ./cmd/dax-kiro-proxy
 ./dist/dax-kiro-proxy run
 ```
 
+To retain native Claude conversation data across launches, use `run --client-history`. To resume a
+known native session, use `run --resume <UUID>`; this implies history retention. These options share
+`~/.claude/projects` with the native client, including its conversation text, auto-memory and other
+data under that directory. Claude controls its formats and retention; ordinary Claude sessions can
+access that same data. Source settings remain separate, and temporary routing credentials are
+removed on exit. Without these options, the client profile and its conversations are ephemeral.
+
+D87 verifies explicit-ID text resume with fresh profiles, addresses, tokens and backend processes,
+using both an independent ACP peer and actual Kiro. The backend starts a fresh restricted session
+from the client-supplied history; hidden Kiro context is not restored. Native interactive picker,
+pending-tool recovery, file checkpoints, media sidecars and concurrent history writers remain
+separate checks; the text result does not complete the alpha resume gate.
+
 The diagnostic checks support Kiro CLI 2.21.2 (including its adjacent `kiro-cli-chat` helper) and Claude Code
 2.1.263. They use the installed CLIs' finite version/account/catalog commands, without an ACP session
 or model prompt. `--kiro` and `--client` accept absolute executable paths. Private scope/cache state
@@ -223,10 +236,11 @@ priority is client-environment preservation, broader client request compatibilit
 live alpha lifecycle checks. Optional web/account-usage
 features, full Anthropic API coverage and release soak tests are not development-launch prerequisites.
 
-Phase 7 has frozen dependency inventories and retained scoped notices. For the D79 installation
+Phase 7 has frozen dependency inventories and retained scoped notices. For the D87 native-history
 development artifact, run `python3 tools/verify_dependency_inventory.py --gomodcache .cache/gomod
---snapshot installation --binary dist/dax-kiro-proxy`. The default `development` snapshot still
-identifies D78's earlier D77 binary; it does not match later rebuilds. These offline byte checks
+--snapshot native-history --binary dist/dax-kiro-proxy`. The default `development` snapshot identifies
+D78's earlier D77 binary, and `installation` identifies D79; neither matches this later rebuild and
+its changed production sources. These offline byte checks
 do not grant release license clearance; see DEPENDENCY_REVIEW.md for resource differences and
 remaining packaging/rights work.
 

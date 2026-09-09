@@ -1183,3 +1183,45 @@ guard failure, non-success result, emergency cleanup or live retry. Fixed result
 `.cache/model-review/d86-live-model-selection.log`. This verifies the advertised session-setting
 contract for the chosen pair, not provider weights or successful inference for every catalog entry.
 Persisted restart/resume, authentication expiry and remaining alpha/release checks remain separate.
+
+## D87: finite native conversation restart through a fresh gateway and backend
+
+Use disposable HOME/project roots and the pinned Claude 2.1.263. The ordinary ephemeral profile
+baseline must first reproduce lost conversation history. The local-HTTP four-way control compares
+the product retention option, an independently installed projects reference, a private profile and
+native --no-session-persistence. It permits at most one model request per stage, 45 seconds overall,
+15 seconds per native process and 128 KiB captured stdout. Two independent ports/tokens are allocated;
+stage one is closed and its private profile removed before stage two resumes its public result UUID.
+No native transcript is parsed or edited. Owned data scanning is limited to 128 entries, 2 MiB/file
+and 8 MiB total; only independent marker/credential-presence facts are retained. Source settings,
+profile removal, native session identity and exact previous/new HTTP marker counts are required.
+
+The gateway/manager experiment separately runs two fresh stages with one admitted text request each.
+The independent ACP fixture accepts initialize/new/prompt, rejects load, checks the projected marker
+counts and echoes only newly authored text. The actual Kiro variant uses the existing restricted
+execution preparation with one process/preparation per stage and no persisted backend record. Each
+stage uses a pool limit of one process/session, 20-second setup, 45-second turn, 60-second client
+process, 128 KiB stdout and four HTTP connections; the whole experiment is bounded to three minutes.
+Each first response must end successfully before cleanup. Require the old backend group, native
+client, listener, prepared policy/config and private profile gone before admitting the second stage.
+The second question contains no copy of the random token given in the first; both its provider text
+and native result must recover that token once. Tools are disabled, source hooks/auto-memory are off
+in the owned settings, and no real user configuration is modified.
+
+Observed results:
+
+- Baseline product: first completion succeeds, resumed completion fails, no second HTTP request or
+  retained native transcript; 1.37s test / 2.333s race package.
+- Manual reference and two negative controls: 3.20s / 4.485s. After implementation, all four controls
+  pass in 4.14s / 6.022s. Sources remain unchanged, profiles are removed, and no generated model/UI
+  credential appears in the bounded native data.
+- Actual Claude plus independent ACP/gateway/manager: 4.02s / 5.988s. Two successful stages, one
+  admitted request and one backend end_turn each, joined cleanup and exact context-token recovery.
+- Actual Kiro 2.21.2 / Claude 2.1.263: one episode, 26.50s / 27.783s. Both stages satisfy the same
+  completion, identity, source, fresh ownership and cleanup conditions. Two main requests, no title,
+  client tool or live retry. Fixed results are `.cache/history-review/d87-live-native-restart.log`.
+
+The actual result is finite text resume through recreated restricted backend sessions. It does not
+establish interactive picker/continue, pending-tool recovery, media/checkpoint sidecars, concurrent
+native writers, retention cleanup or unobserved descendants. Keep these full alpha/release items
+open. Public-only local Claude advice and its assessment are retained in the D87 consultation folder.
