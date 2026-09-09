@@ -3944,3 +3944,54 @@ pass in 32.959s. Opt-ins-off race suites pass interop 24.745s and observer 1.251
 and observer vet, formatting and whitespace checks pass. No production, dependency or frozen
 artifact changes. Actual Kiro model selection, arbitrary catalogs, effort changes, persisted
 resume and the remaining alpha/release gates stay open.
+
+## D86: verify current-catalog model selection with actual Kiro
+
+Select the CLI default and first distinct currently advertised Kiro model without embedding a
+historical model name. Finite version/catalog discovery has an exact three-command allowance,
+owned configuration, bounded output/deadline and joined process groups. The separate prompt-free
+CLI/ACP check observes nineteen matching IDs/aliases, equal current models and a legacy selector.
+Ambiguous/overlapping display labels cannot supply a picker target.
+
+Extend the independent terminal controls to cover all rendered and focused catalog labels, with
+two- and nineteen-model fake catalogs before the actual experiment. The input prompt above the
+picker heading is outside its selected-row scope. An initial heading-clipping hypothesis does not
+explain the long-list stop and is removed: fixed diagnostics show a visible heading/footer and one
+selected row with no exact catalog-label match. Such rows may receive bounded navigation keys, but
+never count as an advertised model or receive Enter. Their row identity remains only in memory.
+Multiple selected glyphs and overlapping labels remain ambiguous and receive no input. Require all
+advertised labels to render and receive focus before confirming the exact target. This proves
+focus coverage; it does not establish successful inference on every entry.
+
+The finite navigation bound is three times catalog size plus four actions, with at most two
+direction reversals after 750 ms without a changed row and a five-second observation stall limit.
+These are test limits rather than a claimed native latency guarantee. Response evidence now also
+requires each answer marker in its active ACP session's text, including split chunks, plus the
+visible UI marker and correlated end_turn. Foreign-session, repeated and post-completion markers
+cannot establish the answer. Selection acknowledgement must correlate to the session-specific idle
+request; JSON-RPC replies need not invent an additional session field. All frames remain unchanged
+when forwarded within the declared guards. No title or unrecognized navigation row may substitute
+for a foreground selected-model response. Count ACP process receipts explicitly when checking that
+the later preflight creates no new recorded client/ACP session.
+
+After the rejected local controls and observer corrections, all three native-Claude/fake-ACP
+controls pass in 11.94s (13.653s race package). The nineteen-entry case uses 26 actions and passes
+five unadvertised-row frames without confirming them. The actual Kiro 2.21.2 / Claude 2.1.263 trial
+then passes once in 23.90s (25.365s package), with the same catalog coverage/action counts. Two main
+and one title prompt run. One successful target acknowledgement precedes the next question; both
+answers have active-session and UI markers and end_turn. The same observed client/proxy/profile/
+address remain. A following doctor restores the delivered model. Keyboard exit restores terminal
+settings and removes all four recorded groups/seven PIDs, listener/runtime/profile, with unchanged
+sources and no non-success result, guard failure, emergency cleanup or live retry. This establishes
+the advertised session-setting contract for the chosen pair, not provider weights or hidden routing.
+
+The public-interface local Claude consultation is saved/read/assessed under
+`.cache/claude-consult/work/public-model-picker-review-bw6hj0j5/`. Its hypothetical question contains
+no project code, runtime capture, credential or model identity. Distinguishing visibility/focus,
+ambiguous glyphs, response causality and public acknowledgement from backend internals is adopted;
+native validation behavior is not inferred. Fixed experiment results and limits are recorded in
+LIVE_KIRO_TEST_PLAN.md. The six existing native-Claude/fake-ACP keyboard controls pass in 33.153s;
+opt-ins-off race suites pass interop 24.109s and observer 1.428s. Whole-repository/observer vet,
+formatting and whitespace checks pass. Production, dependencies and the D79 frozen artifact do not
+change. Authentication expiry, pending-tool recovery, persisted restart/resume, complete environment
+preservation, other model/effort paths and the remaining full release gates remain open.

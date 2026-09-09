@@ -100,8 +100,8 @@ the existing deadline and safe recreation for a following question, using actual
 ACP. The shared launcher configuration also passes actual Bash approval and hook refusal. Actual
 Kiro/client runtime cancellation after a delivered Read handoff and held client hook joins all
 observed processes/artifacts (D74). D81 below verifies process-loss recovery, and D82 verifies typed
-Ctrl+C during a streamed response. Model-switch, authentication, resume and broader cancellation
-paths remain alpha work.
+Ctrl+C during a streamed response. D86 below verifies idle model selection for a measured pair;
+authentication expiry, persisted resume and broader cancellation paths remain alpha work.
 
 On Kiro 2.21.2, seven initial-session file-resource controls pass: active inherited files disappear
 when default-resource inheritance is disabled, including with a separate session workspace. An
@@ -157,7 +157,14 @@ D85 verifies the native Claude model picker with two independent fake-ACP models
 visible; unchanged selection and switching both complete the next question on the observed model.
 The switch follows a correlated successful idle ACP selection. After keyboard exit, a new doctor
 preflight restores that model without another recorded client/ACP session or source-settings change.
-Actual Kiro model changes and persisted conversation resume remain separate live checks.
+Persisted conversation resume remains a separate live check.
+
+D86 also passes model selection with the actual pinned Kiro/Claude pair. All nineteen currently
+advertised models render and receive focus in the native picker; one distinct selected model is
+acknowledged by ACP before the next question completes. Both answers are observed in their active
+ACP sessions and the client UI. Last-model preflight restoration, source preservation, keyboard
+exit and removal of all four recorded groups/seven PIDs and private artifacts pass. This exercises
+two models; it does not establish successful inference with every catalog entry or persisted resume.
 
 The temporary client profile now retains standard-HOME user/local MCP declarations and decisions
 at their native scopes. Installed-client controls verify all three MCP scopes, disabled/re-enabled

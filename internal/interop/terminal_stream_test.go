@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net"
 	"net/url"
 	"os"
@@ -49,6 +50,9 @@ func terminalModelPickerKey(screen, target string) (string, int) {
 }
 
 func terminalModelComplete(r terminalTrace, slot int) bool {
+	if r.ModelFirstMarkers != 1 || r.ModelFollowMarkers != 1 {
+		return false
+	}
 	return r.Clients == 1 && r.Prompts == 1 && r.Texts > 0 && r.Ends == 1 && r.Cancels == 0 && r.Canceled == 0 && r.FollowPrompts == 1 && r.FollowTexts > 0 && r.FollowEnds == 1 && r.FollowCancels == 0 && r.FollowCanceled == 0 && r.ModelFirstRecords == 1 && r.ModelFollowRecords == 1 && r.ModelFirstSlot == 1 && r.ModelFollowSlot == slot && (slot == 1 || slot == 2 && r.ModelTargetAcks > 0) && r.TitlePrompts <= 2 && r.Failures == 0 && r.PromptFailures == 0 && !r.Exited
 }
 
@@ -92,6 +96,8 @@ type terminalReceipt struct {
 }
 
 type terminalTrace struct {
+	ModelFirstMarkers, ModelFollowMarkers                                                     int
+	ACPs                                                                                      int
 	ModelFirstRecords, ModelFollowRecords, ModelFirstSlot, ModelFollowSlot, ModelTargetAcks   int
 	PromptFailures                                                                            int
 	FollowNull                                                                                bool
@@ -139,6 +145,17 @@ func readTerminalTrace(root string) (terminalTrace, error) {
 				pids[r.Child] = true
 			}
 			switch r.Kind {
+			case "answer-marker":
+				if r.ModelSlot < 1 || r.ModelSlot > 2 {
+					return trace, errors.New("unknown answer model")
+				}
+				if !r.TitleScope {
+					if r.FollowScope {
+						trace.ModelFollowMarkers++
+					} else {
+						trace.ModelFirstMarkers++
+					}
+				}
 			case "model-ack", "prompt-model":
 				if r.ModelSlot < 1 || r.ModelSlot > 2 {
 					return trace, errors.New("unknown observed model slot")
@@ -172,6 +189,7 @@ func readTerminalTrace(root string) (terminalTrace, error) {
 				trace.Clients++
 				trace.Client, trace.Foreground, trace.Profile, trace.Endpoint = r.PID, r.Foreground, r.Profile, r.Endpoint
 			case "acp":
+				trace.ACPs++
 			case "agent":
 				trace.Agent = r.Child
 			case "supervisor":
@@ -292,11 +310,22 @@ func TestCompiledRunInterruptedFollowupWithFakeACP(t *testing.T) {
 }
 
 func TestCompiledRunModelSelectionWithFakeACP(t *testing.T) {
-	for _, mode := range []string{"model-unchanged", "model-switch"} {
+	for _, mode := range []string{"model-unchanged", "model-switch", "model-wide-switch"} {
 		if !t.Run(mode, func(t *testing.T) { runCompiledTerminalStream(t, mode, "") }) {
 			return
 		}
 	}
+}
+
+func TestKiroLiveCompiledRunModelSelection(t *testing.T) {
+	if os.Getenv("DAX_INTEROP_KIRO_CREDIT_OPT_IN") != "1" {
+		t.Skip("explicit live model-selection opt-in required")
+	}
+	kiro := os.Getenv("DAX_INTEROP_KIRO_BINARY")
+	if kiro == "" || os.Getenv("DAX_INTEROP_CLAUDE_BINARY") == "" {
+		t.Fatal("both pinned executables required")
+	}
+	runCompiledTerminalStream(t, "model-switch", kiro)
 }
 
 func TestKiroLiveCompiledRunInterruptedFollowup(t *testing.T) {
@@ -316,11 +345,16 @@ func runCompiledTerminalStream(t *testing.T, mode, kiro string) {
 	followup := mode == "cancel-followup"
 	modelCheck := strings.HasPrefix(mode, "model-")
 	modelSlot := 1
-	if mode == "model-switch" {
+	if strings.HasSuffix(mode, "switch") {
 		modelSlot = 2
 	}
 	modelIDs := [2]string{"fixture-backend", "fixture-target"}
 	modelLabel := []string{"independent first", "independent second"}[modelSlot-1]
+	modelEntries := 2
+	if mode == "model-wide-switch" {
+		modelEntries = 19
+	}
+	var modelLabels []string
 	client := os.Getenv("DAX_INTEROP_CLAUDE_BINARY")
 	if client == "" {
 		t.Skip("set DAX_INTEROP_CLAUDE_BINARY for an owned compiled-run terminal")
@@ -367,6 +401,33 @@ func runCompiledTerminalStream(t *testing.T, mode, kiro string) {
 		t.Fatal(err)
 	}
 	defer runner.Close()
+	if modelCheck {
+		var c *catalog.Catalog
+		if kiro != "" {
+			c = terminalDiscoverModels(t, ctx, runner, kiro, root)
+		} else {
+			rows := []catalog.Backend{{ID: modelIDs[0], Name: "Independent first"}, {ID: modelIDs[1], Name: "Independent second"}}
+			for i := 2; i < modelEntries; i++ {
+				rows = append(rows, catalog.Backend{ID: fmt.Sprintf("fixture-spare-%02d", i), Name: fmt.Sprintf("Independent unused model %02d", i)})
+			}
+			c, err = catalog.New(rows, modelIDs[0])
+			if err != nil {
+				t.Fatal("independent model catalog")
+			}
+		}
+		modelIDs, modelLabels, modelLabel, err = terminalModelPlan(c)
+		if err != nil {
+			t.Fatal("current catalog cannot identify an unambiguous model pair")
+		}
+		if modelSlot == 1 {
+			for _, row := range c.List() {
+				backend, _ := c.Resolve(row.ID)
+				if backend.ID == modelIDs[0] {
+					modelLabel = strings.ToLower(row.Name)
+				}
+			}
+		}
+	}
 	env := []string{"HOME=" + home, "PATH=/usr/bin:/bin", "GOTOOLCHAIN=local", "GOPROXY=off", "GOSUMDB=off", "CGO_ENABLED=0"}
 	for _, name := range []string{"GOCACHE", "GOMODCACHE"} {
 		if value := os.Getenv(name); value != "" {
@@ -389,7 +450,7 @@ func runCompiledTerminalStream(t *testing.T, mode, kiro string) {
 		}
 	}
 	args := []string{"run", "--client", filepath.Join(bin, "claude"), "--kiro", filepath.Join(bin, "kiro-cli"), "--settings", settings, "--runtime-dir", artifacts, "--state-dir", filepath.Join(root, "state")}
-	config, _ := json.Marshal(map[string]any{"Root": root, "Proxy": proxy, "Client": client, "Kiro": kiro, "AccountHome": os.Getenv("HOME"), "Project": project, "Args": args, "HeldHook": heldHook, "AllowFollowup": followup || modelCheck, "ModelCheck": modelCheck, "ModelIDs": modelIDs})
+	config, _ := json.Marshal(map[string]any{"Root": root, "Proxy": proxy, "Client": client, "Kiro": kiro, "AccountHome": os.Getenv("HOME"), "Project": project, "Args": args, "HeldHook": heldHook, "AllowFollowup": followup || modelCheck, "ModelCheck": modelCheck, "ModelIDs": modelIDs, "ModelEntries": modelEntries})
 	if os.WriteFile(filepath.Join(bin, "terminal.json"), config, 0600) != nil {
 		t.Fatal("cannot write terminal role configuration")
 	}
@@ -440,7 +501,9 @@ func runCompiledTerminalStream(t *testing.T, mode, kiro string) {
 	var originalProfile, originalEndpoint string
 	var followupObserved bool
 	var modelObserved, modelPickerObserved bool
-	modelPreviousRow, modelMoves := -1, 0
+	modelMenu := terminalModelMenu{labels: modelLabels, target: modelLabel}
+	var modelLastMove time.Time
+	var modelMenuFacts string
 	var modelScreenHints uint32
 	groupsBeforeFollowup := make(map[int]bool)
 	var receiptErr error
@@ -590,18 +653,25 @@ func runCompiledTerminalStream(t *testing.T, mode, kiro string) {
 				return "\r"
 			}
 		case 11:
-			if strings.Contains(lower, "independent first") && strings.Contains(lower, "independent second") {
-				modelPickerObserved = true
-				key, selected := terminalModelPickerKey(screen, modelLabel)
-				if key != "" && selected != modelPreviousRow && modelMoves < 8 {
-					modelMoves++
-					modelPreviousRow = selected
-					if key == "\r" {
-						stage = 14
-					}
-					return key
-				}
+			key := modelMenu.next(screen, time.Now())
+			facts := fmt.Sprintf("actions=%d header=%v footer=%v glyphs=%d recognized_selected_labels=%d currently_visible_labels=%d focused_labels=%d", modelMenu.moves, modelMenu.lastHeader, modelMenu.lastFooter, modelMenu.lastGlyphs, modelMenu.lastKnown, modelMenu.lastVisible, len(modelMenu.focused))
+			if facts != modelMenuFacts {
+				t.Log("model_menu " + facts)
+				modelMenuFacts = facts
 			}
+			if key != "" || modelLastMove.IsZero() {
+				modelLastMove = time.Now()
+			}
+			if time.Since(modelLastMove) > 5*time.Second {
+				receiptErr = errors.New("model menu observation stalled")
+				stop()
+				return ""
+			}
+			modelPickerObserved = modelMenu.covered()
+			if key == "\r" {
+				stage = 14
+			}
+			return key
 		case 14:
 			if strings.Contains(lower, "set model to") && strings.Contains(lower, modelLabel) {
 				if os.WriteFile(filepath.Join(root, "followup-allowed"), []byte("owned-new-question"), 0600) != nil {
@@ -664,7 +734,7 @@ func runCompiledTerminalStream(t *testing.T, mode, kiro string) {
 		}
 		expected, _ := models.ClientID(modelIDs[modelSlot-1])
 		after, afterErr := readTerminalTrace(root)
-		modelRestored = inspectErr == nil && json.Unmarshal(inspection.Stdout, &report) == nil && report.SelectedModel == expected && afterErr == nil && after.Clients == before.Clients && len(after.PIDs) == len(before.PIDs) && len(after.Groups) == len(before.Groups) && after.Attempts == before.Attempts
+		modelRestored = inspectErr == nil && json.Unmarshal(inspection.Stdout, &report) == nil && report.SelectedModel == expected && afterErr == nil && after.Clients == before.Clients && after.ACPs == before.ACPs && len(after.PIDs) == len(before.PIDs) && len(after.Groups) == len(before.Groups) && after.Attempts == before.Attempts
 		sources = sources && beforeSettings == fileFingerprint(t, settings) && beforeGlobal == fileFingerprint(t, filepath.Join(home, ".claude.json"))
 	}
 	lateReleaseQuiet := true
@@ -683,6 +753,8 @@ func runCompiledTerminalStream(t *testing.T, mode, kiro string) {
 	}
 	t.Logf("non_success_prompt_results=%d", trace.PromptFailures)
 	if modelCheck {
+		t.Logf("unadvertised_navigation_row_frames=%d", modelMenu.unadvertisedRows)
+		t.Logf("model_catalog_entries=%d rendered_labels=%d focused_labels=%d menu_actions=%d bounded_reversals=%d first_correlated_markers=%d next_correlated_markers=%d", len(modelLabels), len(modelMenu.seen), len(modelMenu.focused), modelMenu.moves, modelMenu.reversals, trace.ModelFirstMarkers, trace.ModelFollowMarkers)
 		t.Logf("next_preflight_restored_model_without_client_or_acp=%v", modelRestored)
 		t.Logf("model_picker_observed=%v model_transition_observed=%v model_screen_hint_bits=%d first_model_records=%d first_model_slot=%d next_model_records=%d next_model_slot=%d target_acknowledgements=%d", modelPickerObserved, modelObserved, modelScreenHints, trace.ModelFirstRecords, trace.ModelFirstSlot, trace.ModelFollowRecords, trace.ModelFollowSlot, trace.ModelTargetAcks)
 	}

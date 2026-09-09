@@ -131,6 +131,12 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
   and auxiliary-only observations cannot prove a switch. After exit, the next diagnostic preflight
   must restore the delivered model without another client/ACP session or source-settings change.
   This fake-ACP control does not replace actual Kiro selection or conversation-resume gates (D85).
+- The actual model-selection experiment uses a fresh advertised catalog and distinguishes rendered
+  labels, focused catalog rows and successful inference on the chosen pair. Extra selected rows
+  may receive bounded navigation but cannot count as a catalog model or receive Enter. A matching
+  idle ACP acknowledgement and active-session answer marker, correlated end_turn and visible client
+  response must establish the chosen transition; a later diagnostic must restore the delivered
+  model with preserved sources and joined cleanup (D86).
 
 ## E. Tool safety
 

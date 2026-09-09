@@ -6,6 +6,25 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D86 completes one actual Kiro 2.21.2 / Claude 2.1.263 model-selection episode: 23.90s test,
+  25.365s race package, two main prompts and one title. Fresh finite discovery and prompt-free
+  CLI/ACP comparison first establish nineteen equal IDs/aliases and a legacy selector. All nineteen
+  labels render and receive focus in the native picker; a distinct target receives one successful
+  idle ACP acknowledgement before the next question. Each generated marker is observed in its
+  active ACP session text and in the same native client, with correlated end_turn. A following
+  doctor restores the delivered model without another recorded client/ACP session. All four recorded
+  groups/seven PIDs, listener/runtime/profile disappear, terminal settings are restored and sources
+  remain unchanged. No live retry, guard failure or emergency cleanup occurs. The three strengthened
+  fake-ACP controls first pass in 11.94s (13.653s race package), including a nineteen-entry list and
+  unchanged selection. Earlier failed local controls expose an input-prompt glyph outside the menu
+  and unadvertised navigation rows; the heading-clipping hypothesis is rejected. Those rows receive
+  only bounded navigation, never Enter or catalog coverage. Local public-interface Claude advice
+  is saved/read/assessed. No production/dependency/artifact change. Other model pairs, effort changes,
+  authentication expiry, pending-tool recovery, persisted resume, personal-root memory and full
+  release acceptance remain open.
+  The six existing native-Claude/fake-ACP keyboard controls pass in 33.153s; opt-ins-off race suites
+  pass interop 24.109s and observer 1.428s. Whole-repository/observer vet, formatting and whitespace
+  checks pass.
 - D85 adds native Claude model-picker controls through the ordinary compiled command and two
   independent fake-ACP models. Observer and readiness negatives first fail on missing APIs, then
   pass. Both catalog entries appear before selection. Unchanged selection and switching each produce

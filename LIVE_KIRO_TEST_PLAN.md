@@ -1139,3 +1139,47 @@ surface and two declared model IDs. Preserve the finite main/title budget and pa
 Keep full model IDs, session IDs, ACP bodies and UI captures out of retained diagnostics. A failed
 live episode must not be retried automatically. Native Kiro selection and persisted conversation
 resume remain open until their respective real-client observations pass.
+
+## Current-catalog model selection experiment (D86)
+
+Fresh finite discovery finds nineteen entries, and the separate prompt-free CLI/ACP comparison
+confirms all nineteen IDs/aliases, equal current models and the legacy selector. The planned live
+control chooses the CLI default and the first distinct advertised model; identities/labels remain
+in bounded memory. It permits two main prompts and at most two title prompts across replacements,
+unchanged native frame forwarding, and the existing 70-second terminal/120-second overall bounds.
+
+Before selecting, require every advertised label to have rendered and occupied the selected row.
+Only the declared target can receive Enter. Other unambiguous selected rows may receive navigation
+keys but never count as advertised coverage or receive Enter. Bound navigation to three times the
+catalog size plus four actions, at most two 750-ms stalled-key direction reversals, and a five-second
+menu-observation stall. This is an experiment bound, not a CLI latency guarantee. Multiple selection
+glyphs, overlapping labels and missing target/correlation cannot prove a model change. The original
+input prompt above the picker heading is outside its selected-row scope; an unobserved heading is
+not inferred from a footer. Native catalog rows and extra navigation rows are not merged.
+
+The model witness must match the successful idle selection reply to its session-specific request,
+then observe each generated answer marker in that prompt's active ACP session text and in the UI,
+alongside end_turn. Split text chunks are handled with a bounded tail; foreign-session, repeated
+and post-completion markers do not establish the answer. Compare next-preflight restoration and
+unchanged client sources after joined exit, with no new recorded client/ACP session.
+
+All three actual-Claude/fake-ACP controls pass in 11.94s (13.653s race package). The nineteen-model
+case uses 26 navigation/selection actions, focuses all entries, passes five unadvertised-row frames
+without selecting them, and completes both questions with matching markers and one target ack.
+Each control restores the last model and removes all four recorded groups/five PIDs and artifacts.
+Fixed results: `.cache/model-review/d86-picker-controls-final.log`. Local public-interface Claude
+advice is saved/read/assessed; it is not treated as evidence about native implementation internals.
+Run one actual pinned-pair trial next; do not retry a failed provider episode automatically.
+
+The actual Kiro 2.21.2 / Claude 2.1.263 trial passes once in 23.90s (25.365s race package).
+Two main and one title prompt run. All nineteen catalog labels render and receive focus within
+26 key actions, including five unadvertised-row frames which are not selected with Enter or counted
+as catalog coverage. One target-model acknowledgement precedes the second main prompt; both answers
+have active-session markers, visible UI markers and correlated end_turn. The same observed native
+client/proxy/profile/address are retained. A following doctor preflight restores the delivered model
+without a new recorded client/ACP session. Confirmed keyboard exit restores the terminal and removes
+all four recorded groups/seven PIDs, listener/runtime/profile, with unchanged source settings and no
+guard failure, non-success result, emergency cleanup or live retry. Fixed results are in
+`.cache/model-review/d86-live-model-selection.log`. This verifies the advertised session-setting
+contract for the chosen pair, not provider weights or successful inference for every catalog entry.
+Persisted restart/resume, authentication expiry and remaining alpha/release checks remain separate.

@@ -2,6 +2,24 @@ package main
 
 import "testing"
 
+func TestModelAnswerMarkerBelongsToActiveSessionText(t *testing.T) {
+	g := modelWitness{models: [2]string{"fixture-backend", "fixture-target"}, session: "owned-stream", current: 1}
+	for _, tc := range []struct{ from, raw, kind string }{
+		{"client", `{"id":1,"method":"session/prompt","params":{"sessionId":"owned-stream","prompt":[{"type":"text","text":"concatenation of ModelFirst and _61"}]}}`, "prompt-model"},
+		{"agent", `{"method":"session/update","params":{"sessionId":"other","update":{"sessionUpdate":"agent_message_chunk","content":{"type":"text","text":"ModelFirst_61"}}}}`, ""},
+		{"agent", `{"method":"session/update","params":{"sessionId":"owned-stream","update":{"sessionUpdate":"agent_message_chunk","content":{"type":"text","text":"ModelFirst"}}}}`, ""},
+		{"agent", `{"method":"session/update","params":{"sessionId":"owned-stream","update":{"sessionUpdate":"agent_message_chunk","content":{"type":"text","text":"_61"}}}}`, "answer-marker"},
+		{"agent", `{"method":"session/update","params":{"sessionId":"owned-stream","update":{"sessionUpdate":"agent_message_chunk","content":{"type":"text","text":"ModelFirst_61"}}}}`, ""},
+		{"agent", `{"id":1,"result":{"stopReason":"end_turn"}}`, ""},
+		{"agent", `{"method":"session/update","params":{"sessionId":"owned-stream","update":{"sessionUpdate":"agent_message_chunk","content":{"type":"text","text":"ModelFirst_61"}}}}`, ""},
+	} {
+		kind, _, err := g.inspect(tc.from, []byte(tc.raw))
+		if err != nil || kind != tc.kind {
+			t.Fatal("marker attributed outside its active session response")
+		}
+	}
+}
+
 func TestModelObservationRequiresSuccessfulCorrelatedSelection(t *testing.T) {
 	g := modelWitness{models: [2]string{"fixture-backend", "fixture-target"}}
 	for _, tc := range []struct {

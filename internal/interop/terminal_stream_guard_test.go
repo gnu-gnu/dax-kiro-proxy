@@ -24,13 +24,14 @@ func TestModelPickerMovesOnlyFromAnObservedSelection(t *testing.T) {
 }
 
 func TestTerminalModelCompletionNeedsBothPromptsOnTheirObservedModels(t *testing.T) {
-	good := terminalTrace{Clients: 1, Prompts: 1, Texts: 1, Ends: 1, FollowPrompts: 1, FollowTexts: 1, FollowEnds: 1, ModelFirstRecords: 1, ModelFollowRecords: 1, ModelFirstSlot: 1, ModelFollowSlot: 2, ModelTargetAcks: 1}
+	good := terminalTrace{Clients: 1, Prompts: 1, Texts: 1, Ends: 1, FollowPrompts: 1, FollowTexts: 1, FollowEnds: 1, ModelFirstRecords: 1, ModelFollowRecords: 1, ModelFirstSlot: 1, ModelFollowSlot: 2, ModelTargetAcks: 1, ModelFirstMarkers: 1, ModelFollowMarkers: 1}
 	for _, tc := range []struct {
 		name   string
 		change func(*terminalTrace)
 	}{
 		{"wrong-model", func(r *terminalTrace) { r.ModelFollowSlot = 1 }},
 		{"missing-ack", func(r *terminalTrace) { r.ModelTargetAcks = 0 }},
+		{"missing-answer-marker", func(r *terminalTrace) { r.ModelFollowMarkers = 0 }},
 		{"missing-observation", func(r *terminalTrace) { r.ModelFollowRecords = 0 }},
 		{"only-title", func(r *terminalTrace) { r.FollowPrompts = 0; r.TitlePrompts = 1 }},
 		{"failed", func(r *terminalTrace) { r.PromptFailures = 1 }},

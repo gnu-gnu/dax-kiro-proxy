@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"strings"
 	"sync"
 )
 
@@ -13,6 +14,8 @@ type modelWitness struct {
 	models                    [2]string
 	session                   string
 	current, pending          int
+	marker, tail              string
+	marked                    bool
 	newID, selectID, promptID json.RawMessage
 }
 
@@ -22,7 +25,13 @@ func (g *modelWitness) inspect(from string, raw []byte) (string, int, error) {
 	var packet struct {
 		ID     json.RawMessage
 		Method string
-		Params struct{ SessionID, ModelID string }
+		Params struct {
+			SessionID, ModelID string
+			Update             struct {
+				SessionUpdate string
+				Content       struct{ Type, Text string }
+			}
+		}
 		Result json.RawMessage
 		Error  json.RawMessage
 	}
@@ -46,6 +55,12 @@ func (g *modelWitness) inspect(from string, raw []byte) (string, int, error) {
 					return "", 0, errFrame
 				}
 				g.promptID = append([]byte(nil), packet.ID...)
+				g.marker, g.tail, g.marked = "", "", false
+				if bytes.Contains(raw, []byte("concatenation of ModelSecond and _67")) {
+					g.marker = "ModelSecond_67"
+				} else if bytes.Contains(raw, []byte("concatenation of ModelFirst and _61")) {
+					g.marker = "ModelFirst_61"
+				}
 				return "prompt-model", g.current, nil
 			}
 			g.pending = g.slot(packet.Params.ModelID)
@@ -55,6 +70,18 @@ func (g *modelWitness) inspect(from string, raw []byte) (string, int, error) {
 			g.selectID = append([]byte(nil), packet.ID...)
 		}
 		return "", 0, nil
+	}
+	if packet.Method == "session/update" && len(g.promptID) > 0 && packet.Params.SessionID == g.session && packet.Params.Update.SessionUpdate == "agent_message_chunk" && packet.Params.Update.Content.Type == "text" && g.marker != "" && !g.marked {
+		text := g.tail + packet.Params.Update.Content.Text
+		if len(text) > 64 {
+			g.tail = text[len(text)-64:]
+		} else {
+			g.tail = text
+		}
+		if strings.Contains(text, g.marker) {
+			g.marked = true
+			return "answer-marker", g.current, nil
+		}
 	}
 	if packet.Method != "" || !validID {
 		return "", 0, nil

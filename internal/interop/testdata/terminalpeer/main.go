@@ -26,6 +26,7 @@ import (
 
 type config struct {
 	ModelCheck                                      bool
+	ModelEntries                                    int
 	ModelIDs                                        [2]string
 	AllowFollowup                                   bool
 	HeldHook                                        bool
@@ -137,7 +138,12 @@ func main() {
 				fmt.Println(`{"accountType":"fixture","email":"terminal@example.invalid"}`)
 			case "chat --list-models --format json":
 				if cfg.ModelCheck {
-					fmt.Println(`{"default_model":"fixture-backend","models":[{"model_id":"fixture-backend","model_name":"Independent first"},{"model_id":"fixture-target","model_name":"Independent second"}]}`)
+					var rows []map[string]string
+					for _, row := range fakeModelEntries() {
+						rows = append(rows, map[string]string{"model_id": row["modelId"], "model_name": row["name"]})
+					}
+					data, _ := json.Marshal(map[string]any{"default_model": "fixture-backend", "models": rows})
+					fmt.Println(string(data))
 				} else {
 					fmt.Println(`{"default_model":"fixture-backend","models":[{"model_id":"fixture-backend","model_name":"Independent terminal stream"}]}`)
 				}
@@ -388,9 +394,9 @@ func fakeACP() {
 		case "initialize":
 			reply(r.ID, map[string]any{"protocolVersion": 1, "agentCapabilities": map[string]any{}, "agentInfo": map[string]string{"name": "independent-terminal", "version": "1"}})
 		case "session/new":
-			models := []any{map[string]string{"modelId": "fixture-backend", "name": "Independent first"}}
+			models := []map[string]string{{"modelId": "fixture-backend", "name": "Independent first"}}
 			if cfg.ModelCheck {
-				models = append(models, map[string]string{"modelId": "fixture-target", "name": "Independent second"})
+				models = fakeModelEntries()
 			}
 			reply(r.ID, map[string]any{"sessionId": "owned-stream", "models": map[string]any{"currentModelId": "fixture-backend", "availableModels": models}})
 		case "session/set_model":
@@ -456,4 +462,12 @@ func fakeACP() {
 			}
 		}
 	}
+}
+
+func fakeModelEntries() []map[string]string {
+	rows := []map[string]string{{"modelId": "fixture-backend", "name": "Independent first"}, {"modelId": "fixture-target", "name": "Independent second"}}
+	for i := 2; i < min(cfg.ModelEntries, 32); i++ {
+		rows = append(rows, map[string]string{"modelId": fmt.Sprintf("fixture-spare-%02d", i), "name": fmt.Sprintf("Independent unused model %02d", i)})
+	}
+	return rows
 }
