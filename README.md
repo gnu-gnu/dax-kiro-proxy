@@ -160,6 +160,11 @@ priority is client-environment preservation, broader client request compatibilit
 live alpha lifecycle checks. Optional web/account-usage
 features, full Anthropic API coverage and release soak tests are not development-launch prerequisites.
 
+Phase 7 now has an identified development-binary dependency inventory and retained scoped notices
+(D78). `python3 tools/verify_dependency_inventory.py --gomodcache .cache/gomod --binary
+dist/dax-kiro-proxy` checks that frozen snapshot offline. It is not a release license clearance or
+an installer; see DEPENDENCY_REVIEW.md for resource differences and remaining packaging/rights work.
+
 ## Naming
 
 `dax-kiro-proxy` is the working product and executable name. Names, environment variables, endpoint

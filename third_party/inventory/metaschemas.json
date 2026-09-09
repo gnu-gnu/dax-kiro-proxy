@@ -1,0 +1,866 @@
+{
+  "date": "2026-09-09",
+  "module": "github.com/santhosh-tekuri/jsonschema/v6",
+  "version": "v6.0.3",
+  "canonicalization": "JSON parse then sorted object keys; array order and string values unchanged",
+  "resources": [
+    {
+      "embedded_path": "metaschemas/draft-04/schema",
+      "source_url": "https://json-schema.org/draft-04/schema",
+      "embedded_bytes": 3251,
+      "embedded_sha256": "5e4a46b433800681b8da4911df61cd72212d5bce2839e1c772e2b99a89fbbf09",
+      "fetch_exit": 0,
+      "source_bytes": 4357,
+      "source_sha256": "e1489d0b4755f02793302591d3fcb8f07b6893a82a94f24895f8e4edf11b82e2",
+      "byte_equal": false,
+      "json_equal": false,
+      "embedded_json_sha256": "a510e8d842e5050b88fa558b73232944750413f3126eb9a0562a00d40bb3e7e5",
+      "source_json_sha256": "c8aa3d8de08d4e2048ed2d5a223c31f5dcf4dcbc2adcea628e0a522f0e1ba44a",
+      "json_differences": [
+        {
+          "pointer": "/id",
+          "kind": "official-only",
+          "embedded": null,
+          "official": "http://json-schema.org/draft-04/schema#"
+        },
+        {
+          "pointer": "/properties/$ref",
+          "kind": "embedded-only",
+          "embedded": {
+            "type": "string"
+          },
+          "official": null
+        },
+        {
+          "pointer": "/properties/$schema/format",
+          "kind": "embedded-only",
+          "embedded": "uri",
+          "official": null
+        },
+        {
+          "pointer": "/properties/id/format",
+          "kind": "embedded-only",
+          "embedded": "uriref",
+          "official": null
+        }
+      ],
+      "tag_comparison": {
+        "tag": "draft-zyp-json-schema-04",
+        "commit": "d4c5b3a2924370c51b710c8bfd81d3644a92766e",
+        "url": "https://raw.githubusercontent.com/json-schema-org/json-schema-spec/d4c5b3a2924370c51b710c8bfd81d3644a92766e/schema.json",
+        "fetch_exit": 0,
+        "bytes": 4375,
+        "sha256": "7353ff13faa979027813b95c8b35f992057822696a70c43c79b3bfb7249e76b4",
+        "json_sha256": "f5a3fba741c4f13b5f628fc21d7bf89d74311e4a916fcd30d1576a388fcc38ac",
+        "json_equal_to_embedded": false,
+        "json_equal_to_published": false,
+        "json_differences": [
+          {
+            "pointer": "/id",
+            "kind": "tag-only",
+            "tag": "http://json-schema.org/draft-04/schema#"
+          },
+          {
+            "pointer": "/properties/$ref",
+            "kind": "embedded-only",
+            "embedded": {
+              "type": "string"
+            }
+          },
+          {
+            "pointer": "/properties/format",
+            "kind": "embedded-only",
+            "embedded": {
+              "type": "string"
+            }
+          },
+          {
+            "pointer": "/properties/id/format",
+            "embedded": "uriref",
+            "tag": "uri"
+          }
+        ]
+      },
+      "content_relation": "differences from both observed official sources"
+    },
+    {
+      "embedded_path": "metaschemas/draft-06/schema",
+      "source_url": "https://json-schema.org/draft-06/schema",
+      "embedded_bytes": 3195,
+      "embedded_sha256": "bf7460259b94e8291eaeec1b077f98caff3d16df17ee2a99208f74f1412c4932",
+      "fetch_exit": 0,
+      "source_bytes": 4497,
+      "source_sha256": "0064e880ba214bff1cee511e678fbe48c9826dd359e91e2423fc36de67b2ebe1",
+      "byte_equal": false,
+      "json_equal": false,
+      "embedded_json_sha256": "b3a1ed69b391f00583c7db22150c11ab48a093464b299adad645a0746976bf9b",
+      "source_json_sha256": "81ee5d41afafbab79ec1aa5de20369d47c587c75239ab764991d927a7993c49b",
+      "json_differences": [
+        {
+          "pointer": "/properties/examples",
+          "kind": "official-only",
+          "embedded": null,
+          "official": {
+            "type": "array",
+            "items": {}
+          }
+        },
+        {
+          "pointer": "/properties/patternProperties/propertyNames",
+          "kind": "official-only",
+          "embedded": null,
+          "official": {
+            "format": "regex"
+          }
+        }
+      ],
+      "tag_comparison": {
+        "tag": "draft-wright-json-schema-01",
+        "commit": "4b495a2933b1d6f75298abdd23f018ba6a9d4f4a",
+        "url": "https://raw.githubusercontent.com/json-schema-org/json-schema-spec/4b495a2933b1d6f75298abdd23f018ba6a9d4f4a/schema.json",
+        "fetch_exit": 0,
+        "bytes": 4359,
+        "sha256": "66b96857b160d07a0be15dc25e64831b1e841656f5d3197770ceb2dcddbcb49c",
+        "json_sha256": "b3a1ed69b391f00583c7db22150c11ab48a093464b299adad645a0746976bf9b",
+        "json_equal_to_embedded": true,
+        "json_equal_to_published": false,
+        "json_differences": []
+      },
+      "content_relation": "structural match with an observed official source"
+    },
+    {
+      "embedded_path": "metaschemas/draft-07/schema",
+      "source_url": "https://json-schema.org/draft-07/schema",
+      "embedded_bytes": 3656,
+      "embedded_sha256": "943da3dc9a29dbfbd325aec2ca01cfd6304a1cd53fde2c9775bcca6523f6410e",
+      "fetch_exit": 0,
+      "source_bytes": 4979,
+      "source_sha256": "692e1d165e47afcb5f11b2ce1c639635ffa834035d6ecb6bcf3087481dae8404",
+      "byte_equal": false,
+      "json_equal": true,
+      "embedded_json_sha256": "78096ca40043e922570658ce668522a5d8d2a9286c8522a1148415383eabc93e",
+      "source_json_sha256": "78096ca40043e922570658ce668522a5d8d2a9286c8522a1148415383eabc93e",
+      "json_differences": [],
+      "tag_comparison": {
+        "tag": "draft-handrews-json-schema-01",
+        "commit": "1afc34b65ead445ff363cfc870a28de0ca56e20f",
+        "url": "https://raw.githubusercontent.com/json-schema-org/json-schema-spec/1afc34b65ead445ff363cfc870a28de0ca56e20f/schema.json",
+        "fetch_exit": 0,
+        "bytes": 4879,
+        "sha256": "7f5fd717194bd954bbb04c833f6116f727d899c7bc977c26abcb2607aa51d66a",
+        "json_sha256": "4b3276c79f5f2c557a062a69a88c209d1b48d9c574d2df4dce620d7ab53cb500",
+        "json_equal_to_embedded": false,
+        "json_equal_to_published": false,
+        "json_differences": [
+          {
+            "pointer": "/properties/writeOnly",
+            "kind": "embedded-only",
+            "embedded": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ]
+      },
+      "content_relation": "structural match with an observed official source"
+    },
+    {
+      "embedded_path": "metaschemas/draft/2019-09/meta/applicator",
+      "source_url": "https://json-schema.org/draft/2019-09/meta/applicator",
+      "embedded_bytes": 1511,
+      "embedded_sha256": "c18c9d8880297184560f6d82a2fc035211630474d1b2547feaccf221b9786211",
+      "fetch_exit": 0,
+      "source_bytes": 1761,
+      "source_sha256": "6b5f4e2fbc326d63cef6f6a3fa53bbfd3da39323116bc2eee866d716afc0e52c",
+      "byte_equal": false,
+      "json_equal": false,
+      "embedded_json_sha256": "b7b34b2551fbbf139502ef1a5ed134b50214d6d15647e8498d8f33857fc7f8d8",
+      "source_json_sha256": "bf36835ebf0486796b3eff82f3ac537f2ea75b556273d680d9dd56323511a3a4",
+      "json_differences": [
+        {
+          "pointer": "/$vocabulary",
+          "kind": "embedded-only",
+          "embedded": {
+            "https://json-schema.org/draft/2019-09/vocab/applicator": true
+          },
+          "official": null
+        }
+      ],
+      "tag_comparison": {
+        "tag": "draft-handrews-json-schema-02",
+        "commit": "38e1606d71ee848c6cf0490c3457681220c01663",
+        "url": "https://raw.githubusercontent.com/json-schema-org/json-schema-spec/38e1606d71ee848c6cf0490c3457681220c01663/meta/applicator.json",
+        "fetch_exit": 0,
+        "bytes": 1931,
+        "sha256": "01aba5506aac17144455e6e6c2ce9650959657e68672b005c9dce221a0eff666",
+        "json_sha256": "64fe42a376b1fcadfa330b5ffc8655d1d5766007959874481207a1f5e474ce6a",
+        "json_equal_to_embedded": false,
+        "json_equal_to_published": false,
+        "json_differences": [
+          {
+            "pointer": "/properties/unevaluatedProperties/$recursiveRef",
+            "kind": "embedded-only",
+            "embedded": "#"
+          },
+          {
+            "pointer": "/properties/unevaluatedProperties/additionalProperties",
+            "kind": "tag-only",
+            "tag": {
+              "$recursiveRef": "#"
+            }
+          },
+          {
+            "pointer": "/properties/unevaluatedProperties/type",
+            "kind": "tag-only",
+            "tag": "object"
+          },
+          {
+            "pointer": "/type",
+            "kind": "embedded-only",
+            "embedded": [
+              "object",
+              "boolean"
+            ]
+          }
+        ]
+      },
+      "content_relation": "differences from both observed official sources"
+    },
+    {
+      "embedded_path": "metaschemas/draft/2019-09/meta/content",
+      "source_url": "https://json-schema.org/draft/2019-09/meta/content",
+      "embedded_bytes": 464,
+      "embedded_sha256": "03d8e25955252927e34016e03f51297475ace9de4551839d1b54c9f5736ff6d6",
+      "fetch_exit": 0,
+      "source_bytes": 421,
+      "source_sha256": "9054737ada8e2ffbd9c9487ea406a86af8b57dcfd269543f04aba782936e3385",
+      "byte_equal": false,
+      "json_equal": false,
+      "embedded_json_sha256": "4dbfe51279467891d13371cf8d2fe5a9c375c5779f8c6852df8fca95157efb2e",
+      "source_json_sha256": "a694e333b15799d852deb7c0523b88ce0e462d8bfafa95a6f851fa6e2e361641",
+      "json_differences": [
+        {
+          "pointer": "/$vocabulary",
+          "kind": "embedded-only",
+          "embedded": {
+            "https://json-schema.org/draft/2019-09/vocab/content": true
+          },
+          "official": null
+        }
+      ],
+      "tag_comparison": {
+        "tag": "draft-handrews-json-schema-02",
+        "commit": "38e1606d71ee848c6cf0490c3457681220c01663",
+        "url": "https://raw.githubusercontent.com/json-schema-org/json-schema-spec/38e1606d71ee848c6cf0490c3457681220c01663/meta/content.json",
+        "fetch_exit": 0,
+        "bytes": 517,
+        "sha256": "9b7d4f55a4e2fdb02c430068fdffabc732addce238da3f1df2690249c3353274",
+        "json_sha256": "4dbfe51279467891d13371cf8d2fe5a9c375c5779f8c6852df8fca95157efb2e",
+        "json_equal_to_embedded": true,
+        "json_equal_to_published": false,
+        "json_differences": []
+      },
+      "content_relation": "structural match with an observed official source"
+    },
+    {
+      "embedded_path": "metaschemas/draft/2019-09/meta/core",
+      "source_url": "https://json-schema.org/draft/2019-09/meta/core",
+      "embedded_bytes": 1146,
+      "embedded_sha256": "a3dfd7891bc6ec4a0147289bc99de4cec2a84ff542b2edfac6de95f402907503",
+      "fetch_exit": 0,
+      "source_bytes": 1438,
+      "source_sha256": "a6751523406d9ca767032ae97eb1c00c2de6d3cac9fc7d619babb460131cc1cb",
+      "byte_equal": false,
+      "json_equal": false,
+      "embedded_json_sha256": "02cc9b0090db51b5b7ed2ba3b6c10cc8eb2b563a3f1c09aaa21cbc65a52494ad",
+      "source_json_sha256": "4d720202393271a01ec343228376cded1e3e5d08aa4e1edce2b1652c77b34466",
+      "json_differences": [
+        {
+          "pointer": "/$vocabulary",
+          "kind": "embedded-only",
+          "embedded": {
+            "https://json-schema.org/draft/2019-09/vocab/core": true
+          },
+          "official": null
+        }
+      ],
+      "tag_comparison": {
+        "tag": "draft-handrews-json-schema-02",
+        "commit": "38e1606d71ee848c6cf0490c3457681220c01663",
+        "url": "https://raw.githubusercontent.com/json-schema-org/json-schema-spec/38e1606d71ee848c6cf0490c3457681220c01663/meta/core.json",
+        "fetch_exit": 0,
+        "bytes": 1557,
+        "sha256": "5bfd9b5496e11e24adb66bb8a7a852296660f78ee00dfe8dcf832b07527dc5f0",
+        "json_sha256": "633af342213241405721fa6a771afe8155a469709706cfcaa52f69d02ef07e28",
+        "json_equal_to_embedded": false,
+        "json_equal_to_published": false,
+        "json_differences": [
+          {
+            "pointer": "/properties/$id/pattern",
+            "embedded": "^[^#]*#?$",
+            "tag": "^[^#]#?$"
+          },
+          {
+            "pointer": "/properties/$recursiveAnchor/const",
+            "kind": "tag-only",
+            "tag": true
+          }
+        ]
+      },
+      "content_relation": "differences from both observed official sources"
+    },
+    {
+      "embedded_path": "metaschemas/draft/2019-09/meta/format",
+      "source_url": "https://json-schema.org/draft/2019-09/meta/format",
+      "embedded_bytes": 363,
+      "embedded_sha256": "708bad3c6cee27e8c0d5cbf26e41eef6f1c56fec5f91b0eaa471ef2fc521d463",
+      "fetch_exit": 0,
+      "source_bytes": 308,
+      "source_sha256": "a53cf235aab26c7639e70e94656136b20bcc364379c6a129cc06377982f91e96",
+      "byte_equal": false,
+      "json_equal": false,
+      "embedded_json_sha256": "e6c874b36a3a0522ae8a059e139ea9232f4375f7835d4788322862723e4ebc63",
+      "source_json_sha256": "2bf4114e1d0422f561d47b02fc76fc5382a5d39848f426e824e424e073c7fccd",
+      "json_differences": [
+        {
+          "pointer": "/$vocabulary",
+          "kind": "embedded-only",
+          "embedded": {
+            "https://json-schema.org/draft/2019-09/vocab/format": true
+          },
+          "official": null
+        }
+      ],
+      "tag_comparison": {
+        "tag": "draft-handrews-json-schema-02",
+        "commit": "38e1606d71ee848c6cf0490c3457681220c01663",
+        "url": "https://raw.githubusercontent.com/json-schema-org/json-schema-spec/38e1606d71ee848c6cf0490c3457681220c01663/meta/format.json",
+        "fetch_exit": 0,
+        "bytes": 403,
+        "sha256": "50ebbfe790611a849b8cc400a09c1d0e0fb6ab5c0d43a0f22201fd3625056bf4",
+        "json_sha256": "e6c874b36a3a0522ae8a059e139ea9232f4375f7835d4788322862723e4ebc63",
+        "json_equal_to_embedded": true,
+        "json_equal_to_published": false,
+        "json_differences": []
+      },
+      "content_relation": "structural match with an observed official source"
+    },
+    {
+      "embedded_path": "metaschemas/draft/2019-09/meta/meta-data",
+      "source_url": "https://json-schema.org/draft/2019-09/meta/meta-data",
+      "embedded_bytes": 689,
+      "embedded_sha256": "a72a0fbc2272d9effcc71a159f9c92f0ef4417c0f1677f515767de77b5238a0a",
+      "fetch_exit": 0,
+      "source_bytes": 794,
+      "source_sha256": "ebcce1cded976590c75b4e5ee18ac471ffd8d21575a41d3ba05f59946fcbb5ce",
+      "byte_equal": false,
+      "json_equal": false,
+      "embedded_json_sha256": "8c685e5129ef0e49f6af2881c26419b3cab9f2326dbba6e66971f23d642b7964",
+      "source_json_sha256": "1a3753aec396bbb3a4a01c492b5f1a779c09ccb7aa13c710c885660a4be7e511",
+      "json_differences": [
+        {
+          "pointer": "/$vocabulary",
+          "kind": "embedded-only",
+          "embedded": {
+            "https://json-schema.org/draft/2019-09/vocab/meta-data": true
+          },
+          "official": null
+        }
+      ],
+      "tag_comparison": {
+        "tag": "draft-handrews-json-schema-02",
+        "commit": "38e1606d71ee848c6cf0490c3457681220c01663",
+        "url": "https://raw.githubusercontent.com/json-schema-org/json-schema-spec/38e1606d71ee848c6cf0490c3457681220c01663/meta/meta-data.json",
+        "fetch_exit": 0,
+        "bytes": 892,
+        "sha256": "d47e2445dd6a82271a298d83cc6c6cb8d4ae1e15e0dc56becd37a163ecf01286",
+        "json_sha256": "8c685e5129ef0e49f6af2881c26419b3cab9f2326dbba6e66971f23d642b7964",
+        "json_equal_to_embedded": true,
+        "json_equal_to_published": false,
+        "json_differences": []
+      },
+      "content_relation": "structural match with an observed official source"
+    },
+    {
+      "embedded_path": "metaschemas/draft/2019-09/meta/validation",
+      "source_url": "https://json-schema.org/draft/2019-09/meta/validation",
+      "embedded_bytes": 2107,
+      "embedded_sha256": "e1a3128accd99efc4cc198545479eae1548ce303a96810c1a0a28f022f0489a2",
+      "fetch_exit": 0,
+      "source_bytes": 2735,
+      "source_sha256": "c83c5121d0afd313846002429cd16b08ab77be022f423c70f0cfb64adc1069b7",
+      "byte_equal": false,
+      "json_equal": false,
+      "embedded_json_sha256": "e4c01a8d9ca3ac0379ace5af307f3ed911df6257b7a98f9058ef89ffb3437582",
+      "source_json_sha256": "d6eec995a52469db2c125a74cfe2b0380f9eb431f7afdc7ddfc5661c88350a05",
+      "json_differences": [
+        {
+          "pointer": "/$vocabulary",
+          "kind": "embedded-only",
+          "embedded": {
+            "https://json-schema.org/draft/2019-09/vocab/validation": true
+          },
+          "official": null
+        }
+      ],
+      "tag_comparison": {
+        "tag": "draft-handrews-json-schema-02",
+        "commit": "38e1606d71ee848c6cf0490c3457681220c01663",
+        "url": "https://raw.githubusercontent.com/json-schema-org/json-schema-spec/38e1606d71ee848c6cf0490c3457681220c01663/meta/validation.json",
+        "fetch_exit": 0,
+        "bytes": 2834,
+        "sha256": "1e526c1d335a734805fc82cf5798c12b960ad7da2517c66cda5a1b09359c3c1c",
+        "json_sha256": "e4c01a8d9ca3ac0379ace5af307f3ed911df6257b7a98f9058ef89ffb3437582",
+        "json_equal_to_embedded": true,
+        "json_equal_to_published": false,
+        "json_differences": []
+      },
+      "content_relation": "structural match with an observed official source"
+    },
+    {
+      "embedded_path": "metaschemas/draft/2019-09/schema",
+      "source_url": "https://json-schema.org/draft/2019-09/schema",
+      "embedded_bytes": 1529,
+      "embedded_sha256": "9591bb2cf00ab32193870cb6a2ca4c32ae89e254af154f4e971c61a6ee82da03",
+      "fetch_exit": 0,
+      "source_bytes": 1785,
+      "source_sha256": "7b761b3e121f0a0ca1ea2a0b8e2cc856bcf801604b8268d71bacaa202bc0c13b",
+      "byte_equal": false,
+      "json_equal": true,
+      "embedded_json_sha256": "2b629425923759fc850153f5629d42947365cd4f29775fe9590e1e220b5eef90",
+      "source_json_sha256": "2b629425923759fc850153f5629d42947365cd4f29775fe9590e1e220b5eef90",
+      "json_differences": [],
+      "tag_comparison": {
+        "tag": "draft-handrews-json-schema-02",
+        "commit": "38e1606d71ee848c6cf0490c3457681220c01663",
+        "url": "https://raw.githubusercontent.com/json-schema-org/json-schema-spec/38e1606d71ee848c6cf0490c3457681220c01663/schema.json",
+        "fetch_exit": 0,
+        "bytes": 1785,
+        "sha256": "7b761b3e121f0a0ca1ea2a0b8e2cc856bcf801604b8268d71bacaa202bc0c13b",
+        "json_sha256": "2b629425923759fc850153f5629d42947365cd4f29775fe9590e1e220b5eef90",
+        "json_equal_to_embedded": true,
+        "json_equal_to_published": true,
+        "json_differences": []
+      },
+      "content_relation": "structural match with an observed official source"
+    },
+    {
+      "embedded_path": "metaschemas/draft/2020-12/meta/applicator",
+      "source_url": "https://json-schema.org/draft/2020-12/meta/applicator",
+      "embedded_bytes": 1427,
+      "embedded_sha256": "3b4baccc121371207bcb2d3137b9b93a251b2029df85ecda0ca625ecd1ab9b30",
+      "fetch_exit": 0,
+      "source_bytes": 1560,
+      "source_sha256": "bf273b26f9f735b93ece78f2b61b36676e1d122ce78ab37ad5a2e45dfa1ca2b1",
+      "byte_equal": false,
+      "json_equal": false,
+      "embedded_json_sha256": "46a5141432ac51fff467e6c2230c19cba0b07d6a492c0fb062a1a852c370eed7",
+      "source_json_sha256": "99acbca4962815f7affa9bc2fb73da64d79c884d22969d203239b302d6abc15b",
+      "json_differences": [
+        {
+          "pointer": "/$vocabulary",
+          "kind": "embedded-only",
+          "embedded": {
+            "https://json-schema.org/draft/2020-12/vocab/applicator": true
+          },
+          "official": null
+        }
+      ],
+      "tag_comparison": {
+        "tag": "draft-bhutton-json-schema-01",
+        "commit": "add836e705c9a07434c467b6b90946ba45258a73",
+        "url": "https://raw.githubusercontent.com/json-schema-org/json-schema-spec/add836e705c9a07434c467b6b90946ba45258a73/meta/applicator.json",
+        "fetch_exit": 0,
+        "bytes": 1659,
+        "sha256": "c4a6e4147b91fef7fea6dc058cb1bf93402f7414b76578a8b16aaf1dad6aacef",
+        "json_sha256": "46a5141432ac51fff467e6c2230c19cba0b07d6a492c0fb062a1a852c370eed7",
+        "json_equal_to_embedded": true,
+        "json_equal_to_published": false,
+        "json_differences": []
+      },
+      "content_relation": "structural match with an observed official source"
+    },
+    {
+      "embedded_path": "metaschemas/draft/2020-12/meta/content",
+      "source_url": "https://json-schema.org/draft/2020-12/meta/content",
+      "embedded_bytes": 479,
+      "embedded_sha256": "3be161f2e963fbb8f09a756cc3b02adbe5375fe71020b959213e2b58e92f5886",
+      "fetch_exit": 0,
+      "source_bytes": 423,
+      "source_sha256": "a10456605b2b5bb12a1b4dcfc0300f02f54d3e8bb3646bed7724583866627682",
+      "byte_equal": false,
+      "json_equal": false,
+      "embedded_json_sha256": "adcc808be6d10c12a2fcdf3123ecc4b56b18df58fc86001f2740ddd10fdeedfd",
+      "source_json_sha256": "b4b9e0a5bf58a72d0ccd6ced2c3d142b45607e29c7dd04d2451555bc52d86588",
+      "json_differences": [
+        {
+          "pointer": "/$vocabulary",
+          "kind": "embedded-only",
+          "embedded": {
+            "https://json-schema.org/draft/2020-12/vocab/content": true
+          },
+          "official": null
+        }
+      ],
+      "tag_comparison": {
+        "tag": "draft-bhutton-json-schema-01",
+        "commit": "add836e705c9a07434c467b6b90946ba45258a73",
+        "url": "https://raw.githubusercontent.com/json-schema-org/json-schema-spec/add836e705c9a07434c467b6b90946ba45258a73/meta/content.json",
+        "fetch_exit": 0,
+        "bytes": 519,
+        "sha256": "08343747764e4a5814262793cf4d652057a7913863c5950d43297e8e1fdac5b6",
+        "json_sha256": "adcc808be6d10c12a2fcdf3123ecc4b56b18df58fc86001f2740ddd10fdeedfd",
+        "json_equal_to_embedded": true,
+        "json_equal_to_published": false,
+        "json_differences": []
+      },
+      "content_relation": "structural match with an observed official source"
+    },
+    {
+      "embedded_path": "metaschemas/draft/2020-12/meta/core",
+      "source_url": "https://json-schema.org/draft/2020-12/meta/core",
+      "embedded_bytes": 1302,
+      "embedded_sha256": "ea945e11e766783c05ef2bda8958ef2b64746430b6b7475c1915babbd6c01264",
+      "fetch_exit": 0,
+      "source_bytes": 1471,
+      "source_sha256": "21f79d143fab1f180245c331e5657057045b36794d41fe151e6e4fed65035299",
+      "byte_equal": false,
+      "json_equal": false,
+      "embedded_json_sha256": "fc882f9fe8343beacb4b47b4a65441a9bfe2a15f279c66ceb6ddd65da7586edd",
+      "source_json_sha256": "ad8215307102613a5bc5ec083b79bb705926749d7ae20ec06a950dceeff7b73e",
+      "json_differences": [
+        {
+          "pointer": "/$vocabulary",
+          "kind": "embedded-only",
+          "embedded": {
+            "https://json-schema.org/draft/2020-12/vocab/core": true
+          },
+          "official": null
+        }
+      ],
+      "tag_comparison": {
+        "tag": "draft-bhutton-json-schema-01",
+        "commit": "add836e705c9a07434c467b6b90946ba45258a73",
+        "url": "https://raw.githubusercontent.com/json-schema-org/json-schema-spec/add836e705c9a07434c467b6b90946ba45258a73/meta/core.json",
+        "fetch_exit": 0,
+        "bytes": 1564,
+        "sha256": "c2d12a8e4dd11d336dfc83a3f663aa4c69f0b49b3beb094ffeb25b5316f4803d",
+        "json_sha256": "fc882f9fe8343beacb4b47b4a65441a9bfe2a15f279c66ceb6ddd65da7586edd",
+        "json_equal_to_embedded": true,
+        "json_equal_to_published": false,
+        "json_differences": []
+      },
+      "content_relation": "structural match with an observed official source"
+    },
+    {
+      "embedded_path": "metaschemas/draft/2020-12/meta/format-annotation",
+      "source_url": "https://json-schema.org/draft/2020-12/meta/format-annotation",
+      "embedded_bytes": 419,
+      "embedded_sha256": "59cb0d1d59c430d5d691f4712dc2b4d09ba6dafcb90f7ce14b8f11b07340a6c6",
+      "fetch_exit": 0,
+      "source_bytes": 342,
+      "source_sha256": "5c79404f831dd905c0f40fefac7c6f3e51bf3729b4a876a5c2020178d97f3bcc",
+      "byte_equal": false,
+      "json_equal": false,
+      "embedded_json_sha256": "f35165bc538974536af0c491819172f68e32e304e677742e67fe12f008731e60",
+      "source_json_sha256": "8222ba5d07dec009463cba345e8e9984001c5392c26b5e657046f0b85d8c82b5",
+      "json_differences": [
+        {
+          "pointer": "/$vocabulary",
+          "kind": "embedded-only",
+          "embedded": {
+            "https://json-schema.org/draft/2020-12/vocab/format-annotation": true
+          },
+          "official": null
+        }
+      ],
+      "tag_comparison": {
+        "tag": "draft-bhutton-json-schema-01",
+        "commit": "add836e705c9a07434c467b6b90946ba45258a73",
+        "url": "https://raw.githubusercontent.com/json-schema-org/json-schema-spec/add836e705c9a07434c467b6b90946ba45258a73/meta/format-annotation.json",
+        "fetch_exit": 0,
+        "bytes": 448,
+        "sha256": "abc775adfefd89d22358170d9bf93f4ebd2349563bbbedd60f02bef7c812bcc0",
+        "json_sha256": "f35165bc538974536af0c491819172f68e32e304e677742e67fe12f008731e60",
+        "json_equal_to_embedded": true,
+        "json_equal_to_published": false,
+        "json_differences": []
+      },
+      "content_relation": "structural match with an observed official source"
+    },
+    {
+      "embedded_path": "metaschemas/draft/2020-12/meta/format-assertion",
+      "source_url": "https://json-schema.org/draft/2020-12/meta/format-assertion",
+      "embedded_bytes": 416,
+      "embedded_sha256": "4c45dfbf72b09ec8b0cd6c8086c259bd4b1d68b86138d886e8191fc0189270b8",
+      "fetch_exit": 0,
+      "source_bytes": 340,
+      "source_sha256": "6a5a8e13c605e3eff51f9bf8da18078880d81ff1634e391760ccc2e16ee2146f",
+      "byte_equal": false,
+      "json_equal": false,
+      "embedded_json_sha256": "dd93ef25f948d92a237f15019808465bbd3fe58e2ed45fe9548afc2319eb1a45",
+      "source_json_sha256": "8a3ec2268a435a51273779a317d9266aaa5f1ece12244b409beb88fcbaa24db8",
+      "json_differences": [
+        {
+          "pointer": "/$vocabulary",
+          "kind": "embedded-only",
+          "embedded": {
+            "https://json-schema.org/draft/2020-12/vocab/format-assertion": true
+          },
+          "official": null
+        }
+      ],
+      "tag_comparison": {
+        "tag": "draft-bhutton-json-schema-01",
+        "commit": "add836e705c9a07434c467b6b90946ba45258a73",
+        "url": "https://raw.githubusercontent.com/json-schema-org/json-schema-spec/add836e705c9a07434c467b6b90946ba45258a73/meta/format-assertion.json",
+        "fetch_exit": 0,
+        "bytes": 445,
+        "sha256": "c52242b9a1bb786b26c3e82c7add428c31f9c96e575dce99e56ea5feaa6da20c",
+        "json_sha256": "dd93ef25f948d92a237f15019808465bbd3fe58e2ed45fe9548afc2319eb1a45",
+        "json_equal_to_embedded": true,
+        "json_equal_to_published": false,
+        "json_differences": []
+      },
+      "content_relation": "structural match with an observed official source"
+    },
+    {
+      "embedded_path": "metaschemas/draft/2020-12/meta/meta-data",
+      "source_url": "https://json-schema.org/draft/2020-12/meta/meta-data",
+      "embedded_bytes": 722,
+      "embedded_sha256": "e070588fd8fac3a0b4bed1dbe1f576ccdb2e32ade3b46bd590150d0b15506859",
+      "fetch_exit": 0,
+      "source_bytes": 794,
+      "source_sha256": "c664d438a84d58889c8edecd248ce2f945a4bc0e3b087323b11303dc136abfbe",
+      "byte_equal": false,
+      "json_equal": false,
+      "embedded_json_sha256": "5b3b96d59a4a2f16fc72a0dcaf758aea40aae866a61ac9d0d71dd9d6a8603115",
+      "source_json_sha256": "d1c6a8d89db18f07a498df16742ca365fda676be38808830f0b738d8b9dc1360",
+      "json_differences": [
+        {
+          "pointer": "/$vocabulary",
+          "kind": "embedded-only",
+          "embedded": {
+            "https://json-schema.org/draft/2020-12/vocab/meta-data": true
+          },
+          "official": null
+        }
+      ],
+      "tag_comparison": {
+        "tag": "draft-bhutton-json-schema-01",
+        "commit": "add836e705c9a07434c467b6b90946ba45258a73",
+        "url": "https://raw.githubusercontent.com/json-schema-org/json-schema-spec/add836e705c9a07434c467b6b90946ba45258a73/meta/meta-data.json",
+        "fetch_exit": 0,
+        "bytes": 892,
+        "sha256": "8f76d6e14f41b9b92ef933b708cdc5144c8b5268651ad11918485fb1754f1c76",
+        "json_sha256": "5b3b96d59a4a2f16fc72a0dcaf758aea40aae866a61ac9d0d71dd9d6a8603115",
+        "json_equal_to_embedded": true,
+        "json_equal_to_published": false,
+        "json_differences": []
+      },
+      "content_relation": "structural match with an observed official source"
+    },
+    {
+      "embedded_path": "metaschemas/draft/2020-12/meta/unevaluated",
+      "source_url": "https://json-schema.org/draft/2020-12/meta/unevaluated",
+      "embedded_bytes": 472,
+      "embedded_sha256": "cd2e94b6154c7ab9ee90f8bfa8d8addf9f6ae75a58fc090099605401303653cb",
+      "fetch_exit": 0,
+      "source_bytes": 406,
+      "source_sha256": "fc99f32188da41689a9382af174dd42e8b255e4374965c157b8286556b4ab2bc",
+      "byte_equal": false,
+      "json_equal": false,
+      "embedded_json_sha256": "61f01418e98cdbb0ad0fbfbd593780bdadb7fb745a7adff646d26c103bc6d166",
+      "source_json_sha256": "4cb7525e80186fedc6fd40a48c74ebf921ba50b280987a51c53fb3703809581c",
+      "json_differences": [
+        {
+          "pointer": "/$vocabulary",
+          "kind": "embedded-only",
+          "embedded": {
+            "https://json-schema.org/draft/2020-12/vocab/unevaluated": true
+          },
+          "official": null
+        }
+      ],
+      "tag_comparison": {
+        "tag": "draft-bhutton-json-schema-01",
+        "commit": "add836e705c9a07434c467b6b90946ba45258a73",
+        "url": "https://raw.githubusercontent.com/json-schema-org/json-schema-spec/add836e705c9a07434c467b6b90946ba45258a73/meta/unevaluated.json",
+        "fetch_exit": 0,
+        "bytes": 506,
+        "sha256": "2dbfbcb73994b670b0976492adee1fffb46c21682784d2f5a4ca561f9e2d0cb4",
+        "json_sha256": "61f01418e98cdbb0ad0fbfbd593780bdadb7fb745a7adff646d26c103bc6d166",
+        "json_equal_to_embedded": true,
+        "json_equal_to_published": false,
+        "json_differences": []
+      },
+      "content_relation": "structural match with an observed official source"
+    },
+    {
+      "embedded_path": "metaschemas/draft/2020-12/meta/validation",
+      "source_url": "https://json-schema.org/draft/2020-12/meta/validation",
+      "embedded_bytes": 2202,
+      "embedded_sha256": "000831f2fffd6927b25f9d601e6f0cc6bc8d51ed6c967d63c1449d1f76f8568a",
+      "fetch_exit": 0,
+      "source_bytes": 2735,
+      "source_sha256": "e921c5b79264d3689af01c1af1ffdf692e09f1c45df90a0f08eb7288c9acdeab",
+      "byte_equal": false,
+      "json_equal": false,
+      "embedded_json_sha256": "34fba27426a2fe175b459326a4013434775f06dd33d1209cab9028decae1e240",
+      "source_json_sha256": "9c2e49c5118492d8e3afbb568e2877dca6a34ca3ca8bdf693eee0e350728f833",
+      "json_differences": [
+        {
+          "pointer": "/$vocabulary",
+          "kind": "embedded-only",
+          "embedded": {
+            "https://json-schema.org/draft/2020-12/vocab/validation": true
+          },
+          "official": null
+        }
+      ],
+      "tag_comparison": {
+        "tag": "draft-bhutton-json-schema-01",
+        "commit": "add836e705c9a07434c467b6b90946ba45258a73",
+        "url": "https://raw.githubusercontent.com/json-schema-org/json-schema-spec/add836e705c9a07434c467b6b90946ba45258a73/meta/validation.json",
+        "fetch_exit": 0,
+        "bytes": 2834,
+        "sha256": "7010a31e541f32d2be721e2de348df75c9b36876a3ed304877fc0abda1d37a58",
+        "json_sha256": "34fba27426a2fe175b459326a4013434775f06dd33d1209cab9028decae1e240",
+        "json_equal_to_embedded": true,
+        "json_equal_to_published": false,
+        "json_differences": []
+      },
+      "content_relation": "structural match with an observed official source"
+    },
+    {
+      "embedded_path": "metaschemas/draft/2020-12/schema",
+      "source_url": "https://json-schema.org/draft/2020-12/schema",
+      "embedded_bytes": 2076,
+      "embedded_sha256": "0080fa14a942b09f436c55257d1e379c5cb2551f732e678fa06e8009fb7c2582",
+      "fetch_exit": 0,
+      "source_bytes": 2452,
+      "source_sha256": "41da76f5afb7ce062d248f762463a92f7ca47e4e0f905b224ba6afeef91ded0f",
+      "byte_equal": false,
+      "json_equal": true,
+      "embedded_json_sha256": "c1cacf82bea665da4dbaf58eb341b7af39420d4c9248a012aba3436ef1f802bb",
+      "source_json_sha256": "c1cacf82bea665da4dbaf58eb341b7af39420d4c9248a012aba3436ef1f802bb",
+      "json_differences": [],
+      "tag_comparison": {
+        "tag": "draft-bhutton-json-schema-01",
+        "commit": "add836e705c9a07434c467b6b90946ba45258a73",
+        "url": "https://raw.githubusercontent.com/json-schema-org/json-schema-spec/add836e705c9a07434c467b6b90946ba45258a73/schema.json",
+        "fetch_exit": 0,
+        "bytes": 2452,
+        "sha256": "41da76f5afb7ce062d248f762463a92f7ca47e4e0f905b224ba6afeef91ded0f",
+        "json_sha256": "c1cacf82bea665da4dbaf58eb341b7af39420d4c9248a012aba3436ef1f802bb",
+        "json_equal_to_embedded": true,
+        "json_equal_to_published": true,
+        "json_differences": []
+      },
+      "content_relation": "structural match with an observed official source"
+    }
+  ],
+  "cache_directory": "github.com/santhosh-tekuri/jsonschema/v6@v6.0.3",
+  "release_clearance": false,
+  "license_status": "historical applicability and attribution incomplete",
+  "license_evidence": [
+    {
+      "tag": "draft-zyp-json-schema-04",
+      "commit": "d4c5b3a2924370c51b710c8bfd81d3644a92766e",
+      "file": "README.md",
+      "url": "https://raw.githubusercontent.com/json-schema-org/json-schema-spec/d4c5b3a2924370c51b710c8bfd81d3644a92766e/README.md",
+      "exit": 22
+    },
+    {
+      "tag": "draft-zyp-json-schema-04",
+      "commit": "d4c5b3a2924370c51b710c8bfd81d3644a92766e",
+      "file": "LICENSE",
+      "url": "https://raw.githubusercontent.com/json-schema-org/json-schema-spec/d4c5b3a2924370c51b710c8bfd81d3644a92766e/LICENSE",
+      "exit": 22
+    },
+    {
+      "tag": "draft-wright-json-schema-01",
+      "commit": "4b495a2933b1d6f75298abdd23f018ba6a9d4f4a",
+      "file": "README.md",
+      "url": "https://raw.githubusercontent.com/json-schema-org/json-schema-spec/4b495a2933b1d6f75298abdd23f018ba6a9d4f4a/README.md",
+      "exit": 0,
+      "bytes": 3409,
+      "sha256": "5a77d2e5b72be968619ba3c74f7c0cd44ae622dc8328ca840521b71db467d387"
+    },
+    {
+      "tag": "draft-wright-json-schema-01",
+      "commit": "4b495a2933b1d6f75298abdd23f018ba6a9d4f4a",
+      "file": "LICENSE",
+      "url": "https://raw.githubusercontent.com/json-schema-org/json-schema-spec/4b495a2933b1d6f75298abdd23f018ba6a9d4f4a/LICENSE",
+      "exit": 22
+    },
+    {
+      "tag": "draft-handrews-json-schema-02",
+      "commit": "38e1606d71ee848c6cf0490c3457681220c01663",
+      "file": "README.md",
+      "url": "https://raw.githubusercontent.com/json-schema-org/json-schema-spec/38e1606d71ee848c6cf0490c3457681220c01663/README.md",
+      "exit": 0,
+      "bytes": 3703,
+      "sha256": "6a1721c23547c6aaa257897bd8fc875e8fbcffa1c172469e057db943e11b95ac"
+    },
+    {
+      "tag": "draft-handrews-json-schema-02",
+      "commit": "38e1606d71ee848c6cf0490c3457681220c01663",
+      "file": "LICENSE",
+      "url": "https://raw.githubusercontent.com/json-schema-org/json-schema-spec/38e1606d71ee848c6cf0490c3457681220c01663/LICENSE",
+      "exit": 22
+    },
+    {
+      "tag": "draft-handrews-json-schema-01",
+      "commit": "1afc34b65ead445ff363cfc870a28de0ca56e20f",
+      "file": "README.md",
+      "url": "https://raw.githubusercontent.com/json-schema-org/json-schema-spec/1afc34b65ead445ff363cfc870a28de0ca56e20f/README.md",
+      "exit": 0,
+      "bytes": 3723,
+      "sha256": "b642440ee3ec9fbde81cf85ff94963c6ac481260abf2c7bab45c75c3a919d801"
+    },
+    {
+      "tag": "draft-handrews-json-schema-01",
+      "commit": "1afc34b65ead445ff363cfc870a28de0ca56e20f",
+      "file": "LICENSE",
+      "url": "https://raw.githubusercontent.com/json-schema-org/json-schema-spec/1afc34b65ead445ff363cfc870a28de0ca56e20f/LICENSE",
+      "exit": 22
+    },
+    {
+      "tag": "draft-bhutton-json-schema-01",
+      "commit": "add836e705c9a07434c467b6b90946ba45258a73",
+      "file": "README.md",
+      "url": "https://raw.githubusercontent.com/json-schema-org/json-schema-spec/add836e705c9a07434c467b6b90946ba45258a73/README.md",
+      "exit": 0,
+      "bytes": 6139,
+      "sha256": "1ac6841ef529763afcf459796bf49831f37100467e87e19a9152286c37559ae9"
+    },
+    {
+      "tag": "draft-bhutton-json-schema-01",
+      "commit": "add836e705c9a07434c467b6b90946ba45258a73",
+      "file": "LICENSE",
+      "url": "https://raw.githubusercontent.com/json-schema-org/json-schema-spec/add836e705c9a07434c467b6b90946ba45258a73/LICENSE",
+      "exit": 22
+    }
+  ],
+  "current_license_reference": {
+    "url": "https://raw.githubusercontent.com/json-schema-org/json-schema-spec/4f56a9900674b27804f0ec32e3b7fdfa4efad695/LICENSE",
+    "commit": "4f56a9900674b27804f0ec32e3b7fdfa4efad695",
+    "exit": 0,
+    "bytes": 11739,
+    "sha256": "909b25a80d4945b21d3adb2fb17f90bf592e0274bdf117c069c088a8e44dc7b6"
+  },
+  "summary": {
+    "resource_count": 19,
+    "byte_equal_to_published": 0,
+    "json_equal_to_published": 3,
+    "json_equal_to_tag": 15,
+    "json_equal_to_either": 16
+  },
+  "notes": [
+    "Structural JSON comparison only: object keys sorted, insignificant whitespace discarded, array order and string values unchanged, no Unicode normalization; not RFC 8785 canonicalization.",
+    "No exact acquisition history or authorship is inferred from these comparisons.",
+    "Fetch exit 22 denotes HTTP failure; it does not establish absence of licensing elsewhere.",
+    "Downloaded standard documents remain review-cache evidence and are not imported as tests or project implementations."
+  ]
+}

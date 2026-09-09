@@ -449,3 +449,113 @@ Their draft-04/06/07/2019-09/2020-12 origins, exact resource correspondence, cop
 chosen branch still need explicit matching before a complete metaschema notice is retained. No
 upstream schema test suite was opened or adopted, no dependency version changed, and no claim of
 complete distribution clearance follows from these two newly retained notices.
+
+## Artifact and embedded-resource snapshot — D78, 2026-09-09
+
+The tracked [development inventory](third_party/inventory/macos-arm64-development.json) now ties
+the exact D77 darwin/arm64 executable to four external modules, retained notice hashes, the
+selected command package graph and nineteen embedded metaschemas. The binary was rebuilt from
+clean revision `15393c470f34970b2d893f313008a9321f8fe611` with Go 1.27.1; its embedded build metadata
+reports `vcs.modified=false`. Its SHA-256 is
+`b37127d909e617127448329994b5b278b8618f9ee08d0b196e14deafba4ebca5`.
+This is an identified local development artifact, not a release or installation package. A later
+rebuild may have different bytes even if dependency versions stay unchanged.
+
+Offline `go list -mod=readonly -deps -json ./cmd/dax-kiro-proxy` selects 265 packages and the same
+four external module versions/checksums present in the binary's Go build metadata: jsonschema
+v6.0.3, x/image v0.45.0, x/sys v0.47.0 and x/text v0.41.0. The report separately lists fifteen
+standard-library vendor packages and selected native source/object filenames. These are package
+selection facts, not a symbol-level/native-library attribution audit. The report does not cover
+every resolved-but-uncompiled module, test binary, build tool or future target.
+
+The complete reviewed Go BSD notice, Go PATENTS grant and validator Apache-2.0 text are now retained
+under third_party/notices/runtime. The Go/toolchain and three selected x/* modules have byte-identical
+top-level LICENSE/PATENTS files; the inventory maps each exact version to both its cache file hash
+and the shared retained text. No dependency implementation, example or upstream fixture is copied.
+Existing CLDR-32 and test-only LLVM notices stay separate. The snapshot retains eight notice/reference
+files in total; retaining them does not mean all eight are runtime licenses or that attribution is
+complete. Top-level notice review is distinct from embedded/generated/component review.
+
+### Metaschema correspondence
+
+The [metaschema inventory](third_party/inventory/metaschemas.json) records all nineteen current
+Go EmbedFiles entries, byte counts, raw SHA-256, sorted-key JSON hashes, official resource URLs,
+five fixed specification tag commits, and exact JSON-pointer differences. Comparison ignores
+object key order and insignificant JSON whitespace, but preserves array order and string values;
+it performs no Unicode normalization and is not RFC 8785 canonicalization. All 57 compared JSON
+documents (embedded, published and tag versions) separately pass duplicate-name/nonfinite-number
+rejection. Structural equality is not a general proof of schema behavioral equivalence or ownership.
+
+| Comparison | Result |
+| --- | --- |
+| Exact bytes versus current published resources | 0 of 19 |
+| Structural JSON equality versus current published resources | 3 of 19 |
+| Structural JSON equality versus selected fixed tag resources | 15 of 19 |
+| Structural equality versus at least one of those sources | 16 of 19 |
+
+Draft-07 and the two modern root schemas equal their current published counterparts. Most modern
+vocabulary schemas instead equal the earlier official tag content, including its vocabulary
+declaration. Draft-06 equals its selected historical tag. Differences from current publication
+must therefore not automatically be attributed to the validator author or this project. The
+remaining draft-04, 2019-09 applicator and 2019-09 core variants differ from both inspected sources;
+their complete differences are recorded without inventing who changed them or why. No dependency
+version or embedded resource is modified by this audit.
+
+The four retrieved historical README files explicitly offer AFL or BSD for repository source
+material and describe the metaschema files. The draft-04 README paths and attempted root LICENSE
+paths did not yield usable texts; an HTTP failure is not proof that no licensing exists elsewhere.
+The current dual-license text is retained, unchanged, as a **reference** from official commit
+`4f56a9900674b27804f0ec32e3b7fdfa4efad695`:
+[JSON Schema LICENSE](https://raw.githubusercontent.com/json-schema-org/json-schema-spec/4f56a9900674b27804f0ec32e3b7fdfa4efad695/LICENSE).
+Its 2022 copyright line is preserved, without backdating it to historical drafts. Historical
+applicability, attribution and the final dependency-license branch record remain open. Neither the
+validator's Apache declaration nor the IETF prose notice substitutes for that resource review.
+
+### Unicode 17 notice linkage
+
+The official [Unicode 17 UCD archive](https://www.unicode.org/Public/17.0.0/ucd/UCD.zip) is 9,101,877
+bytes, SHA-256 `2066d1909b2ea93916ce092da1c0ee4808ea3ef8407c94b4f14f5b7eb263d28e`.
+Only the named release README and archive-entry names relevant to licensing were inspected; no
+Unicode corpus/test data is used as an implementation fixture. The archive has no separate filename
+containing "license". Its README identifies final Unicode 17 data and directs readers to the
+[terms of use](https://www.unicode.org/copyright.html). Those terms apply Unicode License v3 to
+data/software unless a specific release/material says otherwise.
+
+Retain the complete release README attribution and current
+[Unicode License v3](https://www.unicode.org/license.txt), including its published 1991-2026 year.
+The latter is 1,995 bytes, SHA-256
+`e7a93b009565cfce55919a381437ac4db883e9da2126fa28b91d12732bc53d96`.
+It is the currently referenced license text, not an invented version-frozen 2025 license file.
+This provides notice/linkage evidence for the previously identified Unicode-17 tables; it does not
+claim exhaustive table-generation, per-file exception or linked-artifact attribution review.
+
+### Offline verification and remaining work
+
+Verify the frozen report against the existing reviewed cache and its exact binary:
+
+```sh
+python3 tools/verify_dependency_inventory.py --gomodcache .cache/gomod --binary dist/dax-kiro-proxy
+```
+
+The tool performs no network request, executes no dependency and changes no file. It checks
+go.mod/go.sum, retained notices, original cache notices, the metaschema report, all nineteen embedded
+resource hashes and optionally the exact artifact. Paths, input sizes and file types are bounded;
+symlinks/FIFOs are not accepted as input files. Without `--binary`, it verifies only snapshot/cache
+bytes. Success always reports `release_clearance:false`; it does not discover new dependencies,
+recompute current-source reachability or replace a license decision. New dependency versions or
+an artifact change require a new reviewed snapshot, not editing a hash merely to obtain success.
+
+The recorded invocation passes forty file-record checks including the binary. Nine independent
+negative controls reject missing/changed input, oversized input, parent/absolute paths, input symlinks,
+escaping directory links, FIFO and a forged release-clearance claim. Direct invocation of the
+installed pinned Go binary with GOTOOLCHAIN=local, GOPROXY=off and GOSUMDB=off passes `go mod verify`.
+An initial invocation through the automatic toolchain selector stops because that selector requires
+checksum-database verification; it is not evidence of corrupt modules. No online authenticity or
+advisory scan is implied by the successful cache-integrity check.
+
+Public-only local Claude advice was saved, read in full and assessed. Its useful distinction
+between content identity and rights does not make its assumptions evidence. In particular, a
+present-day match cannot prove historical acquisition or absence of modifications. Full component
+attribution, current advisory/reachability scanning, final archive contents, clean macOS installation/
+uninstall, owner rights, intended distribution and project license remain release work. Local
+packaging/installer implementation can continue without claiming that distribution is cleared.

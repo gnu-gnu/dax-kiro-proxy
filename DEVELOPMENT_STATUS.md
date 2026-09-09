@@ -6,6 +6,17 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D78 adds an artifact-linked dependency inventory, eight scoped notice/reference records and an
+  offline byte verifier. The clean D77 darwin/arm64 command binary records four external modules;
+  its selected graph has 265 packages. All nineteen embedded metaschemas have published/tag URLs,
+  hashes and differences: sixteen structurally match at least one observed official source; three
+  remain unequal variants. All 57 compared JSON inputs pass duplicate/nonfinite rejection.
+  Forty file-record checks including the binary and nine independent negative verifier controls
+  pass; cached module verification, rebuild and executable help also pass. Local Claude advice is
+  saved/read/assessed. No runtime/dependency change or Kiro call. The verifier deliberately reports
+  no release clearance: historical resource licensing, full component/advisory review, packaging/
+  clean-host install/uninstall and owner-rights gates remain open. Run admission, absent login and
+  personal CLAUDE.md compatibility are unchanged.
 - D77 retains standard-HOME personal rules through a validated native reference, keeping source
   paths for imports and exclusions. Thirty-five actual-Claude/local-responder invocations pass
   across natural/prepared/stripped controls, conditional Read activation, six unusual HOME path

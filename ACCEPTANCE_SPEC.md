@@ -342,6 +342,12 @@ On a clean supported macOS machine:
 - no runtime, build, test, or documentation reference to the previous repository is present;
 - dependency license report contains no unapproved copyleft dependency for the intended distribution.
 
+Dependency evidence must identify the exact binary and separate its selected package/module graph,
+embedded/generated data, native components and build/test tools. A frozen byte-inventory verifier
+must reject changed/missing inputs, exceeded bounds, unsafe paths/file types and fabricated release
+clearance. Passing a snapshot/cache comparison does not establish new-source reachability, complete
+attribution, absence of vulnerabilities or distribution rights (D78).
+
 ## Release-blocking invariants
 
 Any of these is an unconditional release blocker:

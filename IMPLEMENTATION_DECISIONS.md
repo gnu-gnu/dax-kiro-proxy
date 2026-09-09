@@ -3453,3 +3453,46 @@ help command passes. This is not a release or actual-Kiro verification; D75's lo
 remaining live alpha/release work are unchanged.
 The final personal unit race suite passes in 5.372s after consolidating duplicate rules negatives
 into the shared snapshot/rules matrix; all twelve unsafe/bound cases still run for each tree.
+
+## D78: identify development artifact dependencies and retain scoped notice evidence
+
+Phase 7 requires an artifact-based license report as well as future clean-host installation. Add
+an offline-verifiable snapshot for the clean D77 command binary and retain already reviewed notice
+texts. The report covers the four embedded Go module records, 265 selected command packages,
+fifteen standard-library vendor packages, selected native filenames and nineteen embedded resources.
+It does not claim full linked-symbol, build/test/toolchain, advisory or distribution clearance.
+The exact binary, cache inputs, source manifest/checksum files and retained notices have recorded
+SHA-256 and byte counts. No runtime code, dependency version, client configuration or execution
+policy changes. The local executable is rebuilt from clean D77 and its public help succeeds.
+
+All nineteen standard metaschemas are compared with current official JSON Schema resources and
+fixed public specification commits. Three match current published JSON, fifteen match a selected
+tag, and sixteen match at least one source structurally; none is byte-identical to the current
+publication. Exact JSON-pointer differences remain for every unequal pair. The three resources
+that match neither source remain unresolved variants. Differences from a current URL alone must
+not be labeled validator-authored modifications: most modern vocabulary files match an earlier
+official version. Sorted-key comparison is not schema-behavior equivalence or ownership evidence.
+All 57 JSON inputs independently reject duplicate keys and nonfinite numbers.
+
+Retain exact Go BSD/PATENTS, validator Apache and currently referenced Unicode-v3 texts, with the
+Unicode-17 release README attribution. The existing CLDR-32 and test-only LLVM texts remain separate.
+Retain the current JSON Schema dual-license text only as a reference; do not invent historical
+copyright years, choose this project's license or treat an unsuccessful root LICENSE fetch as
+proof of absent licensing. DEPENDENCY_REVIEW.md and the JSON inventories carry exact sources,
+hashes, observations and outstanding scope. Only public protocol resources and dependency licensing/
+metadata are inspected. No previous implementation, upstream test corpus or dependency code is
+adopted as implementation input.
+
+The new Python verifier is a read-only development tool using the already reviewed standard library.
+It checks only frozen snapshot bytes, optionally including the identified binary, and never claims
+release clearance or performs a network request. Forty file-record checks pass with the artifact;
+nine authored negative controls reject missing input, mutation, bounds/type/path violations and a false clearance
+claim. Cache `go mod verify` passes through the explicitly installed toolchain; an earlier automatic
+selector invocation stops at its checksum-database requirement, before module verification.
+
+The bounded local Claude consultation public-metaschema-review-review-i89nisso is saved/read/assessed.
+Its assumptions about unchanged data and historical provenance are not adopted. No Kiro model call,
+account mutation, installer execution or release publication occurs. This closes missing retained
+top-level notice/artifact-correlation work and establishes precise resource differences, while full
+historical licensing, component attribution, advisory scanning, installer/clean-host testing and
+owner rights remain open. D75's absent login and D77's personal-root-memory gap are unchanged.

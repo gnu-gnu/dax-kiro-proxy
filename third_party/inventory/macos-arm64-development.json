@@ -1,0 +1,574 @@
+{
+  "format": 1,
+  "reviewed_date": "2026-09-09",
+  "release_clearance": false,
+  "scope": "D77 darwin/arm64 development command artifact, not a release or all test/build components",
+  "repository_inputs": [
+    {
+      "path": "go.mod",
+      "bytes": 196,
+      "sha256": "babeeeedba85a040e665f6ec8784bd0d2a359e233412e7cc02a392c640f5eb04"
+    },
+    {
+      "path": "go.sum",
+      "bytes": 837,
+      "sha256": "79e68c9bf059b6aa021645c3dccb736ebdbbca8ddc6775d797b657e13adeb278"
+    }
+  ],
+  "toolchain": {
+    "version": "go1.27.1",
+    "cache_directory": "golang.org/toolchain@v0.0.1-go1.27.1.darwin-arm64",
+    "notices": [
+      {
+        "path": "LICENSE",
+        "bytes": 1453,
+        "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
+      },
+      {
+        "path": "PATENTS",
+        "bytes": 1303,
+        "sha256": "96f408bfae65bf137fc2525d3ecb030271c50c1e90799f87abf8846d8dd505cc"
+      }
+    ]
+  },
+  "modules": [
+    {
+      "path": "github.com/santhosh-tekuri/jsonschema/v6",
+      "version": "v6.0.3",
+      "sum": "h1:1EYB5IzjZawrrnELUi78f9fPu57HuXjmddZPjrls/28=",
+      "cache_directory": "github.com/santhosh-tekuri/jsonschema/v6@v6.0.3",
+      "top_level_license": "Apache-2.0",
+      "review_scope": "top-level notice retained; embedded/generated/component obligations are separate",
+      "packages": [
+        "github.com/santhosh-tekuri/jsonschema/v6",
+        "github.com/santhosh-tekuri/jsonschema/v6/kind"
+      ],
+      "notices": [
+        {
+          "path": "LICENSE",
+          "bytes": 10141,
+          "sha256": "c8858a5a76440bbca484e134cf7df46385d090dd18b2c58e650f939258802e5b"
+        }
+      ]
+    },
+    {
+      "path": "golang.org/x/image",
+      "version": "v0.45.0",
+      "sum": "h1:FMb1nTbH5H9vF55SriQHgFw5GnNL9Jg6L25BwXKzhB0=",
+      "cache_directory": "golang.org/x/image@v0.45.0",
+      "top_level_license": "BSD-3-Clause",
+      "review_scope": "top-level notice retained; embedded/generated/component obligations are separate",
+      "packages": [
+        "golang.org/x/image/riff",
+        "golang.org/x/image/vp8",
+        "golang.org/x/image/vp8l",
+        "golang.org/x/image/webp"
+      ],
+      "notices": [
+        {
+          "path": "LICENSE",
+          "bytes": 1453,
+          "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
+        },
+        {
+          "path": "PATENTS",
+          "bytes": 1303,
+          "sha256": "96f408bfae65bf137fc2525d3ecb030271c50c1e90799f87abf8846d8dd505cc"
+        }
+      ]
+    },
+    {
+      "path": "golang.org/x/sys",
+      "version": "v0.47.0",
+      "sum": "h1:o7XGOvZQCADBQQ4Y7VNq2dRWQR7JmOUW8Kxx4ZsNgWs=",
+      "cache_directory": "golang.org/x/sys@v0.47.0",
+      "top_level_license": "BSD-3-Clause",
+      "review_scope": "top-level notice retained; embedded/generated/component obligations are separate",
+      "packages": [
+        "golang.org/x/sys/unix"
+      ],
+      "notices": [
+        {
+          "path": "LICENSE",
+          "bytes": 1453,
+          "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
+        },
+        {
+          "path": "PATENTS",
+          "bytes": 1303,
+          "sha256": "96f408bfae65bf137fc2525d3ecb030271c50c1e90799f87abf8846d8dd505cc"
+        }
+      ]
+    },
+    {
+      "path": "golang.org/x/text",
+      "version": "v0.41.0",
+      "sum": "h1:vz/seA0lnX87Othu2f/0L24RcgrXD9/YFTSuGjj3rH8=",
+      "cache_directory": "golang.org/x/text@v0.41.0",
+      "top_level_license": "BSD-3-Clause",
+      "review_scope": "top-level notice retained; embedded/generated/component obligations are separate",
+      "packages": [
+        "golang.org/x/text/feature/plural",
+        "golang.org/x/text/internal",
+        "golang.org/x/text/internal/catmsg",
+        "golang.org/x/text/internal/format",
+        "golang.org/x/text/internal/language",
+        "golang.org/x/text/internal/language/compact",
+        "golang.org/x/text/internal/number",
+        "golang.org/x/text/internal/stringset",
+        "golang.org/x/text/internal/tag",
+        "golang.org/x/text/language",
+        "golang.org/x/text/message",
+        "golang.org/x/text/message/catalog"
+      ],
+      "notices": [
+        {
+          "path": "LICENSE",
+          "bytes": 1453,
+          "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
+        },
+        {
+          "path": "PATENTS",
+          "bytes": 1303,
+          "sha256": "96f408bfae65bf137fc2525d3ecb030271c50c1e90799f87abf8846d8dd505cc"
+        }
+      ]
+    }
+  ],
+  "notices": [
+    {
+      "path": "third_party/notices/runtime/go-bsd.txt",
+      "bytes": 1453,
+      "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
+    },
+    {
+      "path": "third_party/notices/runtime/go-patents.txt",
+      "bytes": 1303,
+      "sha256": "96f408bfae65bf137fc2525d3ecb030271c50c1e90799f87abf8846d8dd505cc"
+    },
+    {
+      "path": "third_party/notices/runtime/jsonschema-apache-2.0.txt",
+      "bytes": 10141,
+      "sha256": "c8858a5a76440bbca484e134cf7df46385d090dd18b2c58e650f939258802e5b"
+    },
+    {
+      "path": "third_party/notices/runtime/unicode-v3.txt",
+      "bytes": 1995,
+      "sha256": "e7a93b009565cfce55919a381437ac4db883e9da2126fa28b91d12732bc53d96"
+    },
+    {
+      "path": "third_party/notices/runtime/unicode-17-attribution.txt",
+      "bytes": 740,
+      "sha256": "9fe1a90bd32659d7953616283dc2bffaa165518aae9ace026040c42c559ba606"
+    },
+    {
+      "path": "third_party/notices/reference/json-schema-spec-current.txt",
+      "bytes": 11739,
+      "sha256": "909b25a80d4945b21d3adb2fb17f90bf592e0274bdf117c069c088a8e44dc7b6"
+    },
+    {
+      "path": "third_party/notices/runtime/unicode-cldr-32.txt",
+      "bytes": 2849,
+      "sha256": "6a6976a5da6ac21a6a001c685c057f4a6e619be11f5465371088ecd80c7fbe06"
+    },
+    {
+      "path": "third_party/notices/test/llvm-compiler-rt.txt",
+      "bytes": 16708,
+      "sha256": "1a8f1058753f1ba890de984e48f0242a3a5c29a6a8f2ed9fd813f36985387e8d"
+    }
+  ],
+  "binary": {
+    "path": "dist/dax-kiro-proxy",
+    "bytes": 13381890,
+    "sha256": "b37127d909e617127448329994b5b278b8618f9ee08d0b196e14deafba4ebca5",
+    "build_path": "dax-kiro-proxy/cmd/dax-kiro-proxy",
+    "main": {
+      "Path": "dax-kiro-proxy",
+      "Version": "v0.0.0-20260909074833-15393c470f34"
+    },
+    "settings": [
+      {
+        "Key": "-buildmode",
+        "Value": "exe"
+      },
+      {
+        "Key": "-compiler",
+        "Value": "gc"
+      },
+      {
+        "Key": "CGO_ENABLED",
+        "Value": "1"
+      },
+      {
+        "Key": "GOARCH",
+        "Value": "arm64"
+      },
+      {
+        "Key": "GOOS",
+        "Value": "darwin"
+      },
+      {
+        "Key": "GOARM64",
+        "Value": "v8.0"
+      },
+      {
+        "Key": "vcs",
+        "Value": "git"
+      },
+      {
+        "Key": "vcs.revision",
+        "Value": "15393c470f34970b2d893f313008a9321f8fe611"
+      },
+      {
+        "Key": "vcs.time",
+        "Value": "2026-09-09T07:48:33Z"
+      },
+      {
+        "Key": "vcs.modified",
+        "Value": "false"
+      }
+    ]
+  },
+  "metaschemas": {
+    "path": "third_party/inventory/metaschemas.json",
+    "bytes": 37674,
+    "sha256": "510d57eb80a965afe770eef554a4d28c454a3a3317d771d09caf4ecdf9184139",
+    "resource_count": 19
+  },
+  "package_graph": {
+    "command": "go list -mod=readonly -deps -json ./cmd/dax-kiro-proxy",
+    "packages": 265,
+    "external_modules": 4,
+    "stdlib_vendor_packages": [
+      "vendor/golang.org/x/crypto/cryptobyte/asn1",
+      "vendor/golang.org/x/crypto/cryptobyte",
+      "vendor/golang.org/x/crypto/internal/alias",
+      "vendor/golang.org/x/crypto/chacha20",
+      "vendor/golang.org/x/crypto/internal/poly1305",
+      "vendor/golang.org/x/crypto/chacha20poly1305",
+      "vendor/golang.org/x/net/dns/dnsmessage",
+      "vendor/golang.org/x/text/transform",
+      "vendor/golang.org/x/text/unicode/bidi",
+      "vendor/golang.org/x/text/secure/bidirule",
+      "vendor/golang.org/x/text/unicode/norm",
+      "vendor/golang.org/x/net/idna",
+      "vendor/golang.org/x/net/http/httpguts",
+      "vendor/golang.org/x/net/http/httpproxy",
+      "vendor/golang.org/x/net/http2/hpack"
+    ],
+    "native_selected_files": [
+      {
+        "package": "internal/abi",
+        "selected_files": {
+          "SFiles": [
+            "abi_test.s",
+            "stub.s"
+          ]
+        }
+      },
+      {
+        "package": "internal/cpu",
+        "selected_files": {
+          "SFiles": [
+            "cpu.s",
+            "cpu_arm64.s"
+          ]
+        }
+      },
+      {
+        "package": "internal/bytealg",
+        "selected_files": {
+          "SFiles": [
+            "compare_arm64.s",
+            "count_arm64.s",
+            "equal_arm64.s",
+            "index_arm64.s",
+            "indexbyte_arm64.s"
+          ]
+        }
+      },
+      {
+        "package": "internal/chacha8rand",
+        "selected_files": {
+          "SFiles": [
+            "chacha8_arm64.s"
+          ]
+        }
+      },
+      {
+        "package": "internal/runtime/atomic",
+        "selected_files": {
+          "SFiles": [
+            "atomic_arm64.s"
+          ]
+        }
+      },
+      {
+        "package": "internal/runtime/sys",
+        "selected_files": {
+          "SFiles": [
+            "dit_arm64.s",
+            "empty.s"
+          ]
+        }
+      },
+      {
+        "package": "internal/runtime/maps",
+        "selected_files": {
+          "SFiles": [
+            "memhash_arm64.s"
+          ]
+        }
+      },
+      {
+        "package": "runtime",
+        "selected_files": {
+          "HFiles": [
+            "asm_ppc64x.h",
+            "funcdata.h",
+            "go_tls.h",
+            "textflag.h",
+            "tls_arm64.h"
+          ],
+          "SFiles": [
+            "asm.s",
+            "asm_arm64.s",
+            "atomic_arm64.s",
+            "ints.s",
+            "memclr_arm64.s",
+            "memmove_arm64.s",
+            "preempt_arm64.s",
+            "rt0_darwin_arm64.s",
+            "secret_arm64.s",
+            "sys_darwin_arm64.s",
+            "tls_arm64.s"
+          ]
+        }
+      },
+      {
+        "package": "internal/reflectlite",
+        "selected_files": {
+          "SFiles": [
+            "asm.s"
+          ]
+        }
+      },
+      {
+        "package": "sync/atomic",
+        "selected_files": {
+          "SFiles": [
+            "asm.s"
+          ]
+        }
+      },
+      {
+        "package": "syscall",
+        "selected_files": {
+          "SFiles": [
+            "asm_darwin_arm64.s",
+            "zsyscall_darwin_arm64.s"
+          ]
+        }
+      },
+      {
+        "package": "crypto/internal/fips140/sha256",
+        "selected_files": {
+          "SFiles": [
+            "sha256block_arm64.s"
+          ]
+        }
+      },
+      {
+        "package": "crypto/internal/fips140/subtle",
+        "selected_files": {
+          "SFiles": [
+            "xor_arm64.s"
+          ]
+        }
+      },
+      {
+        "package": "crypto/internal/fips140/sha3",
+        "selected_files": {
+          "SFiles": [
+            "sha3_arm64.s"
+          ]
+        }
+      },
+      {
+        "package": "crypto/internal/fips140/sha512",
+        "selected_files": {
+          "SFiles": [
+            "sha512block_arm64.s"
+          ]
+        }
+      },
+      {
+        "package": "crypto/internal/fips140/aes",
+        "selected_files": {
+          "SFiles": [
+            "aes_arm64.s",
+            "ctr_arm64.s"
+          ]
+        }
+      },
+      {
+        "package": "internal/syscall/unix",
+        "selected_files": {
+          "SFiles": [
+            "asm_darwin.s"
+          ]
+        }
+      },
+      {
+        "package": "math",
+        "selected_files": {
+          "SFiles": [
+            "dim_arm64.s",
+            "exp_arm64.s",
+            "floor_arm64.s"
+          ]
+        }
+      },
+      {
+        "package": "crypto/internal/fips140/aes/gcm",
+        "selected_files": {
+          "SFiles": [
+            "gcm_arm64.s"
+          ]
+        }
+      },
+      {
+        "package": "crypto/internal/boring/sig",
+        "selected_files": {
+          "SFiles": [
+            "sig_other.s"
+          ]
+        }
+      },
+      {
+        "package": "crypto/internal/boring",
+        "selected_files": {
+          "HFiles": [
+            "goboringcrypto.h"
+          ]
+        }
+      },
+      {
+        "package": "reflect",
+        "selected_files": {
+          "SFiles": [
+            "asm_arm64.s"
+          ]
+        }
+      },
+      {
+        "package": "hash/crc32",
+        "selected_files": {
+          "SFiles": [
+            "crc32_arm64.s"
+          ]
+        }
+      },
+      {
+        "package": "crypto/internal/fips140/nistec",
+        "selected_files": {
+          "SFiles": [
+            "p256_asm_arm64.s"
+          ]
+        }
+      },
+      {
+        "package": "math/big",
+        "selected_files": {
+          "SFiles": [
+            "arith_arm64.s"
+          ]
+        }
+      },
+      {
+        "package": "crypto/internal/fips140/bigmod",
+        "selected_files": {
+          "SFiles": [
+            "nat_arm64.s"
+          ]
+        }
+      },
+      {
+        "package": "vendor/golang.org/x/crypto/chacha20",
+        "selected_files": {
+          "SFiles": [
+            "chacha_arm64.s"
+          ]
+        }
+      },
+      {
+        "package": "crypto/md5",
+        "selected_files": {
+          "SFiles": [
+            "md5block_arm64.s"
+          ]
+        }
+      },
+      {
+        "package": "crypto/sha1",
+        "selected_files": {
+          "SFiles": [
+            "sha1block_arm64.s"
+          ]
+        }
+      },
+      {
+        "package": "crypto/x509/internal/macos",
+        "selected_files": {
+          "SFiles": [
+            "corefoundation.s",
+            "security.s"
+          ]
+        }
+      },
+      {
+        "package": "golang.org/x/sys/unix",
+        "selected_files": {
+          "SFiles": [
+            "asm_bsd_arm64.s",
+            "zsyscall_darwin_arm64.s"
+          ]
+        }
+      },
+      {
+        "package": "runtime/debug",
+        "selected_files": {
+          "SFiles": [
+            "debug.s"
+          ]
+        }
+      },
+      {
+        "package": "os/signal",
+        "selected_files": {
+          "SFiles": [
+            "sig.s"
+          ]
+        }
+      }
+    ]
+  },
+  "unicode_17_evidence": {
+    "archive_url": "https://www.unicode.org/Public/17.0.0/ucd/UCD.zip",
+    "bytes": 9101877,
+    "sha256": "2066d1909b2ea93916ce092da1c0ee4808ea3ef8407c94b4f14f5b7eb263d28e",
+    "archive_notice_entry": "ReadMe.txt",
+    "separate_license_entry_found": false,
+    "release_readme_terms_url": "https://www.unicode.org/terms_of_use.html",
+    "current_terms_url": "https://www.unicode.org/copyright.html",
+    "current_data_license_url": "https://www.unicode.org/license.txt",
+    "note": "The archive README refers to terms of use; retained current V3 notice keeps its published 1991-2026 year. This is not a claimed version-frozen 2025 license file."
+  },
+  "remaining": [
+    "Historical metaschema licensing applicability/attribution and three unmatched resource variants",
+    "Complete build/test/toolchain and target-native component attribution",
+    "Current advisory and reachability scan",
+    "Final archive contents, clean host installation and uninstall",
+    "Owner rights, Kiro use permission, intended distribution and project license"
+  ]
+}
