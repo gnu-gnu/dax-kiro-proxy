@@ -7,3 +7,5 @@ import "os"
 const settingsReadFlags = os.O_RDONLY
 
 func safeSettings(os.FileInfo) bool { return false }
+
+func safeClientAssetDirectory(os.FileInfo) bool { return false }

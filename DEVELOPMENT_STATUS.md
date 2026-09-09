@@ -6,6 +6,17 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D65 supplies the standard user plugin directory through the client's read-only seed contract.
+  Actual Claude 2.1.263 full print startup initializes an independently installed plugin's MCP peer
+  and discovers its tools. Disable/re-enable choices, original source entries/content/modes and
+  cleanup pass. Finite list/init-only commands did not establish this behavior. The final installed
+  combined plugin/MCP/default-tool/policy/hook regression passes in 22.414s with local synthetic
+  responses only. The plugin tool is absent from the first model request: later discovery and a
+  complete tool round trip remain open, as do plugin hooks/skills/agents, existing status commands,
+  custom roots and interactive plugin startup. No general asset or release completion is claimed.
+  Applicable uncached race suites pass: launcher 22.836s, interop 24.018s and command 1.571s;
+  whole-repository go vet, formatting, whitespace checks and the rebuilt development executable
+  pass. No dependency is added.
 - D64 restores standard-HOME user/local MCP declarations and existing decisions in the private
   client profile without copying unrelated provider or conversation state. Actual Claude 2.1.263
   passes fourteen natural/prepared configuration controls in 8.137s under race instrumentation:

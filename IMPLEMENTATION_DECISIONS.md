@@ -2464,3 +2464,75 @@ MCP controls, ordinary default-tool text/Read denial, user/project permission an
 and disabled hooks. Applicable uncached race suites pass with installed opt-ins off: launcher
 22.466s, interop 22.239s and command 1.775s. Whole-repository go vet, formatting, whitespace checks,
 the local build and executable help pass. The development executable includes this MCP correction.
+
+## D65: read-only plugin seed during full client startup
+
+The native private client profile also hid an installed user plugin. An independently authored local
+marketplace installs one plugin through the public client CLI; the plugin supplies the existing
+effect-free MCP fixture. Natural mcp list initializes that peer and fetches tools/list. An otherwise
+identical profile without a plugin seed does neither. A list of configured names alone is not the
+positive control.
+
+PrepareClient now supplies standard HOME/.claude/plugins through CLAUDE_CODE_PLUGIN_SEED_DIR when
+that source exists. Both .claude and plugins must be owned directories without group/other write
+permission or a symlink at either entry. A path-list separator in an existing seed path rejects
+rather than naming extra roots. A missing source remains missing. These checks occur before runtime
+creation. The proxy neither copies plugin content nor invokes install/update commands. Client
+enablement comes from the existing settings snapshot; mutable runtime state stays under the private
+configuration root. Custom asset/configuration roots remain separate compatibility work.
+
+The public [plugin seed contract](https://code.claude.com/docs/en/plugin-marketplaces#pre-populate-plugins-for-containers)
+describes reading a source cache without writing it, including full interactive and print startup.
+The [plugin reference](https://code.claude.com/docs/en/plugins-reference) supplies the manifest,
+installation and enable/disable contracts. The [CLI reference](https://code.claude.com/docs/en/cli-reference)
+defines init-only separately from a conversation. These sources were checked 2026-09-09; installed
+observations here cover Claude 2.1.263 full print startup, not interactive plugin behavior.
+
+Finite commands were insufficient in this experiment. mcp list, plugin list and init-only with a
+fresh seed profile did not activate or list this plugin. Full print startup did start its peer, but
+the initial synthetic response finished before the MCP initialization completed. The observer now
+holds its local response for at most two seconds while the owned peer completes initialization and
+tools/list. The disabled case retains that entire observation window. This changes no product
+timeout and introduces no external model request or tool call.
+
+The first print request still has zero advertisements of this plugin's tool. The successful source
+and enablement checks must not be reported as a completed model-driven plugin tool round trip.
+Later tool availability and any registry change during a pending tool turn need independent tests.
+Plugin hooks/skills/agents, remote marketplaces, custom roots and interactive plugin startup remain
+open. The launch policy and development/release gates are not broadened by these observations.
+
+Recorded experiments:
+
+- client-plugin-seed.O8mYzZ fails (2.838s package): natural activation succeeds; finite seed lookup
+  does not. client-plugin-init.jTmJbL (3.043s) also fails after init-only.
+- client-plugin-layout.G8QZrc fails (3.299s). The local installer references its own directory and
+  does not create marketplaces/<name>. Copying the independently authored marketplace into that
+  layout did not fix finite commands. Later full startup succeeds without that copy.
+- client-plugin-print.4xwpjT fails before the synthetic request (3.019s): the fixture placed its
+  prompt after the variadic mcp-config option. Argument ordering was corrected, and the final
+  observer removes that unnecessary MCP option entirely.
+- client-plugin-startup.VDX08c fails (3.536s): one full-startup peer starts but does not finish
+  initialization before the immediate synthetic completion. This is not a passing readiness check.
+- client-plugin-ready.knvqsC passes initialization controls (5.801s). The stronger discovery
+  controls in client-plugin-discovery.jfCeEd pass in 8.138s, adding tools/list and a full two-second
+  disabled observation window.
+- client-plugin-prepared.eHhkoq passes with the production seed generator (8.203s). Natural,
+  explicitly unseeded, finite seeded, enabled print, disabled print and re-enabled print controls
+  have the expected connections, initialization and discovery counts; all tool-call counts are 0.
+- client-plugin-regression.G7EBDR passes the final combined installed regression in 22.414s. This
+  removes the extra MCP flag and checks source tree entries, file/link content and modes. Plugin
+  controls take 6.08s, MCP controls 6.33s, default-tool text/Read denial 4.95s, source policy/hooks
+  1.94s and disabled hooks 1.53s. All observed peer processes and temporary profiles are cleaned up;
+  source settings and plugin files are unchanged by prepared runs.
+
+The authorized local Claude answer and independent assessment are saved in
+plugin-seed-review-tbg5c_sh. Its suggestion to compare finite and full startup was useful. Its claim
+that the initial add/install baseline proves reconstruction into another profile is not adopted;
+that baseline only created the source fixture. Arbitrary plugin reinstallation is not this product's
+preservation mechanism. No previous implementation, user plugin content or client payload was sent.
+
+Unit tests first expose the absent seed reference and acceptance of unsafe/ambiguous roots, then
+pass after integration. Applicable uncached race suites with installed opt-ins off pass: launcher
+22.836s, interop 24.018s and command 1.571s. Whole-repository go vet, formatting, whitespace checks,
+the local build and executable help pass. The development executable includes the seed reference.
+No dependency is added.

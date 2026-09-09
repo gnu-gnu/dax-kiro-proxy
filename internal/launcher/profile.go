@@ -66,6 +66,10 @@ func PrepareClient(cfg ClientConfig) (*ClientProfile, error) {
 	if err != nil {
 		return nil, err
 	}
+	pluginSeed, err := clientPluginSeed(cfg.Home)
+	if err != nil {
+		return nil, err
+	}
 	path, err := os.MkdirTemp(cfg.RuntimeParent, "dax-runtime-")
 	if err != nil {
 		return nil, ErrRuntime
@@ -99,6 +103,9 @@ func PrepareClient(cfg ClientConfig) (*ClientProfile, error) {
 		return nil, ErrRuntime
 	}
 	env["HOME"], env["TMPDIR"], env["CLAUDE_CONFIG_DIR"] = cfg.Home, scratch, profile
+	if pluginSeed != "" {
+		env["CLAUDE_CODE_PLUGIN_SEED_DIR"] = pluginSeed
+	}
 	for key, value := range hostEnvironment(cfg.GatewayURL, cfg.ModelToken) {
 		env[key] = value
 	}

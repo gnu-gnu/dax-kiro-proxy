@@ -41,6 +41,10 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
   decisions at native scopes. Installed-client positive/negative controls verify project approval,
   server disable/re-enable, local/project/user name precedence, unchanged source bytes and complete
   observed process cleanup. Copying JSON alone is not interoperability evidence (D64).
+- Plugin source preservation requires an active full-client startup control and disabled/re-enabled
+  counterparts, with source tree entries/content/modes unchanged and observed peer cleanup. Finite
+  CLI listings and successful peer initialization do not prove later model-visible tool availability
+  or a complete plugin tool round trip (D65).
 
 ## C. Anthropic compatibility
 

@@ -99,6 +99,12 @@ servers, project refusal and local/project/user precedence, with unchanged sourc
 process cleanup. Plugins, skills, existing status commands and remote MCP OAuth remain separate
 preservation work; see decision D64 for the measured limits.
 
+Standard user plugins now also have a read-only seed path into the temporary profile. Full print
+startup checks an owned plugin's MCP initialization/discovery, disable/re-enable behavior and source
+preservation. Finite list commands do not establish that startup behavior. The first request still
+lacks this asynchronously loaded tool; later tool discovery/round trips and broader plugin assets
+remain open (D65).
+
 Development launch and release readiness are separate milestones in ACCEPTANCE_SPEC.md. The next
 priority is client-environment preservation, broader client request compatibility and the
 live alpha lifecycle checks. Optional web/account-usage
