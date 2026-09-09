@@ -156,6 +156,14 @@ separate from Go/Rust library licenses. Do not bundle their binaries or credenti
 this dependency review. Apple SDK/toolchain and signing/notarization terms also require the appropriate
 build/release environment; no CI run or signed artifact is claimed here.
 
+D68's opt-in plugin-source test uses the existing `/usr/bin/git`, reporting 2.39.5 (Apple Git-154),
+only as an external test executable. It authors and updates a new local fixture marketplace; no
+external repository, previous implementation or Git source is read. The upstream
+[Git license statement](https://git-scm.com/about) identifies GPLv2 (checked 2026-09-09). This use
+adds no linked module, copied Git component or bundled executable to the proxy. Apple-distribution
+components/terms and any future redistribution of Git would require a separate exact review; this
+record authorizes neither bundling nor a general distribution clearance.
+
 ## Obligations and unresolved risks
 
 | License/risk class | Required handling in the intended distribution |

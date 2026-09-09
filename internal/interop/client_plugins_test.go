@@ -306,10 +306,10 @@ func observeClaudePluginSources(t *testing.T, mode string) {
 	}{
 		{"natural", 1},
 		{"prepared", 1},
-		{"seed", 1},
-		{"seed_print", 2},
-		{"seed_print_disabled", 2},
-		{"seed_print_reenabled", 3},
+		{"seed", 2},
+		{"seed_print", 3},
+		{"seed_print_disabled", 3},
+		{"seed_print_reenabled", 4},
 	}
 	if toolRoundTrip {
 		cases = cases[:1]
@@ -340,7 +340,10 @@ func observeClaudePluginSources(t *testing.T, mode string) {
 				}()
 				command = fresh.Command()
 				if tc.name == "prepared" {
-					// Keep an explicit unseeded counterfactual after production integration.
+					// Keep the original profile counterfactual without a seed or native registrations.
+					if os.RemoveAll(filepath.Join(fresh.Path(), "client", "plugins")) != nil {
+						t.Fatal("cannot prepare owned profile counterfactual")
+					}
 					original := command.Environment
 					command.Environment = nil
 					for _, entry := range original {

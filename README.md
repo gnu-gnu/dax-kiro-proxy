@@ -102,11 +102,17 @@ preservation work; see decision D64 for the measured limits.
 Standard user plugins now also have a read-only seed path into the temporary profile. Full print
 startup checks an owned plugin's MCP initialization/discovery, disable/re-enable behavior and source
 preservation. Finite list commands do not establish that startup behavior. Plugin tool success and
-hook refusal now also pass through the real gateway/relay with fake ACP when interactive input waits
-for observed MCP readiness; the original sources and process cleanup pass. A second print launch of
-the same private profile also completes a tool round trip. Fresh immediate print requests can still
-omit the tool. Dynamic tool changes, broader plugin assets and actual Kiro plugin turns remain open
-(D65-D66).
+hook refusal also pass through the real gateway/relay with fake ACP. The current interactive control
+checks the client's `/mcp` connected screen before input; server initialization/listing alone proved
+insufficient. A second print launch of the same private profile also completes a tool round trip.
+Immediate input and dynamic registry changes remain separate compatibility work (D65-D66, D68).
+
+The private profile now also snapshots the two bounded native plugin registration files. This lets
+the first session load installed plugin skills and hooks while retaining the read-only content seed.
+Installed-client checks cover namespaced skill invocation, SessionStart/Stop hooks, disable/re-enable,
+hook suppression and source preservation. Private uninstall leaves the original source intact; a Git
+seed rejects marketplace update/removal even when a real local revision is available. Model-selected
+skills, other plugin assets, custom roots and actual Kiro plugin turns remain unverified (D68).
 
 The product status display now yields to existing user/project/local status choices, including
 commands without a refresh interval. It supplies a bounded user-scope default only when no such

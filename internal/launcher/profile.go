@@ -70,6 +70,10 @@ func PrepareClient(cfg ClientConfig) (*ClientProfile, error) {
 	if err != nil {
 		return nil, err
 	}
+	pluginRegistrations, err := clientPluginRegistrations(pluginSeed)
+	if err != nil {
+		return nil, err
+	}
 	path, err := os.MkdirTemp(cfg.RuntimeParent, "dax-runtime-")
 	if err != nil {
 		return nil, ErrRuntime
@@ -98,6 +102,21 @@ func PrepareClient(cfg ClientConfig) (*ClientProfile, error) {
 	}
 	if store.Write(".claude.json", mcpState) != nil {
 		return nil, ErrRuntime
+	}
+	if len(pluginRegistrations) != 0 {
+		pluginDir := filepath.Join(profile, "plugins")
+		if os.Mkdir(pluginDir, 0700) != nil {
+			return nil, ErrRuntime
+		}
+		pluginStore, err := privatefs.New(pluginDir)
+		if err != nil {
+			return nil, ErrRuntime
+		}
+		for name, data := range pluginRegistrations {
+			if pluginStore.Write(name, data) != nil {
+				return nil, ErrRuntime
+			}
+		}
 	}
 	env["HOME"], env["TMPDIR"], env["CLAUDE_CONFIG_DIR"] = cfg.Home, scratch, profile
 	if pluginSeed != "" {

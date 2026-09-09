@@ -50,6 +50,14 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
   Verify source preservation and joined client/MCP/backend cleanup through the real gateway/relay.
   Distinguish controlled interactive readiness, a warmed private print profile and immediate fresh
   print startup. Passing one does not establish the others or dynamic registry compatibility (D66).
+- Native plugin registrations must stay private and bounded while retaining the original read-only
+  content source. Verify first-session skill expansion and SessionStart/Stop hooks, plugin disable/
+  re-enable and hook suppression against an active native-HOME control. Compare source entries,
+  bytes and modes after private uninstall/update/removal. A Git update control must include an
+  available owned revision and a native update that actually applies it; a no-op is insufficient.
+  Initialization/listing alone cannot establish client readiness: the current controlled interactive
+  tool check also observes the client's connected MCP panel. This does not close immediate-input,
+  dynamic-registry or model-selected skill compatibility (D68).
 
 ## C. Anthropic compatibility
 

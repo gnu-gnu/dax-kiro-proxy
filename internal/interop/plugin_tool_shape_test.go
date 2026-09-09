@@ -1,6 +1,7 @@
 package interop_test
 
 import (
+	"crypto/sha256"
 	"encoding/json"
 	"net/http"
 	"strings"
@@ -17,6 +18,7 @@ const ownedPluginToolName = "mcp__plugin_dax-owned_owned__owned_probe"
 // Observe only owned result equality and fixed request-comparison flags. The synthetic gateway
 // requests exclusively client-advertised tools after independently checking their input schemas.
 type pluginToolExchange struct {
+	waitResult                              [32]byte
 	stage                                   string
 	toolCount, mcpCount                     int
 	rawWait, rawToolSearch                  bool
@@ -72,7 +74,22 @@ func (e *pluginToolExchange) respond(w http.ResponseWriter, httpRequest *http.Re
 	}
 	if e.toolRequested {
 		e.stage = "plugin_result"
-		if len(results) != 1 || results[0].ID != "owned_plugin_call" || results[0].IsError || len(results[0].Content) != 1 || results[0].Content[0].Type != "text" || results[0].Content[0].Text != "independent client asset result" {
+		pluginCount, waitCount := 0, 0
+		valid := len(results) >= 1 && len(results) <= 2
+		for _, result := range results {
+			switch result.ID {
+			case "owned_plugin_call":
+				pluginCount++
+				valid = valid && !result.IsError && len(result.Content) == 1 && result.Content[0].Type == "text" && result.Content[0].Text == "independent client asset result"
+			case "owned_plugin_wait":
+				waitCount++
+				data, _ := json.Marshal(result)
+				valid = valid && e.waited && sha256.Sum256(data) == e.waitResult
+			default:
+				valid = false
+			}
+		}
+		if !valid || pluginCount != 1 || waitCount > 1 {
 			e.failed = true
 			w.WriteHeader(400)
 			return
@@ -111,6 +128,12 @@ func (e *pluginToolExchange) respond(w http.ResponseWriter, httpRequest *http.Re
 		return
 	}
 	if wanted == ownedPluginToolName {
+		if e.waited {
+			// The client can repeat its completed wait beside the later plugin result. Keep
+			// only an in-memory digest for exact equality; this observer adds no product policy.
+			data, _ := json.Marshal(results[0])
+			e.waitResult = sha256.Sum256(data)
+		}
 		e.toolRequested = true
 	} else {
 		e.waited = true

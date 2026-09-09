@@ -2675,3 +2675,100 @@ unsafe/ambiguous settings while retaining independent hooks/routing. Applicable 
 suites with installed opt-ins off pass: launcher 23.325s, interop 21.563s and command 1.535s.
 Whole-repository go vet, formatting, whitespace, build and executable help pass. No dependencies
 change. The development executable includes this fix; alpha/release gates remain open.
+
+## D68: preserve first-session plugin registrations, skills and hooks
+
+A read-only content seed alone does not preserve the pinned client's first skill/hook lookup in a
+fresh private profile. An active native-HOME control advertises an independently authored skill,
+runs its SessionStart and Stop hooks once, includes its startup context and completes a synthetic
+text turn. The same seed without native registrations omits both assets; direct namespaced skill
+invocation then makes no model request. Canonical seed placement, init-only warmup and waiting for
+an initial hook do not establish activation. Retaining only installed_plugins.json is also
+insufficient. Both native registration records are required in the measured configuration.
+
+Preparation now reads exactly installed_plugins.json and known_marketplaces.json from the validated
+standard-HOME plugin root before creating runtime state. Each existing record must pass the existing
+owned regular-file, permission/link and 2 MiB read checks plus strict JSON object validation. Missing
+records stay absent; malformed or unsafe records fail preparation. At most two records and 4 MiB are
+copied into the private client/plugins directory, with directory mode 0700 and file mode 0600.
+Raw record bytes, scopes and values are retained for native client interpretation. Plugin content
+continues to use the read-only seed. The product performs no installation, refresh or source mutation.
+Private state is removed by the existing runtime owner; source enable/disable settings stay native.
+
+The public [marketplace reference](https://code.claude.com/docs/en/plugin-marketplaces) describes
+the read-only seed, primary mutable configuration, native cache lookup and blocked seed management.
+The [plugin reference](https://code.claude.com/docs/en/plugins-reference) documents skill/hook layout
+and the plugin-root substitution; the [skills reference](https://code.claude.com/docs/en/skills)
+documents user-invoked namespaced commands. These were checked on 2026-09-09. The need for both
+registration snapshots is a pinned-client black-box result, not a general protocol requirement.
+
+Eleven installed-client controls cover active native HOME, first prepared text/skill startup,
+interactive skill invocation, plugin disable/re-enable, hook suppression/re-enable and three private
+management operations. The skill's fixed body reaches the request only on explicit invocation. An
+enabled plugin contributes startup context and one start/stop hook; disabling it removes all three,
+while disabling hooks retains skill expansion but removes hook context/effects. The built-in Skill
+declaration is observed but not model-invoked. All model responses are bounded local fixtures; these
+asset checks do not exercise Kiro or a model-selected skill through the session driver.
+
+The management controls verify original registration/settings bytes and complete bounded plugin/
+marketplace trees, including entry types, content, permissions and symlink targets. Private uninstall
+finishes without changing the original source. Directory-source update/removal also return success
+without source changes; this is not evidence that those commands were refused. A separate canonical
+Git source rejects update/removal with a seed-related diagnostic. The fixture has a second local
+revision available before those attempts, and a later natural-HOME update actually applies it.
+Thus preservation is tested against a real possible update, not only an unchanged remote.
+
+All Git repositories here are newly authored local fixtures. An owned-HOME URL rewrite maps one
+reserved .invalid HTTPS URL exactly to the local .git directory; ls-remote verifies the mapping
+before client installation. No external repository is fetched. The public client rejects the two
+attempted file-URL forms, which remain failed setup attempts. The existing system Git is only an
+external test tool, recorded separately in DEPENDENCY_REVIEW.md, with no added application module.
+
+The combined regression also invalidated D66's weakest readiness assumption. Server initialization
+and tools/list can finish before the client includes that tool in its first Messages registry. One
+synthetic turn instead advertises WaitForMcpServers, changes its registry afterwards and coalesces
+the prior wait result with a later plugin result. Its bounded observer now checks the one exact
+plugin result and, if repeated, the exact prior wait result using an in-memory digest; unknown or
+duplicate results still fail. This observation changes no product result/history validation.
+
+The controlled interactive MCP test now also opens the client's public `/mcp` panel, observes its
+owned connected server, closes the panel and verifies the ordinary prompt before submitting input.
+There is no preceding model request. This is a stronger measured readiness control, not a launcher
+automation or an immediate-input compatibility fix. The real gateway/fake-ACP allowance and hook
+refusal cases retain unchanged registries, exactly two main requests, one D63 reconstruction and
+native call counts one/zero. All client, hook, MCP and backend processes are joined. Dynamic registry
+changes, coalesced history through the driver, arbitrary cold input and actual Kiro remain open.
+
+Private normalized evidence includes:
+
+- plugin-hook-skill.5nbd9i and plugin-skill-direct.ca6xPk fail first lookup; the active native
+  control plugin-hook-natural.GtjEdj passes in 2.754s. Canonical/init-only/interactive-wait and
+  single-registration controls fail; plugin-assets-registries.CkskaD passes both-record activation
+  and private uninstall in 3.885s. These diagnostic copies contain only independently authored data.
+- plugin-assets-preserved.oCGmnm passes all eleven controls through the production constructor
+  in 9.495s. Unit tests first fail without registration preservation, then pass in 4.303s.
+- plugin-registration-mcp.fShyWo fails in 45.372s on the synthetic observer's coalesced wait result,
+  while the actual gateway pair passes. plugin-git-source.CYZ4qO and
+  plugin-git-classification.XQlnkx reject file-URL setup; neither is accepted evidence.
+- plugin-git-rewritten.SGDABw passes all three Git mutation controls and the active native update
+  in 5.684s. Final controls additionally classify seed refusal and fingerprint the owned Git config.
+- plugin-registration-regression.YrMMSZ fails in 69.991s: the denied real-gateway turn starts before
+  the plugin is advertised despite server initialization/listing. Its eleven hook/skill and three
+  Git controls pass, but this combined run is not reported as a pass.
+- plugin-panel-readiness.0MmKIC passes the denied gateway turn after the panel control (7.697s).
+  plugin-registration-final.rLXV0p passes the final ten-test installed regression in 51.515s under
+  race instrumentation: native MCP sources, plugin source controls, warmed tool, interactive tool,
+  real-gateway allowance/refusal, default tools, hook/skill and Git controls, enabled policies and
+  disabled hooks. The source/cleanup checks pass; no external model call occurs.
+
+The approved public-only local Claude consultation is saved and assessed in
+public-plugin-readiness-review-kps_w578. Its generic active/disabled controls were useful; its
+outdated uncertainty about the seed/init-only interfaces and model-only skill claim were rejected
+against the primary references. No repository payload, user asset or previous implementation was
+sent. Advice is not acceptance evidence. Observations retain fixed labels/counts/Booleans/owned PIDs
+only; raw prompts, tool outputs, terminal content and command diagnostics are not persisted.
+
+Applicable uncached opt-ins-off race suites pass: launcher 21.915s, interop 21.068s and command
+1.355s (plugin-registration-unit.dgoLxd). Whole-repository go vet, formatting, whitespace, build and
+executable help pass. The development binary includes this correction. Broader assets, plugin-owned
+permission hooks, standalone user skills/agents, custom roots and alpha/release checks remain work.

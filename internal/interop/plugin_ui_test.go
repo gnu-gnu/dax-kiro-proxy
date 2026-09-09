@@ -20,6 +20,63 @@ import (
 
 func runPluginInteractive(t *testing.T, parent context.Context, command childproc.Command, root, project, observations string, exchange *pluginToolExchange, requests *atomic.Int32) childproc.Result {
 	t.Helper()
+	panelStage := 0
+	var panelSeen, serverSeen, connectedSeen bool
+	defer func() {
+		t.Logf("mcp_panel_stage=%d, panel_seen=%v, owned_server_seen=%v, connected_seen=%v", panelStage, panelSeen, serverSeen, connectedSeen)
+	}()
+	return runAssetInteractive(t, parent, command, root, project, assetUIControl{
+		Prompt:   "Call the independent plugin's effect-free probe and return its result.",
+		Answer:   "independent plugin observation complete",
+		Requests: requests.Load,
+		Ready: func() bool {
+			ledger, err := readDenialArtifact(observations, "plugin", 8192)
+			return err == nil && bytes.Contains(ledger, []byte(" initialized\n")) && bytes.Contains(ledger, []byte(" listed\n"))
+		},
+		BeforePrompt: func(screen string) (bool, string) {
+			lower := strings.ToLower(strings.Join(strings.Fields(screen), " "))
+			panel := strings.Contains(lower, "mcp servers")
+			panelSeen = panelSeen || panel
+			serverSeen = serverSeen || strings.Contains(lower, "plugin:dax-owned:owned")
+			connectedSeen = connectedSeen || strings.Contains(lower, "connected")
+			switch panelStage {
+			case 0:
+				if statusProjectVisible(lower, project) && strings.Contains(screen, "❯") && !strings.Contains(lower, "do you want") && !strings.Contains(lower, "enter to continue") {
+					panelStage = 1
+					return false, "/mcp"
+				}
+			case 1:
+				if strings.Contains(screen, "/mcp") {
+					panelStage = 2
+					return false, "\r"
+				}
+			case 2:
+				if panel && strings.Contains(lower, "plugin:dax-owned:owned") && strings.Contains(lower, "connected") && !strings.Contains(lower, "disconnected") {
+					panelStage = 3
+					return false, "\x1b"
+				}
+			case 3:
+				return !panel, ""
+			}
+			return false, ""
+		},
+		Complete: func() bool {
+			exchange.mu.Lock()
+			defer exchange.mu.Unlock()
+			return exchange.complete && !exchange.failed
+		},
+	})
+}
+
+type assetUIControl struct {
+	Prompt, Answer  string
+	Requests        func() int32
+	Ready, Complete func() bool
+	BeforePrompt    func(string) (bool, string)
+}
+
+func runAssetInteractive(t *testing.T, parent context.Context, command childproc.Command, root, project string, control assetUIControl) childproc.Result {
+	t.Helper()
 	ctx, cancel := context.WithTimeout(parent, 20*time.Second)
 	defer cancel()
 	owner, err := childproc.NewAttached(childproc.AttachedConfig{Lifetime: 20 * time.Second})
@@ -68,7 +125,7 @@ func runPluginInteractive(t *testing.T, parent context.Context, command childpro
 	}
 	command.Executable = "/usr/bin/script"
 	command.Args = append([]string{"-q", os.DevNull, "/bin/sh", wrapper}, command.Args...)
-	const prompt = "Call the independent plugin's effect-free probe and return its result."
+	prompt := control.Prompt
 	var inputStage atomic.Int32
 	var unexpectedRequest, readyBeforeInput, rendered atomic.Bool
 	type outcome struct {
@@ -81,12 +138,17 @@ func runPluginInteractive(t *testing.T, parent context.Context, command childpro
 		result, answers, err := runObservedTerminal(ctx, owner, command, nil, func(screen string) string {
 			lower := strings.ToLower(strings.Join(strings.Fields(screen), " "))
 			if inputStage.Load() == 0 {
-				if requests.Load() != 0 {
+				if control.Requests() != 0 {
 					unexpectedRequest.Store(true)
 					return ""
 				}
-				ledger, err := readDenialArtifact(observations, "plugin", 8192)
-				ready := err == nil && bytes.Contains(ledger, []byte(" initialized\n")) && bytes.Contains(ledger, []byte(" listed\n"))
+				ready := control.Ready()
+				if ready && control.BeforePrompt != nil {
+					proceed, input := control.BeforePrompt(screen)
+					if !proceed {
+						return input
+					}
+				}
 				if ready && statusProjectVisible(lower, project) && strings.Contains(screen, "❯") && !strings.Contains(lower, "enter to continue") && !strings.Contains(lower, "do you want") {
 					readyBeforeInput.Store(true)
 					inputStage.Store(1)
@@ -96,7 +158,7 @@ func runPluginInteractive(t *testing.T, parent context.Context, command childpro
 				inputStage.Store(2)
 				return "\r"
 			}
-			if inputStage.Load() == 2 && strings.Contains(screen, "independent plugin observation complete") {
+			if inputStage.Load() == 2 && strings.Contains(screen, control.Answer) {
 				rendered.Store(true)
 			}
 			return ""
@@ -127,9 +189,7 @@ wait:
 					}
 				}
 			}
-			exchange.mu.Lock()
-			complete := exchange.complete && !exchange.failed
-			exchange.mu.Unlock()
+			complete := control.Complete()
 			if owned && complete && rendered.Load() {
 				break wait
 			}

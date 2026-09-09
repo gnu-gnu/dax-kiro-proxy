@@ -6,6 +6,20 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D68 retains two bounded native plugin registration files in the private client root while plugin
+  content stays at its read-only seed. Actual Claude 2.1.263 passes eleven first-session skill/hook/
+  disable/mutation controls and three Git-source preservation controls. A pending local Git revision
+  cannot be applied or removed through the prepared seed, while a later native update applies it.
+  Sources remain unchanged and observed client/hook/MCP/backend cleanup passes. An earlier combined
+  run exposed insufficient readiness evidence: MCP initialization/listing can precede inclusion in
+  the first model request. The interactive control now also checks the client's connected `/mcp`
+  panel before input. The final ten-test installed regression passes in 51.515s, including allowed
+  plugin execution once, hook refusal with zero calls, ordinary default-tool traffic and policies.
+  Immediate-input/dynamic-registry compatibility and model-selected skills remain open. All model
+  responses use local synthetic fixtures or fake ACP; no Kiro model call runs. Applicable uncached
+  opt-ins-off race suites pass: launcher 21.915s, interop 21.068s and command 1.355s; whole-repository
+  go vet, formatting, whitespace, build and executable help pass. The development binary is rebuilt.
+  No application dependency changes. The separately installed Git tool's test-only scope is recorded.
 - D67 preserves existing user/project/local status commands instead of overriding them from the
   command-line layer. An existing user choice stays exact; a bounded conservative project-source
   check suppresses the entire optional default, preventing its refresh timer from merging into
