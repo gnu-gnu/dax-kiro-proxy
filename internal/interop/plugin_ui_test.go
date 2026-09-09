@@ -69,6 +69,7 @@ func runPluginInteractive(t *testing.T, parent context.Context, command childpro
 }
 
 type assetUIControl struct {
+	Lifetime        time.Duration
 	Prompt, Answer  string
 	Requests        func() int32
 	Ready, Complete func() bool
@@ -77,9 +78,16 @@ type assetUIControl struct {
 
 func runAssetInteractive(t *testing.T, parent context.Context, command childproc.Command, root, project string, control assetUIControl) childproc.Result {
 	t.Helper()
-	ctx, cancel := context.WithTimeout(parent, 20*time.Second)
+	lifetime := control.Lifetime
+	if lifetime == 0 {
+		lifetime = 20 * time.Second
+	}
+	if lifetime <= 0 || lifetime > time.Minute {
+		t.Fatal("invalid owned client terminal lifetime")
+	}
+	ctx, cancel := context.WithTimeout(parent, lifetime)
 	defer cancel()
-	owner, err := childproc.NewAttached(childproc.AttachedConfig{Lifetime: 20 * time.Second})
+	owner, err := childproc.NewAttached(childproc.AttachedConfig{Lifetime: lifetime})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -128,6 +136,7 @@ func runAssetInteractive(t *testing.T, parent context.Context, command childproc
 	prompt := control.Prompt
 	var inputStage atomic.Int32
 	var unexpectedRequest, readyBeforeInput, rendered atomic.Bool
+	var promptAfterComplete, answerAfterComplete, protocolComplete atomic.Bool
 	type outcome struct {
 		result  childproc.Result
 		answers int
@@ -158,8 +167,13 @@ func runAssetInteractive(t *testing.T, parent context.Context, command childproc
 				inputStage.Store(2)
 				return "\r"
 			}
-			if inputStage.Load() == 2 && strings.Contains(screen, control.Answer) {
-				rendered.Store(true)
+			if inputStage.Load() == 2 && control.Complete() {
+				protocolComplete.Store(true)
+				promptAfterComplete.Store(strings.Contains(screen, prompt))
+				answerAfterComplete.Store(strings.Contains(screen, control.Answer))
+				if assetAnswerVisible(screen, prompt, control.Answer) {
+					rendered.Store(true)
+				}
 			}
 			return ""
 		}, true)
@@ -212,8 +226,53 @@ wait:
 	owner.Close()
 	groupGone := owned && errors.Is(syscall.Kill(-group, 0), syscall.ESRCH)
 	t.Logf("interactive_plugin_ready_before_input=%v, input_stage=%d, unexpected_request_before_input=%v, completion_rendered=%v, client_group_gone=%v, setup_stage=%d, terminal_bytes=%d", readyBeforeInput.Load(), inputStage.Load(), unexpectedRequest.Load(), rendered.Load(), groupGone, got.answers, len(got.result.Stdout))
+	t.Logf("protocol_complete=%v, current_prompt_after_complete=%v, current_answer_after_complete=%v, raw_answer_observed=%v", protocolComplete.Load(), promptAfterComplete.Load(), answerAfterComplete.Load(), bytes.Contains(got.result.Stdout, []byte(control.Answer)))
 	if !readyBeforeInput.Load() || inputStage.Load() != 2 || unexpectedRequest.Load() || !rendered.Load() || !groupGone || owner.Active() != 0 || errors.Is(got.err, childproc.ErrCleanup) || errors.Is(got.err, childproc.ErrIO) || errors.Is(got.err, childproc.ErrOutputLimit) {
 		t.Error("interactive first plugin tool or cleanup was not established")
 	}
 	return got.result
+}
+
+func assetAnswerVisible(screen, prompt, answer string) bool {
+	if answer == "" {
+		return false
+	}
+	position := strings.LastIndex(screen, answer)
+	if position < 0 {
+		return false
+	}
+	if !strings.Contains(prompt, answer) {
+		return true
+	}
+	input := strings.LastIndex(screen, prompt)
+	return input >= 0 && position >= input+len(prompt)
+}
+
+func TestAssetAnswerRequiresOutputAfterPromptEcho(t *testing.T) {
+	const answer = "Independent completion"
+	const prompt = "Finish with: " + answer
+	for _, tc := range []struct {
+		screen string
+		want   bool
+	}{
+		{prompt, false},
+		{prompt + "\nwaiting", false},
+		{answer + "\n" + prompt, false},
+		{prompt + "\n" + answer, true},
+		{answer, false},
+	} {
+		if assetAnswerVisible(tc.screen, prompt, answer) != tc.want {
+			t.Fatal("prompt echo counted as model output")
+		}
+	}
+	if !assetAnswerVisible("An independent prompt\n"+answer, "An independent prompt", answer) {
+		t.Fatal("separate response was not recognized")
+	}
+	derived := "Join Independent and completion with one space."
+	if !assetAnswerVisible(answer, derived, answer) {
+		t.Fatal("a scrolled-away prompt blocked its distinct final answer")
+	}
+	if assetAnswerVisible(statusTerminalScreen([]byte("\x1b]0;"+answer+"\x07Other text")), derived, answer) || assetAnswerVisible(statusTerminalScreen([]byte(answer+"\x1b[2J\x1b[HOther text")), derived, answer) {
+		t.Fatal("hidden or erased text counted as current output")
+	}
 }

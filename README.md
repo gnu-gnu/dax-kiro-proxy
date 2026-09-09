@@ -92,8 +92,10 @@ continuations can recreate after a changed standing instruction or validated too
 with joined cleanup, one original deadline and a default limit of sixteen recreations per turn.
 Unchanged continuations keep their prompt. Recreation adds provider work and loses hidden backend
 context. Actual Kiro also passes default-tool Read hook refusal and one joined recreation (D71), with
-all 25 client tools and ordinary thinking/context declarations. Live registry changes and other
-lifecycle paths remain alpha checks. No general Messages/API compatibility is implied.
+all 25 client tools and ordinary thinking/context declarations. D72's actual registry experiment
+reaches the wait, expanded tools, one plugin call and joined cleanup, but fails its final-answer
+marker condition; the full live plugin gate remains open. Other lifecycle paths remain alpha
+checks. No general Messages/API compatibility is implied.
 
 The temporary client profile now retains standard-HOME user/local MCP declarations and decisions
 at their native scopes. Installed-client controls verify all three MCP scopes, disabled/re-enabled
@@ -116,7 +118,8 @@ the first session load installed plugin skills and hooks while retaining the rea
 Installed-client checks cover namespaced skill invocation, SessionStart/Stop hooks, disable/re-enable,
 hook suppression and source preservation. Private uninstall leaves the original source intact; a Git
 seed rejects marketplace update/removal even when a real local revision is available. Model-selected
-skills, other plugin assets, custom roots and actual Kiro plugin turns remain unverified (D68).
+skills, other plugin assets and custom roots remain unverified (D68); full actual Kiro plugin
+acceptance remains open after D72's partial observation.
 
 The product status display now yields to existing user/project/local status choices, including
 commands without a refresh interval. It supplies a bounded user-scope default only when no such

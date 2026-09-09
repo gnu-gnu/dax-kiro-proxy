@@ -147,8 +147,9 @@ absolute deadline. It loses hidden backend context and may add provider work. An
 and repeated standing instructions keep the same prompt. Regrouped/altered history and broader
 changed-message sequences remain unsupported. Installed-client/fake-ACP tests verify MCP readiness
 followed by allowed or hook-denied plugin execution. Actual Kiro passes one default-tool Read refusal
-and changed-standing-message recreation (D71); live registry changes and broader recovery remain
-alpha gates.
+and changed-standing-message recreation (D71). D72 observes the actual wait/registry/plugin/result
+path and cleanup, but its final-answer marker check fails and the full live plugin experiment remains
+open. Broader recovery remains an alpha gate.
 
 Public ACP and Anthropic behavior form the stable core. Kiro methods beginning with a private namespace
 are optional, version-sensitive capabilities. Their absence must reduce metadata or effort features,

@@ -501,3 +501,216 @@ plus a new question could enter the separate denial-interruption path. Default-c
 admits only one result block in that latest user message. The recorded live request already meets
 this condition; it is not repeated. The final updated guards and installed-client/fake-ACP rehearsal
 pass in default-denial-final.ZqVfcB (5.399s), with vet/formatting/whitespace passing afterward.
+
+## Live MCP readiness and registry replacement
+
+Prepared after D71. The continuing authorization covers one bounded allowance case followed, only
+if it passes, by one independent hook-refusal case. Each requires the explicit credit opt-in and
+the existing exact Kiro 2.21.2/v2 and Claude 2.1.263 account/catalog checks. Auto must be advertised;
+no alternate model is selected. A failed case stops the sequence and requires diagnosis before any
+new attempt. This plan is not evidence of a live result until the observations are recorded below.
+
+The public client installs only a freshly authored, effect-free plugin from an owned local marketplace
+into its new test HOME. No downloaded plugin, user asset, project/repository source or conversation is
+supplied. Its independent MCP peer holds initialization until the first Messages request advertises
+WaitForMcpServers with an input schema accepting `{}`; the handler then releases that owned peer.
+The peer has a ten-second initialization bound and checks its exact own tool name and empty arguments
+before recording a call and returning fixed synthetic text. User settings, global records and the
+plugin source tree must remain unchanged when the prepared private client runs.
+
+Both cases use this fixed user prompt, under the client's ordinary system/tool declarations:
+
+```text
+WaitForMcpServers {}, then mcp__plugin_dax-owned_owned__owned_probe {} once each. Reply only: independent plugin observation complete.
+```
+
+A test-only gateway guard allows exactly three main requests and two client tool calls, in that
+order, with empty argument objects. The first registry must advertise the wait and omit the plugin;
+the next registry must advertise the plugin. Each continuation carries exactly one matching result
+and no new user question. Wait must succeed. The plugin must return the exact owned success text or,
+in the refusal case, a matching client-hook error containing the owned refusal reason. Unexpected
+tools/arguments, duplicate/foreign results, wrong status, early completion and additional requests
+reject before dispatch or client exposure. Title requests are synthetic and local; the entire HTTP
+Messages budget is four. All new declarations still pass the product validator.
+
+The shared restricted Kiro launch generator permits at most two sequential ACP processes and one
+recreation per case, with one original 45-second turn deadline, 20-second setup/first-event limits
+and a 60-second client terminal lifetime. Each whole harness is bounded to three minutes. Before
+preparing the replacement, the first observed relay/group and its policy/relay files must be gone.
+The second process receives the expanded validated registry and full prior history. The plugin result
+must complete within that replacement; a third process is forbidden. Both observed groups and all
+prepared artifacts must be absent after closure. Each relay still only requests client execution.
+
+The independent guard tests cover wrong operations/arguments, undelivered batches, result IDs/status,
+extra user content, missing completion and excess requests. The actual-client/fake-ACP rehearsal uses
+the same fixed prompt and terminal/turn limits. A separate UI check must distinguish the echoed
+prompt's requested answer from later output: the answer must appear after the full echoed prompt.
+Seeing the answer only inside the user input cannot establish visible completion.
+
+Passing requires two exposed calls, two exact results, three main requests, two joined backend
+processes, a nonempty final completion rendered after the prompt, one native plugin call for allowance
+and zero for refusal, unchanged sources and joined client/MCP/backend cleanup. Only counters, sizes,
+fixed labels and Boolean comparisons are retained. Prompts, full output, credentials and unrestricted
+stderr are not saved. Two ACP prompts do not imply two billed model calls, and no credit maximum is
+claimed. General dynamic configuration, other plugins and remaining alpha/release gates stay separate.
+
+After the independent controls and fake rehearsal pass, invoke once:
+
+```sh
+DAX_INTEROP_KIRO_CREDIT_OPT_IN=1 \
+DAX_INTEROP_KIRO_BINARY=/absolute/path/to/kiro-cli \
+DAX_INTEROP_CLAUDE_BINARY=/absolute/path/to/claude \
+GOTOOLCHAIN=go1.27.1 \
+GOMODCACHE="$PWD/.cache/gomod" \
+GOCACHE="$PWD/.cache/gobuild" \
+go test -race -p 1 -count=1 -timeout=8m -v \
+  -run '^TestKiroLivePluginRegistryReplacement$' ./internal/interop
+```
+
+The initial guard controls fail to build against the absent adapter; the prompt-echo control then
+fails against the original substring-only UI check (0.779s). With the guard and output-after-input
+check, independent controls pass in 1.671s. plugin-sequence-rehearsal.naaLY5 passes the original and
+new-prompt allowed/refused fake-ACP pairs plus guards in 26.377s under race. Each pair has three main
+requests, two exact calls/results, a final rendered completion, correct one/zero native call counts,
+unchanged sources and joined processes. The new-prompt pair takes 11.73s and uses the live terminal/
+turn bounds without Kiro inference. The opt-ins-off interop race suite passes in 21.365s
+(plugin-sequence-unit.ODlARh); whole-repository/fixture vet, formatting and whitespace pass.
+The installed-client regression plugin-sequence-clients.ANfZdp then passes all eight selected MCP,
+plugin source/tool/hook/Git and default-denial controls in 58.469s under race. No Kiro prompt runs
+in either rehearsal or regression.
+
+The first live allowance reaches the wait result, changed registry, one native plugin call and
+completed backend response, but fails the final-screen assertion in live-plugin-registry.BJbgWo
+(70.11s test, 70.507s race package). Four Messages requests include the synthetic title; the final
+main request has eight messages and one latest result. Source preservation and both prepared
+process/group/artifact cleanup pass. The refusal case is not run. The log lacks separate expected-
+answer/prompt-presence diagnostics, so it does not establish whether wording or current-screen
+reconstruction caused the visibility failure. Overall live acceptance remains failed.
+
+A public-only local Claude consultation, public-terminal-evidence-review-_c51vjg0, completes in
+one turn with 6,182 stdout bytes, and its saved answer is fully read and assessed. Useful advice is
+to separate generated/rendered markers and avoid requiring old prompt/answer co-presence. Stripping
+terminal controls, assuming markers cannot appear in tool text, and inferring wording from any
+assistant text are rejected. This advice is not live evidence or a diagnosis of the failed attempt.
+
+The follow-up replaces the visibility instrument while keeping the exact two tool operations,
+permissions, result validation, process limits and deadlines. Each case generates a fresh 26-byte
+ASCII marker, keeps the whole value in memory, and puts only its two separate halves in the prompt:
+
+```text
+WaitForMcpServers {}, then mcp__plugin_dax-owned_owned__owned_probe {} once each. End with X+Y (no separator), X=<first-half>, Y=<second-half>.
+```
+
+The expanded prompt is 144 bytes and contains no complete marker. The guard rejects a complete
+marker in initial user content, a wait/tool result or earlier model output. It requires the marker
+in the final model response before accepting end_turn. The screen observer separately requires the
+current reconstructed screen to contain the marker after protocol completion. The old prompt need
+not remain visible. Hidden controls and erased text cannot count; stripped/raw substring presence
+is diagnostic only. Generated-marker, protocol-completion, current prompt/answer and raw-answer flags
+are logged independently. Guard diagnostics now survive a failed UI case through deferred reporting.
+
+The fake receives an owned, bounded marker file, validates it and emits it only after the exact
+plugin result. No such file is written for actual Kiro. Independent controls reject prompt echo,
+premature model/tool markers, missing final wording, hidden and erased text; a visible distinct answer
+still passes when the old prompt is absent. These controls establish the revised observation rule,
+not the exact cause of the first live failure. They pass in 1.809s. The original and derived-marker
+installed-client/fake-ACP pairs pass in plugin-marker-rehearsal.Pgkq4g (26.264s), with correct effects,
+sources and cleanup. Both new-marker cases report generated and current-screen marker matches;
+the older constant-answer controls also pass. After regression checks, the same live entry point may
+run one fresh allowance and, if successful, one refusal under these revised inputs; it stops on failure.
+
+The final preflight race regression passes ACP in 5.938s and opt-ins-off interop in 22.449s
+(plugin-marker-unit.YJoqb6). Three installed-client UI/plugin-hook/Git preservation controls pass in
+17.655s (plugin-marker-ui-regression.CFVGcB), without Kiro inference. Marker controls additionally
+cover a marker split across text events, accepting it only in the final response; this guard-only
+run passes in 1.322s. Formatting, whole-repository/fixture vet and whitespace checks pass. These
+results permit the one planned follow-up sequence; they do not replace the failed live observation.
+
+That follow-up allowance fails before any exposed tool in live-plugin-marker.MNXcAE (69.20s test,
+69.463s race package). It admits one main request plus a synthetic title; the owned MCP peer
+initializes/lists, but neither wait nor plugin is exposed and the plugin call count is zero.
+The guard reports Failed with one request and no uses/results/completion/marker. The existing
+diagnostics do not distinguish a backend start failure from a rejected first response. The client
+group is gone and the one prepared launch is cleaned. The former aggregate process assertion also
+requires two launches/groups, so its false value cannot be interpreted as an observed survivor.
+The refusal case does not run. This is another failed observation, not a visibility-only result.
+
+The next diagnostic revision adds only fixed validation/error categories, event/text-byte counts,
+and separate actual cleanup versus expected process-count observations. It never saves arbitrary
+error strings, tool names/arguments or response text. Before shutdown it can record the group of
+an owned relay even when no tool has been exposed. A recorded surviving relay PID receives bounded
+last-resort cleanup while preserving the failure result; unrelated groups are never signaled.
+Success still requires two distinct observed groups, both prepared policies retired and the exact
+three-request/two-tool sequence. Unit controls distinguish backend-start, backend-read, unexpected
+tool/arguments, early end and missing end, and verify that private error text is reduced to fixed
+categories. Retryable read deadlines are recorded without independently canceling a turn.
+
+After these controls and the same installed-client/fake-ACP allowance/refusal rehearsal pass,
+one diagnostic live sequence may use the unchanged derived-marker recipe and existing budgets.
+This is an instrumented follow-up to distinguish the previously conflated failure sites, not an
+automatic retry of an unchanged observation. Allowance failure again stops the refusal case.
+
+The diagnostic prerequisites pass in plugin-categories-rehearsal.HoeDq3 (14.826s race package).
+Both installed-client/fake-ACP cases complete with three requests, two tool calls/results, six
+events, the final generated/displayed marker, no failure category, native effect counts one/zero,
+unchanged sources and joined groups. All independent guard/category/screen controls pass in that
+run. The category tests initially failed to build before the new fields/classifier were implemented.
+Applicable vet, formatting and whitespace checks pass before the diagnostic live follow-up.
+
+The diagnostic allowance fails in live-plugin-categories.Pr0kj8 (68.49s test, 68.768s race package).
+It receives 129 text events/985 pre-tool text bytes and rejects an early complete marker before
+any exposed tool. There is no recorded backend-start/read error. The owned plugin is never called;
+the refusal case does not run. One prepared policy is cleaned, its recorded relay is gone, the pool
+is empty and artifacts are absent. No live group was observed before its earlier retirement, so
+the two-process sequence remains unestablished. The separate cleanup checks pass without pretending
+the missing second launch is a surviving process. This identifies the diagnostic attempt's failure;
+it does not retroactively establish the earlier uninstrumented attempts' exact causes.
+
+The next revision removes the opportunity to compute the final marker from the first prompt. The
+26-byte marker still has two halves. Only X appears in the 141-byte prompt; Y is supplied through
+the owned plugin's result (or its matching hook-refusal reason), after the second tool request:
+
+```text
+WaitForMcpServers {}, then mcp__plugin_dax-owned_owned__owned_probe {} once each. After both, reply X+Y; X=<first-half>, Y is in the result.
+```
+
+The effect-free peer adds `; Y=<second-half>` to its exact synthetic success text. Its optional
+argument accepts exactly thirteen base32 characters and does not change tool names, schemas or
+effects. The owned refusal hook adds the same suffix to its fixed denial reason. The initial
+request and wait result must not expose Y; the final result must contain the exact expected suffix.
+The guard still rejects a whole marker in early model output or any tool result and requires it
+in the final response. The screen must independently show the complete marker after protocol
+completion. All operation/result/status/process/time limits remain unchanged. Only the owned
+synthetic tool/refusal text and user prompt change; no new execution authority is granted.
+
+Independent controls first fail to build without the new result-challenge field, then pass in
+1.714s under race. They cover success and refusal, early disclosure in input/wait results and a
+missing challenge in the final result. After the installed-client/fake-ACP controls and applicable
+checks pass, this recipe permits one allowance and, only if it passes, one refusal. A failure ends
+this live sequence for diagnosis; it is not a repeat-until-pass test. The earlier failed attempts
+remain recorded regardless of this recipe's result.
+
+The final result-challenge rehearsal passes in plugin-result-challenge.hHFPYQ (25.368s race package):
+the original fixed-result pair and revised result-challenge pair both pass, including allowance,
+hook refusal, exact result/marker checks, native calls one/zero, source preservation and cleanup.
+All guard/category/visible-screen controls pass in the same run. Whole-repository/fixture vet,
+formatting and whitespace checks pass before the result-challenge live sequence.
+
+The result-challenge allowance reaches both exact tool/result pairs, the changed registry and one
+native plugin call in live-plugin-result-challenge.8UPd0k, but fails overall (68.18s test, 68.463s
+race package). Three main requests retain the full prior prefix, owner, model, effort, top-level
+system and metadata; the last request has eight messages and one latest result. The final model
+text has 33 bytes and lacks the required complete marker. The guard rejects its end condition,
+so protocol completion and final display acceptance cannot pass. The text is not persisted; its
+exact formatting or reason for differing from the requested concatenation is not established.
+
+Two prepared launches/cleanups, two recorded relays and two distinct observed groups are established.
+All observed relays/groups/artifacts are gone, close results succeed and the pool is empty. Client
+and native MCP cleanup and source preservation checks pass. The refusal case is not run. This
+supports the actual registry/tool/result/cleanup path but does not pass the full live experiment.
+No further model attempt runs in D72; broader live plugin acceptance remains open. Future work
+must address final-answer evidence explicitly without treating a partial exchange as acceptance.
+
+Final opt-ins-off race tests pass ACP in 5.439s and interop in 20.887s
+(plugin-result-final-unit.R8Vjmv). Whole-repository/fixture vet, formatting and whitespace pass.
+Only tests and decision/evidence documents change; the existing development executable is current.

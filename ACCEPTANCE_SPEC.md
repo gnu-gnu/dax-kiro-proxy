@@ -145,6 +145,10 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
   rejected. Verify held MCP initialization followed by an advertised wait, a validated registry
   replacement, exact allowed/refused plugin result and completion in the same replacement prompt.
   Require effect counts one/zero, joined old/new groups and unchanged client sources (D70).
+  Keep actual backend progress, final model content and client-visible completion separate. A prompt
+  echo, early text, hidden control or erased terminal content cannot establish final display. If a
+  marker is used, independently prove its final-response provenance and current visibility. Partial
+  tool/cleanup evidence does not pass a failed end-to-end live experiment (D72).
 - A new user question following all matching client error results may abandon the old prompt only
   with an exact compatible owner, proven history extension, results preceding text, and unchanged
   repeated standing instructions. Join old process/relay cleanup before a fresh full-history prompt;

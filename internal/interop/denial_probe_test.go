@@ -144,38 +144,7 @@ func runClientToolProbe(t *testing.T, clientExecutable, kiroExecutable, effectKi
 			}
 		}
 	} else {
-		if os.WriteFile(filepath.Join(configuration, "settings", "cli.json"), []byte(`{"chat.disableInheritingDefaultResources":true}`), 0600) != nil {
-			t.Fatal("cannot write owned Kiro probe settings")
-		}
-		var key [32]byte
-		if _, err := rand.Read(key[:]); err != nil {
-			t.Fatal("cannot create ephemeral identity key")
-		}
-		bounded := kiroHomeIdentityRunner(func(ctx context.Context, command childproc.Command) (childproc.Result, error) {
-			command.Environment = append(append([]string(nil), command.Environment...), "KIRO_HOME="+configuration)
-			limit := 5 * time.Second
-			if len(command.Args) == 4 && strings.Join(command.Args, " ") == "chat --list-models --format json" {
-				limit = 15 * time.Second
-			}
-			bounded, stop := context.WithTimeout(ctx, limit)
-			defer stop()
-			return runner.Run(bounded, command)
-		})
-		kiroConfig := launcher.KiroConfig{Executable: kiroExecutable, Home: os.Getenv("HOME"), Directory: backend, ScopeKey: key}
-		info, err := launcher.CheckKiro(ctx, bounded, kiroConfig)
-		if err != nil {
-			t.Fatal("Kiro version/account preflight failed before model work")
-		}
-		catalogContext, stop := context.WithTimeout(ctx, 15*time.Second)
-		models, err = launcher.ReadKiroCatalog(catalogContext, bounded, kiroConfig)
-		stop()
-		if err != nil {
-			t.Fatal("Kiro catalog preflight failed before model work")
-		}
-		execution, err = launcher.PrepareKiroExecution(ctx, launcher.KiroExecutionConfig{Installation: info, Home: os.Getenv("HOME"), Project: backend, RuntimeDirectory: root})
-		if err != nil {
-			t.Fatal("cannot prepare built-in Kiro execution configuration")
-		}
+		models, execution = prepareLiveKiroProbe(t, ctx, runner, kiroExecutable, root, backend, configuration)
 		process = execution.Process
 		process.Limits.RequestTimeout = 45 * time.Second
 	}

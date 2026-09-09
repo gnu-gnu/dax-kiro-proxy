@@ -2978,3 +2978,75 @@ the intended single logical turn. The recorded live request already has exactly 
 default-denial-final.ZqVfcB passes the updated guard suite and installed-client/fake-ACP rehearsal in
 5.399s, followed by whole-repository/fixture vet and formatting/whitespace checks. No extra model
 attempt runs; the separate bare-denial/new-question experiment retains its original behavior.
+
+## D72: bounded live plugin registry and visible completion evidence
+
+D70's held-MCP readiness experiment now has a separately opted-in actual-Kiro harness. It retains
+the pinned client's default declarations, the real gateway/validator/relay/session driver and the
+shared restricted Kiro launch configuration. A test-only guard exposes only WaitForMcpServers and
+the owned effect-free plugin, in that order, with exact empty arguments and unique IDs. It admits
+three main requests, one matching result per continuation and no additional user question. Local
+synthetic title handling brings the maximum Messages count to four. Unexpected operations, result
+status/content, early end, missing completion and excess requests fail before further dispatch.
+
+The held MCP peer releases only after the initial advertised wait schema accepts its empty input.
+The replacement registry must advertise the plugin. One recreation permits two sequential prepared
+ACP processes, with old relay/group/policy cleanup joined before the replacement. The original
+45-second turn deadline, 20-second setup/first-event limits and 60-second terminal lifetime remain
+fixed; the whole case has a three-minute limit. The plugin result must complete the replacement
+prompt without a third process. Sources stay unchanged and all observed resources must be gone.
+Allowance requires one native plugin call; hook refusal requires zero and a matching error result.
+
+Initial live observations exposed weaknesses in the test's completion evidence, not a basis for
+relaxing product history or execution rules. live-plugin-registry.BJbgWo reaches both results and
+a completed backend response but fails the screen assertion (70.507s race package). Its observer
+cannot distinguish final wording from old-prompt disappearance. The first derived-marker follow-up,
+live-plugin-marker.MNXcAE, fails before exposing a tool (69.463s); its diagnostics do not establish
+the failure site. Instrumented live-plugin-categories.Pr0kj8 identifies an early complete marker
+in the first model response, before any exposed tool (129 events/985 text bytes, 68.768s package).
+None of these attempts passes overall, and no refusal case follows a failed allowance.
+
+Failure diagnostics now retain fixed validation/error categories and bounded counts only. They
+separate expected two-process completion from actual cleanup: an absent second launch is not a
+surviving process. A still-running owned relay can be observed before shutdown even without a tool
+callback. A recorded surviving relay PID receives bounded last-resort cleanup while preserving the
+failure result. No unrelated process group is signaled and arbitrary error text is not logged.
+
+The final observation recipe splits a fresh 26-byte ASCII marker between the prompt and the second
+tool's result. The owned peer's exact success text or owned hook-refusal reason supplies the second
+half; the initial request/wait result must not expose it. The complete marker must occur in final
+model text, never in a tool result or earlier model text. Independently, the current reconstructed
+terminal screen must show it after protocol completion. The earlier prompt need not remain visible.
+The observer does not strip terminal escapes to resurrect erased text, use prompt echo as an answer
+or infer a particular answer from an arbitrary text delta. Matching across text-event boundaries is
+covered. This changes only owned synthetic content and observation, with no new execution authority.
+
+The authorized public-only local Claude consultation is saved, fully read and assessed in
+public-terminal-evidence-review-_c51vjg0 (one turn, 6,182 stdout bytes). Separating generated and
+visible output evidence is useful; stripped terminal text, assumed marker provenance and claims
+that any assistant delta proves final wording are rejected. No repository content, client output,
+user asset or previous implementation is sent. Advice is not acceptance evidence.
+
+Independent controls precede the guard, category and result-challenge changes and initially fail
+against missing functionality. The final fixed-result and result-challenge actual-client/fake-ACP
+pairs pass in plugin-result-challenge.hHFPYQ (25.368s race package), with exact three-request/two-tool
+sequences, generated/displayed markers, native effects one/zero, source preservation and cleanup.
+Earlier eight-client regression plugin-sequence-clients.ANfZdp passes in 58.469s; the shared final
+screen condition's three UI/hook/Git controls pass in plugin-marker-ui-regression.CFVGcB (17.655s).
+Both use independent synthetic responses only. LIVE_KIRO_TEST_PLAN.md records all recipes, bounds
+and the fuller normalized observation history. No application code or dependency changes in D72;
+the development executable remains the current D70 build.
+
+The final actual allowance, live-plugin-result-challenge.8UPd0k, establishes three main requests,
+two exact tool/result pairs, the validated expanded registry, one native plugin call and two joined
+prepared processes. Its 33-byte final text lacks the required complete marker; end-condition
+validation rejects and the overall experiment fails (68.463s race package). The raw wording is
+not retained, and no formatting diagnosis is inferred from its length. Client/MCP cleanup, unchanged
+sources, both observed relay/groups/artifacts, successful close and an empty pool are established.
+The refusal case does not run. The full actual plugin acceptance gate remains open; partial protocol
+and cleanup evidence is not labeled a successful end-to-end test. No further model attempt runs in
+this decision. Development run admission is unchanged.
+
+Final opt-ins-off race tests pass ACP 5.439s and interop 20.887s in
+plugin-result-final-unit.R8Vjmv. Whole-repository/fixture vet, formatting and whitespace pass.
+Broader plugin assets, model-selected skills, live lifecycle and release gates remain outstanding.

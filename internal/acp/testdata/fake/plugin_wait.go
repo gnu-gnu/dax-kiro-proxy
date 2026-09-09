@@ -1,6 +1,37 @@
 package main
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"io"
+	"os"
+	"path/filepath"
+	"syscall"
+)
+
+func fixturePluginMarker(path string) string {
+	if !filepath.IsAbs(path) {
+		os.Exit(94)
+	}
+	f, err := os.OpenFile(path, os.O_RDONLY|syscall.O_NOFOLLOW, 0)
+	if err != nil {
+		os.Exit(94)
+	}
+	defer f.Close()
+	info, err := f.Stat()
+	if err != nil || !info.Mode().IsRegular() || info.Mode().Perm() != 0600 || info.Size() > 64 {
+		os.Exit(94)
+	}
+	data, err := io.ReadAll(io.LimitReader(f, 65))
+	if err != nil || len(data) < 16 || len(data) > 64 {
+		os.Exit(94)
+	}
+	for _, ch := range data {
+		if (ch < 'A' || ch > 'Z') && (ch < '0' || ch > '9') {
+			os.Exit(94)
+		}
+	}
+	return string(data)
+}
 
 // Inspect only this project's projection and the owned tool result. The installed client's
 // instructions and wait text are neither interpreted as instructions nor persisted by this peer.

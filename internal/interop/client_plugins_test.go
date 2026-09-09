@@ -3,6 +3,7 @@ package interop_test
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/json"
 	"errors"
@@ -26,6 +27,7 @@ import (
 	"dax-kiro-proxy/internal/catalog"
 	"dax-kiro-proxy/internal/childproc"
 	"dax-kiro-proxy/internal/gateway"
+	"dax-kiro-proxy/internal/inference"
 	"dax-kiro-proxy/internal/launcher"
 	"dax-kiro-proxy/internal/requestfamily"
 	"dax-kiro-proxy/internal/schemacheck"
@@ -59,6 +61,11 @@ func TestClaudePluginWaitThroughGatewayAndACP(t *testing.T) {
 	t.Run("hook_denied", func(t *testing.T) { observeClaudePluginSources(t, "proxy-wait-tool-denied") })
 }
 
+func TestClaudeGuardedPluginRegistrySequence(t *testing.T) {
+	t.Run("allowed", func(t *testing.T) { observeClaudePluginSources(t, "guarded-wait-tool") })
+	t.Run("hook_denied", func(t *testing.T) { observeClaudePluginSources(t, "guarded-wait-tool-denied") })
+}
+
 func TestClaudePluginToolThroughGatewayAndACP(t *testing.T) {
 	t.Run("allowed", func(t *testing.T) { observeClaudePluginSources(t, "proxy-tool") })
 	t.Run("hook_denied", func(t *testing.T) { observeClaudePluginSources(t, "proxy-tool-denied") })
@@ -66,8 +73,13 @@ func TestClaudePluginToolThroughGatewayAndACP(t *testing.T) {
 
 func observeClaudePluginSources(t *testing.T, mode string) {
 	t.Helper()
-	proxyMode, denied := strings.HasPrefix(mode, "proxy-tool") || strings.HasPrefix(mode, "proxy-wait-tool"), strings.HasSuffix(mode, "-denied")
-	waitMode := strings.HasPrefix(mode, "wait-tool") || strings.HasPrefix(mode, "proxy-wait-tool")
+	liveMode := strings.HasPrefix(mode, "live-wait-tool")
+	guardedMode := strings.HasPrefix(mode, "guarded-wait-tool")
+	if liveMode && (os.Getenv("DAX_INTEROP_KIRO_CREDIT_OPT_IN") != "1" || os.Getenv("DAX_INTEROP_KIRO_BINARY") == "") {
+		t.Fatal("live plugin mode requires explicit Kiro opt-in")
+	}
+	proxyMode, denied := liveMode || guardedMode || strings.HasPrefix(mode, "proxy-tool") || strings.HasPrefix(mode, "proxy-wait-tool"), strings.HasSuffix(mode, "-denied")
+	waitMode := liveMode || guardedMode || strings.HasPrefix(mode, "wait-tool") || strings.HasPrefix(mode, "proxy-wait-tool")
 	proxyRequests := int32(2)
 	if waitMode {
 		proxyRequests = 3
@@ -97,17 +109,33 @@ func observeClaudePluginSources(t *testing.T, mode string) {
 		}
 	}
 	settings := filepath.Join(home, ".claude", "settings.json")
+	finalMarker, resultSuffix := "", ""
+	if liveMode || guardedMode {
+		finalMarker = rand.Text()
+		resultSuffix = finalMarker[len(finalMarker)/2:]
+	}
 	writeJSON(settings, map[string]any{})
 	if denied {
-		output := `{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"independent fixture denial"}}`
-		writeJSON(settings, map[string]any{"hooks": map[string]any{"PreToolUse": []any{map[string]any{"matcher": ownedPluginToolName, "hooks": []any{map[string]any{"type": "command", "command": "printf '%s' " + probeShellQuote(output), "timeout": 2}}}}}})
+		reason := clientDenialReason
+		if resultSuffix != "" {
+			reason += "; Y=" + resultSuffix
+		}
+		output, err := json.Marshal(map[string]any{"hookSpecificOutput": map[string]string{"hookEventName": "PreToolUse", "permissionDecision": "deny", "permissionDecisionReason": reason}})
+		if err != nil {
+			t.Fatal("cannot encode owned refusal")
+		}
+		writeJSON(settings, map[string]any{"hooks": map[string]any{"PreToolUse": []any{map[string]any{"matcher": ownedPluginToolName, "hooks": []any{map[string]any{"type": "command", "command": "printf '%s' " + probeShellQuote(string(output)), "timeout": 2}}}}}})
 	}
 	runner, err := childproc.New(childproc.Config{Timeout: 20 * time.Second, MaxOutputBytes: 128 << 10})
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer runner.Close()
-	ctx, cancel := context.WithTimeout(t.Context(), 2*time.Minute)
+	lifetime := 2 * time.Minute
+	if liveMode || guardedMode {
+		lifetime = 3 * time.Minute
+	}
+	ctx, cancel := context.WithTimeout(t.Context(), lifetime)
 	defer cancel()
 	var exchange *pluginToolExchange
 	if toolRoundTrip {
@@ -131,36 +159,71 @@ func observeClaudePluginSources(t *testing.T, mode string) {
 	model := "claude-dax-plugin-fixture"
 	var proxyHandler http.Handler
 	var proxyBackend *defaultClientBackend
+	var sequence *pluginSequenceGuard
+	var finishLive func()
 	processLedger := filepath.Join(root, "proxy-processes")
 	if proxyMode {
 		backendDir := filepath.Join(root, "backend")
 		if os.Mkdir(backendDir, 0700) != nil {
 			t.Fatal("cannot create owned plugin backend directory")
 		}
-		fake := buildDenialACPFixture(t, ctx, runner, root)
-		proxy := filepath.Join(filepath.Dir(buildRelayObserver(t)), "owned-relay")
-		args := []string{"chat-tools-plugin-client", ownedPluginToolName, processLedger}
-		if waitMode {
-			args[0] = "chat-tools-plugin-wait"
+		var driver *session.Driver
+		var models *catalog.Catalog
+		var beforeUse func(int) error
+		backendModel, turnLimit, firstLimit := "fixture-backend", 15*time.Second, 10*time.Second
+		if guardedMode {
+			turnLimit, firstLimit = 45*time.Second, 20*time.Second
 		}
-		if denied {
-			args = append(args, "denied")
+		if liveMode {
+			driver, models, beforeUse, finishLive = prepareLivePluginDriver(t, ctx, runner, root, backendDir, exchange.validator)
+			defer finishLive()
+			backendModel, turnLimit, firstLimit = "auto", 45*time.Second, 20*time.Second
+		} else {
+			fake := buildDenialACPFixture(t, ctx, runner, root)
+			proxy := filepath.Join(filepath.Dir(buildRelayObserver(t)), "owned-relay")
+			args := []string{"chat-tools-plugin-client", ownedPluginToolName, processLedger}
+			if waitMode {
+				args[0] = "chat-tools-plugin-wait"
+			}
+			if guardedMode {
+				args[0] = "chat-tools-plugin-wait-marker"
+				markerPath := filepath.Join(backendDir, "owned-final-marker")
+				if os.WriteFile(markerPath, []byte(finalMarker), 0600) != nil {
+					t.Fatal("cannot write owned fake response marker")
+				}
+				args = append(args, markerPath)
+			}
+			if denied {
+				args = append(args, "denied")
+			}
+			driver, err = session.New(session.Config{Process: acp.Config{Executable: fake, Args: args, Directory: backendDir, Environment: []string{"HOME=" + home, "PATH=/usr/bin:/bin"}, ClientInfo: acp.Info{Name: "independent-plugin-client", Version: "1"}}, Validator: exchange.validator, RelayExecutable: proxy, SetupTimeout: 10 * time.Second, TurnTimeout: turnLimit})
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer driver.Close()
+			models, err = catalog.New([]catalog.Backend{{ID: "fixture-backend", Name: "Independent plugin fixture"}}, "fixture-backend")
+			if err != nil {
+				t.Fatal(err)
+			}
 		}
-		driver, err := session.New(session.Config{Process: acp.Config{Executable: fake, Args: args, Directory: backendDir, Environment: []string{"HOME=" + home, "PATH=/usr/bin:/bin"}, ClientInfo: acp.Info{Name: "independent-plugin-client", Version: "1"}}, Validator: exchange.validator, RelayExecutable: proxy, SetupTimeout: 10 * time.Second, TurnTimeout: 15 * time.Second})
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer driver.Close()
-		models, err := catalog.New([]catalog.Backend{{ID: "fixture-backend", Name: "Independent plugin fixture"}}, "fixture-backend")
-		if err != nil {
-			t.Fatal(err)
-		}
-		model, err = models.ClientID("fixture-backend")
+		model, err = models.ClientID(backendModel)
 		if err != nil {
 			t.Fatal(err)
 		}
 		proxyBackend = &defaultClientBackend{Driver: driver, catalog: models, limit: proxyRequests}
-		proxyHandler, err = gateway.New(gateway.Config{Tokens: tokens, Backend: proxyBackend, TurnTimeout: 15 * time.Second, FirstEventTimeout: 10 * time.Second})
+		var guarded inference.Backend = proxyBackend
+		if waitMode {
+			sequence = &pluginSequenceGuard{Backend: proxyBackend, denied: denied, beforeUse: beforeUse, finalMarker: finalMarker, resultSuffix: resultSuffix}
+			guarded = sequence
+			defer func() {
+				stats := sequence.snapshot()
+				t.Logf("guarded_plugin_sequence=%+v", stats)
+				if stats.Failed || stats.Requests != 3 || stats.Uses != 2 || stats.Results != 2 || stats.Completions != 1 || stats.TextBytes == 0 || (finalMarker != "" && !stats.FinalMarker) {
+					t.Error("bounded plugin sequence did not complete")
+				}
+			}()
+		}
+		proxyHandler, err = gateway.New(gateway.Config{Tokens: tokens, Backend: guarded, TurnTimeout: turnLimit, FirstEventTimeout: firstLimit})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -256,6 +319,10 @@ func observeClaudePluginSources(t *testing.T, mode string) {
 					exchange.mu.Unlock()
 				}
 				r.Body = io.NopCloser(bytes.NewReader(body))
+				if resultSuffix != "" && proxyBackend.starts.Load() == 0 && bytes.Contains(body, []byte(resultSuffix)) {
+					w.WriteHeader(400)
+					return
+				}
 				proxyHandler.ServeHTTP(w, r)
 				proxyBackend.mu.Lock()
 				comparison := proxyBackend.comparison
@@ -272,6 +339,9 @@ func observeClaudePluginSources(t *testing.T, mode string) {
 				}
 				exchange.toolRequested = proxyBackend.starts.Load() == proxyRequests
 				exchange.failed = proxyBackend.failed.Load()
+				if sequence != nil {
+					exchange.failed = exchange.failed || sequence.snapshot().Failed
+				}
 				exchange.complete = exchange.toolRequested && !exchange.failed && proxyBackend.State() == session.Idle
 				exchange.mu.Unlock()
 				return
@@ -353,6 +423,9 @@ func observeClaudePluginSources(t *testing.T, mode string) {
 	peerArgs := []string{"plugin", observations}
 	if waitMode {
 		peerArgs = append(peerArgs, "hold-initialize")
+		if resultSuffix != "" {
+			peerArgs = append(peerArgs, resultSuffix)
+		}
 		exchange.releaseWait = func() error {
 			f, err := os.OpenFile(filepath.Join(observations, "release-plugin"), os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
 			if err != nil {
@@ -475,9 +548,21 @@ func observeClaudePluginSources(t *testing.T, mode string) {
 					prompt = "Call the independent plugin's effect-free probe and return its result."
 				}
 				if waitMode {
+					waitPrompt := "Wait for the independent plugin, call its effect-free probe, and return its result."
+					answer := "independent plugin observation complete"
+					uiLifetime := time.Duration(0)
+					if liveMode || guardedMode {
+						middle := len(finalMarker) / 2
+						waitPrompt = "WaitForMcpServers {}, then " + ownedPluginToolName + " {} once each. After both, reply X+Y; X=" + finalMarker[:middle] + ", Y is in the result."
+						answer = finalMarker
+						if len(waitPrompt) > 150 || strings.Contains(waitPrompt, resultSuffix) {
+							t.Fatal("derived marker prompt is ambiguous or exceeds one terminal row")
+						}
+						uiLifetime = time.Minute
+					}
 					result = runAssetInteractive(t, ctx, command, root, project, assetUIControl{
-						Prompt: "Wait for the independent plugin, call its effect-free probe, and return its result.",
-						Answer: "independent plugin observation complete", Requests: messageRequests.Load,
+						Prompt: waitPrompt, Lifetime: uiLifetime,
+						Answer: answer, Requests: messageRequests.Load,
 						Ready: func() bool {
 							ledger, err := readDenialArtifact(observations, "plugin", 8192)
 							return err == nil && bytes.Contains(ledger, []byte(" held\n"))
@@ -526,20 +611,24 @@ func observeClaudePluginSources(t *testing.T, mode string) {
 		}
 	}
 	if proxyBackend != nil {
-		if err := proxyBackend.Close(); err != nil {
-			t.Error("plugin backend cleanup failed")
-		}
-		pids := strings.Fields(string(boundedAssetFile(t, processLedger)))
-		if len(pids) != 2 {
-			t.Error("unexpected bounded backend reconstruction count")
-		}
-		for _, raw := range pids {
-			pid, err := strconv.Atoi(raw)
-			if err != nil || pid <= 1 || !errors.Is(syscall.Kill(-pid, 0), syscall.ESRCH) {
-				t.Error("plugin backend process group survived cleanup")
+		if liveMode {
+			finishLive()
+		} else {
+			if err := proxyBackend.Close(); err != nil {
+				t.Error("plugin backend cleanup failed")
 			}
+			pids := strings.Fields(string(boundedAssetFile(t, processLedger)))
+			if len(pids) != 2 {
+				t.Error("unexpected bounded backend reconstruction count")
+			}
+			for _, raw := range pids {
+				pid, err := strconv.Atoi(raw)
+				if err != nil || pid <= 1 || !errors.Is(syscall.Kill(-pid, 0), syscall.ESRCH) {
+					t.Error("plugin backend process group survived cleanup")
+				}
+			}
+			t.Logf("proxy_main_requests=%d, proxy_failed=%v, backend_processes=%d", proxyBackend.starts.Load(), proxyBackend.failed.Load(), len(pids))
 		}
-		t.Logf("proxy_main_requests=%d, proxy_failed=%v, backend_processes=%d", proxyBackend.starts.Load(), proxyBackend.failed.Load(), len(pids))
 	}
 	if err := p.Close(); err != nil {
 		t.Error("initial plugin profile cleanup failed")

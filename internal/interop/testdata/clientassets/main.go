@@ -13,12 +13,24 @@ import (
 )
 
 func main() {
-	if (len(os.Args) != 3 && len(os.Args) != 4) || !filepath.IsAbs(os.Args[2]) {
+	if len(os.Args) < 3 || len(os.Args) > 5 || !filepath.IsAbs(os.Args[2]) {
 		os.Exit(70)
 	}
-	hold := len(os.Args) == 4 && os.Args[1] == "plugin" && os.Args[3] == "hold-initialize"
-	if len(os.Args) == 4 && !hold {
+	hold := len(os.Args) >= 4 && os.Args[1] == "plugin" && os.Args[3] == "hold-initialize"
+	if len(os.Args) >= 4 && !hold {
 		os.Exit(70)
+	}
+	answer := "independent client asset result"
+	if len(os.Args) == 5 {
+		if len(os.Args[4]) != 13 {
+			os.Exit(70)
+		}
+		for _, ch := range os.Args[4] {
+			if (ch < 'A' || ch > 'Z') && (ch < '2' || ch > '7') {
+				os.Exit(70)
+			}
+		}
+		answer += "; Y=" + os.Args[4]
 	}
 	label := os.Args[1]
 	if label != "user" && label != "local" && label != "project" && label != "plugin" {
@@ -53,6 +65,7 @@ func main() {
 			JSONRPC string          `json:"jsonrpc"`
 			ID      json.RawMessage `json:"id"`
 			Method  string          `json:"method"`
+			Params  json.RawMessage `json:"params"`
 		}
 		if json.Unmarshal(scanner.Bytes(), &request) != nil || request.JSONRPC != "2.0" {
 			os.Exit(73)
@@ -91,8 +104,15 @@ func main() {
 			mark("listed")
 			response["result"] = map[string]any{"tools": []any{map[string]any{"name": "owned_probe", "description": "Independent effect-free configuration probe.", "inputSchema": map[string]any{"type": "object", "properties": map[string]any{}, "additionalProperties": false}}}}
 		case "tools/call":
+			var call struct {
+				Name      string
+				Arguments map[string]json.RawMessage
+			}
+			if !initialized || json.Unmarshal(request.Params, &call) != nil || call.Name != "owned_probe" || call.Arguments == nil || len(call.Arguments) != 0 {
+				os.Exit(77)
+			}
 			mark("called")
-			response["result"] = map[string]any{"isError": false, "content": []any{map[string]string{"type": "text", "text": "independent client asset result"}}}
+			response["result"] = map[string]any{"isError": false, "content": []any{map[string]string{"type": "text", "text": answer}}}
 		default:
 			response["error"] = map[string]any{"code": -32601, "message": "unsupported fixture method"}
 		}

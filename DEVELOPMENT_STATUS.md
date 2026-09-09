@@ -6,6 +6,17 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D72 adds bounded actual-Kiro wait-to-plugin experiments and separate protocol, final-text, display
+  and cleanup evidence. The final actual allowance reaches three main requests, two exact tool/result
+  pairs, the expanded registry, one native plugin call and two joined prepared processes. It fails
+  overall because its 33-byte final answer lacks the required complete marker (68.463s race package);
+  the following refusal case is not run. Sources and observed client/MCP/relay/group/artifact cleanup
+  pass. Earlier failures and the public-only local Claude consultation are recorded and assessed.
+  The final original/revised-marker fake-ACP allowance/refusal pairs and independent controls pass in
+  25.368s; the shared UI/hook/Git regression passes in 17.655s. Final opt-ins-off race tests pass ACP
+  5.439s and interop 20.887s; whole-repository/fixture vet, formatting and whitespace pass. Actual
+  registry/tool progress is partial evidence, not a completed live plugin acceptance gate. Only
+  tests/documents change, development run admission is unchanged, and the D70 executable is current.
 - D71 verifies default-tool Read refusal and joined session recreation with actual Kiro 2.21.2/v2
   and Claude 2.1.263 in 24.81s (26.304s race package). All 25 default tools and thinking/context
   declarations remain present. The exact single Read is hook-denied; its matching result and changed
