@@ -20,7 +20,7 @@ import (
 var ErrKiroVersion = errors.New("Kiro installation or version is not supported")
 var ErrLoginCheck = errors.New("Kiro login could not be verified; run kiro-cli login and retry")
 
-const SupportedKiroVersion = "2.21.1"
+const SupportedKiroVersion = "2.21.2"
 
 type CommandRunner interface {
 	Run(context.Context, childproc.Command) (childproc.Result, error)

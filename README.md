@@ -49,15 +49,15 @@ go build -o ./dist/dax-kiro-proxy ./cmd/dax-kiro-proxy
 ./dist/dax-kiro-proxy models
 ```
 
-The checks support Kiro CLI 2.21.1 (including its adjacent `kiro-cli-chat` helper) and Claude Code
+The checks support Kiro CLI 2.21.2 (including its adjacent `kiro-cli-chat` helper) and Claude Code
 2.1.263. They use the installed CLIs' finite version/account/catalog commands, without an ACP session
 or model prompt. `--kiro` and `--client` accept absolute executable paths. Private scope/cache state
 defaults to `~/.dax-kiro-proxy`; `--state-dir` selects a different private directory. Temporary runtime
 files are removed when the command finishes. Source client settings are not modified.
 
-The local Kiro main/helper now report 2.21.2. Production preflight still rejects that version;
-D58's separate read-only tests admit exactly 2.21.2 for resource observations without transferring
-2.21.1 execution-policy evidence. A version migration and fresh applicable checks remain necessary.
+The local Kiro main/helper migration to 2.21.2 passes fresh account and CLI/ACP catalog checks.
+Other versions and mismatched main/helper pairs fail preflight. Historical 2.21.1 execution results
+do not establish 2.21.2 readiness; the production execution-policy gate remains closed.
 
 `doctor` succeeding means its checks completed; inspect `launch_available` and `policy` separately.
 The current `run` command stops with exit 3 after successful preflight because effective Kiro execution
@@ -67,8 +67,9 @@ passes: the client refuses the tool, Kiro receives that refusal and completes th
 execution restrictions and the complete product acceptance gates remain unfinished. This development
 build is not a release or installation procedure.
 
-The initial-session native-effect challenge also passes with unchanged files and no observed tool
-effects. Six actual Claude/fake ACP cases verify allowed Read/Write/Bash, denied Write/Bash and Bash
+The initial-session native-effect challenge and real-client Read-hook refusal both pass freshly on
+Kiro 2.21.2, with unchanged files and joined process cleanup. Six actual Claude/fake ACP cases verify
+allowed Read/Write/Bash, denied Write/Bash and Bash
 hook vetoes. Interactive Write/Bash approval and refusal with a comment also pass with fake ACP;
 the Write content/permission screen is checked before input. Bare refusal now verifies cleanup at
 the existing deadline and safe recreation for a following question, using actual Claude with fake

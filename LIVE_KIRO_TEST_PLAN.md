@@ -1,9 +1,17 @@
 # Bounded Kiro interoperability experiments
 
-The installed Kiro main/helper now report 2.21.2. The 2.21.1 live results below are historical evidence
-for that version. Production preflight still requires 2.21.1; D58's narrow test-only admission for
-2.21.2 cannot run model, relay, catalog or native-effect variants. No 2.21.2 model prompt has run as
-part of that observation. Version migration and applicable fresh checks precede further live use.
+The installed Kiro main/helper now report 2.21.2, and D59 moves production preflight to that exact
+pair after fresh finite account/catalog checks. The 2.21.1 live results below remain historical
+evidence for that version. D58's resource observations sent no model prompt. The native-effect
+experiment below is prepared for one fresh 2.21.2 attempt after the read-only isolation prerequisites
+pass, retaining its prompt, bounds and explicit credit opt-in. The user's continuing authorization
+covers completing those prerequisites and this bounded follow-up. Production policy stays closed.
+
+After that native-effect attempt passes, the existing single-Read client-hook denial test is also
+prepared for one fresh 2.21.2 attempt with Claude 2.1.263. Its prompt, exact refusal guard, client
+settings, 45-second turn and 60-second client bounds below are unchanged; no successful tool effect
+or extra model turn is admitted. This refresh uses the same continuing user authorization and its
+own explicit credit opt-in, without automatic retries.
 
 The D57 bare-refusal controls use actual Claude and independent fake ACP only. One observes silent
 refusal until the unchanged 45-second turn deadline, with a 55-second test terminal lifetime; another
@@ -29,7 +37,8 @@ preparing this plan or passing the local control does not authorize the actual K
 
 ## Installed programs and inputs
 
-The experiment verifies Kiro CLI 2.21.1 and its adjacent helper, and Claude Code 2.1.263. Kiro uses its
+The original experiment verified Kiro CLI 2.21.1 and its adjacent helper, and Claude Code 2.1.263;
+the D59 refresh requires Kiro 2.21.2. Kiro uses its
 existing authenticated account, the pinned v2 engine and the exact auto model if advertised in its
 validated catalog. Missing login, incompatible versions or an absent auto entry stop before the turn;
 there is no model or provider fallback.
@@ -232,3 +241,22 @@ does not diagnose the earlier incomplete attempt, establish all possible native 
 resource/reload/load isolation or verify successful Claude tool effects. Production run remains
 gated until its separate development-launch conditions are met. No timeout was widened or assertion
 removed to obtain this result.
+
+### Kiro 2.21.2 refresh
+
+D59's fresh account/catalog, agent-directory and active MCP inclusion/exclusion prerequisites pass.
+One native-effect attempt then passes in .cache/interop-observations/kiro-2212-native.7xUjn2,
+exit 0, 22.50s test / 23.784s race-enabled package. The model prompt completes in 6,037ms with
+832 assistant text bytes, 63 notifications / 9,463 bytes inspected, no canary or tool event, and
+unchanged workspace/candidate/settings. All observed process/relay/private artifact cleanup passes.
+
+One subsequent single-Read client-hook refusal passes with actual Claude 2.1.263 in
+.cache/interop-observations/kiro-2212-denial.qyLSz4, exit 0, 24.03s test / 25.619s race package.
+There are two accepted backend requests, one exposed Read, one exact matching denial and one
+same-prompt completion. Claude exits 0; canary/source-setting and observed cleanup checks pass.
+The 1,838-byte client result is checked in bounded memory and not retained as content.
+
+These are two distinct opted-in live experiments, each run once without retry. They may consume
+credits; no billed amount is measured. Their initial-session scope and limitations remain those
+above. Real Kiro-generated successful client tool effects and remaining resource/skill isolation
+still need verification before production policy admission.

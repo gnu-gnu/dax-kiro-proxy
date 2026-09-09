@@ -104,7 +104,7 @@ func TestKiroReadOnlyPreflightSurface(t *testing.T) {
 	command.Executable = filepath.Join(filepath.Dir(executable), "kiro-cli-chat")
 	command.Args = []string{"--version"}
 	helperVersion, helperErr := runner.Run(t.Context(), command)
-	if helperErr != nil || strings.TrimSpace(string(helperVersion.Stdout)) != "kiro-cli-chat 2.21.1" {
+	if helperErr != nil || strings.TrimSpace(string(helperVersion.Stdout)) != "kiro-cli-chat "+launcher.SupportedKiroVersion {
 		t.Log("matching helper unavailable")
 		return
 	}

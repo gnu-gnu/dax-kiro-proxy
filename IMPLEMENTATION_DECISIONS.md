@@ -2091,3 +2091,63 @@ The final uncached race suites pass with all installed CLI opt-ins disabled: int
 ACP 5.689s and launcher 21.469s. They include malformed-context and query-budget counterfactuals
 and rejection of 2.21.2 at the unchanged production preflight. Whole-repository go vet, formatting
 and whitespace checks pass.
+
+## D59: explicit preflight migration to Kiro 2.21.2 (review R06/R14)
+
+After D58 identified the installed version change, preflight moves from exact 2.21.1 to exact
+2.21.2. This is a finite command compatibility decision, not execution-policy verification. Main
+and adjacent helper must both report 2.21.2; old, future and mismatched versions fail before identity
+lookup. Tests first fail with the new independent version fixture against the old pin, then pass
+after migration. Independent startup/compiled-command fixtures now report the selected version;
+the existing run barrier still rejects before client launch. Historical identity tests retain
+their 2.21.1-to-2.21.2 pair to verify that version changes cannot share cache identity. Generated
+candidate policy digests already incorporate the pinned version, so no earlier digest is reused.
+
+Fresh installed account and CLI/ACP catalog tests pass in
+.cache/interop-observations/kiro-2212-preflight.5RLmJs, exit 0, 19.363s race-enabled package. The
+owned-session comparison validates 19 model identities and all 19 client aliases, matching auto
+and current selection. It also observes an empty tool inventory and joins process cleanup.
+Catalog/owned-account commands finish within their existing bounds. A separate normal-HOME account
+check also passes with the existing bounded non-JSON postamble handling. No model selection or
+prompt is sent by these tests, and account values are not retained in diagnostics.
+
+Final uncached race suites pass with installed opt-ins off: launcher 22.353s, interop 24.294s,
+catalog 1.489s and command 1.787s. These include main/helper mismatch rejection, version-scoped
+identity, startup cancellation/cleanup and the compiled run policy barrier. No dependency changes.
+
+Fresh 2.21.2/v2 isolation controls also pass in
+.cache/interop-observations/kiro-2212-isolation.xPRqtT, exit 0, 74.661s race-enabled package. Four
+agent-directory cases (26.64s) preserve the selected launch profile despite a distinct session cwd
+and a conflicting same-named session agent; the owned agent bytes stay unchanged. The active MCP
+comparison (46.75s) starts and lists the owned global/project settings/mcp.json relays with explicit
+inclusion, excludes both with false, and lists only the generated candidate's own relay. Flat file
+locations remain inactive controls. Every observed relay/group is removed, pending work is zero and
+private relay configurations are removed. No model prompt or client-tool effect occurs in these
+read-only tests. These results refresh the initial paths; they do not establish reload/load safety.
+
+The native-effect follow-up is separately opted in after these prerequisites, using the unchanged
+owned-workspace prompt and limits from LIVE_KIRO_TEST_PLAN.md. It challenges one initial 2.21.2/v2
+session only; successful real-client tool effects and complete resource exclusion remain separate.
+
+That single native-effect attempt passes in
+.cache/interop-observations/kiro-2212-native.7xUjn2, exit 0, 22.50s test / 23.784s race package.
+The prompt completes in 6,037ms with 832 assistant text bytes, 63 notifications / 9,463 inspected
+bytes, no canary and no tool event. Workspace/canary and candidate/settings bytes remain unchanged;
+the observed relay/group and private configuration are removed with no pending work. This is fresh
+initial-session evidence for 2.21.2, not an assertion about hidden reads, every future prompt or
+remaining resource/reload/load paths. No raw response or provider-billed usage is retained.
+
+Afterward, one separately opted-in actual Claude 2.1.263 / Kiro 2.21.2 single-Read denial also passes:
+.cache/interop-observations/kiro-2212-denial.qyLSz4, exit 0, 24.03s test / 25.619s race package.
+Exactly two backend requests carry one exposed Read and its matching client-hook denial, followed
+by one final completion on the same ACP prompt. The client exits 0. Canary/source-setting checks,
+relay/group disappearance and owned runtime cleanup pass; no canary is observed in checked model
+output. The 1,838-byte client result is checked without saving its contents. Each of the two live
+experiments ran once, with no retry; they may consume Kiro credits, whose billed amount was not
+measured. The native and client-refusal results refresh distinct paths and do not enable run.
+
+Whole-repository go vet, formatting, whitespace checks and the local development build pass.
+Successful actual Kiro-generated Read/Write/Bash with client permission controls, remaining inherited
+resource/skill sources and the prepared production policy remain the next development work. Unused
+reload/load paths must stay disabled unless separately verified; optional web/usage and release soak
+remain outside the development-launch prerequisite set.

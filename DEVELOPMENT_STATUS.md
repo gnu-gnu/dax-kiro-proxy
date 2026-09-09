@@ -6,16 +6,30 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D59 migrates finite preflight to exact Kiro 2.21.2 main/helper after fresh installed account and
+  CLI/ACP catalog checks pass (19.363s race package). All 19 model identities and aliases match;
+  no model prompt is sent. Old/future/mismatched binaries reject before account lookup. Versioned
+  cache and candidate identities remain separate, and production run still fails the policy gate.
+  Final uncached race suites pass: launcher 22.353s, interop 24.294s, catalog 1.489s and command
+  1.787s, with installed opt-ins off; whole-repository go vet and whitespace checks pass.
+  Fresh 2.21.2 agent-directory controls (26.64s) and active MCP inclusion/exclusion (46.75s) also
+  pass, with a combined race package of 74.661s and observed relay/process/artifact cleanup.
+  One fresh 2.21.2 native-effect challenge passes in 23.784s: completed response, no tool event,
+  canary disclosure or workspace/policy change, and complete observed cleanup. Its model prompt
+  takes 6,037ms. This refreshes that initial-session result; remaining paths still gate run.
+  A fresh actual Claude 2.1.263 / Kiro 2.21.2 Read-hook refusal also passes in 25.619s: one exposed
+  Read, exact returned denial, same-prompt completion and client exit 0, with source/canary and
+  cleanup checks passing. Each live experiment runs once. The development executable is rebuilt.
 - D58 observes the installed Kiro main/helper reporting 2.21.2; the reason for the change is unknown.
-  Production preflight remains pinned to 2.21.1 and rejects 2.21.2 before account lookup. The separate
-  empty-agent read-only observer admits exactly 2.21.2 and sends no model prompt. One explicit file
+  At that checkpoint, preflight remained pinned to 2.21.1 and rejected 2.21.2 before account lookup.
+  The separate empty-agent read-only observer admits exactly 2.21.2 and sends no model prompt. One explicit file
   resource and seven default-resource controls pass: active AGENTS/steering entries become absent
   under suppression, including separate launch/session directories. Only the launch directory's
   settings override re-enables inheritance in this matrix. The absolute steering path identifies
   that directory; AGENTS.md is reported relatively and is not assigned an invented absolute base.
   All owned source bytes and observed cleanup checks pass. The seven-case race package passes in
-  37.905s; the explicit-resource case passes in 6.181s. Skills, other default roots, reload/load,
-  fresh version-specific native effects and actual Kiro-approved tools remain unverified.
+  37.905s; the explicit-resource case passes in 6.181s. Skills, other default roots, reload/load
+  and actual Kiro-approved tools remain unverified; D59 refreshes native effects and client refusal.
   Final uncached race suites pass: interop 24.291s, ACP 5.689s and launcher 21.469s, with installed
   opt-ins off. Whole-repository go vet, formatting and whitespace checks also pass.
 - D57 fixes the next-question path after bare permission refusal. The client defers its matching

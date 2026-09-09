@@ -11,10 +11,11 @@ import (
 )
 
 type preflightFixture struct {
-	calls    []childproc.Command
-	identity string
-	failure  error
-	version  string
+	calls         []childproc.Command
+	identity      string
+	failure       error
+	version       string
+	helperVersion string
 }
 
 func (f *preflightFixture) Run(ctx context.Context, c childproc.Command) (childproc.Result, error) {
@@ -29,7 +30,10 @@ func (f *preflightFixture) Run(ctx context.Context, c childproc.Command) (childp
 		}
 		version := f.version
 		if version == "" {
-			version = "2.21.1"
+			version = "2.21.2"
+		}
+		if name == "kiro-cli-chat" && f.helperVersion != "" {
+			version = f.helperVersion
 		}
 		return childproc.Result{ExitCode: 0, Stdout: []byte(name + " " + version + "\n")}, nil
 	}
@@ -42,7 +46,7 @@ func TestKiroPreflightPinsExecutablesAndKeepsAccountDataOutOfResults(t *testing.
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(f.calls) != 3 || info.Version != "2.21.1" || info.Executable != cfg.Executable || info.Helper != "/fixture/bin/kiro-cli-chat" || len(info.ProfileScope) != 64 || !info.HadPostamble {
+	if len(f.calls) != 3 || info.Version != "2.21.2" || info.Executable != cfg.Executable || info.Helper != "/fixture/bin/kiro-cli-chat" || len(info.ProfileScope) != 64 || !info.HadPostamble {
 		t.Fatal("incorrect preflight sequence or scope")
 	}
 	for _, c := range f.calls {
@@ -81,10 +85,16 @@ func TestKiroPreflightNeverConfusesInvalidOutputOrTimeoutWithKnownLogin(t *testi
 	if _, err := launcher.CheckKiro(t.Context(), f, cfg); !errors.Is(err, launcher.ErrLoginCheck) {
 		t.Fatal("timeout was treated as identity evidence")
 	}
-	for _, version := range []string{"2.21.2", "3.0.0"} {
+	for _, version := range []string{"2.21.1", "2.21.3", "3.0.0"} {
 		f = &preflightFixture{version: version}
 		if _, err := launcher.CheckKiro(t.Context(), f, cfg); !errors.Is(err, launcher.ErrKiroVersion) || len(f.calls) != 1 {
 			t.Fatal("unsupported Kiro version reached login lookup")
+		}
+	}
+	for _, version := range []string{"2.21.1", "2.21.3"} {
+		f = &preflightFixture{helperVersion: version}
+		if _, err := launcher.CheckKiro(t.Context(), f, cfg); !errors.Is(err, launcher.ErrKiroVersion) || len(f.calls) != 2 {
+			t.Fatal("mismatched main/helper versions reached login lookup")
 		}
 	}
 	cfg.ScopeKey = [32]byte{}

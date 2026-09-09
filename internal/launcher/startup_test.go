@@ -51,9 +51,9 @@ func (r *startupRunnerFixture) Run(ctx context.Context, c childproc.Command) (ch
 	case "claude --version":
 		raw = "2.1.263 (Claude Code)\n"
 	case "kiro-cli --version":
-		raw = "kiro-cli 2.21.1\n"
+		raw = "kiro-cli 2.21.2\n"
 	case "kiro-cli-chat --version":
-		raw = "kiro-cli-chat 2.21.1\n"
+		raw = "kiro-cli-chat 2.21.2\n"
 	case "kiro-cli whoami --format json":
 		raw = `{"accountType":"synthetic","email":"own-fixture@example.invalid"}`
 	case "kiro-cli chat --list-models --format json":
