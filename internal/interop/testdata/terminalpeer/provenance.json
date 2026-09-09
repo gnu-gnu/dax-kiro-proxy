@@ -2,12 +2,15 @@
   "purpose": "Independent macOS foreground command and keyboard cancellation observer",
   "inputs": [
     "Specifications in this repository",
-    "Public JSON-RPC and ACP contracts",
+    "Public JSON-RPC, ACP and MCP contracts",
+    "Public Claude Code hook event and decision contracts",
     "Public Claude Code keyboard documentation",
     "Behavior of unmodified installed Claude Code and Kiro CLI"
   ],
   "implementation": "New test-only code; no prior implementation, upstream fixture or client source used",
   "runtime_dependency": false,
   "native_frames": "Forward unchanged after bounded observation and separate main/title admission",
-  "recorded_data": "Fixed lifecycle events, counts, Boolean classifications and owned runtime coordinates"
+  "recorded_data": "Fixed lifecycle events, counts, Boolean classifications, owned runtime coordinates and one owned hook ID digest",
+  "held_hook": "One exact owned Read, bounded native PreToolUse wait and correlated PostToolUse; only the actual client reads the requested file",
+  "fake_relay": "Read only the generated agent MCP command declaration; preserve its connection for the ACP process lifetime"
 }

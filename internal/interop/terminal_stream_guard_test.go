@@ -79,3 +79,31 @@ func TestTerminalReceiptsKeepAuxiliaryAndMainProcessesSeparate(t *testing.T) {
 		t.Fatal("auxiliary receipt captured main lifecycle")
 	}
 }
+
+func TestTerminalHookExitRequiresALiveUnreleasedCall(t *testing.T) {
+	active := terminalTrace{Prompts: 1, HookHeld: 1, Hook: 123}
+	for _, tc := range []struct {
+		name   string
+		change func(*terminalTrace)
+		valid  bool
+	}{
+		{"held", func(*terminalTrace) {}, true},
+		{"title-only", func(r *terminalTrace) { r.Prompts = 0; r.TitlePrompts = 1 }, false},
+		{"no-hook", func(r *terminalTrace) { r.HookHeld = 0 }, false},
+		{"repeated-hook", func(r *terminalTrace) { r.HookHeld = 2 }, false},
+		{"released", func(r *terminalTrace) { r.HookReleased = 1 }, false},
+		{"post-tool", func(r *terminalTrace) { r.HookPost = 1 }, false},
+		{"ended", func(r *terminalTrace) { r.Ends = 1 }, false},
+		{"cancelled", func(r *terminalTrace) { r.Cancels = 1 }, false},
+		{"interrupted", func(r *terminalTrace) { r.HookInterrupted = 1 }, false},
+		{"failed", func(r *terminalTrace) { r.Failures = 1 }, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			trace := active
+			tc.change(&trace)
+			if terminalHookEligible(trace) != tc.valid {
+				t.Fatal("unproven held hook admitted")
+			}
+		})
+	}
+}

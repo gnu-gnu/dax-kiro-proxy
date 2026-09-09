@@ -970,3 +970,67 @@ recorded groups/seven recorded PIDs, listener, runtime and profile gone. Source 
 are unchanged. One separate title prompt completes; exactly two prompt admissions occur, with no
 guard failure or emergency cleanup. Fixed facts are saved to `.cache/terminal-review/live-keyboard.log`.
 No failed live trial is retried. This establishes only the controlled streaming/keyboard scope above.
+
+## Keyboard exit while the client's Read hook is held
+
+Extend D82's independent compiled-command terminal observer with a native command hook and one
+owned Read. The public [hook contract](https://code.claude.com/docs/en/hooks) supplies event, tool
+name/input/ID and permission-decision fields; no upstream fixture or client source is used. The
+separate local public-only terminal consultation already considered the held-hook case. Keep its
+typed-action and passive-restoration advice, and retain the previously recorded rejected suggestions.
+
+The owned client settings register PreToolUse and PostToolUse for Read; the wrapper exposes only
+Read and strict empty MCP. The pre-hook accepts only one exact file_path under the owned project,
+a nonempty bounded tool_use_id and the expected event/tool. It consumes a single exclusive admission
+marker containing only an ID digest. The post-hook must match that digest. Neither hook opens the
+requested file, transcript or credentials. Only event/name/input/ID are inspected; remaining native
+payload fields are discarded without logging. Input is bounded at 64 KiB/two seconds;
+the pre-hook waits at most twenty seconds and exits with denial on interrupt. Expiry is a guard
+failure, never a passing keyboard result. The hook command timeout is twenty-five seconds.
+
+First run two actual-Claude/fake-ACP cases. The fake reads only the launcher-generated agent's public
+MCP declaration and launches the product relay; it does not read the relay's private configuration.
+Initialize, list and request the single discovered Read alias through public MCP. Keep this relay
+connection alive for the ACP process lifetime, rather than closing it after one tool result.
+In the release control, observe the exact held hook and pending relay call for at least 500ms with
+client/proxy/hook alive, release only that hook, and require a matching PostToolUse, the expected
+owned Read result at the relay, main completion and generated marker visible in the client. Exit
+through the same confirmed Ctrl+D path. This establishes that the held operation could continue.
+
+For the keyboard-exit case, wait for the same unreleased live hook for 500ms, with one main prompt,
+no main completion/cancellation and no guard failure. Type Ctrl+D and type it again only when the
+current native screen explicitly asks for Ctrl+D again. Require ordinary command exit 0 within
+eight seconds of the first exit key, terminal restoration, every recorded PID/group gone, closed
+listener, removed runtime/profile and unchanged source settings/Read fixture. No hook release,
+PostToolUse or successful relay result may occur. No file marker may appear in captured terminal
+output. After recorded cleanup succeeds, create the former release marker and observe for 300ms;
+no late release/completion or new prompt may appear. This is a bounded late-trigger observation.
+
+Only after both fake cases pass may the continuing authorization be used for one actual Kiro
+trial. Its ordinary account/catalog/version preflight and ACP remain unchanged. The actual path
+requires the exact held native hook but does not instrument or replace Kiro's private MCP client;
+fake relay call/result counts are not claimed for it. Preserve D82's maximum of one main and one
+separate title prompt across replacement processes and all existing terminal/frame/event bounds.
+There is no automatic failed-live retry, synthetic tool result, direct signal used as keyboard
+evidence or success obtained by parent cancellation/emergency cleanup. Unobserved historical or
+detached descendants, a following question, arbitrary hooks and all other live/release gates remain
+separate. The fixture supplies one owned file with a fixed marker and requests its Read exactly once.
+
+The first release control detects premature fake-relay connection closure after a successful tool
+result, which correctly cancels the product's active session. It fails and uses emergency cleanup;
+this is not keyboard-exit evidence. Keeping the fake connection alive for its owning process fixes
+the fixture. Both complete controls then pass together in 10.251s under race detection: release
+produces one matched PostToolUse/result and main completion; Ctrl+D exit takes 278ms from its first
+key, with the hook still alive at the second-key confirmation, one hook interruption, no Read result
+or main completion, restored terminal and all recorded processes/artifacts gone. The late release
+marker has no observed effect. Select TestKiroLiveCompiledRunHeldHookKeyboardExit for the one actual
+trial with DAX_INTEROP_KIRO_CREDIT_OPT_IN=1 and both pinned executable paths.
+
+D83 runs that actual trial once and passes in 22.27s (23.553s race package). The exact hook is
+held before the first Ctrl+D and remains alive at the second-key confirmation. Keyboard shutdown
+takes 2,392ms, with one hook interruption, one main ACP cancel/cancelled reply and no main completion
+or PostToolUse. All five recorded groups/eight recorded PIDs, listener, runtime and profile are gone;
+terminal settings are restored and source settings/global JSON/Read fixture are unchanged. The late
+release marker has no observed effect. Exactly one main and one completed title prompt run, with
+no guard failure, emergency cleanup or retry. Native Kiro MCP call/result counts are unobserved and
+reported as such. Fixed results are retained in `.cache/terminal-review/live-held-hook-exit.log`.

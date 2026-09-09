@@ -3781,3 +3781,63 @@ clean-host release and rights/license gates remain open.
 
 Applicable opt-ins-off race regressions pass interop 23.720s, launcher 28.446s, childproc 6.106s,
 ACP 5.031s and command 3.790s. Whole-repository/observer vet, formatting and whitespace checks pass.
+
+## D83: verify keyboard exit while an exact native Read hook remains held
+
+Extend the independent D82 observer with two native command-hook roles and a fake ACP MCP client.
+The product command and installed clients remain unchanged. A pre-hook accepts only the expected
+PreToolUse/Read event with one exact owned file_path and a bounded nonempty tool-use ID. It consumes
+one exclusive admission marker and records only the ID digest plus fixed process/lifecycle facts.
+The post-hook must match the same ID and input. Input/readiness tests first fail on absent APIs,
+then cover wrong event/tool/path, extra input, missing ID, oversized input, absent/repeated/released/
+interrupted hook, main completion/cancellation and title-only observations.
+
+The public [hook contract](https://code.claude.com/docs/en/hooks) supplies the native input and
+permission-decision fields. Only event, tool name/input and ID are inspected; remaining bounded
+payload is discarded without logging. Neither hook opens the requested file or transcript. The
+two-second/64 KiB stdin bound and twenty-second held-hook bound fail explicitly. SIGINT/SIGTERM
+return denial, while only an exact owned release marker permits the positive Read control. The
+settings command timeout is twenty-five seconds. Expiry cannot satisfy keyboard-exit acceptance.
+
+The fake ACP reads only the launcher-created agent's public MCP command declaration, executes the
+product relay and uses initialize, tools/list and one tools/call for the discovered Read alias. It
+never opens the relay's private configuration or requested file. A matching result is checked in
+memory for the independently authored file marker, without logging it. The first control completes
+Read but incorrectly closes its relay connection before ending the ACP prompt; the product treats
+that lifetime loss as cancellation. The test fails after its terminal deadline and needs emergency
+cleanup. The corrected fixture retains its one connection for the owning process lifetime; no
+production cancellation semantics or deadline is weakened.
+
+Both complete actual-Claude/fake-ACP controls pass together in 10.251s under race detection. In the
+release control, the exact hook and pending relay call stay live for at least 500ms before release.
+One matching PostToolUse/Read result, main end and generated text visible in Claude follow. In the
+exit control, the same unreleased live hook precedes the first Ctrl+D and remains alive when the
+current native screen requests the second Ctrl+D. Shutdown takes 278ms: hook interrupted, no tool
+result/main end, ordinary command exit 0, restored terminal, all recorded processes/artifacts gone
+and unchanged source settings/global JSON/Read file. A release marker created after cleanup has no
+observed effect during a further 300ms. Existing terminal/frame/event budgets still apply.
+
+The hook/protocol/readiness guard selection passes again in 2.160s/1.866s before live inference.
+The actual pinned Kiro 2.21.2 / Claude 2.1.263 trial runs once and passes in 22.27s (23.553s race
+package). Exactly one native Read hook is held and remains alive at exit confirmation. Shutdown
+takes 2,392ms, with one hook interruption, one main ACP cancel and one cancelled reply, no main
+completion or PostToolUse and no file marker in captured terminal text. All five recorded groups
+and eight recorded PIDs, listener, runtime and private profile are gone; the passive supervisor
+confirms terminal restoration and the source fixtures remain unchanged. One main prompt and one
+completed title prompt run, with no guard failure, emergency cleanup or live retry. The late release
+marker produces no observed event. Native Kiro's private MCP client is neither replaced nor
+instrumented; fake relay call/result counts are not claimed as live observations.
+
+The saved public-only D82 Claude consultation also covers the held-hook keyboard scenario. It is
+read and applied with the same recorded exclusions; no prior implementation, private client source,
+new SDK or dependency is used. This closes the controlled held-hook keyboard-exit scenario, not
+arbitrary hooks, unobserved historical/detached descendants, a following question or all cancellation
+paths. These test/documentation changes leave production and the D79 frozen development artifact
+unchanged. Development run remains enabled. Personal-root memory, other live alpha, soak, clean-host
+release and rights/license gates remain open.
+
+The shared terminal fixture's existing natural-completion, ordinary-character and Ctrl+C controls
+all pass again with actual Claude/fake ACP in 22.676s. Final opt-ins-off race suites pass interop
+25.344s and the complete independent observer package 1.225s. Whole-repository/observer vet,
+formatting and whitespace checks pass. No binary rebuild or dependency inventory refresh is needed
+for these test/documentation-only changes.

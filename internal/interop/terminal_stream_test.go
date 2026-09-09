@@ -23,6 +23,10 @@ func terminalCancelEligible(trace terminalTrace) bool {
 	return trace.Prompts == 1 && trace.TitlePrompts <= 1 && trace.Texts >= 2 && trace.Ends == 0 && trace.Cancels == 0 && trace.Canceled == 0 && trace.Failures == 0 && !trace.Exited
 }
 
+func terminalHookEligible(trace terminalTrace) bool {
+	return trace.Prompts == 1 && trace.TitlePrompts <= 1 && trace.HookHeld == 1 && trace.Hook > 1 && trace.HookReleased == 0 && trace.HookPost == 0 && trace.HookInterrupted == 0 && trace.Ends == 0 && trace.Cancels == 0 && trace.Canceled == 0 && trace.Failures == 0 && !trace.Exited
+}
+
 func terminalExitConfirmation(screen string) bool {
 	plain := strings.ToLower(strings.Join(strings.Fields(screen), " "))
 	return strings.Contains(plain, "ctrl+d again to exit") || strings.Contains(plain, "ctrl-d again to exit")
@@ -45,15 +49,17 @@ type terminalReceipt struct {
 }
 
 type terminalTrace struct {
-	Client, ACP, Agent, Proxy, Supervisor             int
-	Foreground                                        int
-	Prompts, Texts, Cancels, Ends, Canceled, Failures int
-	Exited, Restored                                  bool
-	ExitCode                                          int
-	Profile, Endpoint                                 string
-	Groups, PIDs                                      []int
-	Attempts, MainHints, TitleHints, SummaryHints     int
-	TitlePrompts, TitleEnds                           int
+	Hook, HookHeld, HookReleased, HookInterrupted, HookPost int
+	RelayCalls, RelayResults                                int
+	Client, ACP, Agent, Proxy, Supervisor                   int
+	Foreground                                              int
+	Prompts, Texts, Cancels, Ends, Canceled, Failures       int
+	Exited, Restored                                        bool
+	ExitCode                                                int
+	Profile, Endpoint                                       string
+	Groups, PIDs                                            []int
+	Attempts, MainHints, TitleHints, SummaryHints           int
+	TitlePrompts, TitleEnds                                 int
 }
 
 func readTerminalTrace(root string) (terminalTrace, error) {
@@ -85,6 +91,19 @@ func readTerminalTrace(root string) (terminalTrace, error) {
 				pids[r.Child] = true
 			}
 			switch r.Kind {
+			case "relay":
+			case "relay-called":
+				trace.RelayCalls++
+			case "relay-result":
+				trace.RelayResults++
+			case "hook-held":
+				trace.Hook, trace.HookHeld = r.PID, trace.HookHeld+1
+			case "hook-released":
+				trace.HookReleased++
+			case "hook-interrupted":
+				trace.HookInterrupted++
+			case "hook-post":
+				trace.HookPost++
 			case "client":
 				trace.Client, trace.Foreground, trace.Profile, trace.Endpoint = r.PID, r.Foreground, r.Profile, r.Endpoint
 			case "acp":
@@ -167,8 +186,28 @@ func TestKiroLiveCompiledRunKeyboardCancellation(t *testing.T) {
 	runCompiledTerminalStream(t, "cancel", kiro)
 }
 
+func TestCompiledRunHeldHookKeyboardWithFakeACP(t *testing.T) {
+	for _, mode := range []string{"held-hook-release", "held-hook-exit"} {
+		if !t.Run(mode, func(t *testing.T) { runCompiledTerminalStream(t, mode, "") }) {
+			return
+		}
+	}
+}
+
+func TestKiroLiveCompiledRunHeldHookKeyboardExit(t *testing.T) {
+	if os.Getenv("DAX_INTEROP_KIRO_CREDIT_OPT_IN") != "1" {
+		t.Skip("explicit live held-hook terminal opt-in required")
+	}
+	kiro := os.Getenv("DAX_INTEROP_KIRO_BINARY")
+	if kiro == "" || os.Getenv("DAX_INTEROP_CLAUDE_BINARY") == "" {
+		t.Fatal("both pinned executables are required")
+	}
+	runCompiledTerminalStream(t, "held-hook-exit", kiro)
+}
+
 func runCompiledTerminalStream(t *testing.T, mode, kiro string) {
 	t.Helper()
+	heldHook := strings.HasPrefix(mode, "held-hook-")
 	client := os.Getenv("DAX_INTEROP_CLAUDE_BINARY")
 	if client == "" {
 		t.Skip("set DAX_INTEROP_CLAUDE_BINARY for an owned compiled-run terminal")
@@ -188,7 +227,20 @@ func runCompiledTerminalStream(t *testing.T, mode, kiro string) {
 		}
 	}
 	settings := filepath.Join(home, ".claude", "settings.json")
-	if os.WriteFile(settings, []byte(`{"disableAllHooks":true,"statusLine":{"type":"command","command":"/usr/bin/true"}}`), 0600) != nil || os.WriteFile(filepath.Join(home, ".claude.json"), []byte(`{}`), 0600) != nil {
+	settingsData := []byte(`{"disableAllHooks":true,"statusLine":{"type":"command","command":"/usr/bin/true"}}`)
+	readFixture, prompt := filepath.Join(project, "read-fixture"), terminalStreamPrompt
+	if heldHook {
+		prompt = "Use Read exactly once with file_path " + readFixture + ". Then reply with the concatenation of HookControl and _47 without spaces. Do not use any other tool."
+		hooks := map[string]any{}
+		for event, role := range map[string]string{"PreToolUse": "held-hook", "PostToolUse": "post-hook"} {
+			hooks[event] = []any{map[string]any{"matcher": "Read", "hooks": []any{map[string]any{"type": "command", "command": "exec " + probeShellQuote(filepath.Join(bin, role)), "timeout": 25}}}}
+		}
+		settingsData, _ = json.Marshal(map[string]any{"hooks": hooks, "statusLine": map[string]string{"type": "command", "command": "/usr/bin/true"}})
+		if os.WriteFile(readFixture, []byte("OwnedHookRead_47\n"), 0600) != nil {
+			t.Fatal("cannot prepare owned Read fixture")
+		}
+	}
+	if os.WriteFile(settings, settingsData, 0600) != nil || os.WriteFile(filepath.Join(home, ".claude.json"), []byte(`{}`), 0600) != nil {
 		t.Fatal("cannot prepare owned terminal settings")
 	}
 	beforeSettings, beforeGlobal := fileFingerprint(t, settings), fileFingerprint(t, filepath.Join(home, ".claude.json"))
@@ -215,13 +267,13 @@ func runCompiledTerminalStream(t *testing.T, mode, kiro string) {
 			t.Fatal("cannot build owned terminal executable")
 		}
 	}
-	for _, name := range []string{"supervisor", "claude", "kiro-cli", "kiro-cli-chat"} {
+	for _, name := range []string{"supervisor", "claude", "kiro-cli", "kiro-cli-chat", "held-hook", "post-hook"} {
 		if os.Link(peer, filepath.Join(bin, name)) != nil {
 			t.Fatal("cannot create owned executable role")
 		}
 	}
 	args := []string{"run", "--client", filepath.Join(bin, "claude"), "--kiro", filepath.Join(bin, "kiro-cli"), "--settings", settings, "--runtime-dir", artifacts, "--state-dir", filepath.Join(root, "state")}
-	config, _ := json.Marshal(map[string]any{"Root": root, "Proxy": proxy, "Client": client, "Kiro": kiro, "AccountHome": os.Getenv("HOME"), "Project": project, "Args": args})
+	config, _ := json.Marshal(map[string]any{"Root": root, "Proxy": proxy, "Client": client, "Kiro": kiro, "AccountHome": os.Getenv("HOME"), "Project": project, "Args": args, "HeldHook": heldHook})
 	if os.WriteFile(filepath.Join(bin, "terminal.json"), config, 0600) != nil {
 		t.Fatal("cannot write terminal role configuration")
 	}
@@ -266,6 +318,8 @@ func runCompiledTerminalStream(t *testing.T, mode, kiro string) {
 	command := childproc.Command{Executable: "/usr/bin/script", Directory: project, Args: []string{"-q", os.DevNull, filepath.Join(bin, "supervisor")}, Environment: []string{"HOME=" + home, "PATH=/usr/bin:/bin:/usr/sbin:/sbin", "TMPDIR=" + filepath.Join(root, "tmp"), "TERM=xterm-256color", "COLUMNS=160", "LINES=40"}}
 	stage, beforeKey := 0, 0
 	var keyAt time.Time
+	var heldAt time.Time
+	var heldObserved, hookAtConfirmation bool
 	var receiptErr error
 	var canceledAlive, foregroundObserved, exitKey bool
 	var screenHints uint32
@@ -296,15 +350,35 @@ func runCompiledTerminalStream(t *testing.T, mode, kiro string) {
 			if trace.Client > 1 && trace.Foreground == trace.Client && statusProjectVisible(lower, project) && strings.Contains(screen, "❯") && !strings.Contains(lower, "do you want") && !strings.Contains(lower, "enter to continue") {
 				foregroundObserved = true
 				stage = 1
-				return terminalStreamPrompt
+				return prompt
 			}
 		case 1:
-			if strings.Contains(strings.Join(strings.Fields(screen), " "), terminalStreamPrompt) {
+			if strings.Contains(strings.Join(strings.Fields(screen), " "), prompt) {
 				stage = 2
 				return "\r"
 			}
 		case 2:
-			if mode == "natural-completion" {
+			if heldHook {
+				if terminalHookEligible(trace) && (kiro != "" || trace.RelayCalls == 1 && trace.RelayResults == 0) && syscall.Kill(trace.Hook, 0) == nil && syscall.Kill(trace.Client, 0) == nil && syscall.Kill(trace.Proxy, 0) == nil {
+					if heldAt.IsZero() {
+						heldAt = time.Now()
+					}
+					if time.Since(heldAt) < 500*time.Millisecond {
+						return ""
+					}
+					heldObserved = true
+					if mode == "held-hook-release" {
+						if os.WriteFile(filepath.Join(root, "hook-release"), []byte("release-owned-hook"), 0600) != nil {
+							receiptErr = errors.New("cannot release owned hook")
+							stop()
+						}
+						stage = 7
+						return ""
+					}
+					stage, exitKey, keyAt = 5, true, time.Now()
+					return "\x04"
+				}
+			} else if mode == "natural-completion" {
 				if trace.Ends == 1 {
 					stage = 5
 					exitKey = true
@@ -337,13 +411,23 @@ func runCompiledTerminalStream(t *testing.T, mode, kiro string) {
 			return "\x04"
 		case 5:
 			if terminalExitConfirmation(screen) {
+				hookAtConfirmation = trace.Hook > 1 && syscall.Kill(trace.Hook, 0) == nil && trace.HookReleased == 0
 				stage = 6
+				return "\x04"
+			}
+		case 7:
+			if trace.HookReleased == 1 && trace.HookPost == 1 && trace.RelayResults == 1 && trace.Ends == 1 && strings.Contains(screen, "HookControl_47") {
+				stage, exitKey = 5, true
 				return "\x04"
 			}
 		}
 		return ""
 	}, true)
 	trace, err = readTerminalTrace(root)
+	exitLatency := time.Duration(0)
+	if !keyAt.IsZero() {
+		exitLatency = time.Since(keyAt)
+	}
 	groupsGone := true
 	for _, pid := range trace.Groups {
 		groupsGone = groupsGone && pid > 1 && errors.Is(syscall.Kill(-pid, 0), syscall.ESRCH)
@@ -364,11 +448,29 @@ func runCompiledTerminalStream(t *testing.T, mode, kiro string) {
 		}
 	}
 	sources := beforeSettings == fileFingerprint(t, settings) && beforeGlobal == fileFingerprint(t, filepath.Join(home, ".claude.json"))
+	lateReleaseQuiet := true
+	if heldHook {
+		content, readErr := os.ReadFile(readFixture)
+		sources = sources && readErr == nil && string(content) == "OwnedHookRead_47\n"
+		if mode == "held-hook-exit" && groupsGone && pidsGone {
+			if os.WriteFile(filepath.Join(root, "hook-release"), []byte("release-owned-hook"), 0600) != nil {
+				lateReleaseQuiet = false
+			}
+			time.Sleep(300 * time.Millisecond)
+			after, err := readTerminalTrace(root)
+			lateReleaseQuiet = lateReleaseQuiet && err == nil && after.HookReleased == 0 && after.HookPost == 0 && after.RelayResults == 0 && after.Prompts == trace.Prompts && after.TitlePrompts == trace.TitlePrompts && after.Ends == 0 && after.Failures == 0
+		}
+		t.Logf("held_observed=%v hook_held=%d hook_released=%d hook_interrupted=%d hook_post=%d hook_alive_at_exit_confirmation=%v relay_calls=%d relay_results=%d late_release_quiet=%v exit_ms=%d", heldObserved, trace.HookHeld, trace.HookReleased, trace.HookInterrupted, trace.HookPost, hookAtConfirmation, trace.RelayCalls, trace.RelayResults, lateReleaseQuiet, exitLatency.Milliseconds())
+	}
 	t.Logf("fixed_screen_hint_bits=%d observed_groups=%d observed_pids=%d", screenHints, len(trace.Groups), len(trace.PIDs))
 	t.Logf("prompt_attempts=%d main_hints=%d title_hints=%d summary_hints=%d title_prompts=%d title_ends=%d", trace.Attempts, trace.MainHints, trace.TitleHints, trace.SummaryHints, trace.TitlePrompts, trace.TitleEnds)
 	t.Logf("live_kiro=%v mode=%s stage=%d setup=%d prompts=%d texts=%d cancels=%d ends=%d cancelled_replies=%d guard_failures=%d key_after_texts=%d foreground_observed=%v client_alive_after_cancel=%v keyboard_exit=%v proxy_exited=%v proxy_exit=%d terminal_restored=%v groups_gone=%v recorded_pids_gone=%v listener_gone=%v runtime_removed=%v profile_removed=%v sources_unchanged=%v output_bytes=%d command_exit=%d", kiro != "", mode, stage, setup, trace.Prompts, trace.Texts, trace.Cancels, trace.Ends, trace.Canceled, trace.Failures, beforeKey, foregroundObserved, canceledAlive, exitKey, trace.Exited, trace.ExitCode, trace.Restored, groupsGone, pidsGone, listenerGone, artifactErr == nil && len(entries) == 0, os.IsNotExist(profileErr), sources, len(result.Stdout), result.ExitCode)
 	valid := runErr == nil && result.ExitCode == 0 && receiptErr == nil && err == nil && foregroundObserved && exitKey && trace.Exited && trace.ExitCode == 0 && trace.Restored && groupsGone && pidsGone && listenerGone && artifactErr == nil && len(entries) == 0 && os.IsNotExist(profileErr) && sources && trace.Prompts == 1 && trace.TitlePrompts <= 1 && trace.Failures == 0
-	if mode == "cancel" {
+	if mode == "held-hook-exit" {
+		valid = valid && heldObserved && trace.HookReleased == 0 && trace.HookPost == 0 && trace.RelayResults == 0 && trace.Ends == 0 && !strings.Contains(string(result.Stdout), "OwnedHookRead_47") && exitLatency < 8*time.Second && lateReleaseQuiet
+	} else if mode == "held-hook-release" {
+		valid = valid && heldObserved && trace.HookReleased == 1 && trace.HookPost == 1 && trace.RelayResults == 1 && trace.Ends == 1 && trace.Cancels == 0
+	} else if mode == "cancel" {
 		valid = valid && canceledAlive && trace.Cancels >= 1 && trace.Ends == 0
 	} else {
 		valid = valid && trace.Cancels == 0 && trace.Ends == 1

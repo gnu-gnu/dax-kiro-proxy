@@ -265,6 +265,13 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
   terminal restoration, recorded process/group disappearance, closed listener, removed private
   artifacts and unchanged sources (D82). Separate title work cannot satisfy main-response readiness.
   This does not establish a following question, exit during a held hook or unobserved descendants.
+- Observe compiled-command keyboard exit during an exact live native PreToolUse wait separately
+  (D83). First release a matching fake-ACP control and require the native tool completion, matching
+  PostToolUse/result and displayed final response. In the exit case, keep the hook unreleased,
+  type the documented exit/confirmation keys and require bounded ordinary exit, removed observed
+  hook/client/ACP groups and private artifacts, restored terminal and unchanged sources. Hook expiry,
+  direct signals and emergency cleanup cannot count as keyboard success. A late release marker
+  must not produce an observed result or new prompt during the bounded post-exit check.
 - Public startup rejects invalid binaries/settings, failed login, unknown configured models and an
   unverified execution policy before launching a model-facing runtime. There is no CLI/config trust
   override. Diagnostic success reports launch availability separately. Startup cancellation joins

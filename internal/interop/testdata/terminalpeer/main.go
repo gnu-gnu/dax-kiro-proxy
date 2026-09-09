@@ -25,6 +25,7 @@ import (
 )
 
 type config struct {
+	HeldHook                                        bool
 	Root, Proxy, Client, Kiro, AccountHome, Project string
 	Args                                            []string
 }
@@ -72,6 +73,8 @@ func main() {
 	switch role {
 	case "supervisor":
 		supervise()
+	case "held-hook", "post-hook":
+		heldHook(role == "post-hook")
 	case "claude":
 		if len(os.Args) == 2 && os.Args[1] == "--version" {
 			_ = syscall.Exec(cfg.Client, append([]string{cfg.Client}, os.Args[1:]...), os.Environ())
@@ -105,7 +108,11 @@ func main() {
 		foreground, _ := unix.IoctlGetInt(0, unix.TIOCGPGRP)
 		record("client", map[string]any{"profile": profile, "endpoint": os.Getenv("ANTHROPIC_BASE_URL"), "foreground": foreground})
 		args := append([]string{cfg.Client}, os.Args[1:]...)
-		args = append(args, "--strict-mcp-config", "--mcp-config", `{"mcpServers":{}}`, "--tools", "", "--system-prompt", "Follow the user's text-only instruction. Do not use tools.")
+		toolList, instruction := "", "Follow the user's text-only instruction. Do not use tools."
+		if cfg.HeldHook {
+			toolList, instruction = "Read", "Use only the supplied Read tool, exactly once for the user's specified path. Do not use any other tool."
+		}
+		args = append(args, "--strict-mcp-config", "--mcp-config", `{"mcpServers":{}}`, "--tools", toolList, "--system-prompt", instruction)
 		env := append(os.Environ(), "CLAUDE_CODE_SKIP_PROMPT_HISTORY=1", "CLAUDE_CODE_DISABLE_THINKING=1", "CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS=1")
 		_ = syscall.Exec(cfg.Client, args, env)
 		os.Exit(71)
@@ -336,6 +343,19 @@ func fakeACP() {
 				continue
 			}
 			cancel = make(chan struct{})
+			if cfg.HeldHook {
+				go func(id json.RawMessage) {
+					if err := fakeHeldTool(); err != nil {
+						if !errors.Is(err, io.EOF) {
+							record("guard-failed", nil)
+						}
+						return
+					}
+					send(map[string]any{"jsonrpc": "2.0", "method": "session/update", "params": map[string]any{"sessionId": "owned-stream", "update": map[string]any{"sessionUpdate": "agent_message_chunk", "content": map[string]string{"type": "text", "text": "HookControl_47"}}}})
+					reply(id, map[string]string{"stopReason": "end_turn"})
+				}(r.ID)
+				continue
+			}
 			go func(id json.RawMessage, stop <-chan struct{}) {
 				for i := 0; i < 40; i++ {
 					text := fmt.Sprintf("%d\n", i)

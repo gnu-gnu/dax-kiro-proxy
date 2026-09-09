@@ -138,6 +138,13 @@ Natural completion and ordinary-character controls pass with actual Claude and f
 text-only fixture admits one main prompt and at most one separate title prompt; it does not establish
 a following question, keyboard exit during a held tool hook or every unobserved descendant.
 
+D83 separately verifies keyboard exit during an exact native Read hook wait with actual Kiro and
+Claude. The hook is still alive at the exit confirmation; ordinary shutdown completes in 2.392s,
+with an ACP cancelled reply, no tool completion, removed recorded hook/client/ACP processes and
+private artifacts, restored terminal and unchanged sources. A fake-ACP release control first proves
+that the same held Read can complete. No late effect is observed after the old release marker is
+created. Arbitrary hooks, following questions and unobserved descendants remain separate checks.
+
 The temporary client profile now retains standard-HOME user/local MCP declarations and decisions
 at their native scopes. Installed-client controls verify all three MCP scopes, disabled/re-enabled
 servers, project refusal and local/project/user precedence, with unchanged source files and joined

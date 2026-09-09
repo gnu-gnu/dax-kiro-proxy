@@ -6,6 +6,23 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D83 verifies compiled-command keyboard exit during an exact native Read hook wait with actual
+  Kiro 2.21.2 / Claude 2.1.263. Hook input/readiness tests first fail on missing APIs, then pass.
+  Both actual-Claude/fake-ACP controls pass in 10.251s under race detection: explicit hook release
+  produces a matching native PostToolUse/Read result and displayed completion; keyboard exit while
+  held finishes in 278ms without tool completion. The actual trial runs once and passes in 22.27s
+  (23.553s package): the hook remains alive at exit confirmation, and shutdown takes 2,392ms with
+  one hook interruption and ACP cancel/cancelled reply. All five recorded groups/eight PIDs, listener,
+  runtime and profile disappear; terminal state is restored and sources remain unchanged. One main
+  and one title prompt run; no late release effect, guard failure, emergency cleanup or live retry.
+  Native Kiro MCP counts are not instrumented. The initial fake release attempt closed its relay
+  too early and correctly triggered session cancellation; only the fixture's connection lifetime
+  changes. D82's public-only saved Claude consultation also covers this case. No production,
+  dependency or artifact change. Arbitrary hooks, following questions, unobserved descendants,
+  other live alpha, personal-root memory and full release gates remain open.
+  The existing three actual-Claude/fake-ACP streaming controls pass again in 22.676s. Final
+  opt-ins-off race suites pass interop 25.344s and the observer 1.225s; whole-repository/observer
+  vet, formatting and whitespace checks pass.
 - D82 verifies typed Ctrl+C during main-response streaming through the ordinary compiled foreground
   command with actual Kiro 2.21.2 / Claude 2.1.263. Independent observer/readiness controls pass first,
   followed by all three actual-Claude/fake-ACP cases: normal completion, ordinary-character input
