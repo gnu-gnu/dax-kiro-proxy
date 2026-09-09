@@ -213,13 +213,25 @@ func (d *Driver) Start(ctx context.Context, r *anthropic.Request) (inference.Tur
 	d.mu.Lock()
 	waiting := d.state == WaitingTools
 	d.mu.Unlock()
+	var instruction *instructionRestart
 	if waiting || len(results) > 0 {
-		restart, err := d.restartAfterDenial(ctx, r, registry, results)
+		instruction, err = d.restartForInstruction(ctx, r, registry, results)
 		if err != nil {
 			return nil, err
 		}
-		if !restart {
-			return d.resume(ctx, r, registry, results)
+		if instruction == nil {
+			restart, err := d.restartAfterDenial(ctx, r, registry, results)
+			if err != nil {
+				return nil, err
+			}
+			if !restart {
+				return d.resume(ctx, r, registry, results)
+			}
+		} else {
+			var cancel context.CancelFunc
+			ctx, cancel = context.WithDeadline(ctx, instruction.deadline)
+			defer cancel()
+			started = instruction.started
 		}
 	}
 	stamp, err := reusableCompatibility(r, registry)
@@ -331,6 +343,9 @@ func (d *Driver) Start(ctx context.Context, r *anthropic.Request) (inference.Tur
 	d.mu.Unlock()
 	t := &turn{driver: d, client: client, id: id, model: modelID, owned: owned, cancelOwned: stop, done: make(chan struct{}), released: make(chan struct{}), broker: broker, socket: socket, plan: plan, reuseCompat: stamp}
 	t.started = started
+	if instruction != nil {
+		t.instructionRestarts = instruction.count
+	}
 	t.effort = d.effort.Status()
 	t.multiplier = selected.Multiplier
 	t.sessionState = "created"

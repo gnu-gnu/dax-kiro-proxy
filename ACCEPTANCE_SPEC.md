@@ -103,7 +103,19 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
   session; a matching later request observes only the scoped terminal outcome, never tool replay.
 - A tool-result request may repeat the complete most recent standing system-message sequence without
   starting another ACP prompt. Changed, partial, reordered or older instructions and extra user text
-  reject before any pending result is consumed, except the separately validated new-turn case below.
+  reject on that same-prompt path before any pending result is consumed, except the separately
+  validated recreation cases below.
+- One changed text-only standing system message may recreate after a result-only user message when
+  the preceding standing sequence also has exactly one message. Require an exact complete prior-
+  history prefix and unchanged owner/model/effort/top-level system/metadata/registry. Validate the
+  complete delivered batch, encoded result bounds and full projection before revocation. Wrong,
+  missing, duplicate, undelivered or oversized results and truncated overlap reject without mutation.
+  Join the old group and relay before creating a replacement with the full request history. Neither
+  the supplied results nor new instructions enter the old prompt; no tool is automatically replayed.
+  Permit at most one such recreation per logical turn, preserve its absolute deadline through setup
+  and further tool handoffs, and reject replay after completion or failed replacement. Exact repeated
+  suffixes continue normally, including after the restart allowance is exhausted. Multi-message
+  changed sequences remain unsupported. Distinguish actual-client/fake-ACP evidence from live Kiro.
 - A new user question following all matching client error results may abandon the old prompt only
   with an exact compatible owner, proven history extension, results preceding text, and unchanged
   repeated standing instructions. Join old process/relay cleanup before a fresh full-history prompt;

@@ -6,6 +6,17 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D63 verifies ordinary Claude 2.1.263 text with 25 default tools and fixes a default-tool Read
+  denial continuation whose standing system text changes. One exact full-history continuation can
+  revoke/join old work and recreate with the supplied result and new instruction under the original
+  deadline. Strict ownership/result validation and a one-restart allowance remain enforced. Both
+  installed-client/fake-ACP cases pass in 7.585s under race instrumentation, with source settings
+  unchanged and both observed process groups gone. Actual Kiro recovery, user-asset preservation
+  and alpha/release gates remain; reconstruction can add provider work and loses hidden context.
+- D63's final uncached race regressions pass with installed-client/model opt-ins disabled: relay
+  9.972s, session 19.542s, Anthropic validation 8.089s, gateway 3.362s, interop 21.739s, launcher
+  21.774s, command 1.554s and ACP transport 4.851s. Whole-repository go vet, formatting and whitespace
+  checks pass. The development executable is rebuilt with this recovery path; no dependencies change.
 - D62 enables development run on macOS arm64 for exact Kiro 2.21.2/v2 and Claude 2.1.263 after the
   D59-D61 isolation/tool gates. The shared configuration generator passes actual Bash approval and
   hook refusal (48.099s race package), with exact results/effects and complete observed cleanup.

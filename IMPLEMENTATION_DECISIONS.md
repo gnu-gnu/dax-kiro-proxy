@@ -2305,3 +2305,86 @@ Final applicable uncached race suites pass with installed opt-ins disabled: laun
 interop 23.100s, session 17.055s, catalog 1.416s and command 1.326s. Whole-repository go vet,
 formatting, whitespace checks and the local build pass. The actual doctor's temporary runtime is
 empty after return and its owned source settings remain unchanged.
+
+## D63: default client tools and bounded instruction recovery (review R10/R14/R16)
+
+The installed Claude Code 2.1.263 now runs an ordinary print request with its default system prompt
+and tool list through the actual decoder, schema worker, session driver and HTTP/SSE gateway. Its
+25 custom tools include Read/Write/Bash; the maximum description is 3,502 bytes, with no deferred
+tools, typed server tools or unknown declaration fields in this observation. Thinking,
+context_management and output_config are present. The text case passes without a production
+compatibility change; accepting these hints still makes no provider-enforcement claim.
+
+The default-tool Read-hook-denial case exposes a real continuation gap. Both requests retain the
+same identity, model, effort, top-level system, metadata, declarations and prior-history prefix.
+The assistant's tool input and result ID also match. But the trailing single per-message system
+text changes from 7,231 bytes to 49 bytes. No meaning is inferred from this size change: the observer
+retains fixed counts/Booleans only, and no client instructions, descriptions, schemas or results are
+saved. This fails D25's exact-repeat rule and leaves the prompt waiting until test cleanup.
+
+D25's same-prompt behavior remains. A separate recovery path now supports a single changed text-only
+system message following a user message containing only matching tool results, when exactly one
+standing system message immediately preceded the handoff. It requires every prior message anchor
+as a complete prefix, unchanged compatibility, and all sealed, successfully delivered result IDs.
+Truncated overlap, changed earlier history, multiple standing messages, wrong owner/model/effort/
+registry/metadata, missing/extra/duplicate results and replay cannot authorize it.
+
+Before mutation, the driver validates the complete fresh projection against negotiated capabilities
+and the ACP frame bound, reserving worst-case JSON escaping for the maximum accepted session ID.
+The relay's Abandon operation shares Resolve's result validation and encoding limits. Under the
+broker lock it verifies the delivered batch and revokes every old call, including queued calls.
+Actual result content is never supplied to the old prompt. The driver joins old relay/process cleanup
+and preserves any confirmed authentication/cleanup failure before preparing a fresh session. The
+new prompt includes all supplied history, the already-executed tool request/result and new instruction.
+No tool is automatically replayed. Failed replacement consumes no reusable result ownership.
+
+One instruction recovery is allowed per logical turn. Its original start time and absolute deadline
+carry through replacement setup and any subsequent tool handoff; a new HTTP request cannot reset
+them. Exhaustion rejects further changed suffixes without consuming pending calls. An exact repeat
+can still resume that prompt. An expired owner cannot recover through this path. D57's separate
+new-question-after-denial behavior is unchanged. There is no persistence-format or dependency change.
+
+This is bounded context reconstruction, not equivalence to the retired backend's hidden state.
+It can add a provider request and latency and loses any unreported backend context. ACP describes
+continuing after a completed turn, not an arbitrary mid-prompt system-instruction replacement:
+[prompt-turn lifecycle](https://agentclientprotocol.com/protocol/v1/prompt-turn) and
+[session creation](https://agentclientprotocol.com/protocol/v1/session-setup), checked 2026-09-09.
+The choice to retire and reconstruct is this project's interoperability policy, not an ACP guarantee.
+
+An authorized local Claude consultation receives only this abstract protocol question, no repository
+or client payload. Its one answer is saved and reviewed in default-continuation-review-gi8o1ix9.
+It supports strict-prefix validation, joined retirement, shared deadlines, bounded retries and explicit
+hidden-context/cost limitations. Its suggested production opt-in does not substitute for evidence;
+development admission follows independent checks, while actual Kiro recovery remains an alpha gate.
+Its description of all truncated overlap as a forgery is not adopted: normal proven overlap remains
+supported elsewhere; this new recovery deliberately requires a stronger proof.
+
+Independent broker tests first fail on the missing Abandon API. They then verify undelivered/wrong/
+duplicate/oversized result rejection without mutation, terminal revocation of sealed and later calls,
+and absence of supplied result content in canceled calls. Session tests first reject valid recovery,
+then pass success/error results, complete-history reconstruction, old-group disappearance, failed
+replacement, preserved deadline, replay rejection and the one-restart allowance. A valid truncated-
+overlap control establishes that this path rejects an overlap the normal planner would otherwise
+accept. Existing repeated multi-system instructions and D57 denial recovery are covered together.
+
+Actual-client observations, all using independent fake ACP and no Kiro model request:
+
+- default-client.dnatym: text passes in 4.44s test / 6.248s race package.
+- default-client-relay.3OTIJz: text passes; initial denial continuation fails (7.153s package).
+- default-continuation.tGQo2h, default-history.yw7LuU and default-standing.2pHYVL: progressively
+  bounded comparisons isolate the unchanged owner/history and changed standing text. These remain
+  failed observations (3.297s, 4.979s and 4.799s), not passing evidence.
+- default-client-recovery.mON5iG: both pass in 5.75s test / 7.585s race package. Text has one request;
+  denial has two HTTP requests and one fresh ACP replacement. The fake verifies the historical Read,
+  exact returned denial, old and new instructions, and no old process group before replacement.
+  Both observed groups are gone after cleanup, source settings are unchanged, and client exits are 0.
+
+The initial session-focused recovery/repetition/D57 suite passes in 7.132s. Full applicable regression
+results are recorded in DEVELOPMENT_STATUS.md. This establishes default-client/fake-ACP compatibility,
+not live Kiro default-tool recovery, complete client asset preservation or release readiness.
+
+Final uncached race suites pass with installed opt-ins off: relay 9.972s, session 19.542s,
+Anthropic validation 8.089s, gateway 3.362s, interop 21.739s, launcher 21.774s, command 1.554s
+and ACP 4.851s. Whole-repository go vet, formatting, whitespace checks and the rebuilt development
+executable pass. All added fixtures and requests are independently authored from this repository's
+contracts, the public protocols and unmodified-client observations; no earlier implementation is used.

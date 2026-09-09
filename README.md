@@ -86,8 +86,15 @@ both are actively inherited with suppression off and absent with it on. Persiste
 is disabled in this prepared launch path. Dynamic configuration changes and unmeasured source paths
 are outside the initial-session evidence; the proxy issues no configuration reload command.
 
+Default Claude Code traffic with 25 tools and its ordinary system prompt now passes text and a Read
+hook-denial round trip through the real gateway/validator/relay with fake ACP. The client changes its
+standing system suffix after that tool result. One exact full-history continuation can therefore
+recreate the backend after joined cleanup, retaining new instructions and the original deadline.
+This can add provider work and loses hidden backend context; actual Kiro validation of this new
+recovery path remains an alpha check. No general Messages/API or user-asset preservation is implied.
+
 Development launch and release readiness are separate milestones in ACCEPTANCE_SPEC.md. The next
-priority is client-environment preservation, broader default-client request compatibility and the
+priority is client-environment preservation, broader client request compatibility and the
 live alpha lifecycle checks. Optional web/account-usage
 features, full Anthropic API coverage and release soak tests are not development-launch prerequisites.
 

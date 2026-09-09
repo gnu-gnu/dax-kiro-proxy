@@ -315,35 +315,14 @@ func (b *Broker) Delivered(number uint64) error {
 
 // Resolve validates and encodes the entire result set before completing any suspended call.
 func (b *Broker) Resolve(owner string, results []Result) error {
-	if owner != b.credentials.Owner || len(results) == 0 || len(results) > b.limits.Pending {
-		return ErrResults
-	}
-	prepared := make(map[string]ToolResult, len(results))
-	bytes := 0
-	for _, result := range results {
-		if _, exists := prepared[result.ID]; exists {
-			return ErrResults
-		}
-		value, err := validateResult(result.ToolResult)
-		if err != nil {
-			return ErrResults
-		}
-		encoded, _ := json.Marshal(value)
-		bytes += len(encoded)
-		if len(encoded) > MaxFrameBytes-1024 || bytes > 16<<20 {
-			return ErrResults
-		}
-		prepared[result.ID] = value
+	prepared, err := b.prepareResults(owner, results)
+	if err != nil {
+		return err
 	}
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	if b.err != nil || !b.delivered || len(b.sealed) != len(prepared) {
+	if !b.matchesDelivered(prepared) {
 		return ErrResults
-	}
-	for _, id := range b.sealed {
-		if _, ok := prepared[id]; !ok {
-			return ErrResults
-		}
 	}
 	for _, id := range b.sealed {
 		p := b.pending[id]
@@ -358,6 +337,60 @@ func (b *Broker) Resolve(owner string, results []Result) error {
 		b.signal()
 	}
 	return nil
+}
+
+// Abandon validates the exact delivered result batch, then revokes the complete old prompt.
+// Returned client content is never delivered to a suspended call in that prompt. This is a terminal
+// ownership transfer for independently validated fresh-history recovery, not successful execution.
+func (b *Broker) Abandon(owner string, results []Result) error {
+	prepared, err := b.prepareResults(owner, results)
+	if err != nil {
+		return err
+	}
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	if !b.matchesDelivered(prepared) {
+		return ErrResults
+	}
+	b.failLocked(ErrClosed)
+	return nil
+}
+
+func (b *Broker) prepareResults(owner string, results []Result) (map[string]ToolResult, error) {
+	if owner != b.credentials.Owner || len(results) == 0 || len(results) > b.limits.Pending {
+		return nil, ErrResults
+	}
+	prepared := make(map[string]ToolResult, len(results))
+	bytes := 0
+	for _, result := range results {
+		if _, exists := prepared[result.ID]; exists {
+			return nil, ErrResults
+		}
+		value, err := validateResult(result.ToolResult)
+		if err != nil {
+			return nil, ErrResults
+		}
+		encoded, _ := json.Marshal(value)
+		bytes += len(encoded)
+		if len(encoded) > MaxFrameBytes-1024 || bytes > 16<<20 {
+			return nil, ErrResults
+		}
+		prepared[result.ID] = value
+	}
+	return prepared, nil
+}
+
+// The caller holds b.mu through validation and the corresponding resolve or retirement.
+func (b *Broker) matchesDelivered(prepared map[string]ToolResult) bool {
+	if b.err != nil || !b.delivered || len(b.sealed) != len(prepared) {
+		return false
+	}
+	for _, id := range b.sealed {
+		if _, ok := prepared[id]; !ok {
+			return false
+		}
+	}
+	return true
 }
 func (b *Broker) Close() { b.fail(ErrClosed) }
 

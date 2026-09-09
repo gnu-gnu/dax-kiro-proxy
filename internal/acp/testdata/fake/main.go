@@ -61,6 +61,13 @@ func main() {
 	if mode == "stubborn" {
 		signal.Ignore(syscall.SIGTERM)
 	}
+	defaultReplacement := false
+	if mode == "chat-tools-default-client" {
+		if len(os.Args) != 4 {
+			os.Exit(94)
+		}
+		defaultReplacement = defaultClientProcess(os.Args[3])
+	}
 	r := bufio.NewReaderSize(os.Stdin, 4096)
 	var pairs []request
 	var hanging []json.RawMessage
@@ -166,7 +173,11 @@ func main() {
 				if len(p.MCP) != 1 {
 					os.Exit(34)
 				}
-				relayChild = startFixtureRelayGroup(p.MCP[0], p.CWD, mode == "chat-tools-separate-group")
+				if mode == "chat-tools-default-client" {
+					relayChild = startFixtureRelayNamed(p.MCP[0], p.CWD, false, "Read")
+				} else {
+					relayChild = startFixtureRelayGroup(p.MCP[0], p.CWD, mode == "chat-tools-separate-group")
+				}
 				if mode == "chat-tools-idle" {
 					relayChild.send(90, "tools/call", map[string]any{"name": relayChild.alias, "arguments": map[string]any{"n": 1}})
 					var outcome struct {
@@ -270,6 +281,27 @@ func main() {
 					hanging = append(hanging, q.ID)
 					continue
 				}
+				if mode == "chat-tools-default-client" && defaultReplacement {
+					if promptCount != 1 || !defaultClientHistory(p.Prompt, os.Args[2]) {
+						os.Exit(95)
+					}
+					write(map[string]any{"jsonrpc": "2.0", "method": "session/update", "params": map[string]any{"sessionId": session, "update": map[string]any{"sessionUpdate": "agent_message_chunk", "content": map[string]any{"type": "text", "text": "independent client instruction restart complete"}}}})
+					reply(q.ID, map[string]any{"stopReason": "end_turn"})
+					continue
+				}
+				if (mode == "chat-tools-system-restart" || mode == "chat-tools-system-hold" || mode == "chat-tools-system-fail") && strings.Contains(string(q.Params), "Updated fixture standing instruction.") {
+					if mode == "chat-tools-system-fail" {
+						os.Exit(93)
+					}
+					body, _ := json.Marshal(map[string]any{"pid": os.Getpid(), "session": session, "promptCount": promptCount, "prompt": p.Prompt})
+					write(map[string]any{"jsonrpc": "2.0", "method": "session/update", "params": map[string]any{"sessionId": session, "update": map[string]any{"sessionUpdate": "agent_message_chunk", "content": map[string]any{"type": "text", "text": string(body)}}}})
+					if mode == "chat-tools-system-hold" {
+						hanging = append(hanging, q.ID)
+					} else {
+						reply(q.ID, map[string]any{"stopReason": "end_turn"})
+					}
+					continue
+				}
 				if mode == "chat-tools-restart" && strings.Contains(string(q.Params), "Next independent question.") {
 					body, _ := json.Marshal(map[string]any{"pid": os.Getpid(), "session": session, "promptCount": promptCount, "prompt": p.Prompt})
 					write(map[string]any{"jsonrpc": "2.0", "method": "session/update", "params": map[string]any{"sessionId": session, "update": map[string]any{"sessionUpdate": "agent_message_chunk", "content": map[string]any{"type": "text", "text": string(body)}}}})
@@ -291,7 +323,7 @@ func main() {
 					emit := func(text string) {
 						write(map[string]any{"jsonrpc": "2.0", "method": "session/update", "params": map[string]any{"sessionId": session, "update": map[string]any{"sessionUpdate": "agent_message_chunk", "content": map[string]any{"type": "text", "text": text}}}})
 					}
-					if mode == "chat-tools-restart" {
+					if mode == "chat-tools-restart" || strings.HasPrefix(mode, "chat-tools-system-") {
 						emit(fmt.Sprintf("first process %d", os.Getpid()))
 					} else {
 						emit("before client tool")
@@ -305,9 +337,9 @@ func main() {
 						write(map[string]any{"jsonrpc": "2.0", "id": q.ID, "error": map[string]any{"code": 401, "message": "login required"}})
 						continue
 					}
-					if mode == "chat-tools-client" || mode == "chat-tools-client-launch" {
+					if mode == "chat-tools-client" || mode == "chat-tools-client-launch" || mode == "chat-tools-default-client" {
 						expectedArgs := 3
-						if mode == "chat-tools-client-launch" {
+						if mode == "chat-tools-client-launch" || mode == "chat-tools-default-client" {
 							expectedArgs = 4
 						}
 						if len(os.Args) != expectedArgs {

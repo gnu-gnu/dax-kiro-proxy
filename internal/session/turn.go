@@ -38,6 +38,7 @@ type turn struct {
 	pendingHistory      history.Snapshot
 	lastIDs             []string
 	started             time.Time
+	instructionRestarts int
 	sessionState        string
 	multiplier          *float64
 	effort              kirofeature.Status

@@ -177,6 +177,18 @@ The next client request must return all and only the tool-result IDs in that res
 successfully delivered batch. Later relay calls remain queued for a subsequent response. Validate
 the complete result set and final encoded result sizes before completing any suspended call.
 
+An exact repeated standing system suffix continues the same ACP prompt. D63 additionally permits
+one changed text-only system message after a result-only user message when the last standing
+sequence also had exactly one message. This requires the entire prior history as an exact prefix,
+unchanged owner/model/effort/top-level system/registry/metadata and the complete delivered result set.
+Validate the full replacement projection and result encoding before revoking the old relay. Join
+old ACP/relay cleanup, then create a fresh session with all supplied history, including the tool
+request, its result and the new instruction. Actual results never resolve into the retired prompt.
+This may happen only once per logical turn and retains its original absolute deadline, including
+replacement setup. Expired work, truncated history, multiple changed standing messages or an
+exhausted restart allowance reject. Full-history recreation loses unreported backend context and
+may add provider work; it is not equivalent to keeping the original backend conversation.
+
 ### Server web search
 
 Supported versioned Anthropic web-search tool declarations map to Kiro’s native web-search capability.

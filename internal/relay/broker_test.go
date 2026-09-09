@@ -111,6 +111,59 @@ func noResult(t *testing.T, done <-chan resultOutcome) {
 	default:
 	}
 }
+
+func TestAbandonDeliveredResultsValidatesBeforeRetiringWithoutForwarding(t *testing.T) {
+	b, c, alias := fixtureBroker(t, nil)
+	one := callFixture(b, c, alias, "retired-call")
+	waitQueued(t, b, 1)
+	batch, err := b.Seal()
+	if err != nil {
+		t.Fatal(err)
+	}
+	result := Result{ID: batch.Calls[0].ID, ToolResult: ToolResult{Content: []Content{{Type: "text", Text: "synthetic returned content"}}}}
+	if err := b.Abandon(c.Owner, []Result{result}); !errors.Is(err, ErrResults) {
+		t.Fatal("undelivered batch was abandoned")
+	}
+	if err := b.Delivered(batch.Number); err != nil {
+		t.Fatal(err)
+	}
+	oversized := result
+	oversized.Content = []Content{{Type: "text", Text: strings.Repeat("x", MaxFrameBytes)}}
+	for _, invalid := range []struct {
+		owner   string
+		results []Result
+	}{
+		{"wrong-owner", []Result{result}}, {c.Owner, nil}, {c.Owner, []Result{result, result}}, {c.Owner, []Result{{ID: "wrong-id", ToolResult: result.ToolResult}}}, {c.Owner, []Result{oversized}},
+	} {
+		if err := b.Abandon(invalid.owner, invalid.results); !errors.Is(err, ErrResults) {
+			t.Fatal("invalid retirement accepted")
+		}
+		if b.Err() != nil || b.Stats().Sealed != 1 {
+			t.Fatal("invalid retirement changed ownership")
+		}
+		noResult(t, one)
+	}
+	// A later, undelivered call belongs to the old prompt and must also be cancelled.
+	two := callFixture(b, c, alias, "queued-call")
+	waitQueued(t, b, 1)
+	if err := b.Abandon(c.Owner, []Result{result}); err != nil {
+		t.Fatal(err)
+	}
+	for _, done := range []<-chan resultOutcome{one, two} {
+		select {
+		case got := <-done:
+			raw, _ := json.Marshal(got.value)
+			if !got.value.IsError || strings.Contains(string(raw), "synthetic returned content") {
+				t.Fatal("client result was forwarded into retired work")
+			}
+		case <-time.After(time.Second):
+			t.Fatal("abandoned call remained suspended")
+		}
+	}
+	if b.Err() == nil || b.Stats().Pending != 0 || b.Abandon(c.Owner, []Result{result}) == nil || b.Resolve(c.Owner, []Result{result}) == nil {
+		t.Fatal("retired ownership was reusable")
+	}
+}
 func TestSealedBatchOwnershipAndAtomicResults(t *testing.T) {
 	b, c, alias := fixtureBroker(t, nil)
 	one := callFixture(b, c, alias, "call-a")

@@ -26,6 +26,10 @@ func startFixtureRelay(raw []byte, cwd string) *fixtureRelay {
 }
 
 func startFixtureRelayGroup(raw []byte, cwd string, separate bool) *fixtureRelay {
+	return startFixtureRelayNamed(raw, cwd, separate, "")
+}
+
+func startFixtureRelayNamed(raw []byte, cwd string, separate bool, clientName string) *fixtureRelay {
 	var config struct {
 		Command string                         `json:"command"`
 		Args    []string                       `json:"args"`
@@ -61,13 +65,34 @@ func startFixtureRelayGroup(raw []byte, cwd string, separate bool) *fixtureRelay
 	f.send(2, "tools/list", nil)
 	var list struct {
 		Tools []struct {
-			Name string `json:"name"`
+			Name        string `json:"name"`
+			Description string `json:"description"`
 		} `json:"tools"`
 	}
-	if json.Unmarshal(f.read(), &list) != nil || len(list.Tools) != 1 {
+	if json.Unmarshal(f.read(), &list) != nil || len(list.Tools) == 0 || len(list.Tools) > 128 {
 		os.Exit(40)
 	}
-	f.alias = list.Tools[0].Name
+	if clientName == "" {
+		if len(list.Tools) != 1 {
+			os.Exit(40)
+		}
+		f.alias = list.Tools[0].Name
+	} else {
+		// Select only through the documented original-name attribution in tools/list. This peer
+		// neither knows the alias derivation nor opens the parent's private relay configuration.
+		prefix, _ := json.Marshal(clientName)
+		for _, tool := range list.Tools {
+			if strings.HasPrefix(tool.Description, "Client tool name: "+string(prefix)+".") {
+				if f.alias != "" {
+					os.Exit(40)
+				}
+				f.alias = tool.Name
+			}
+		}
+		if f.alias == "" {
+			os.Exit(40)
+		}
+	}
 	return f
 }
 func (f *fixtureRelay) send(id any, method string, params any) {

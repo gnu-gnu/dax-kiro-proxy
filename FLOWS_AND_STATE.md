@@ -68,6 +68,9 @@ Allowed transitions:
 - waiting-for-tools to joined retirement and a fresh session when D57 proves a complete matching
   error-result batch followed by a new question; a bounded retired outcome can establish the same proof;
 - prompting to idle on successful end-turn;
+- waiting-for-tools to joined retirement and a fresh session for D63's single changed standing
+  message, full prior-history prefix and complete delivered result batch, at most once under the
+  original logical-turn deadline;
 - any live state to canceling on client disconnect, timeout, or explicit cancellation;
 - transport/protocol/auth failures to unhealthy;
 - canceling or unhealthy to closed after cleanup.
@@ -152,7 +155,19 @@ not establish continuity. Pending tool continuation permits the next matching re
 followed by an exact repetition of the complete system-message sequence immediately before the last
 delivered assistant handoff. The repeated keyed anchors are retained for reconciliation without
 resending those already-present instructions to ACP. Older, partial, reordered or changed sequences
-reject. New system or user text cannot be injected into the already-running ACP prompt through that path.
+reject on this same-prompt path. New system or user text cannot be injected into the already-running
+ACP prompt through that path.
+
+D63 handles a single changed standing system message through a separate, bounded fresh-session
+path. The latest user message must contain only the exact delivered tool results. The preceding
+standing sequence must have one system message, and the new suffix must be one text-only system
+message. All prior message anchors must match as a complete prefix; ordinary truncated-overlap
+acceptance does not authorize this transition. Result encoding and the complete new projection are
+validated before revocation. Old relay calls receive cancellation, never the actual supplied result,
+and old process cleanup joins before replacement setup. The replacement preserves all supplied
+history and instructions but not hidden backend context. It inherits the original deadline and a
+one-restart allowance, including through another tool handoff. A failed replacement cannot replay
+the consumed ownership. Existing multi-message standing-sequence rules remain unchanged.
 
 ## 8. Persistent resume flow
 
