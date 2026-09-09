@@ -63,6 +63,10 @@ func toolRestartEffectsOnce(e *clientEffectProbe) bool {
 }
 
 func observeCompletedToolRestart(t *testing.T, live bool, kind string) {
+	observeNativeToolHistory(t, live, kind, "")
+}
+
+func observeNativeToolHistory(t *testing.T, live bool, kind, holdMode string) {
 	t.Helper()
 	client := os.Getenv("DAX_INTEROP_CLAUDE_BINARY")
 	if client == "" {
@@ -105,6 +109,10 @@ func observeCompletedToolRestart(t *testing.T, live bool, kind string) {
 			t.Fatal("counting native hook")
 		}
 	}
+	var held *heldRestart
+	if holdMode != "" {
+		held = prepareHeldRestart(t, ctx, runner, root, settings, effect, holdMode)
+	}
 	beforeSettings, beforeGlobal := fileFingerprint(t, settings), fileFingerprint(t, global)
 	version, err := runner.Run(ctx, childproc.Command{Executable: client, Directory: root, Environment: []string{"HOME=" + home, "PATH=/usr/bin:/bin"}, Args: []string{"--version"}})
 	if err != nil || strings.TrimSpace(string(version.Stdout)) != launcher.SupportedClientVersion+" (Claude Code)" {
@@ -122,6 +130,13 @@ func observeCompletedToolRestart(t *testing.T, live bool, kind string) {
 		"EffectFollow_137: The earlier operation is complete. Continue from the prior conversation without any new tool request. Reply only with the concatenation of ToolArchiveResumed and _137 without spaces.",
 	}
 	var id string
+	if held != nil {
+		id = held.id
+	}
+	interrupted := held != nil && held.interrupted
+	if interrupted {
+		prompts[1] = pendingRestartQuestion
+	}
 	var previous completedToolPair
 	var groups [2]int
 	var profiles, endpoints [2]string
@@ -193,7 +208,7 @@ func observeCompletedToolRestart(t *testing.T, live bool, kind string) {
 			t.Fatal("tool restart manager")
 		}
 		defer manager.Close()
-		guard := &toolRestartBackend{backend: manager, models: models, stage: stage, identity: id, expect: effect.expect, previous: previous, beforeUse: effect.beforeUse}
+		guard := &toolRestartBackend{backend: manager, models: models, stage: stage, identity: id, expect: effect.expect, previous: previous, beforeUse: effect.beforeUse, interrupted: interrupted, question: prompts[0]}
 		guard.observeProcess = func() error {
 			records, err := relayProcessRecords(relay)
 			if err != nil || len(records) != stage+1 {
@@ -216,16 +231,29 @@ func observeCompletedToolRestart(t *testing.T, live bool, kind string) {
 		}
 		defer server.Close()
 		endpoints[stage] = server.URL()
-		profile, err := launcher.PrepareClient(launcher.ClientConfig{RuntimeParent: stageRoot, Home: home, Project: project, UserSettings: settings, Executable: client, Version: launcher.SupportedClientVersion, Model: model, GatewayURL: server.URL(), ModelToken: tokens[stage].Model, KeepHistory: true, ResumeSession: id, Environment: []string{"PATH=/usr/bin:/bin:/usr/sbin:/sbin", "TERM=dumb"}})
+		resumeID := id
+		if stage == 0 {
+			resumeID = ""
+		}
+		profile, err := launcher.PrepareClient(launcher.ClientConfig{RuntimeParent: stageRoot, Home: home, Project: project, UserSettings: settings, Executable: client, Version: launcher.SupportedClientVersion, Model: model, GatewayURL: server.URL(), ModelToken: tokens[stage].Model, KeepHistory: true, ResumeSession: resumeID, Environment: []string{"PATH=/usr/bin:/bin:/usr/sbin:/sbin", "TERM=dumb"}})
 		if err != nil {
 			t.Fatal("tool restart profile")
 		}
 		defer profile.Close()
 		profiles[stage] = profile.Path()
 		command := profile.Command()
+		if held != nil && stage == 0 {
+			command.Args = append(command.Args, "--session-id", id)
+		}
 		command.Args = append(command.Args, "--print", "--output-format", "json", "--tools", effect.expect.Tool, "--strict-mcp-config", "--mcp-config", `{"mcpServers":{}}`, "--system-prompt", system, prompts[stage])
 		command.Environment = append(command.Environment, "CLAUDE_CODE_DISABLE_THINKING=1", "CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS=1")
-		result, runErr := runner.Run(ctx, command)
+		var result childproc.Result
+		var runErr error
+		if held != nil && stage == 0 {
+			result, runErr = runHeldRestartClient(t, ctx, runner, command, guard, held, effect)
+		} else {
+			result, runErr = runner.Run(ctx, command)
+		}
 		var response struct {
 			Type, Subtype, Result string
 			SessionID             string `json:"session_id"`
@@ -237,8 +265,17 @@ func observeCompletedToolRestart(t *testing.T, live bool, kind string) {
 			marker = "ToolArchiveResumed_137"
 		}
 		guard.mu.Lock()
-		passed := runErr == nil && result.ExitCode == 0 && decoded && response.Type == "result" && response.Subtype == "success" && !response.IsError && nativeHistoryID(response.SessionID) && response.SessionID == guard.identity && strings.Count(response.Result, marker) == 1 && strings.Count(guard.text, marker) == 1 && !guard.failed && guard.starts == 2-stage && guard.uses == 1-stage && guard.results == 1 && guard.ends == 1
-		id, previous = response.SessionID, guard.pair
+		wantResults := 1
+		if interrupted && guard.abandoned {
+			wantResults = 0
+		}
+		passed := runErr == nil && result.ExitCode == 0 && decoded && response.Type == "result" && response.Subtype == "success" && !response.IsError && nativeHistoryID(response.SessionID) && response.SessionID == guard.identity && strings.Count(response.Result, marker) == 1 && strings.Count(guard.text, marker) == 1 && !guard.failed && guard.starts == 2-stage && guard.uses == 1-stage && guard.results == wantResults && guard.ends == 1
+		if interrupted && stage == 0 {
+			passed = held.ready && errors.Is(runErr, context.Canceled) && !guard.failed && guard.starts == 1 && guard.uses == 1 && guard.handoffs == 1 && guard.results == 0 && guard.ends == 0 && !strings.Contains(guard.text, marker)
+			previous = completedToolPair{use: guard.issued, input: canonicalToolObject(guard.issued.Input), text: guard.text}
+		} else {
+			id, previous = response.SessionID, guard.pair
+		}
 		guard.mu.Unlock()
 		serverErr, managerErr, poolErr := server.Close(), manager.Close(), pool.Close()
 		validator.Close()
@@ -248,7 +285,7 @@ func observeCompletedToolRestart(t *testing.T, live bool, kind string) {
 			_, err := os.Lstat(path)
 			clean = clean && os.IsNotExist(err)
 		}
-		gone := groups[stage] > 1 && errors.Is(syscall.Kill(-groups[stage], 0), syscall.ESRCH) && result.PID > 1 && errors.Is(syscall.Kill(result.PID, 0), syscall.ESRCH) && runner.Active() == 0 && pool.Stats().Processes == 0
+		gone := groups[stage] > 1 && errors.Is(syscall.Kill(-groups[stage], 0), syscall.ESRCH) && result.PID > 1 && errors.Is(syscall.Kill(result.PID, 0), syscall.ESRCH) && errors.Is(syscall.Kill(-result.PID, 0), syscall.ESRCH) && runner.Active() == 0 && pool.Stats().Processes == 0
 		records, recordErr := relayProcessRecords(relay)
 		gone = gone && recordErr == nil && len(records) == stage+1
 		for _, record := range records {
@@ -260,9 +297,26 @@ func observeCompletedToolRestart(t *testing.T, live bool, kind string) {
 		}
 		gone = gone && dialErr != nil
 		effectOnce := toolRestartEffectsOnce(effect)
+		if held != nil {
+			gone = gone && held.hookGone()
+			if interrupted {
+				effectOnce = held.effectsAbsent(effect)
+				if stage == 1 {
+					effectOnce = effectOnce && held.lateChecked
+				}
+			}
+			if interrupted && stage == 0 && passed && clean && gone && effectOnce {
+				effectOnce = held.lateRelease(ctx, effect)
+			}
+			t.Logf("held_mode=%s held_hook_observed=%v delivered_handoffs=%d old_hook_gone=%v initial_join_ms=%d", holdMode, held.ready, guard.handoffs, held.hookGone(), held.join.Milliseconds())
+			t.Logf("abandoned_native_history=%v retained_tool_pairs=%d original_partial_text_bytes=%d resumed_assistant_text_bytes=%d native_noncompletion_placeholder=%v late_release_checked=%v", guard.abandoned, guard.results, len(guard.previous.text), guard.placeholder.AssistantBytes, guard.placeholder.NoResponseRequested, held.lateChecked)
+		}
 		sources := fileFingerprint(t, settings) == beforeSettings && fileFingerprint(t, global) == beforeGlobal
 		if !passed {
 			t.Logf("public_request_shape=%+v", guard.shape)
+			if interrupted {
+				t.Logf("interrupted_history_shape=%+v native_interruption=%+v block_kinds=%v native_placeholder=%+v", guard.interruptionShape, guard.nativeInterruption, guard.blockKinds, guard.placeholder)
+			}
 		}
 		if !live {
 			data, readErr := readDenialArtifact(root, "peer-stage-"+strconv.Itoa(stage), 64)
@@ -273,7 +327,7 @@ func observeCompletedToolRestart(t *testing.T, live bool, kind string) {
 			}
 			t.Logf("independent_peer_stage=%d", step)
 		}
-		t.Logf("live=%v tool=%s stage=%d completion=%v requests=%d tool_handoffs=%d matched_pairs=%d end_turns=%d effect_and_hooks_once=%v cleanup=%v processes_profile_listener_gone=%v sources_unchanged=%v guard_failed=%v prepared=%d relay_records=%d group_observed=%v client_exit=%d", live, effect.expect.Tool, stage+1, passed, guard.starts, guard.uses, guard.results, guard.ends, effectOnce, clean, gone, sources, guard.failed, prepared.Load(), len(records), groups[stage] > 1, result.ExitCode)
+		t.Logf("live=%v tool=%s stage=%d expected_outcome=%v requests=%d tool_handoffs=%d matched_pairs=%d end_turns=%d expected_effect_and_hooks=%v cleanup=%v processes_profile_listener_gone=%v sources_unchanged=%v guard_failed=%v prepared=%d relay_records=%d group_observed=%v client_exit=%d", live, effect.expect.Tool, stage+1, passed, guard.starts, guard.uses, guard.results, guard.ends, effectOnce, clean, gone, sources, guard.failed, prepared.Load(), len(records), groups[stage] > 1, result.ExitCode)
 		if !passed || !effectOnce || !clean || !gone || !sources {
 			t.Fatal("completed-tool native restart failed; next stage not dispatched")
 		}

@@ -17,12 +17,18 @@ import (
 )
 
 type completedToolPair struct {
+	text          string
 	use           anthropic.ToolUse
 	input, result []byte
+	failed        bool
 }
 
 // Observe only the public Messages contract. Native transcript bytes are never decoded here.
 func completedPair(r *anthropic.Request, resume bool) (completedToolPair, error) {
+	return recordedToolPair(r, resume, false)
+}
+
+func recordedToolPair(r *anthropic.Request, resume, interrupted bool) (completedToolPair, error) {
 	var pair completedToolPair
 	uses, results, old, next, answer := 0, 0, 0, 0, 0
 	bad := errors.New("completed tool history mismatch")
@@ -69,7 +75,7 @@ func completedPair(r *anthropic.Request, resume bool) (completedToolPair, error)
 			case "tool_result":
 				results++
 				value, err := anthropic.DecodeToolResult(block.Raw)
-				if err != nil || uses != 1 || results != 1 || next != 0 || message.Role != "user" || value.ID != pair.use.ID || value.IsError || len(value.Content) == 0 {
+				if err != nil || uses != 1 || results != 1 || next != 0 || message.Role != "user" || value.ID != pair.use.ID || value.IsError != interrupted || len(value.Content) == 0 {
 					return pair, bad
 				}
 				var content []string
@@ -80,12 +86,13 @@ func completedPair(r *anthropic.Request, resume bool) (completedToolPair, error)
 					content = append(content, part.Text)
 				}
 				pair.result, _ = json.Marshal(content)
+				pair.failed = value.IsError
 			default:
 				return pair, bad
 			}
 		}
 	}
-	if uses != 1 || results != 1 || old != 1 || next != btoi(resume) || answer != btoi(resume) {
+	if uses != 1 || results != 1 || old != 1 || next != btoi(resume) || answer != btoi(resume && !interrupted) {
 		return pair, bad
 	}
 	return pair, nil
@@ -109,11 +116,28 @@ func canonicalToolObject(raw []byte) []byte {
 }
 
 func sameCompletedPair(a, b completedToolPair) bool {
-	return a.use.ID != "" && a.use.ID == b.use.ID && a.use.Name == b.use.Name && bytes.Equal(a.input, b.input) && bytes.Equal(a.result, b.result)
+	return a.use.ID != "" && a.use.ID == b.use.ID && a.use.Name == b.use.Name && bytes.Equal(a.input, b.input) && bytes.Equal(a.result, b.result) && a.failed == b.failed
 }
 
 type toolRestartBackend struct {
-	shape struct {
+	question    string
+	abandoned   bool
+	placeholder struct {
+		AssistantBytes                                              int
+		NoResponseRequested, NoContent, Aborted, Cancelled, Stopped bool
+	}
+	blockKinds         []string
+	nativeInterruption struct {
+		UserNotices, AssistantNotices, OtherNotices int
+		PlainNotice, ToolNotice                     bool
+	}
+	interruptionShape struct {
+		Uses, Results, ErrorResults, ResultTextBytes                  int
+		HasErrorFlag, UseMatches, ResultMatches, MentionsInterruption bool
+	}
+	interrupted bool
+	handoffs    int
+	shape       struct {
 		Tools, Messages, InitialMarkers, OtherBlocks int
 		ValidIdentity                                bool
 	}
@@ -145,6 +169,56 @@ func (b *toolRestartBackend) Start(ctx context.Context, r *anthropic.Request) (i
 		b.shape.InitialMarkers, b.shape.OtherBlocks = 0, 0
 		for _, message := range r.Messages {
 			for _, block := range message.Content {
+				if b.interrupted && b.stage == 1 {
+					if len(b.blockKinds) < 24 && len(message.Role) <= 16 && len(block.Type) <= 48 {
+						b.blockKinds = append(b.blockKinds, message.Role+"/"+block.Type)
+					}
+					switch block.Type {
+					case "text":
+						if message.Role == "assistant" {
+							b.placeholder.AssistantBytes += len(block.Text)
+							b.placeholder.NoResponseRequested = b.placeholder.NoResponseRequested || strings.TrimSpace(block.Text) == "No response requested."
+							b.placeholder.NoContent = b.placeholder.NoContent || strings.TrimSpace(block.Text) == "(no content)"
+							lower := strings.ToLower(block.Text)
+							b.placeholder.Aborted = b.placeholder.Aborted || strings.Contains(lower, "abort")
+							b.placeholder.Cancelled = b.placeholder.Cancelled || strings.Contains(lower, "cancel")
+							b.placeholder.Stopped = b.placeholder.Stopped || strings.Contains(lower, "stop")
+						}
+						if strings.Contains(strings.ToLower(block.Text), "interrupt") {
+							switch message.Role {
+							case "user":
+								b.nativeInterruption.UserNotices++
+							case "assistant":
+								b.nativeInterruption.AssistantNotices++
+							default:
+								b.nativeInterruption.OtherNotices++
+							}
+						}
+						b.nativeInterruption.PlainNotice = b.nativeInterruption.PlainNotice || block.Text == "[Request interrupted by user]"
+						b.nativeInterruption.ToolNotice = b.nativeInterruption.ToolNotice || block.Text == "[Request interrupted by user for tool use]"
+					case "tool_use":
+						b.interruptionShape.Uses++
+						var use anthropic.ToolUse
+						if json.Unmarshal(block.Raw, &use) == nil {
+							b.interruptionShape.UseMatches = use.ID == b.previous.use.ID && use.Name == b.previous.use.Name && bytes.Equal(canonicalToolObject(use.Input), b.previous.input)
+						}
+					case "tool_result":
+						b.interruptionShape.Results++
+						fields, _ := ndjson.Object(block.Raw)
+						_, b.interruptionShape.HasErrorFlag = fields["is_error"]
+						value, err := anthropic.DecodeToolResult(block.Raw)
+						if err == nil {
+							b.interruptionShape.ResultMatches = value.ID == b.previous.use.ID
+							if value.IsError {
+								b.interruptionShape.ErrorResults++
+							}
+							for _, part := range value.Content {
+								b.interruptionShape.ResultTextBytes += len(part.Text)
+								b.interruptionShape.MentionsInterruption = b.interruptionShape.MentionsInterruption || strings.Contains(strings.ToLower(part.Text), "interrupt") || strings.Contains(strings.ToLower(part.Text), "cancel")
+							}
+						}
+					}
+				}
 				if message.Role == "user" && block.Type == "text" {
 					b.shape.InitialMarkers += strings.Count(block.Text, "EffectQuestion_131")
 				} else {
@@ -153,7 +227,11 @@ func (b *toolRestartBackend) Start(ctx context.Context, r *anthropic.Request) (i
 			}
 		}
 	}
-	valid := r != nil && nativeHistoryID(r.Identity.Session) && len(r.Tools) == 1 && n <= 2-b.stage
+	budget := 2 - b.stage
+	if b.interrupted {
+		budget = 1
+	}
+	valid := r != nil && nativeHistoryID(r.Identity.Session) && len(r.Tools) == 1 && n <= budget
 	if valid && b.identity != "" {
 		valid = r.Identity.Session == b.identity
 	}
@@ -171,11 +249,15 @@ func (b *toolRestartBackend) Start(ctx context.Context, r *anthropic.Request) (i
 			}
 		}
 		valid = valid && count == 1
+	} else if valid && b.interrupted && abandonedNativeToolHistory(r, b.question, b.previous.use.ID, b.previous.text) {
+		b.abandoned = true
 	} else if valid {
-		pair, err := completedPair(r, b.stage == 1)
+		pair, err := recordedToolPair(r, b.stage == 1, b.interrupted)
 		valid = err == nil && b.expect.matches(pair.use)
 		if b.stage == 0 {
 			valid = valid && b.uses == 1 && pair.use.ID == b.issued.ID && bytes.Equal(pair.input, canonicalToolObject(b.issued.Input))
+		} else if b.interrupted {
+			valid = valid && pair.use.ID == b.previous.use.ID && pair.use.Name == b.previous.use.Name && bytes.Equal(pair.input, b.previous.input) && pair.failed
 		} else {
 			valid = valid && sameCompletedPair(pair, b.previous)
 		}
@@ -200,8 +282,21 @@ func (b *toolRestartBackend) Start(ctx context.Context, r *anthropic.Request) (i
 
 type toolRestartTurn struct {
 	inference.Turn
-	owner   *toolRestartBackend
-	request int
+	finished sync.Once
+	owner    *toolRestartBackend
+	request  int
+}
+
+func (t *toolRestartTurn) Finish() {
+	t.finished.Do(func() {
+		t.Turn.Finish()
+		b := t.owner
+		b.mu.Lock()
+		if b.stage == 0 && t.request == 1 && b.uses == 1 {
+			b.handoffs++
+		}
+		b.mu.Unlock()
+	})
 }
 
 func (t *toolRestartTurn) Next(ctx context.Context) (inference.Event, error) {
@@ -231,7 +326,7 @@ func (t *toolRestartTurn) Next(ctx context.Context) (inference.Event, error) {
 		if event.StopReason == "tool_use" {
 			valid = valid && b.stage == 0 && t.request == 1 && b.uses == 1
 		} else {
-			valid = valid && event.StopReason == "end_turn" && t.request == 2-b.stage && b.ends == 0 && b.results == 1
+			valid = valid && event.StopReason == "end_turn" && t.request == 2-b.stage && b.ends == 0 && (b.results == 1 || b.interrupted && b.abandoned)
 			if valid {
 				b.ends++
 			}

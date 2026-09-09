@@ -1339,3 +1339,66 @@ The final local controls also reject a completed-answer marker moved before its 
 pass with both native fake-ACP cases in 10.830s (`d90-final-native-controls.log`). Opt-ins-off ACP/
 interop race regressions pass in 5.670s/22.879s. Whole-repository/fake-peer vet, formatting, whitespace
 and the current D87 artifact's 139 inventory byte checks pass. No product change or live retry.
+
+## D91: native resume after terminating a delivered, unexecuted tool
+
+Reuse D90's two native print launches, fresh routing ownership, exact operation and source/cleanup
+checks. The first native launch uses an independently generated UUID and an exact Bash PreToolUse
+hook. The hook validates the native session ID, original tool-use ID, tool name and command, allows
+only bounded description metadata, records its PID/group/ID digest, then waits at most thirty
+seconds. It performs no client effect and spawns no subprocess. A separate matching PostToolUse
+receipt is possible only after that original tool. Native stdin/config reads have two-second and
+64/16 KiB bounds. Retain only fixed receipts and process coordinates.
+
+Before cancellation, require one completed HTTP handoff, one exposed tool, no result/completion,
+the exact live hook and no file effect. Repeat cancellation of the owned native runner eight times;
+require return within eight seconds and joined old client/hook/ACP/relay groups, server/profile and
+private resources. Only after this cleanup, create the old hook's release marker. Observe three
+hundred milliseconds with twenty-millisecond effect/liveness checks, then retain that marker
+through the new native resume. The old hook and file effect must remain absent throughout this
+measured continuation. Emergency cleanup records failure and targets only recorded owned groups.
+
+Native Claude 2.1.263 omits the unfinished tool pair in this measured print/SIGTERM path. With no
+preceding model text it supplies the short non-completion placeholder `No response requested.`;
+with an independent partial response it preserves that text. This is not an explicit cancellation
+notice or a successful tool result. Do not manufacture either result status. The next question
+explicitly says the old operation was interrupted before execution and requests no further tool.
+Require the entire original question, the observed placeholder or exact previous partial text,
+and that exact new question in order; reject old tool IDs, tool blocks, completed-answer markers,
+changed questions, duplicate/moved placeholders or new tool handoffs. Completion must be observed
+in both the active backend and native public result JSON. Completed-tool pair checks stay exact.
+
+The first strict error-pair expectation fails locally after safe cleanup, because no such pair is
+present; the native shape is observed without parsing or editing transcript files or logging
+content. Public-only follow-up Claude advice is saved/read/assessed under
+`.cache/claude-consult/work/public-pending-history-review-e7uvd4dc`. Its hypothetical explicit
+notice premise is not claimed as an observed native fact. Distinguish measured runtime abandonment
+from full cancellation-history fidelity, implicit continuation or arbitrary crash recovery.
+
+The release control first proves the same held hook can permit one effect/result and subsequent
+completed history resume. No-text interruption and partial-text interruption then both prove zero
+effects/results, old cleanup, late-release safety and successful new text turns. These three native/
+fake-ACP controls pass in 12.92s; D90's two completed controls also pass in 7.83s, combined race
+package 22.675s. Hook/observer corruption controls remain independent.
+
+The live opt-in `TestKiroLivePendingToolNativeResume` admits two main prompts total, one initial
+client tool and no tool execution. Each stage has one ACP process/session/launch and one HTTP model
+request. Existing forty-five-second turns, sixty-second native invocations/128 KiB capture and
+three-minute overall bounds remain. A failed stage prevents the next; no automatic live retry.
+Post-resume new permission/hook decisions, interactive pending resume, multiple pending tools,
+effect/acknowledgement crash windows and all remaining alpha/release gates remain open.
+
+The single actual Kiro 2.21.2 / Claude 2.1.263 episode passes in 30.19s (race package 32.156s),
+with no retry: two main ACP prompts, two HTTP model requests, one initial tool handoff and zero
+tool effects/results. Native cancellation returns in 147ms. Old recorded hook/client/ACP/relay
+processes and groups are gone before the late-release check and fresh resume. The resumed request
+retains the exact original question and all 31 bytes of the prior partial assistant text, omits
+the unfinished tool pair, and completes the explicit non-executing follow-up without a new handoff.
+Both stages remove private resources and preserve source settings. These are bounded abandonment
+observations, not an explicit native cancellation result or general crash-recovery guarantee.
+
+Final opt-ins-off ACP, interop and independent hook race regressions pass in 5.738s, 22.585s and
+1.306s respectively. The private diagnostic logs are `d91-live-pending-resume.log`,
+`d91-final-native-controls.log` and `d91-core-regression.log` under `.cache/history-review/`;
+they retain fixed facts/counts rather than model text or tool payloads. No production code or
+dependency change is included in this checkpoint.

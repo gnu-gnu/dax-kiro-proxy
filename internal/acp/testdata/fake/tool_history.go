@@ -19,6 +19,16 @@ func nativeToolHistory() {
 	}
 	timer := time.AfterFunc(60*time.Second, func() { os.Exit(102) })
 	defer timer.Stop()
+	expectationFile, err := os.Open(os.Args[3])
+	if err != nil {
+		os.Exit(103)
+	}
+	expectationData, readErr := io.ReadAll(io.LimitReader(expectationFile, (64<<10)+1))
+	expectationCloseErr := expectationFile.Close()
+	var expectation struct{ Interrupted, Preface bool }
+	if readErr != nil || expectationCloseErr != nil || len(expectationData) > 64<<10 || json.Unmarshal(expectationData, &expectation) != nil {
+		os.Exit(103)
+	}
 	mark := func(stage int) {
 		if os.WriteFile(filepath.Join(filepath.Dir(os.Args[3]), "peer-stage-"+os.Args[2]), []byte(fmt.Sprintf("%d %d", os.Getpid(), stage)), 0600) != nil {
 			os.Exit(112)
@@ -95,9 +105,21 @@ func nativeToolHistory() {
 				if strings.Contains(text, "EffectFollow_137") || strings.Contains(text, answer) {
 					os.Exit(109)
 				}
+				if expectation.Preface {
+					write(map[string]any{"jsonrpc": "2.0", "method": "session/update", "params": map[string]any{"sessionId": p.SessionID, "update": map[string]any{"sessionUpdate": "agent_message_chunk", "content": map[string]string{"type": "text", "text": "OwnedPendingPrefix_149"}}}})
+				}
 				relay.effect(os.Args[3])
 			} else {
-				if strings.Count(text, "EffectFollow_137") != 1 || strings.Count(text, answer) != 1 || !strings.Contains(text, "tool_use") || !strings.Contains(text, "tool_result") {
+				oldAnswers := 1
+				if expectation.Interrupted {
+					oldAnswers = 0
+				}
+				toolContext := strings.Contains(text, "tool_use") && strings.Contains(text, "tool_result")
+				if expectation.Interrupted {
+					placeholder, prefix := strings.Count(text, "No response requested."), strings.Count(text, "OwnedPendingPrefix_149")
+					toolContext = !strings.Contains(text, "tool_use") && !strings.Contains(text, "tool_result") && (placeholder == 1 && prefix == 0 || expectation.Preface && prefix == 1 && placeholder == 0)
+				}
+				if strings.Count(text, "EffectFollow_137") != 1 || strings.Count(text, answer) != oldAnswers || !toolContext {
 					os.Exit(109)
 				}
 				answer = "ToolArchiveResumed_137"

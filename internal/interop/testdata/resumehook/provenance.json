@@ -1,0 +1,15 @@
+{
+  "created": "2026-09-09",
+  "files": ["main.go", "main_test.go"],
+  "scope": "Independently authored bounded native Bash hook for interrupted conversation resume",
+  "public_sources": ["https://code.claude.com/docs/en/hooks"],
+  "repository_sources": ["ACCEPTANCE_SPEC.md", "LIVE_KIRO_TEST_PLAN.md"],
+  "constraints": [
+    "Standard library only, no proxy or prior implementation imports",
+    "Read only an owned expectation and the public native hook packet, never native transcripts, credentials or effect files",
+    "Exact native session, hook event, client tool, call ID and command checks; bounded optional display description",
+    "Only fixed receipts and owned PID/group/ID-digest records are written",
+    "Two-second input bound, thirty-second wait, signal exits with refusal; success requires the owned explicit release marker",
+    "No network, subprocess, client tool effect or arbitrary command execution"
+  ]
+}

@@ -22,7 +22,7 @@
     "No imports from proxy implementation packages",
     "fixture/* methods are synthetic test controls, not Kiro capabilities",
     "Prepared-launch markers and alias manifests are invented fixture controls, not copied Kiro configuration or effective restriction evidence",
-    "All text, error strings, IDs and credential sentinels are synthetic",
+    "Operation text, IDs and credential sentinels are synthetic; the short native non-completion placeholder used by tool-history controls is an independently observed public-client behavior fact",
     "Descendant processes only exercise lifecycle cleanup; they execute no client tool",
     "The chat-tools-separate-group mode deliberately creates an MCP child in a distinct process group for the independent cooperative group-join experiment",
     "The chat-tools-stopped-idle mode stops only its own relay PID after a synthetic result, testing bounded cleanup failure and process retirement without a client tool effect",
