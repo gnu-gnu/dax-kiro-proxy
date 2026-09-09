@@ -2772,3 +2772,73 @@ Applicable uncached opt-ins-off race suites pass: launcher 21.915s, interop 21.0
 1.355s (plugin-registration-unit.dgoLxd). Whole-repository go vet, formatting, whitespace, build and
 executable help pass. The development binary includes this correction. Broader assets, plugin-owned
 permission hooks, standalone user skills/agents, custom roots and alpha/release checks remain work.
+
+## D69: reproducible client wait and cumulative tool history
+
+D68's startup race now has a controlled black-box reproduction. An optional mode of the independently
+authored MCP peer holds initialize for at most ten seconds. The interactive client receives input
+only after that hold is observed. The local synthetic responder requires an advertised
+WaitForMcpServers with a schema that accepts its empty object before creating an owned release marker
+and returning the tool request. No earlier model request, extra warmup, private API or arbitrary sleep
+establishes readiness. The client then advertises the owned plugin, calls it once and completes after
+returning the exact result. All requests, output, process lifetimes and observations retain bounds.
+
+There are three main requests plus a separately classified synthetic title. The initial request has
+no plugin declaration and does advertise the wait tool. Later requests have a changed registry. A
+history observer uses the product's existing keyed canonical block comparison, saving only block
+kinds and equality ordinals. Ignoring already-defined cache hints, the history evolves as follows:
+
+| Request | Supplied messages after the unchanged initial user/system prefix |
+| --- | --- |
+| Initial | None |
+| Wait result | assistant(wait call), user(wait result), system(first updated standing message) |
+| Plugin result | assistant(wait call, plugin call), user(wait result, plugin result), system(second updated standing message) |
+
+Both earlier wait blocks remain exactly equal. The client's last request groups all calls and all
+results into cumulative messages, replacing the preceding trailing standing message. The exact
+original prefix, owner, model, effort, top-level system and metadata remain equal. This differs from
+ordinary append-only history. An initial raw-block observer also saw a cache-hint difference in the
+original system block; canonical comparison correctly removes that false content-change signal.
+
+This test observes the unmodified client against a synthetic Messages endpoint. It does not pass the
+three-request sequence through the product session driver or actual Kiro. D68's separate real-gateway
+allow/refusal pair still passes with ready tools and an unchanged registry. Existing driver checks
+require compatible registry, exact pending history and exactly the currently delivered result set;
+they have not been relaxed. Successful synthetic completion is not evidence of product support.
+
+The public [Messages reference](https://platform.claude.com/docs/en/api/messages/create), checked
+2026-09-09, documents a stateless supplied conversation and combination of adjacent same-role turns.
+That rule does not establish equivalence for this measured regrouping across a call/result boundary.
+The pinned-client behavior therefore requires its own bounded ownership/history proof. Before any
+driver change, independent fake-ACP tests must require:
+
+- the complete immutable original prefix and exact previously emitted assistant blocks, including
+  tool IDs/names/arguments; truncated, changed, reordered or cross-owner history rejects;
+- exact recorded previous results and one complete new delivered batch; duplicates, mutations,
+  orphan IDs, extra user text and oversized projections reject before consuming any pending call;
+- changed registry/schema validation and a fresh restricted backend after joined old cleanup when
+  the old prompt cannot represent the new policy/instructions; old results never enter a broker twice;
+- one original absolute deadline, an explicit bounded reconstruction allowance, preserved cleanup
+  errors and no automatic tool replay. Any accepted transcript rewrite needs a stated narrow rule;
+  plain adjacent-message normalization or a tool-name exception is insufficient.
+
+Those are implementation prerequisites, not a newly adopted broad acceptance rule. The tradeoff of
+full-history recreation remains lost hidden backend context and possible additional provider work.
+
+Private normalized observations: plugin-held-wait.VPEupu passes the first held-peer reproduction in
+5.637s; plugin-wait-canonical.fvlQOm passes the canonical comparison in 5.263s. The final installed
+six-test regression plugin-wait-regression.AmrHdk passes in 36.175s under race instrumentation,
+including source scopes, plugin sources, warmed and connected-panel tool turns, the forced wait and
+real-gateway allowance/refusal. The wait control has one native call, complete visible response,
+unchanged source files/tree and joined client/MCP cleanup. No Kiro/external model call is part of
+these tests. Only tests and evidence change; no application dependency or binary behavior changes.
+
+A separately approved public-only local Claude consultation completed in one turn and was read and
+assessed in public-history-invariants-review-y8s3lgez. The prompt contains only general protocol
+questions and public URLs. Ownership, complete batches, immutable history and original deadlines
+are useful proposed invariants. Silently dropping known result IDs and treating ACP itself as proof
+of Anthropic-client execution authority are rejected. No repository observations, user assets or
+previous implementation were sent; this advice is not acceptance evidence.
+
+The uncached opt-ins-off interop race suite passes in 20.774s (plugin-wait-unit.dztEf5).
+Whole-repository go vet, explicit fixture vet, formatting and whitespace checks pass.

@@ -46,6 +46,10 @@ func TestClaudePluginInteractiveFirstTool(t *testing.T) {
 	observeClaudePluginSources(t, "interactive-tool")
 }
 
+func TestClaudePluginWaitThenToolShape(t *testing.T) {
+	observeClaudePluginSources(t, "wait-tool")
+}
+
 func TestClaudePluginToolThroughGatewayAndACP(t *testing.T) {
 	t.Run("allowed", func(t *testing.T) { observeClaudePluginSources(t, "proxy-tool") })
 	t.Run("hook_denied", func(t *testing.T) { observeClaudePluginSources(t, "proxy-tool-denied") })
@@ -54,7 +58,8 @@ func TestClaudePluginToolThroughGatewayAndACP(t *testing.T) {
 func observeClaudePluginSources(t *testing.T, mode string) {
 	t.Helper()
 	proxyMode, denied := strings.HasPrefix(mode, "proxy-tool"), mode == "proxy-tool-denied"
-	toolRoundTrip, interactive := mode != "sources", mode == "interactive-tool" || proxyMode
+	waitMode := mode == "wait-tool"
+	toolRoundTrip, interactive := mode != "sources", mode == "interactive-tool" || proxyMode || waitMode
 	executable := os.Getenv("DAX_INTEROP_CLAUDE_BINARY")
 	if executable == "" {
 		t.Skip("set DAX_INTEROP_CLAUDE_BINARY for owned plugin-source controls; no external inference")
@@ -289,7 +294,18 @@ func observeClaudePluginSources(t *testing.T, mode string) {
 	const pluginID = "dax-owned@dax-owned-market"
 	writeJSON(filepath.Join(market, ".claude-plugin", "marketplace.json"), map[string]any{"name": "dax-owned-market", "owner": map[string]string{"name": "Independent fixture"}, "plugins": []any{map[string]string{"name": "dax-owned", "source": "./owned-plugin"}}})
 	writeJSON(filepath.Join(market, "owned-plugin", ".claude-plugin", "plugin.json"), map[string]string{"name": "dax-owned", "version": "1.0.0", "description": "Independent no-effect client preservation fixture."})
-	writeJSON(filepath.Join(market, "owned-plugin", ".mcp.json"), map[string]any{"mcpServers": map[string]any{"owned": map[string]any{"command": peer, "args": []string{"plugin", observations}}}})
+	peerArgs := []string{"plugin", observations}
+	if waitMode {
+		peerArgs = append(peerArgs, "hold-initialize")
+		exchange.releaseWait = func() error {
+			f, err := os.OpenFile(filepath.Join(observations, "release-plugin"), os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
+			if err != nil {
+				return err
+			}
+			return f.Close()
+		}
+	}
+	writeJSON(filepath.Join(market, "owned-plugin", ".mcp.json"), map[string]any{"mcpServers": map[string]any{"owned": map[string]any{"command": peer, "args": peerArgs}}})
 	run(t, natural, "plugin", "marketplace", "add", market)
 	run(t, natural, "plugin", "install", pluginID, "--scope", "user")
 	if result := run(t, natural, "plugin", "list", "--json"); !bytes.Contains(result.Stdout, []byte(pluginID)) {
@@ -402,7 +418,21 @@ func observeClaudePluginSources(t *testing.T, mode string) {
 					command.Args = append(command.Args, "--allowedTools", ownedPluginToolName)
 					prompt = "Call the independent plugin's effect-free probe and return its result."
 				}
-				if interactive {
+				if waitMode {
+					result = runAssetInteractive(t, ctx, command, root, project, assetUIControl{
+						Prompt: "Wait for the independent plugin, call its effect-free probe, and return its result.",
+						Answer: "independent plugin observation complete", Requests: messageRequests.Load,
+						Ready: func() bool {
+							ledger, err := readDenialArtifact(observations, "plugin", 8192)
+							return err == nil && bytes.Contains(ledger, []byte(" held\n"))
+						},
+						Complete: func() bool {
+							exchange.mu.Lock()
+							defer exchange.mu.Unlock()
+							return exchange.waited && exchange.complete && !exchange.failed
+						},
+					})
+				} else if interactive {
 					result = runPluginInteractive(t, ctx, command, root, project, observations, exchange, &messageRequests)
 				} else {
 					result = run(t, command, "--print", "--output-format", "json", "--no-session-persistence", prompt)

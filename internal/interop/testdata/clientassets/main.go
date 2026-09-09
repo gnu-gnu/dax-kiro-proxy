@@ -9,10 +9,15 @@ import (
 	"os"
 	"path/filepath"
 	"syscall"
+	"time"
 )
 
 func main() {
-	if len(os.Args) != 3 || !filepath.IsAbs(os.Args[2]) {
+	if (len(os.Args) != 3 && len(os.Args) != 4) || !filepath.IsAbs(os.Args[2]) {
+		os.Exit(70)
+	}
+	hold := len(os.Args) == 4 && os.Args[1] == "plugin" && os.Args[3] == "hold-initialize"
+	if len(os.Args) == 4 && !hold {
 		os.Exit(70)
 	}
 	label := os.Args[1]
@@ -62,6 +67,20 @@ func main() {
 		response := map[string]any{"jsonrpc": "2.0", "id": request.ID}
 		switch request.Method {
 		case "initialize":
+			if hold {
+				mark("held")
+				deadline := time.Now().Add(10 * time.Second)
+				for {
+					if info, err := os.Lstat(filepath.Join(os.Args[2], "release-plugin")); err == nil && info.Mode().IsRegular() && info.Size() == 0 {
+						break
+					}
+					if !time.Now().Before(deadline) {
+						os.Exit(76)
+					}
+					time.Sleep(10 * time.Millisecond)
+				}
+				hold = false
+			}
 			response["result"] = map[string]any{"protocolVersion": "2025-06-18", "capabilities": map[string]any{"tools": map[string]any{}}, "serverInfo": map[string]string{"name": "independent-client-assets", "version": "1"}}
 		case "ping":
 			response["result"] = map[string]any{}

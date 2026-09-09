@@ -6,6 +6,17 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D69 deterministically reproduces WaitForMcpServers followed by an owned plugin call. The MCP
+  fixture holds initialization until the synthetic responder has validated the advertised wait
+  schema; the actual client then changes its registry and combines prior/new calls and results.
+  Canonical block comparisons prove the original prefix and earlier results remain equal while
+  trailing standing messages change. The final six-test installed regression passes in 36.175s,
+  with one native call, source preservation and joined cleanup. This is client-shape evidence,
+  not support for that sequence through the driver/Kiro. Exact history/result validation and a
+  bounded replacement design are the next implementation step; D69 records its negative cases.
+  Public-only local Claude advice was saved, read and assessed. The uncached opt-ins-off interop
+  race suite passes in 20.774s; whole-repository/fixture vet, formatting and whitespace pass.
+  No product code/dependency changes.
 - D68 retains two bounded native plugin registration files in the private client root while plugin
   content stays at its read-only seed. Actual Claude 2.1.263 passes eleven first-session skill/hook/
   disable/mutation controls and three Git-source preservation controls. A pending local Git revision

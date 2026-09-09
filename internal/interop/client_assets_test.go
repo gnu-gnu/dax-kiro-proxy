@@ -302,7 +302,7 @@ func inspectClientAssetProcesses(t *testing.T, path string) (started, initialize
 			initialized++
 		case "called":
 			called++
-		case "listed":
+		case "listed", "held":
 		default:
 			t.Fatal("unknown owned lifecycle label")
 		}

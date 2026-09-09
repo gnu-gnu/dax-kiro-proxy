@@ -4,11 +4,13 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
 
 	"dax-kiro-proxy/internal/anthropic"
+	"dax-kiro-proxy/internal/history"
 	"dax-kiro-proxy/internal/requestfamily"
 	"dax-kiro-proxy/internal/schemacheck"
 )
@@ -28,6 +30,9 @@ type pluginToolExchange struct {
 	first                                   *anthropic.Request
 	waited, toolRequested, complete, failed bool
 	comparison                              defaultClientComparison
+	releaseWait                             func() error
+	blockDigests                            map[string]int
+	shapes                                  []string
 }
 
 func (e *pluginToolExchange) respond(w http.ResponseWriter, httpRequest *http.Request, body []byte, model string) {
@@ -60,6 +65,37 @@ func (e *pluginToolExchange) respond(w http.ResponseWriter, httpRequest *http.Re
 		return
 	}
 	r.Identity = anthropic.ClientIdentity{Session: httpRequest.Header.Get("x-claude-code-session-id"), Agent: httpRequest.Header.Get("x-claude-code-agent-id"), ParentAgent: httpRequest.Header.Get("x-claude-code-parent-agent-id")}
+	if len(e.shapes) >= 3 {
+		e.failed = true
+		w.WriteHeader(429)
+		return
+	}
+	if e.blockDigests == nil {
+		e.blockDigests = make(map[string]int)
+	}
+	// Only block kinds and equality ordinals are retained; request text and digests stay
+	// in memory. This records whether the client reorganizes earlier tool messages.
+	var shape []string
+	hasher := history.New([32]byte{1})
+	for _, message := range r.Messages {
+		var blocks []string
+		for _, block := range message.Content {
+			node, err := hasher.Message(anthropic.Message{Role: message.Role, Content: []anthropic.Block{block}})
+			if err != nil {
+				e.failed = true
+				w.WriteHeader(400)
+				return
+			}
+			ordinal, exists := e.blockDigests[node.Digest]
+			if !exists {
+				ordinal = len(e.blockDigests) + 1
+				e.blockDigests[node.Digest] = ordinal
+			}
+			blocks = append(blocks, block.Type+"#"+strconv.Itoa(ordinal))
+		}
+		shape = append(shape, message.Role+"["+strings.Join(blocks, ",")+"]")
+	}
+	e.shapes = append(e.shapes, strings.Join(shape, " "))
 	if e.first == nil {
 		e.first = r
 	} else {
@@ -128,6 +164,11 @@ func (e *pluginToolExchange) respond(w http.ResponseWriter, httpRequest *http.Re
 		return
 	}
 	if wanted == ownedPluginToolName {
+		if e.releaseWait != nil && !e.waited {
+			e.failed = true
+			w.WriteHeader(400)
+			return
+		}
 		if e.waited {
 			// The client can repeat its completed wait beside the later plugin result. Keep
 			// only an in-memory digest for exact equality; this observer adds no product policy.
@@ -136,6 +177,11 @@ func (e *pluginToolExchange) respond(w http.ResponseWriter, httpRequest *http.Re
 		}
 		e.toolRequested = true
 	} else {
+		if e.releaseWait != nil && e.releaseWait() != nil {
+			e.failed = true
+			w.WriteHeader(500)
+			return
+		}
 		e.waited = true
 	}
 	writeObservedMessage(w, r.Stream, model, []map[string]any{{"type": "tool_use", "id": id, "name": wanted, "input": json.RawMessage(`{}`)}}, "tool_use")
@@ -148,6 +194,9 @@ func (e *pluginToolExchange) verify(t *testing.T) {
 	t.Logf("stage=%s, tools=%d, mcp_declarations=%d, raw_wait=%v, raw_tool_search=%v, wait_advertised=%v, wait_accepts_empty=%v, client_waited=%v, plugin_requested=%v, complete=%v, comparison=%+v", e.stage, e.toolCount, e.mcpCount, e.rawWait, e.rawToolSearch, e.waitAdvertised, e.waitEmptyAccepted, e.waited, e.toolRequested, e.complete, e.comparison)
 	if e.failed || !e.toolRequested || !e.complete {
 		t.Error("client plugin tool exchange did not complete")
+	}
+	for i, shape := range e.shapes {
+		t.Logf("synthetic_main_request=%d, history_shape=%s", i+1, shape)
 	}
 	e.first = nil
 }
