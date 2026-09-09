@@ -478,17 +478,21 @@ func runTerminalScenario(t *testing.T, mode, kiro string, history *terminalHisto
 			t.Fatal("cannot create owned executable role")
 		}
 	}
-	args := []string{"run", "--client", filepath.Join(bin, "claude"), "--kiro", filepath.Join(bin, "kiro-cli"), "--settings", settings, "--runtime-dir", artifacts, "--state-dir", filepath.Join(root, "state")}
-	historyStage, historySeed, historyID := 0, "", ""
+	stateDirectory := filepath.Join(root, "state")
+	if history != nil && history.State != "" {
+		stateDirectory = history.State
+	}
+	args := []string{"run", "--client", filepath.Join(bin, "claude"), "--kiro", filepath.Join(bin, "kiro-cli"), "--settings", settings, "--runtime-dir", artifacts, "--state-dir", stateDirectory}
+	historyStage, historySeed, historyID, historyName := 0, "", "", ""
 	if history != nil {
-		historyStage, historySeed, historyID = history.Stage, history.Seed, history.ID
-		if history.Stage == 1 {
+		historyStage, historySeed, historyID, historyName = history.Stage, history.Seed, history.ID, history.Name
+		if history.Stage == 1 || history.Picker {
 			args = append(args, "--client-history")
 		} else {
 			args = append(args, "--resume", history.ID)
 		}
 	}
-	config, _ := json.Marshal(map[string]any{"Root": root, "Proxy": proxy, "Client": client, "Kiro": kiro, "AccountHome": os.Getenv("HOME"), "Project": project, "Args": args, "HeldHook": heldHook, "AllowFollowup": followup || modelCheck, "ModelCheck": modelCheck, "ModelIDs": modelIDs, "ModelEntries": modelEntries, "HistoryStage": historyStage, "HistorySeed": historySeed, "HistoryID": historyID})
+	config, _ := json.Marshal(map[string]any{"Root": root, "Proxy": proxy, "Client": client, "Kiro": kiro, "AccountHome": os.Getenv("HOME"), "Project": project, "Args": args, "HeldHook": heldHook, "AllowFollowup": followup || modelCheck, "ModelCheck": modelCheck, "ModelIDs": modelIDs, "ModelEntries": modelEntries, "HistoryStage": historyStage, "HistorySeed": historySeed, "HistoryID": historyID, "HistoryName": historyName})
 	if os.WriteFile(filepath.Join(bin, "terminal.json"), config, 0600) != nil {
 		t.Fatal("cannot write terminal role configuration")
 	}
@@ -539,6 +543,9 @@ func runTerminalScenario(t *testing.T, mode, kiro string, history *terminalHisto
 	var originalProfile, originalEndpoint string
 	var followupObserved bool
 	var historyLoaded, historyAnswered bool
+	var historyPickerSeen, historyPicked bool
+	var historyPickerAt time.Time
+	var historyPickerHints uint32
 	var modelObserved, modelPickerObserved bool
 	modelMenu := terminalModelMenu{labels: modelLabels, target: modelLabel}
 	var modelLastMove time.Time
@@ -580,6 +587,10 @@ func runTerminalScenario(t *testing.T, mode, kiro string, history *terminalHisto
 		switch stage {
 		case 0:
 			if trace.Client > 1 && trace.Foreground == trace.Client && statusProjectVisible(lower, project) && strings.Contains(screen, "❯") && !strings.Contains(lower, "do you want") && !strings.Contains(lower, "enter to continue") {
+				if history != nil && history.Stage == 2 && history.Picker && !historyPicked {
+					stage = 20
+					return "/resume"
+				}
 				if history != nil && history.Stage == 2 && !strings.Contains(screen, "ArchiveUI_101") {
 					return ""
 				}
@@ -742,6 +753,31 @@ func runTerminalScenario(t *testing.T, mode, kiro string, history *terminalHisto
 				stage, exitKey = 5, true
 				return "\x04"
 			}
+		case 20:
+			if strings.Contains(screen, "/resume") {
+				stage, historyPickerAt = 21, time.Now()
+				return "\r"
+			}
+		case 21:
+			for i, marker := range []string{"resume session", "session", "search", "enter", "conversation", "no conversations", strings.ToLower(history.Name)} {
+				if strings.Contains(lower, marker) {
+					historyPickerHints |= 1 << i
+				}
+			}
+			if terminalHistoryPickerSelected(screen, history.Name) {
+				historyPickerSeen = true
+				stage = 22
+				return "\r"
+			}
+			if time.Since(historyPickerAt) > 10*time.Second {
+				receiptErr = errors.New("native history picker selection not observed")
+				stop()
+			}
+		case 22:
+			if strings.Contains(screen, "ArchiveUI_101") && strings.Contains(screen, "❯") {
+				historyPicked = true
+				stage = 0
+			}
 		}
 		return ""
 	}, true)
@@ -822,6 +858,10 @@ func runTerminalScenario(t *testing.T, mode, kiro string, history *terminalHisto
 	if history != nil {
 		t.Logf("native_history_stage=%d previous_answer_visible_before_input=%v active_answer_observed=%v history_inputs=%d history_answers=%d", history.Stage, historyLoaded, historyAnswered, trace.HistoryInputs, trace.HistoryAnswers)
 		valid = valid && historyAnswered && (history.Stage == 1 || historyLoaded)
+		if history.Picker && history.Stage == 2 {
+			t.Logf("native_history_picker_selected=%v history_loaded_after_selection=%v fixed_picker_hint_bits=%d", historyPickerSeen, historyPicked, historyPickerHints)
+			valid = valid && historyPickerSeen && historyPicked
+		}
 	}
 	if modelCheck {
 		valid = valid && modelPickerObserved && modelObserved && modelRestored && trace.FollowEnds == 1

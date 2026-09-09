@@ -1264,3 +1264,28 @@ The nine existing native-Claude/fake-ACP keyboard regressions pass in 42.903s. A
 run inside the sandbox fails relay controls and aborts on an explicitly denied loopback bind. The
 unchanged test suite passes with the established local-socket permissions in 23.275s. Observer race,
 whole-repository/observer vet, formatting, whitespace and D87's 139 inventory checks also pass.
+
+## D89: native conversation picker after restarting the foreground command
+
+Name the first owned interactive session with the native public flag, complete one text question
+and confirm keyboard exit/cleanup. Start a new run --client-history over the same disposable HOME,
+project and proxy state directory. Type /resume, observe it in the input widget, then press Enter.
+Require the exact named row selected below the picker heading before the selection key. Refuse
+duplicate/partial names or another selected row. Selection observation has a ten-second bound;
+all D88 process/frame/receipt/main/title limits remain unchanged.
+
+Observe the restored old answer before typing the new question. The new question contains no
+copy of the first question's random token. Require D88's ACP context/response witness, new answer
+on screen and full keyboard cleanup. Each stage has fresh runtime and observer executable paths;
+sharing product state does not itself prove stable executable-identity cache reuse. No native
+transcript format is parsed or edited, and no tools or real-user configuration are used.
+
+The initial fake-ACP picker test passes in 8.08s (9.363s package). Final fake ID/picker controls with
+shared product state pass in 17.894s. One actual Kiro 2.21.2 / Claude 2.1.263 picker episode passes
+in 33.17s (34.835s): two main prompts, no titles, one validated context and correlated answer per
+stage, old history visible before new input, and exact token recovery. Both stages remove three
+recorded groups/five PIDs, listener/runtime/profile, preserve settings and restore terminal state.
+No guard/prompt error, emergency cleanup or retry occurs. Fixed results are retained in
+`.cache/history-review/d89-native-history-shared-state.log` and `d89-live-native-picker.log`.
+Observer race passes in 1.903s. Broader selection, continue/latest, pending tools, native sidecars,
+concurrent writers/retention, authentication expiry and full alpha/release work remain open.

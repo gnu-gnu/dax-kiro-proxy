@@ -6,6 +6,22 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D89 verifies the native /resume picker after a new compiled run --client-history. A public native
+  flag names the owned first conversation; the second invocation types /resume, confirms that exact
+  selected row, then waits for the restored answer before entering its question. Both stages share
+  owned HOME/project/proxy state, while runtime and observer executable paths are fresh. One actual
+  Kiro 2.21.2 / Claude 2.1.263 episode passes in 33.17s (34.835s race package): two main requests,
+  no titles, one validated context and correlated end_turn answer per stage, restored history and
+  exact random-token recovery. Each stage removes three recorded groups/five PIDs, listener/runtime/
+  profile and restores terminal state with unchanged settings. No guard failure, prompt error,
+  emergency cleanup or live retry. The initial fake picker control passes in 8.08s (9.363s package).
+  Final fake ID/picker controls with shared proxy state pass in 17.894s; observer race passes 1.903s.
+  Picker guards reject missing headings, wrong rows, duplicate names and partial-name matches.
+  Public session documentation supplies the naming/navigation contract; D87's saved public-only
+  Claude consultation remains relevant. No production/dependency/artifact change. Continue/latest,
+  broader selection, pending tools, authentication expiry and full alpha/release gates remain open.
+  The opt-ins-off interop race suite passes in 25.513s. Whole-repository/observer vet, formatting,
+  whitespace and the unchanged D87 artifact's 139 inventory checks pass.
 - D88 verifies ordinary compiled terminal run, confirmed keyboard exit and a new run --resume UUID
   using actual Kiro 2.21.2 / Claude 2.1.263. The earlier answer is visible before the second question
   is entered. The fresh ACP prompt contains one old question, one old answer, one new question and

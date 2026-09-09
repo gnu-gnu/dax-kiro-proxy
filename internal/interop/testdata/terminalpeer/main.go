@@ -26,7 +26,7 @@ import (
 
 type config struct {
 	HistoryStage                                    int
-	HistorySeed, HistoryID                          string
+	HistorySeed, HistoryID, HistoryName             string
 	ModelCheck                                      bool
 	ModelEntries                                    int
 	ModelIDs                                        [2]string
@@ -128,6 +128,9 @@ func main() {
 			env = append(env, "CLAUDE_CODE_SKIP_PROMPT_HISTORY=1")
 		} else if cfg.HistoryStage == 1 {
 			args = append(args, "--session-id", cfg.HistoryID)
+			if cfg.HistoryName != "" {
+				args = append(args, "--name", cfg.HistoryName)
+			}
 		}
 		_ = syscall.Exec(cfg.Client, args, env)
 		os.Exit(71)

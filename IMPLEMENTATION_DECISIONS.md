@@ -4111,3 +4111,36 @@ controls and aborts at a loopback bind denied by the sandbox. The unchanged suit
 local-socket/process permissions passes in 23.275s; this is an execution-environment correction,
 not a source fix or a change to test deadlines. Whole-repository/observer vet, formatting and
 whitespace checks pass. The unchanged D87 artifact still passes all 139 inventory byte checks.
+
+## D89: verify native selection of retained conversation history
+
+The [public session interface](https://code.claude.com/docs/en/sessions) documents naming a session
+and opening the interactive picker with /resume. The owned first client uses a public name flag;
+the second compiled invocation starts with --client-history, then opens the picker through ordinary
+terminal input. Enter is sent only after the exact named row appears selected below the native
+heading. Missing headings, another selected row, duplicate names and partial-name matches reject.
+The selector is bounded to ten seconds within the existing terminal lifetime.
+
+After selection, require the old answer visible before the new question. D88's unchanged ACP
+witness checks the initial/resumed marker counts, recovers an independent token supplied only in
+the first question, and requires a correlated successful response from the owning session. Each
+run still admits one main prompt and at most one title. Both stages share a disposable HOME,
+project and product state directory; temporary runtimes and observer executable paths differ.
+This does not establish stable executable-identity cache reuse merely from the shared state path.
+Original source settings are not rewritten for the second stage, and each keyboard exit must join
+every observed process/group and remove its listener/runtime/profile with restored terminal state.
+
+The first local picker control passes in 8.08s (9.363s race package). After sharing product state,
+the fake ID and picker controls pass in 17.894s. One actual Kiro 2.21.2 / Claude 2.1.263 picker
+episode passes in 33.17s (34.835s): two main requests, no titles, restored old answer before input,
+one validated context and correlated answer per stage, exact token recovery and clean keyboard
+exit. Each stage records three groups/five PIDs, all removed. No live retry, guard failure, prompt
+error or emergency cleanup. Observer race passes in 1.903s. D87's public-only saved/read/assessed
+Claude consultation already covers this native history control; no new project-data query is sent.
+
+No production or dependency change is needed for this named current-project text flow. Continue/
+latest, broader/cross-project selection, pending tools, arbitrary hooks/agents, checkpoints/media,
+concurrent writers/retention, authentication expiry and full alpha/release requirements remain open.
+
+The opt-ins-off interop race suite passes in 25.513s. Whole-repository/observer vet, formatting and
+whitespace checks pass, as do the unchanged D87 artifact's 139 inventory byte checks.
