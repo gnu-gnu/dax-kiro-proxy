@@ -1770,3 +1770,58 @@ suites pass ACP 6.023s, session 29.452s, interop 22.133s and owned resume hook 1
 `d98-final-vet.log`. Production code, fixture source, dependencies and D96 artifact remain unchanged.
 Final interop race passes in 21.439s after the preflight diagnostic addition; final repository/
 fixture/hook vet, formatting, whitespace and all 139 development-artifact byte checks pass.
+
+## D99: bounded effort command and state observation
+
+Use only the pinned Kiro 2.21.2/v2 executable. DAX_INTEROP_KIRO_BINARY opts into these no-prompt
+checks; credit opt-in and the Claude binary remain disabled. Each test owns one empty-agent ACP
+session, private KIRO_HOME/workspace/TMPDIR and one-minute total deadline with fifteen-second RPC
+ceilings. It advertises no filesystem/terminal capabilities and exposes no tools or MCP servers.
+The original Kiro settings file is bounded and fingerprinted before/after; recorded groups must
+be gone before the private root is removed. No model credits or native tool effects are requested.
+
+TestKiroPinnedEffortCommandQuery performs one advertised empty-argument effort query. Auto returns
+a negative result. TestKiroPinnedSelectedModelEffortQuery first selects an exact currently advertised
+Sonnet 4.6 model, then observes query success. The response lists allowed choices, not current effort.
+TestKiroPinnedEffortRoundTrip additionally uses the production adapter for high then low. Each value
+is requested twice but only one setting RPC is allowed; fresh matching-session metadata must report
+that value. Already queued state is discarded before each setting. Observation windows are 50ms
+before/300ms after, capped at 64 events, 64 KiB per event and 1 MiB aggregate each. A success reply
+without a matching new state does not pass the experiment. Production does not depend on metadata.
+
+The public-only terminal observation uses the documented KIRO_ACP_RECORD_PATH with an owned FIFO,
+25-second deadline, 512 KiB total wire, 64 KiB line and 256 KiB terminal bounds. Only /effort high
+is typed, with auto selected; no prompt is allowed. It observes command/args/value and retains
+only that known command shape plus lifecycle facts. The final recording joins group disappearance
+in a bounded wait before removing the private root. Native settings remain unchanged.
+
+Evidence in .cache/history-review/:
+- d99-effort-empty-query.log: descriptor presentation-label guard rejected before the effort query.
+- d99-effort-query-shape.log and d99-effort-selected-query.log: auto rejection and selected-model
+  query success (7.921s/7.948s race packages), each with joined cleanup and no prompt.
+- d99-effort-native-command.json and d99-effort-native-terminal.json: early exits before slash input;
+  the latter reports SIGXFSZ from the recording harness's overbroad file-size limit.
+- d99-effort-native-fifo.json: observed command, initially incomplete immediate group-exit check.
+  A separate named-process check found no survivor; d99-effort-native-joined.json verifies the full
+  final 4.079s episode, source preservation and cleanup. The private observer script is
+  observe-native-effort.py; no raw wire/terminal recording is retained.
+- d99-effort-wire-red.log: old production payload fails the independent contract regression.
+- d99-effort-core.log and d99-effort-probe-controls.log: corrected core/process behavior and initial
+  query controls pass. d99-effort-roundtrip.log fails because choice text is not current state.
+- d99-effort-metadata-shape.log retains only field kinds and normalized values, establishing the
+  separate effort metadata field. d99-effort-metadata-controls.log rejects incorrect state evidence.
+- d99-effort-confirmed.log: high/low each acknowledged and observed, two setting calls/two metadata
+  notifications, no duplicate setting or prompt, unchanged original settings and joined group
+  cleanup (7.37s test, 8.650s race package).
+
+These checks cover the idle command/state path. They do not establish provider reasoning behavior,
+billed usage, every model/level, dynamic third-party changes or the other open alpha/release gates.
+
+Final regression records: d99-repository-race.log passes all 27 tested packages with all live opt-ins
+disabled; d99-vet.log passes whole-repository/fake-peer vet. d99-final-probe-controls.log passes
+the final 64-event/64-KiB-frame/1-MiB-aggregate/parent-cancellation controls in 3.846s.
+d99-final-kiro.log passes all three actual no-prompt cases in 21.702s: auto query 6.63s, selected query
+6.55s, setting/metadata 7.24s, each with original settings preserved and the private root removed.
+The D99 development binary and frozen effort inventory pass 139 checks; no new dependencies.
+d99-final-cleanup.log verifies the final preserve-on-surviving-group guard: high/low readbacks,
+joined ownership, root removal and source preservation pass (7.33s test, 9.351s race package).

@@ -336,8 +336,10 @@ process changes clear effective state; confirmed supported effort may be reappli
 
 ### Effort execution
 
-Use `_kiro.dev/commands/execute` with the session ID and a command object whose command name is `effort`
-and whose arguments contain the requested value. Success requires an object with `success` equal to
+Use `_kiro.dev/commands/execute` with `{sessionId, command: {command: "effort", args: {value}}}`,
+where `value` is the normalized requested level. This private shape is observed with the unmodified
+Kiro 2.21.2 terminal and verified independently through ACP (D99). An empty args object lists
+choices on the measured supported model; it is not a current-value query. Success requires an object with `success` equal to
 true. A missing command, well-formed negative result, or command rejection is nonfatal and recorded as
 the effective sync status. Transport corruption, failed writes, process termination, and ambiguous
 timeouts retain the process-retirement semantics of section 4, even during an optional command.

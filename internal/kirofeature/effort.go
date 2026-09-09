@@ -163,13 +163,19 @@ func (c *Effort) Sync(ctx context.Context, rpc Caller, session, model, requested
 	raw, err := rpc.Call(ctx, "_kiro.dev/commands/execute", struct {
 		Session string `json:"sessionId"`
 		Command struct {
-			Name      string   `json:"name"`
-			Arguments []string `json:"arguments"`
+			Name string `json:"command"`
+			Args struct {
+				Value string `json:"value"`
+			} `json:"args"`
 		} `json:"command"`
 	}{Session: session, Command: struct {
-		Name      string   `json:"name"`
-		Arguments []string `json:"arguments"`
-	}{"effort", []string{value}}})
+		Name string `json:"command"`
+		Args struct {
+			Value string `json:"value"`
+		} `json:"args"`
+	}{"effort", struct {
+		Value string `json:"value"`
+	}{value}}})
 	if err != nil {
 		var remote *acp.RemoteError
 		if !errors.As(err, &remote) {

@@ -1,6 +1,7 @@
 package kirofeature_test
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -94,12 +95,18 @@ func TestEffortSuccessAndSwitchOrdering(t *testing.T) {
 	var params struct {
 		Session string `json:"sessionId"`
 		Command struct {
-			Name      string   `json:"name"`
-			Arguments []string `json:"arguments"`
+			Name string `json:"command"`
+			Args struct {
+				Value string `json:"value"`
+			} `json:"args"`
 		} `json:"command"`
 	}
-	_ = json.Unmarshal(r.params[0], &params)
-	if params.Session != "session" || params.Command.Name != "effort" || len(params.Command.Arguments) != 1 || params.Command.Arguments[0] != "high" {
+	decoder := json.NewDecoder(bytes.NewReader(r.params[0]))
+	decoder.DisallowUnknownFields()
+	if decoder.Decode(&params) != nil {
+		t.Fatal("unexpected effort command fields")
+	}
+	if params.Session != "session" || params.Command.Name != "effort" || params.Command.Args.Value != "high" {
 		t.Fatal("effort command contract")
 	}
 	c.ModelChanged()

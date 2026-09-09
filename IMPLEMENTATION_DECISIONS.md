@@ -144,7 +144,8 @@ unrecognized advertisement leaves ordinary text working without the feature.
 D39 subsequently observes a different envelope for the read-only tools command: its discriminator
 is command, and args is an object. That observation does not validate the historical effort payload
 above or establish effort's argument members. The current effort fixture remains an unverified
-interpretation; no actual effort synchronization is claimed from the tools query.
+interpretation; no actual effort synchronization is claimed from the tools query. D99 later replaces
+that effort payload using fresh unmodified-terminal wire observation and independent ACP controls.
 
 Setup has its own bounded context. The transport's RPC ceiling must not accidentally shorten setup
 to a smaller owned-turn timeout; each prompt still receives the explicit owned-turn deadline. A
@@ -4537,3 +4538,64 @@ resume hook 1.677s. No production/dependency/artifact change is required; the D9
 current. Whole-repository/fake-peer/hook vet and formatting/whitespace checks pass.
 The final interop race suite after preflight diagnostics passes in 21.439s; all 139 unchanged
 development-artifact byte checks pass with release clearance still false.
+
+## D99: observe and correct the optional effort command
+
+The old D09 name/arguments envelope prevented the optional setting from reaching the measured
+Kiro command handler. The public Kiro ACP documentation names commands/execute but does not specify
+effort argument members. The public settings reference documents KIRO_ACP_RECORD_PATH. An owned
+empty-tool Kiro 2.21.2/v2 terminal was run with a private KIRO_HOME, launch directory and temporary
+directory. Its only input was the public slash command /effort high, with auto selected. Recording
+through a private FIFO revealed `{command: "effort", args: {value: "high"}}`. The raw traffic was
+bounded in memory and discarded; retained diagnostics contain only protocol names, the known input
+value and cleanup facts. No model prompt was sent. The final 4.079s observation joins the group,
+removes its private root and preserves original settings. This observes a request; auto's rejection
+does not establish applied effort.
+
+Sources checked 2026-09-10: https://kiro.dev/docs/cli/acp/ and
+https://kiro.dev/docs/cli/reference/settings/ . No previous implementation or external source code
+supplies this wire contract. The independent regression first fails against the old implementation
+(d99-effort-wire-red.log, 0.864s package). Only the private effort payload changes in production;
+availability, automatic-model skip, bounded rejection ledger, effective-state reset and transport
+failure policies remain those of D09. Independent process fixtures verify model selection before
+effort before prompt, nonfatal rejection and fatal transport corruption (1.904s/4.914s packages).
+
+Fresh empty-agent ACP experiments independently observe an advertised effort command and one empty
+argument query. Auto returns success=false; an exact advertised Sonnet 4.6 model selected through
+session/set_model returns success=true. Its message lists low/medium/high/max choices. Treating that
+message as current state fails the first readback experiment and is explicitly rejected.
+
+The final control uses the production adapter to set high then low in one owned idle session, with
+no prompt. Before each setting it discards already queued metadata in a bounded window. A successful
+setting acknowledgement must be followed by matching-session `_kiro.dev/metadata.effort` with the
+requested normalized value. Both settings pass, with two setting RPCs, two matching notifications
+and no duplicate RPC for repeated identical Sync calls (7.37s test, 8.650s race package). Source
+settings bytes are unchanged and process cleanup joins. Independent controls reject stale or
+ambiguous values, refusal, silence, foreign-session metadata and an already queued matching value;
+query/model admission, bounds and privacy controls pass in 4.016s. Metadata readback belongs only
+to this test: production still requires the command's success acknowledgement and does not wait
+for optional metadata. These observations do not measure provider reasoning, billed usage or
+every advertised model/effort pair.
+
+Initial terminal-recording attempts exited before any slash command under an overbroad file-size
+limit. A later successful FIFO observation checked group existence too soon after signalling;
+the named process check subsequently found none. The final bounded join above replaces that
+incomplete cleanup claim. No raw terminal output, account values or native stderr is retained.
+
+A separate public-only local Claude consultation was saved and read at
+.cache/claude-consult/work/public-root-design-review-srsnqqpe/answer.md. It offered no newly supported
+personal-memory root mechanism. Its suggested model recitation/tool-read denial checks cannot prove
+memory exclusion and are not adopted. The personal CLAUDE.md compatibility gap and full remaining
+alpha/release scope stay open.
+
+Whole-repository race verification passes in all 27 tested packages (six packages have no tests),
+including ACP 5.023s, session 27.307s, interop 25.991s and launcher 25.139s. Whole-repository/fake-peer
+vet passes; additional observation bounds/cancellation controls pass in 3.846s. Final actual Kiro
+auto-query, selected-query and setting cases pass in 21.702s, with original settings preserved and
+private roots removed. The D99 executable is rebuilt and its 139 byte checks pass. Its 267 selected
+packages, four external module versions/sums and selected filenames match D96. Only effort.go
+changes among the same 100 repository input paths; D96's snapshot and executable are retained.
+See DEPENDENCY_REVIEW.md for the artifact identity and remaining license/release limitations.
+The final cleanup control preserves its private root if the recorded process group survives;
+the fresh setting/metadata run passes after that guard (7.33s test, 9.351s race package), with
+group disappearance established before root removal. This test-only change does not alter the build.

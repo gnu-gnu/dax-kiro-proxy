@@ -649,3 +649,27 @@ python3 tools/verify_dependency_inventory.py --gomodcache .cache/gomod --snapsho
 All 139 byte checks pass, with release_clearance=false. Historical embedded resources, complete
 native/build/test attribution, advisory/reachability review, clean-host distribution and owner
 rights remain open; the faster shutdown does not alter those obligations.
+
+## Corrected effort artifact snapshot — D99, 2026-09-10
+
+`third_party/inventory/macos-arm64-effort.json` records the rebuilt 13,589,298-byte development
+command, SHA-256 `e5a32291b1f27d00bb4fff0fb63b26eb19e6c8324d0b7de88f2122fe07528f00`.
+It identifies Go 1.27.1, darwin/arm64, CGO_ENABLED=1 and parent
+5c8fd6b0bb4af62336c77d02f5fa5b002d8360f7 with vcs.modified=true. The captured production bytes
+include the effort fix before its commit; this is not a later clean-commit artifact.
+
+The same 100 repository input paths remain selected. Only internal/kirofeature/effort.go changes
+against D96. All 267 import paths and selected filenames match D96, including the four external
+module versions, sums and package sets, native selections and stdlib vendor package list. Retained
+notice/reference and embedded notice bytes match. No dependency is added or upgraded. The D96
+snapshot remains unchanged and is hashed as this snapshot's predecessor; its executable is retained
+under the ignored history-review directory before replacing the development command.
+
+```sh
+python3 tools/verify_dependency_inventory.py --gomodcache .cache/gomod --snapshot effort --binary dist/dax-kiro-proxy
+```
+
+The rebuilt candidate passes all 139 byte checks and release_clearance remains false. This carries
+forward the existing scoped dependency review; advisory/reachability review, complete native/build/
+test attribution, clean-host distribution and owner rights remain open. Correcting the private
+command does not establish private-extension licensing permission or release clearance.

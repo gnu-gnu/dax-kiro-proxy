@@ -296,11 +296,13 @@ func main() {
 			var params struct {
 				Session string `json:"sessionId"`
 				Command struct {
-					Name      string   `json:"name"`
-					Arguments []string `json:"arguments"`
+					Name string `json:"command"`
+					Args struct {
+						Value string `json:"value"`
+					} `json:"args"`
 				} `json:"command"`
 			}
-			if json.Unmarshal(q.Params, &params) != nil || params.Session != session || params.Command.Name != "effort" || len(params.Command.Arguments) != 1 || currentModel == "auto" {
+			if json.Unmarshal(q.Params, &params) != nil || params.Session != session || params.Command.Name != "effort" || params.Command.Args.Value != "high" || currentModel == "auto" {
 				os.Exit(32)
 			}
 			calls = append(calls, q.Method)

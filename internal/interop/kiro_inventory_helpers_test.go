@@ -31,6 +31,8 @@ type inventoryReport struct {
 	contextFile       string
 	contextDescriptor json.RawMessage
 	contextQueried    bool
+	effortDescriptor  json.RawMessage
+	sessionModels     json.RawMessage
 	ContextAvailable  bool
 	ContextFields     map[string]string
 	ContextMetaShape  map[string]string
@@ -223,6 +225,7 @@ func readOnlyToolsInventoryAfter(ctx context.Context, client *acp.Client, cwd st
 	}
 	report.SessionCreated = true
 	report.session = session
+	report.sessionModels = append(json.RawMessage(nil), fields["models"]...)
 	if required.Catalog != nil {
 		report.ModelCatalog, err = compareInventoryCatalog(raw, required.Catalog)
 		if err != nil {
@@ -454,6 +457,9 @@ func (r *inventoryReport) observe(n acp.Notification, session string) error {
 				return errInventoryShape
 			}
 			seen[name] = true
+			if name == "effort" {
+				r.effortDescriptor = append(json.RawMessage(nil), raw...)
+			}
 			if name == "context" {
 				r.ContextAvailable = true
 				r.contextDescriptor = append(json.RawMessage(nil), raw...)

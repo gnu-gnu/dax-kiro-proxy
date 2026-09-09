@@ -209,6 +209,13 @@ ACP sessions and the client UI. Last-model preflight restoration, source preserv
 exit and removal of all four recorded groups/seven PIDs and private artifacts pass. This exercises
 two models; it does not establish successful inference with every catalog entry or persisted resume.
 
+D99 corrects the optional effort request using the unmodified Kiro terminal's observed command
+shape. With an advertised Sonnet 4.6 model, the production adapter's high/low settings receive
+successful acknowledgements and matching ACP effort metadata, without model prompts or source
+settings changes. Repeating the same value sends no extra setting RPC. Auto still skips effort;
+unavailable or rejected optional settings retain their existing fallback behavior. Empty-argument
+effort output lists choices and does not prove the current value.
+
 The temporary client profile now retains standard-HOME user/local MCP declarations and decisions
 at their native scopes. Installed-client controls verify all three MCP scopes, disabled/re-enabled
 servers, project refusal and local/project/user precedence, with unchanged source files and joined
@@ -285,10 +292,11 @@ from 41.61s to 10.67s with all recorded ownership removed. Whole-repository race
 allow/deny/hook controls and actual Kiro/Claude allowed-tool resume pass. These finite measurements
 do not establish general throughput or complete the remaining soak gates.
 
-Phase 7 has frozen dependency inventories and retained scoped notices. For the D96 relay-close
+Phase 7 has frozen dependency inventories and retained scoped notices. For the D99 effort
 development artifact, run `python3 tools/verify_dependency_inventory.py --gomodcache .cache/gomod
---snapshot relay-close --binary dist/dax-kiro-proxy`. The default `development` snapshot identifies
-D78's earlier D77 binary, `installation` identifies D79 and `native-history` identifies D87. Those
+--snapshot effort --binary dist/dax-kiro-proxy`. The default `development` snapshot identifies
+D78's earlier D77 binary, `installation` identifies D79, `native-history` identifies D87 and
+`relay-close` identifies D96. Those
 historical snapshots do not match this rebuild and its changed production source. These offline byte checks
 do not grant release license clearance; see DEPENDENCY_REVIEW.md for resource differences and
 remaining packaging/rights work.

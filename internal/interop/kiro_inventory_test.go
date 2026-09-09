@@ -327,6 +327,7 @@ func observePinnedToolsInventory(t *testing.T, executable string, declaredTools,
 }
 
 type inventoryVariant struct {
+	effort          *effortWireProbe
 	skills          *skillInventoryProbe
 	resourceControl string
 	// Exact test-only version admission for new read-only observations; no production policy grant.
@@ -341,6 +342,9 @@ type inventoryVariant struct {
 
 func observePinnedInventory(t *testing.T, executable string, declaredTools, listedTools []string, relayExecutable string, variant inventoryVariant) {
 	t.Helper()
+	if variant.effort != nil && (variant.version != "" || len(declaredTools) != 0 || relayExecutable != "" || variant.native != nil || variant.context || variant.catalog || variant.sources != nil || variant.directories != nil || variant.skills != nil || variant.resource || variant.resourceControl != "") {
+		t.Fatal("effort observation requires its separate empty-agent setup")
+	}
 	if variant.version != "" && (variant.version != "2.21.2" || len(declaredTools) != 0 || relayExecutable != "" || variant.native != nil || variant.catalog || variant.sources != nil || variant.directories != nil) {
 		t.Fatal("new-version observation must remain an empty-agent read-only probe")
 	}
@@ -364,7 +368,22 @@ func observePinnedInventory(t *testing.T, executable string, declaredTools, list
 	if err != nil {
 		t.Fatal("cannot create owned inventory root")
 	}
-	defer os.RemoveAll(root)
+	effortGroup := 0
+	defer func() {
+		if effortGroup != 0 && !errors.Is(syscall.Kill(-effortGroup, 0), syscall.ESRCH) {
+			t.Error("effort group survived; private root preserved")
+			return
+		}
+		err := os.RemoveAll(root)
+		if variant.effort != nil {
+			_, state := os.Lstat(root)
+			gone := err == nil && os.IsNotExist(state)
+			t.Logf("effort_private_root_removed=%v", gone)
+			if !gone {
+				t.Error("effort observation retained its private root")
+			}
+		}
+	}()
 	configuration, cwd, scratch := filepath.Join(root, "kiro-home"), filepath.Join(root, "work"), filepath.Join(root, "tmp")
 	for _, dir := range []string{configuration, filepath.Join(configuration, "settings"), cwd, scratch, filepath.Join(cwd, ".kiro"), filepath.Join(cwd, ".kiro", "agents")} {
 		if os.Mkdir(dir, 0700) != nil {
@@ -579,6 +598,9 @@ func observePinnedInventory(t *testing.T, executable string, declaredTools, list
 		t.Fatalf("inventory ACP initialization failed: %s", kiroSetupFailure(err))
 	}
 	defer client.Close()
+	if variant.effort != nil {
+		effortGroup = client.PID()
+	}
 	if socket != nil && socket.BindProcess(client.PID()) != nil {
 		t.Fatal("cannot bind the owned inventory ACP group")
 	}
@@ -592,6 +614,14 @@ func observePinnedInventory(t *testing.T, executable string, declaredTools, list
 		defer stopInventory()
 	}
 	report, callErr := readOnlyToolsInventoryAfter(inventoryContext, client, sessionDirectory, 3*time.Second, required)
+	if variant.effort != nil {
+		if callErr != nil || !report.Success || report.DataSizes["tools"] != 0 {
+			t.Error("empty-tool effort prerequisites failed")
+		} else if err := variant.effort.query(ctx, client, report); err != nil {
+			t.Errorf("effort observation failed: %s", kiroSetupFailure(err))
+		}
+		t.Logf("effort_query=%+v, model_prompt_sent=false", variant.effort.report)
+	}
 	if variant.context {
 		if variant.skills != nil {
 			report.contextFiles = variant.skills.paths

@@ -6,6 +6,25 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D99 corrects the private effort envelope to command/args/value using an independently recorded
+  unmodified Kiro 2.21.2 terminal request. A fresh empty-agent ACP control applies high/low through
+  the production adapter on an advertised Sonnet 4.6 model and confirms matching-session metadata
+  (7.37s test, 8.650s race package), with zero prompts, unchanged source settings and joined cleanup.
+  Repeated identical Sync calls send no additional setting RPC. Query text was shown to enumerate
+  choices rather than report the current setting; it is excluded as a state oracle. Independent
+  controls reject stale/ambiguous/missing/foreign/already-queued state and optional refusal (4.016s).
+  Core effort/model-order/rejection/transport tests pass in 1.904s/4.914s after a failing old-wire
+  regression. The final native recording also verifies joined cleanup and source preservation.
+  No new dependency is introduced. Actual provider reasoning/billing and other model/level pairs
+  remain outside this no-prompt observation; the full personal-memory/alpha/release scope stays open.
+  Whole-repository race tests pass (27 packages, six without tests), including ACP, session and
+  interop; whole-repository/fake-peer vet passes. Final probe bounds/cancellation controls pass in
+  3.846s. The three final actual Kiro cases pass in 21.702s, checking removed private roots and
+  unchanged original settings. The rebuilt D99 development executable replaces dist after retaining
+  D96; all 139 artifact checks pass with release clearance false. It selects the same 267 packages
+  and four external dependencies; only effort.go changes among production inputs.
+  A final test-only cleanup guard preserves the root on a surviving group; the fresh actual
+  setting/metadata run passes in 7.33s (9.351s package), with group exit before root removal.
 - D98 verifies new work after an interrupted native history. Six native-client/fake-ACP cases pass
   in 32.00s (33.282s package): no-text/partial-text histories followed by allowance, configured
   denial or hook veto, with six old operations staying unexecuted, two new appends and four refusals.

@@ -132,6 +132,13 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
 - Known unsupported effort is skipped; absent `/effort` is unavailable; unknown capability probes at
   most once per model/effort pair; a rejected effort does not fail the turn.
 - A model switch clears the effective effort synchronization state.
+- On the pinned Kiro version, the optional effort adapter uses the command shape observed from the
+  unmodified terminal. A bounded, no-prompt control selects an advertised model, applies high/low,
+  confirms each successful acknowledgement with new matching-session effort metadata, and avoids
+  duplicate setting calls. Already queued, foreign, absent or inconsistent metadata cannot establish
+  a new setting. Empty-argument choice text is not evidence of current effort. Original Kiro settings
+  and owned process/configuration cleanup are checked separately (D99); provider reasoning behavior
+  and every model/level combination remain outside this state observation.
 - A compiled-command native picker control must display both independently advertised test models,
   distinguish unchanged selection from a successful idle ACP model change, and complete the next
   visible foreground response on the selected model. Failed/unmatched selection acknowledgements
