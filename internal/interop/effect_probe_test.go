@@ -98,6 +98,8 @@ type clientEffectProbe struct {
 	expect                    *toolEffectExpectation
 	path, manifest, pre, post string
 	kind                      string
+	interactive               bool
+	noDecision                bool
 }
 
 const ownedEffectText = "owned client effect"
@@ -105,6 +107,14 @@ const ownedEffectText = "owned client effect"
 func prepareClientEffect(t *testing.T, root, project, readPath, canary, kind, settings string) *clientEffectProbe {
 	t.Helper()
 	e := &clientEffectProbe{kind: kind, path: filepath.Join(project, "effect-fixture"), manifest: filepath.Join(root, "effect-expectation.json"), pre: filepath.Join(root, "effect-pre"), post: filepath.Join(root, "effect-post")}
+	if strings.HasPrefix(kind, "ui-") {
+		e.interactive = true
+		kind = strings.TrimPrefix(kind, "ui-")
+		if kind == "hold-write" {
+			kind = "allow-write"
+			e.noDecision = true
+		}
+	}
 	e.expect = &toolEffectExpectation{Tool: "Write", IsError: strings.HasPrefix(kind, "deny-") || kind == "hook-bash"}
 	input := map[string]string{"file_path": e.path, "content": ownedEffectText}
 	permissions := map[string]any{"defaultMode": "manual", "allow": []string{"Edit(/" + e.path + ")"}}
@@ -126,6 +136,13 @@ func prepareClientEffect(t *testing.T, root, project, readPath, canary, kind, se
 		}
 	default:
 		t.Fatal("unknown owned effect scenario")
+	}
+	if e.interactive {
+		delete(permissions, "allow")
+		delete(permissions, "deny")
+		if e.expect.IsError {
+			e.expect.RequiredText = clientDenialReason
+		}
 	}
 	e.expect.Input, _ = json.Marshal(input)
 	preOutput := `{}`
@@ -163,10 +180,10 @@ func (e *clientEffectProbe) check(t *testing.T) bool {
 	preSeen := preErr == nil && string(pre) == "observed"
 	postSeen := postErr == nil && string(post) == "observed"
 	effectOK := false
-	if e.expect.IsError {
+	if e.expect.IsError || e.noDecision {
 		_, err := os.Lstat(e.path)
 		effectOK = errors.Is(err, os.ErrNotExist) && errors.Is(postErr, os.ErrNotExist)
-		if e.kind == "hook-bash" {
+		if e.kind == "hook-bash" || e.interactive {
 			effectOK = effectOK && preSeen
 		}
 	} else if e.expect.ReadCanary {

@@ -314,6 +314,12 @@ var terminalEscapes = regexp.MustCompile("\\x1b\\[[0-?]*[ -/]*[@-~]|\\x1b\\][^\\
 // Output stays in bounded memory. Setup input requires the exact recognized screen and selected
 // item. The API key belongs solely to this test. No login, directory or tool approval is sent.
 func runObservedStatusTerminal(ctx context.Context, owner *childproc.Attached, command childproc.Command, observe func(string), nextInput func(string) string) (childproc.Result, int, error) {
+	return runObservedTerminal(ctx, owner, command, observe, nextInput, false)
+}
+
+// Permission tests use only the current reconstructed screen. Historical text must not authorize
+// input after a menu has been erased or replaced. The original status observer retains its contract.
+func runObservedTerminal(ctx context.Context, owner *childproc.Attached, command childproc.Command, observe func(string), nextInput func(string) string, currentScreen bool) (childproc.Result, int, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	in, input, err := os.Pipe()
@@ -348,6 +354,13 @@ func runObservedStatusTerminal(ctx context.Context, owner *childproc.Attached, c
 		defer close(captured)
 		buffer := make([]byte, 4096)
 		for {
+			if currentScreen {
+				if output.SetReadDeadline(time.Now().Add(100*time.Millisecond)) != nil {
+					captureErr = childproc.ErrIO
+					cancel()
+					return
+				}
+			}
 			n, readErr := output.Read(buffer)
 			if len(raw)+n > 256<<10 {
 				captureErr = childproc.ErrOutputLimit
@@ -358,6 +371,9 @@ func runObservedStatusTerminal(ctx context.Context, owner *childproc.Attached, c
 			if nextInput != nil {
 				plain := strings.ToLower(strings.Join(strings.Fields(terminalEscapes.ReplaceAllString(string(raw), " ")), " "))
 				plain += " " + strings.ToLower(strings.Join(strings.Fields(statusTerminalScreen(raw)), " "))
+				if currentScreen {
+					plain = statusTerminalScreen(raw)
+				}
 				if keys := nextInput(plain); keys != "" {
 					if len(keys) > 256 || input.SetWriteDeadline(time.Now().Add(200*time.Millisecond)) != nil {
 						captureErr = childproc.ErrIO
@@ -393,6 +409,9 @@ func runObservedStatusTerminal(ctx context.Context, owner *childproc.Attached, c
 				}
 			}
 			if readErr != nil {
+				if currentScreen && errors.Is(readErr, os.ErrDeadlineExceeded) && ctx.Err() == nil {
+					continue
+				}
 				return
 			}
 		}

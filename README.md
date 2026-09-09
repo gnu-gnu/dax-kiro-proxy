@@ -65,8 +65,9 @@ build is not a release or installation procedure.
 
 The initial-session native-effect challenge also passes with unchanged files and no observed tool
 effects. Six actual Claude/fake ACP cases verify allowed Read/Write/Bash, denied Write/Bash and Bash
-hook vetoes. Interactive approval/diff UI, remaining isolation paths and the real Kiro variants still
-need verification; these partial results do not automatically enable run.
+hook vetoes. Interactive Write/Bash approval and refusal with a comment also pass with fake ACP;
+the Write content/permission screen is checked before input. Bare refusal/cancellation, remaining
+isolation paths and real Kiro variants still need verification; these results do not enable run.
 
 Development launch and release readiness are separate milestones in ACCEPTANCE_SPEC.md. The next
 priority is effective Kiro isolation and real client tool approval/denial/hook round trips, followed

@@ -15,6 +15,7 @@ import (
 	"dax-kiro-proxy/internal/catalog"
 	"dax-kiro-proxy/internal/inference"
 	"dax-kiro-proxy/internal/ndjson"
+	"dax-kiro-proxy/internal/requestfamily"
 	"dax-kiro-proxy/internal/session"
 )
 
@@ -28,6 +29,13 @@ type denialDriver interface {
 type denialProbeStats struct {
 	Starts, Uses, Results, Denials, Completions int
 	CanaryObserved                              bool
+	LastShape                                   probeRequestShape
+	Titles                                      int
+}
+
+type probeRequestShape struct {
+	Tools, Messages                    int
+	Thinking, Context, EndConversation bool
 }
 
 // This test-only adapter admits one initial request and one matching result continuation.
@@ -38,6 +46,8 @@ type onePromptBackend struct {
 	readPath, canary string
 	observeUse       func() error
 	effect           *toolEffectExpectation
+	allowTitles      bool
+	titleAttempts    atomic.Int32
 	attempts         atomic.Int32
 	mu               sync.Mutex
 	callID, tail     string
@@ -49,7 +59,28 @@ func (b *onePromptBackend) Models(context.Context) ([]inference.Model, error) {
 }
 
 func (b *onePromptBackend) Start(ctx context.Context, r *anthropic.Request) (inference.Turn, error) {
+	if r != nil && b.allowTitles && requestfamily.Classify(r) == requestfamily.Title {
+		if b.titleAttempts.Add(1) > 2 {
+			return nil, inference.ErrRequest
+		}
+		b.mu.Lock()
+		b.stats.Titles++
+		b.mu.Unlock()
+		return &completionDisplayTurn{model: r.Model, text: `{"title":"Owned permission exercise"}`}, nil
+	}
 	n := b.attempts.Add(1)
+	if r != nil {
+		shape := probeRequestShape{Tools: len(r.Tools), Messages: len(r.Messages), Thinking: r.Extra["thinking"] != nil, Context: r.Extra["context_management"] != nil}
+		for _, raw := range r.Tools {
+			var tool struct{ Name string }
+			if json.Unmarshal(raw, &tool) == nil && tool.Name == "EndConversation" {
+				shape.EndConversation = true
+			}
+		}
+		b.mu.Lock()
+		b.stats.LastShape = shape
+		b.mu.Unlock()
+	}
 	if n > 2 || r == nil || len(r.Tools) != 1 {
 		return nil, inference.ErrRequest
 	}

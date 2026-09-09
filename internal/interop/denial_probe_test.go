@@ -217,6 +217,7 @@ func runClientToolProbe(t *testing.T, clientExecutable, kiroExecutable, effectKi
 	}}
 	if effect != nil {
 		b.effect = effect.expect
+		b.allowTitles = effect.interactive
 	}
 	tokens, err := gateway.NewTokens()
 	if err != nil {
@@ -238,9 +239,21 @@ func runClientToolProbe(t *testing.T, clientExecutable, kiroExecutable, effectKi
 	if effect != nil {
 		tool, systemText, userText = effect.expect.Tool, "Independent client permission exercise.", "Perform the single declared operation, accept the client result, then finish."
 	}
-	command.Args = append(command.Args, "--strict-mcp-config", "--mcp-config", emptyMCP, "--print", "--output-format", "json", "--tools", tool, "--no-session-persistence", "--system-prompt", systemText, userText)
+	command.Args = append(command.Args, "--strict-mcp-config", "--mcp-config", emptyMCP, "--tools", tool)
+	if effect == nil || !effect.interactive {
+		command.Args = append(command.Args, "--print", "--output-format", "json", "--no-session-persistence")
+	}
+	command.Args = append(command.Args, "--system-prompt", systemText, userText)
 	clientContext, stop := context.WithTimeout(ctx, time.Minute)
-	result, runErr := runner.Run(clientContext, command)
+	var result childproc.Result
+	var runErr error
+	var clientOK bool
+	if effect != nil && effect.interactive {
+		result, clientOK = runClientEffectTerminal(t, clientContext, root, project, profile, command, effect, b)
+	} else {
+		result, runErr = runner.Run(clientContext, command)
+		clientOK = runErr == nil && result.ExitCode == 0
+	}
 	stop()
 	state := driver.State()
 	serverErr := server.Close()
@@ -278,7 +291,11 @@ func runClientToolProbe(t *testing.T, clientExecutable, kiroExecutable, effectKi
 	}
 	t.Logf("live_kiro=%v, initial_request_budget=1, accepted_backend_requests=%d, exposed_tool_calls=%d, matched_results=%d, matched_denials=%d, final_completions=%d, policy_effect_verified=%v, canary_unchanged=%v, canary_in_model_output=%v, relay_gone=%v, observed_group_gone=%v, client_exit=%d, client_output_bytes=%d", kiroExecutable != "", stats.Starts, stats.Uses, stats.Results, stats.Denials, stats.Completions, policyOK, canaryUnchanged, stats.CanaryObserved, relayGone, groupGone, result.ExitCode, len(result.Stdout))
 	serverState := server.Stats()
-	if runErr != nil || result.ExitCode != 0 || state != session.Idle || serverErr != nil || serverState.Connections != 0 || serverState.Handlers != 0 || closeErr != nil || poolErr != nil || pool.Stats().Processes != 0 || stats.Starts != 2 || stats.Uses != 1 || stats.Results != 1 || stats.Denials != wantDenials || stats.Completions != 1 || !policyOK || !canaryUnchanged || stats.CanaryObserved || !relayGone || !groupGone {
+	wantState, wantStarts, wantResults, wantCompletions := session.Idle, 2, 1, 1
+	if effect != nil && effect.noDecision {
+		wantState, wantStarts, wantResults, wantCompletions = session.WaitingTools, 1, 0, 0
+	}
+	if !clientOK || state != wantState || serverErr != nil || serverState.Connections != 0 || serverState.Handlers != 0 || closeErr != nil || poolErr != nil || pool.Stats().Processes != 0 || stats.Starts != wantStarts || stats.Uses != 1 || stats.Results != wantResults || stats.Denials != wantDenials || stats.Completions != wantCompletions || !policyOK || !canaryUnchanged || stats.CanaryObserved || !relayGone || !groupGone {
 		t.Fatal("the bounded client-denial path or its cleanup was not established")
 	}
 	if fileFingerprint(t, settings) != settingsBefore || profile.Close() != nil {

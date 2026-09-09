@@ -1880,3 +1880,62 @@ Final uncached ACP and interop race suites passed in 5.718s and 21.814s with ins
 The original actual-Claude/fake-ACP single Read-denial control passed after the shared refactoring
 in 3.52s (4.809s package), still requiring its exact client hook denial. No existing live Kiro test
 was rerun for that refactoring.
+
+## D56: interactive permission evidence with an independent model peer (review R06)
+
+The permission observer uses the current reconstructed 160x40 terminal screen, exact owned operation,
+the selected one-time Yes/No option and the single pending tool identity. A previous screen cannot
+authorize a second input: each key records a screen digest and further decision steps require a
+changed current screen with the expected selection or echoed comment. Ordinary status tests retain
+their previous observer; only the permission variant polls its pipe every 100ms to examine a quiet
+screen. Output remains bounded at 256 KiB and the terminal lifetime at 25 seconds, followed by bounded
+process cleanup. No raw screen is saved. Model requests use an independent fake ACP, never Kiro.
+
+The initial screen-control build failed on its absent observer, then its independent controls passed.
+They reject wrong filenames/content, missing questions, persistent-grant selections, unselected or
+erased menus and repeated pre-key frames. Additional controls require the no-input window and each
+new selected denial/comment frame. The installed UI initially failed before tool exposure. Its
+test-only one-prompt budget had no separate allowance for title work; a new state regression verifies
+that a preceding title cannot consume the sole tool turn. Interactive probes now route only the
+existing narrow Title classification to at most two local synthetic responses. Titles never enter
+ACP or contribute to tool/continuation/completion counts. Legacy print/live-denial guards retain
+their previous behavior. An installed UI observation then passed with one separately counted title,
+one exact tool handoff and its matching continuation.
+
+The first combined five-case run passed in 21.08s (22.338s race-enabled package), recorded privately
+in .cache/interop-observations/permission-ui.OLh7Rl. It exercises a Write prompt held for one second
+without input, one-time Write/Bash approval, and Write/Bash refusal with an entered reason. The held
+case remains WaitingTools with no result, completion, file or PostToolUse. Each approved case displays
+the requested file content or exact command, waits at least 500ms without an effect, accepts one Yes,
+creates the exact file and fires both hooks. Each refusal selects No, opens the comment, verifies
+the entered reason and submits it. The exact correlated error reason is required independently by
+the guard and fake ACP before the same prompt can complete; no target or PostToolUse is produced.
+All observed client/relay/ACP groups and private artifacts are removed. The interactive client is
+intentionally terminated after the observed result or held state (exit 143 here); this is not evidence
+of a natural client exit. Source settings remain unchanged.
+
+The [public permission documentation](https://code.claude.com/docs/en/permissions), checked
+2026-09-09, distinguishes refusal with a comment from bare No, which ends the main turn. This test
+does not equate those paths: bare refusal and its pending-backend cleanup still require observation.
+It also does not prove repeated same-file reapproval, every permission UI, or real Kiro-generated
+requests. Production run stays gated on the remaining effective-policy/development requirements.
+
+A separately authorized local Claude CLI review received only a generic public-document question,
+with tools/MCP/hooks disabled and a 60-second/64-KiB bound. It returned exit 0, one turn, and saved
+answer.md/result.json in .cache/claude-consult/work/permission-ui-review-h319ixcv. Both were read and
+review.md records the assessment. Adopted points include observing absence before input, exact
+current selection, no-input controls, auxiliary separation and joined cleanup. Its claim that bare
+denial necessarily sends a model-facing tool result is not assumed; the public docs do not specify
+that wire behavior. No repository or earlier-implementation content was submitted.
+
+After adding continued pre-effect checks during denial and checking that no project
+.claude/settings.local.json was saved, the final installed-client regression passed in 52.612s
+under race instrumentation. It includes the five interactive cases (21.23s), six existing permission
+rule/hook cases (18.98s), original Read-hook denial (3.61s), and status-only terminal display (7.02s).
+The status case still starts zero model requests and restores/cleans its observed process owners.
+All five interactive cases leave the project permission-settings file absent. The normalized final
+record is .cache/interop-observations/permission-ui-final.xSZ4qu, exit 0.
+
+The final uncached interop and requestfamily race suites pass with installed opt-ins disabled in
+21.854s and 2.216s. Whole-repository go vet, formatting and whitespace checks pass. These changes are
+test/observation infrastructure and records; no production execution gate or dependency changed.

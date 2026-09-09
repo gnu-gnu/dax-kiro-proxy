@@ -6,11 +6,21 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D56 adds actual interactive Claude/fake-ACP Write/Bash approval and refusal with an entered reason,
+  plus a no-input Write counterfactual. The first five-case race run passes in 22.338s. The current
+  screen, exact pending operation, displayed file content/command, absence before approval, returned
+  denial reason, actual effects/hooks and process cleanup are checked independently. Narrow title
+  requests have a separate bounded synthetic response and cannot count as tool continuation. Bare
+  No/cancellation, real Kiro-generated successful tools and broader isolation remain open.
+  The final installed regression passes in 52.612s: five interactive cases, six rule/hook cases,
+  the original Read denial and status-only UI. No project permission-settings file was created by
+  any interactive case. Whole-repository go vet and whitespace checks also pass.
+  The final uncached interop/requestfamily race suites pass in 21.854s/2.216s with installed opt-ins off.
 - D55 passes six actual Claude/fake ACP tool cases: allowed Read/Write/Bash, denied Write/Bash and
   a Bash hook veto. The exact returned result resumes the same ACP prompt; allowed effects and
   hooks occur, denied effects do not, and observed relay/process/private artifact cleanup passes.
-  The six race-enabled cases pass in 21.621s. Interactive permission/diff UI and real Kiro-generated
-  successful tool requests remain separate unfinished checks. No external inference ran in D55.
+  The six race-enabled cases pass in 21.621s. D56 adds the separate interactive cases; real Kiro-generated
+  successful tool requests remain unfinished. No external inference ran in D55.
   The final uncached ACP/interop race suites pass in 5.718s/21.814s with installed opt-ins disabled.
   The existing actual-Claude/fake-ACP Read-hook denial also passes after the shared guard change
   (3.52s test, 4.809s package); it still requires the original exact hook refusal.
@@ -1474,7 +1484,7 @@ the exact scope: interactive UI and actual-client tool continuation remain unver
 | 1 | All acceptance A plus applicable G; independent fake child, framing, negotiation, correlation, notifications, stderr, deadlines, process-group cleanup | Passed on local macOS with fake ACP |
 | 2 | Authenticated HTTP text path, exact SSE/non-streaming responses, authentication fallback, disconnect tests | Passed with independent fake ACP; broader B/C requirements tracked below |
 | 3 | Model catalog/mapping/cache/selection and optional effort state | Passed independent module/process tests; launcher and live interoperability remain below |
-| 4 | Restricted Kiro agent proof, MCP relay, schema validation, client-only tool effects and result ownership | Initial native-effect challenge, one live client Read-denial continuation and six actual-client/fake-ACP permission/effect cases pass; interactive UI, broader R06 and hardening remain |
+| 4 | Restricted Kiro agent proof, MCP relay, schema validation, client-only tool effects and result ownership | Initial native-effect challenge, one live Read-denial continuation, six rule/hook cases and five interactive client/fake-ACP cases pass; bare refusal, broader R06/live checks and hardening remain |
 | 5 | Request families/history/pool/persistence/resume and crash tests | Independent implementation tests pass; live client/Kiro and extended hardening remain |
 | 6 | Media/web capabilities, cached usage/metrics, isolated launcher/profile and client interoperability | Pending |
 | 7 | Full acceptance, fuzz/race/load, license inventory, macOS packaging/install/uninstall and opt-in live gates | Pending |
