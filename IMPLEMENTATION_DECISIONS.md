@@ -3134,3 +3134,61 @@ All 31 installed-Claude top-level controls pass together in skill-final-claude.V
 under race), including the instrumented option controls, native permissions, bare refusal/deadline
 recovery, default-tool denial, plugin wait allowance/refusal, preserved assets/status and new Skill
 cases. All use local synthetic responses or fake ACP, with Kiro credit opt-in disabled.
+
+## D74: launcher cancellation after a delivered tool handoff
+
+The next alpha observation isolates runtime ownership after the tool HTTP response has completed.
+The pinned public client invokes a newly authored effect-free Read hook that records its own PID
+and group, waits at most thirty seconds and exits with refusal status on either signal or expiry.
+The hook never reads stdin, tool input or files and has no descendants. The client has only Read,
+an empty strict MCP configuration, an owned source HOME/project/settings and no persistent session.
+The existing exact-Read/canary/output guard is wrapped by a one-main-request budget: no result,
+retry, title or new question can dispatch another ACP request. The test observes successful HTTP
+handoff separately from tool exposure before cancellation.
+
+The application RunClient owner, real gateway, validator, relay, process pool and session driver
+remain in the path. A test-only executable wrapper appends finite print-mode arguments and execs
+the unmodified public client. It does not invoke the public foreground run command or exercise
+terminal Ctrl+C handling. After observing the delivered handoff, live held hook, client and relay
+groups, and WaitingTools state, the parent calls the same cancellation function eight times.
+Passing requires a context-cancellation outcome, one backend Close, closed driver/empty pool,
+joined process/hook/relay/group cleanup, removed profile/policy artifacts, unchanged source settings
+and canary, and zero tool results or final completions. The whole harness is three minutes, client
+one minute, original turn 45 seconds and setup/first event twenty seconds; the post-cancel observer
+allows eight seconds for the existing bounded owners. No hidden provider work or billed usage bound
+is inferred from one ACP request.
+
+The budget/control test first fails to build in cancellation-guard-red.1DyOVN, then passes in
+1.950s. The first installed-client/fake-ACP rehearsal, cancellation-rehearsal.VfTLGf, fails before
+any ACP preparation or tool (4.103s package). Its test-only client omission flags were put into the
+product's allowlisted platform environment and correctly omitted. The flags now belong to the
+test wrapper; the application environment policy is unchanged. The corrected rehearsal passes in
+cancellation-rehearsal-scoped.jrmixY (3.97s test, 5.668s race package), with one held tool, no results,
+joined cancellation in 177ms, source preservation and all observed cleanup. Unobserved process
+flags in the earlier failed run do not establish surviving processes.
+
+This is not streamed HTTP disconnect, foreground Ctrl+C, process-loss/recovery, authentication
+expiry or restart/resume evidence. Those remain separate alpha checks. No application or dependency
+change is proposed. LIVE_KIRO_TEST_PLAN.md specifies the separately opted-in actual-Kiro attempt.
+
+The final delivered-handoff guard and fake-ACP rehearsal pass in
+cancellation-delivery-rehearsal.7CXxdE (4.45s test, 6.038s race package): exactly one HTTP Finish,
+one still-pending client tool/hook, no results/completions and one launcher-owned backend Close.
+Joined cancellation takes 169ms, with every observed group/process/artifact gone and sources intact.
+Interop/held-hook vet and whitespace checks pass before actual model work.
+
+The sole actual Kiro 2.21.2/v2 / Claude 2.1.263 attempt passes in
+live-launcher-cancellation.tlWaG6 (17.13s test, 18.514s race package). One main request exposes one
+exact Read and completes its HTTP handoff. The held client hook and WaitingTools state are observed
+before eight calls to launcher cancellation. RunClient returns context cancellation after a 1,061ms
+join, with one backend Close, one prepared/cleaned ACP launch, closed driver and empty pool. Client,
+held hook, relay and observed groups are gone; policy/profile artifacts are removed; source settings
+and canary stay unchanged and no canary is observed in model events. There is no result, final
+completion, replacement, subsequent request or model retry. The measured result establishes this
+specific suspended-runtime cancellation path; it does not close all cancellation or alpha gates.
+
+The final opt-ins-off complete interop race suite passes in cancellation-final-unit.vM02NG
+(22.082s). The applicable launcher runtime race regression passes in
+cancellation-runtime-regression.Wha8bs (5.588s). Whole-repository/fixture vet, formatting and
+whitespace pass. Only independent fixtures, tests and evidence documents change; the D73
+development executable and run admission remain current.

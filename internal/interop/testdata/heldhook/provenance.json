@@ -1,0 +1,13 @@
+{
+  "created": "2026-09-09",
+  "fixture": "main.go",
+  "scope": "Independent effect-free held client hook for launcher cancellation observation",
+  "repository_sources": ["PRODUCT_SPEC.md", "ACCEPTANCE_SPEC.md", "LIVE_KIRO_TEST_PLAN.md"],
+  "constraints": [
+    "Standard library only; no previous implementation or public client source input",
+    "No stdin, transcript, credential, file-content, tool execution or network reads",
+    "One exclusive private PID/group record under the owned harness root",
+    "At most thirty seconds waiting; SIGINT, SIGTERM and expiry all exit with refusal status",
+    "No descendant process and no success result"
+  ]
+}

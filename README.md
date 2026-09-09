@@ -75,8 +75,10 @@ matching results, effects and cleanup. Relay descriptions explicitly associate o
 with original client names. Interactive Write/Bash approval and refusal with a comment pass with fake ACP;
 the Write content/permission screen is checked before input. Bare refusal now verifies cleanup at
 the existing deadline and safe recreation for a following question, using actual Claude with fake
-ACP. The shared launcher configuration also passes actual Bash approval and hook refusal. Further
-live cancellation, process-loss, model-switch, authentication and resume checks remain alpha work.
+ACP. The shared launcher configuration also passes actual Bash approval and hook refusal. Actual
+Kiro/client runtime cancellation after a delivered Read handoff and held client hook joins all
+observed processes/artifacts (D74). Foreground Ctrl+C, streamed disconnect, process-loss, model-switch,
+authentication and resume checks remain alpha work.
 
 On Kiro 2.21.2, seven initial-session file-resource controls pass: active inherited files disappear
 when default-resource inheritance is disabled, including with a separate session workspace. An

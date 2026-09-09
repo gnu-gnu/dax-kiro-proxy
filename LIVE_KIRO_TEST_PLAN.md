@@ -714,3 +714,72 @@ must address final-answer evidence explicitly without treating a partial exchang
 Final opt-ins-off race tests pass ACP in 5.439s and interop in 20.887s
 (plugin-result-final-unit.R8Vjmv). Whole-repository/fixture vet, formatting and whitespace pass.
 Only tests and decision/evidence documents change; the existing development executable is current.
+
+## Launcher cancellation after a delivered tool handoff
+
+D74 prepares one actual Kiro 2.21.2/v2 / Claude 2.1.263 cancellation observation after its independent
+guard and installed-client/fake-ACP rehearsal pass. The continuing user authorization covers this
+bounded alpha check. It retains a separate credit opt-in and has no automatic retry.
+
+Use the existing exact single-Read system/user prompt above, substituting only a newly generated
+temporary file path. Its random synthetic canary stays out of the prompt. The real client receives
+new owned HOME/project/settings, an empty strict MCP configuration, only Read and a held PreToolUse
+hook. The hook ignores its input, records only its PID/group, waits at most thirty seconds and exits
+with refusal status on SIGINT, SIGTERM or expiry. It reads no file and spawns no descendant. No user
+assets, repository content or earlier implementation enter either public client.
+
+The existing exact-operation and canary guards run behind an additional one-main-request budget.
+Any further model request rejects before driver dispatch. One ACP process, one relay, four gateway
+connections and bounded schema workers are admitted; no replacement is possible. Kiro preparation
+uses the shared verified execution policy, after exact-version/account/catalog preflight, with the
+advertised auto model and no fallback. Prepared resources and client settings are private and owned.
+
+The actual application RunClient function owns gateway, backend, pool, validator, client and profile
+shutdown. A test-only exec wrapper supplies the fixed print arguments and documented experimental/
+thinking omission options to the unmodified public client. It does not substitute its implementation.
+The observer requires a successfully delivered HTTP tool handoff, WaitingTools state, a still-live
+client/hook and the observed ACP/relay group. It then cancels the launcher context eight times.
+This tests the suspended backend when no new result request exists, not terminal Ctrl+C or HTTP
+disconnect during streaming. The wrapper/runtime-stage invocation does not certify the compiled
+foreground command composition; that remains separate evidence.
+
+The entire harness has three minutes; the client one minute; the original ACP turn 45 seconds;
+setup and first event twenty seconds. The hook has thirty seconds plus a client hook timeout of
+35 seconds, all of which outlast the immediate cancellation trigger. A post-cancel observer allows
+eight seconds for the existing bounded owners. Passing requires a context-cancellation result,
+one backend Close, closed driver and empty pool, exactly one prepared/cleaned launch, client/hook/
+relay/groups absent, profile/policy artifacts removed and source settings/canary unchanged. No tool
+result, final completion, new request or canary disclosure is accepted. A cleanup failure remains a
+failure even if directly observed owned PIDs need last-resort cleanup.
+
+Output goes to the null device. Only fixed classes, counts, booleans, timing and owned process
+identities are observed; no prompts, tool results, credentials or unrestricted stderr are retained.
+One ACP prompt is not one billed model call; cancellation may consume credits. The separate local
+control uses the same client/runtime/relay and an independently authored fake ACP, without Kiro.
+
+After the local control passes, select only:
+
+```sh
+DAX_INTEROP_KIRO_CREDIT_OPT_IN=1 \
+DAX_INTEROP_KIRO_BINARY=/absolute/path/to/kiro-cli \
+DAX_INTEROP_CLAUDE_BINARY=/absolute/path/to/claude \
+GOTOOLCHAIN=go1.27.1 \
+GOMODCACHE="$PWD/.cache/gomod" \
+GOCACHE="$PWD/.cache/gobuild" \
+go test -race -p 1 -count=1 -timeout=4m -v \
+  -run '^TestKiroLiveLauncherCancellation$' ./internal/interop
+```
+
+Local rehearsals and their first harness-only failure are recorded in D74. The live result below
+is separate from preparation. Other cancellation phases, process loss, auth expiry, model changes,
+restart/resume and full plugin/Skill acceptance remain open.
+
+The actual attempt passes in live-launcher-cancellation.tlWaG6 (17.13s test, 18.514s race package).
+Its one exact Read and delivered HTTP handoff reach a live held hook and WaitingTools state.
+Eight launcher cancellations join in 1,061ms with one backend Close, closed driver, empty pool and
+one prepared/cleaned ACP process. The client/hook/relay and observed groups are absent, policy/profile
+artifacts removed and source settings/canary unchanged. Zero results, completions, replacements or
+further requests occur; no canary is observed in model output. No second actual attempt runs.
+This closes only the described suspended-runtime observation, not foreground Ctrl+C, streamed HTTP
+disconnect, process-loss recovery or the remaining alpha/release gates. Application behavior and
+development run admission are unchanged; the development executable remains the D73 build.

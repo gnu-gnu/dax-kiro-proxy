@@ -6,6 +6,19 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D74 verifies launcher cancellation after a delivered tool handoff with actual Kiro 2.21.2/v2 and
+  Claude 2.1.263 (17.13s test, 18.514s race package). One exact Read reaches an effect-free held
+  client hook while the driver waits for results. Eight launcher cancellations join in 1,061ms:
+  one backend Close, closed driver, empty pool and one prepared/cleaned ACP process. Client, hook,
+  relay, observed groups and private artifacts are gone; source settings/canary are unchanged.
+  There are no tool results, completions, replacements or further requests. The guard and final
+  actual-client/fake-ACP rehearsal pass first in 6.038s, including separately observed HTTP Finish.
+  This exercises RunClient runtime ownership via a finite print wrapper, not the compiled foreground
+  command's Ctrl+C behavior or a disconnect during streaming. The first local harness failure and
+  scoped-option correction are recorded; no application or dependency changes and no live retry.
+  Final opt-ins-off interop race tests pass in 22.082s and applicable launcher runtime regression in
+  5.588s; whole-repository/fixture vet, formatting and whitespace pass.
+  Development run stays enabled and the D73 binary remains current. Other alpha/release gates stay open.
 - D73 supports successful client tool results followed by separate client text through bounded
   full-history recreation, including the pinned client's model-selected plugin skill expansion.
   Exact history/policy/result ownership, joined old cleanup, the original deadline and the shared
