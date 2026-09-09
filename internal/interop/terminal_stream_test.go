@@ -96,6 +96,7 @@ type terminalReceipt struct {
 }
 
 type terminalTrace struct {
+	HistoryInputs, HistoryAnswers                                                             int
 	ModelFirstMarkers, ModelFollowMarkers                                                     int
 	ACPs                                                                                      int
 	ModelFirstRecords, ModelFollowRecords, ModelFirstSlot, ModelFollowSlot, ModelTargetAcks   int
@@ -145,6 +146,10 @@ func readTerminalTrace(root string) (terminalTrace, error) {
 				pids[r.Child] = true
 			}
 			switch r.Kind {
+			case "history-input":
+				trace.HistoryInputs++
+			case "history-answer":
+				trace.HistoryAnswers++
 			case "answer-marker":
 				if r.ModelSlot < 1 || r.ModelSlot > 2 {
 					return trace, errors.New("unknown answer model")
@@ -340,6 +345,10 @@ func TestKiroLiveCompiledRunInterruptedFollowup(t *testing.T) {
 }
 
 func runCompiledTerminalStream(t *testing.T, mode, kiro string) {
+	runTerminalScenario(t, mode, kiro, nil)
+}
+
+func runTerminalScenario(t *testing.T, mode, kiro string, history *terminalHistoryPlan) terminalTrace {
 	t.Helper()
 	heldHook := strings.HasPrefix(mode, "held-hook-")
 	followup := mode == "cancel-followup"
@@ -368,14 +377,32 @@ func runCompiledTerminalStream(t *testing.T, mode, kiro string) {
 	}
 	t.Cleanup(func() { os.RemoveAll(root) })
 	home, project, bin, artifacts := filepath.Join(root, "home"), filepath.Join(root, "project"), filepath.Join(root, "bin"), filepath.Join(root, "runtime")
+	if history != nil {
+		home, project = history.Home, history.Project
+	}
 	for _, dir := range []string{home, project, bin, artifacts, filepath.Join(root, "events"), filepath.Join(home, ".claude"), filepath.Join(root, "tmp")} {
-		if os.Mkdir(dir, 0700) != nil {
+		if err := os.Mkdir(dir, 0700); err != nil {
+			if history != nil && history.Stage == 2 && (dir == home || dir == project || dir == filepath.Join(home, ".claude")) && errors.Is(err, os.ErrExist) {
+				if info, e := os.Lstat(dir); e == nil && info.IsDir() {
+					continue
+				}
+			}
 			t.Fatal("cannot prepare terminal fixture directory")
 		}
 	}
 	settings := filepath.Join(home, ".claude", "settings.json")
 	settingsData := []byte(`{"disableAllHooks":true,"statusLine":{"type":"command","command":"/usr/bin/true"}}`)
 	readFixture, prompt := filepath.Join(project, "read-fixture"), terminalStreamPrompt
+	historyMarker := ""
+	if history != nil {
+		settingsData = []byte(`{"disableAllHooks":true,"autoMemoryEnabled":false,"statusLine":{"type":"command","command":"/usr/bin/true"}}`)
+		prompt = "Remember UIHistoryFirst_101 " + history.Seed + " for later. Reply only with the concatenation of ArchiveUI and _101 without spaces."
+		historyMarker = "ArchiveUI_101"
+		if history.Stage == 2 {
+			prompt = "UIHistoryNext_107: Reply only with the earlier remembered token, a space, and the concatenation of ArchiveUI and _107 without spaces."
+			historyMarker = "ArchiveUI_107"
+		}
+	}
 	if modelCheck {
 		prompt = terminalModelFirst
 	}
@@ -390,8 +417,10 @@ func runCompiledTerminalStream(t *testing.T, mode, kiro string) {
 			t.Fatal("cannot prepare owned Read fixture")
 		}
 	}
-	if os.WriteFile(settings, settingsData, 0600) != nil || os.WriteFile(filepath.Join(home, ".claude.json"), []byte(`{}`), 0600) != nil {
-		t.Fatal("cannot prepare owned terminal settings")
+	if history == nil || history.Stage == 1 {
+		if os.WriteFile(settings, settingsData, 0600) != nil || os.WriteFile(filepath.Join(home, ".claude.json"), []byte(`{}`), 0600) != nil {
+			t.Fatal("cannot prepare owned terminal settings")
+		}
 	}
 	beforeSettings, beforeGlobal := fileFingerprint(t, settings), fileFingerprint(t, filepath.Join(home, ".claude.json"))
 	ctx, stop := context.WithTimeout(t.Context(), 2*time.Minute)
@@ -450,7 +479,16 @@ func runCompiledTerminalStream(t *testing.T, mode, kiro string) {
 		}
 	}
 	args := []string{"run", "--client", filepath.Join(bin, "claude"), "--kiro", filepath.Join(bin, "kiro-cli"), "--settings", settings, "--runtime-dir", artifacts, "--state-dir", filepath.Join(root, "state")}
-	config, _ := json.Marshal(map[string]any{"Root": root, "Proxy": proxy, "Client": client, "Kiro": kiro, "AccountHome": os.Getenv("HOME"), "Project": project, "Args": args, "HeldHook": heldHook, "AllowFollowup": followup || modelCheck, "ModelCheck": modelCheck, "ModelIDs": modelIDs, "ModelEntries": modelEntries})
+	historyStage, historySeed, historyID := 0, "", ""
+	if history != nil {
+		historyStage, historySeed, historyID = history.Stage, history.Seed, history.ID
+		if history.Stage == 1 {
+			args = append(args, "--client-history")
+		} else {
+			args = append(args, "--resume", history.ID)
+		}
+	}
+	config, _ := json.Marshal(map[string]any{"Root": root, "Proxy": proxy, "Client": client, "Kiro": kiro, "AccountHome": os.Getenv("HOME"), "Project": project, "Args": args, "HeldHook": heldHook, "AllowFollowup": followup || modelCheck, "ModelCheck": modelCheck, "ModelIDs": modelIDs, "ModelEntries": modelEntries, "HistoryStage": historyStage, "HistorySeed": historySeed, "HistoryID": historyID})
 	if os.WriteFile(filepath.Join(bin, "terminal.json"), config, 0600) != nil {
 		t.Fatal("cannot write terminal role configuration")
 	}
@@ -500,6 +538,7 @@ func runCompiledTerminalStream(t *testing.T, mode, kiro string) {
 	var originalClient, originalProxy int
 	var originalProfile, originalEndpoint string
 	var followupObserved bool
+	var historyLoaded, historyAnswered bool
 	var modelObserved, modelPickerObserved bool
 	modelMenu := terminalModelMenu{labels: modelLabels, target: modelLabel}
 	var modelLastMove time.Time
@@ -541,6 +580,10 @@ func runCompiledTerminalStream(t *testing.T, mode, kiro string) {
 		switch stage {
 		case 0:
 			if trace.Client > 1 && trace.Foreground == trace.Client && statusProjectVisible(lower, project) && strings.Contains(screen, "❯") && !strings.Contains(lower, "do you want") && !strings.Contains(lower, "enter to continue") {
+				if history != nil && history.Stage == 2 && !strings.Contains(screen, "ArchiveUI_101") {
+					return ""
+				}
+				historyLoaded = history != nil && history.Stage == 2
 				foregroundObserved = true
 				originalClient, originalProxy, originalProfile, originalEndpoint = trace.Client, trace.Proxy, trace.Profile, trace.Endpoint
 				stage = 1
@@ -552,7 +595,13 @@ func runCompiledTerminalStream(t *testing.T, mode, kiro string) {
 				return "\r"
 			}
 		case 2:
-			if modelCheck {
+			if history != nil {
+				if trace.HistoryInputs == 1 && trace.HistoryAnswers == 1 && trace.Ends == 1 && strings.Contains(screen, historyMarker) && (history.Stage == 1 || strings.Contains(screen, history.Seed)) {
+					historyAnswered = true
+					stage, exitKey = 5, true
+					return "\x04"
+				}
+			} else if modelCheck {
 				if trace.Prompts == 1 && trace.Ends == 1 && trace.ModelFirstRecords == 1 && trace.ModelFirstSlot == 1 && strings.Contains(screen, "ModelFirst_61") {
 					stage = 10
 					return "/model"
@@ -770,6 +819,10 @@ func runCompiledTerminalStream(t *testing.T, mode, kiro string) {
 		titleLimit = 2
 	}
 	valid := runErr == nil && result.ExitCode == 0 && receiptErr == nil && err == nil && foregroundObserved && exitKey && trace.Exited && trace.ExitCode == 0 && trace.Restored && groupsGone && pidsGone && listenerGone && artifactErr == nil && len(entries) == 0 && os.IsNotExist(profileErr) && sources && trace.Prompts == 1 && trace.TitlePrompts <= titleLimit && trace.Failures == 0 && trace.PromptFailures == 0
+	if history != nil {
+		t.Logf("native_history_stage=%d previous_answer_visible_before_input=%v active_answer_observed=%v history_inputs=%d history_answers=%d", history.Stage, historyLoaded, historyAnswered, trace.HistoryInputs, trace.HistoryAnswers)
+		valid = valid && historyAnswered && (history.Stage == 1 || historyLoaded)
+	}
 	if modelCheck {
 		valid = valid && modelPickerObserved && modelObserved && modelRestored && trace.FollowEnds == 1
 	} else if mode == "held-hook-exit" {
@@ -786,4 +839,5 @@ func runCompiledTerminalStream(t *testing.T, mode, kiro string) {
 	if !valid {
 		t.Error("typed keyboard cancellation/completion and exit were not established")
 	}
+	return trace
 }

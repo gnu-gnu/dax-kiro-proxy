@@ -4061,3 +4061,53 @@ The complete opt-ins-off race suite and whole-repository/new-peer vet pass. Form
 checks pass. The rebuilt D87 development executable has an independently collected 267-package graph,
 four unchanged external modules, 100 repository input records and seven retained embedded notices.
 Its named native-history inventory passes 139 offline byte checks. This is not release clearance.
+
+## D88: verify explicit native resume through ordinary foreground commands
+
+D87's finite client exercise is extended through the compiled public run command and ordinary
+terminal input. The first launch uses --client-history; its native client receives an independently
+generated UUID through the public --session-id flag. After confirmed keyboard exit and joined old
+cleanup, a separate compiled run uses --resume UUID. The two runs share only the owned HOME/project
+for native history. Their runtime roots, gateway addresses, processes and private profiles differ;
+the second setup does not rewrite the original fixture settings.
+
+The restored prior answer must be visible in the new terminal before typing the new question. Both
+questions are first observed in the input widget before Enter is sent. The new question contains no
+copy of the random token supplied in the first question. The ACP observer requires exactly one old
+question marker, old answer marker, new question marker and token in the resumed main prompt, and no
+unsubmitted control marker. First-stage expectations instead require only the initial question/token.
+
+A separate bounded witness records the correlated session/new reply and rejects session/load. It
+collects at most 8 KiB of active-session text in memory and emits an answer receipt only after the
+matching successful end_turn, with the expected generated marker/token counts. Foreign sessions,
+foreign reply IDs, missing/duplicated context, cancellation, errors and split text chunks have
+independent tests. Native frames are forwarded unchanged after admission. Only fixed receipts and
+owned lifecycle coordinates are persisted; native transcript bytes are not decoded or edited.
+
+Existing process-wide frame, event, PTY, main/title admission and cleanup limits remain in force.
+Each launch admits one main prompt and at most one title; it has its own 70-second attached-process
+limit and two-minute setup/test context. Any failed first stage prevents the second from starting.
+Confirmed keyboard exit must restore terminal state and remove every recorded PID/group, listener
+and temporary runtime/profile. Emergency cleanup, source changes and non-success prompt results
+fail the observation. Retained native conversation data is intentionally separate from those
+ephemeral resources and is removed with the disposable test HOME after both stages.
+
+The installed-Claude/independent-ACP control passes in 7.84s (9.120s race package). One actual pinned
+Kiro/Claude episode then passes in 29.71s (30.993s): two main prompts and one title, restored history
+visible before new input, both correlated answers and both clean keyboard exits. The first stage
+records four groups/seven PIDs, the second three/five, all removed. No live retry, guard failure,
+prompt failure or emergency cleanup occurs. The independent observer suite passes in 1.226s.
+D87's saved/read/assessed public-interface Claude advice covers the native continuation control;
+no new project-data transmission is needed. No production, dependency or frozen-artifact change.
+
+This verifies explicit-ID text resume in a foreground terminal. It does not establish native
+session-picker/continue behavior, pending-tool restoration, cross-project changes, media/checkpoint
+sidecars, arbitrary hooks/agents, concurrent native writers, retention cleanup or unobserved
+descendants. Authentication expiry and the remaining full alpha/release requirements remain open.
+
+The nine prior installed-Claude/fake-ACP keyboard cases pass in 42.903s after the shared harness
+extension. The first opt-ins-off run in the filesystem/network sandbox fails existing relay-group
+controls and aborts at a loopback bind denied by the sandbox. The unchanged suite with the required
+local-socket/process permissions passes in 23.275s; this is an execution-environment correction,
+not a source fix or a change to test deadlines. Whole-repository/observer vet, formatting and
+whitespace checks pass. The unchanged D87 artifact still passes all 139 inventory byte checks.

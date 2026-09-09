@@ -25,6 +25,8 @@ import (
 )
 
 type config struct {
+	HistoryStage                                    int
+	HistorySeed, HistoryID                          string
 	ModelCheck                                      bool
 	ModelEntries                                    int
 	ModelIDs                                        [2]string
@@ -74,6 +76,7 @@ func main() {
 		os.Exit(70)
 	}
 	observedModel.models = cfg.ModelIDs
+	observedHistory.stage, observedHistory.seed = cfg.HistoryStage, cfg.HistorySeed
 	timer := time.AfterFunc(90*time.Second, func() { record("guard-failed", nil); os.Exit(74) })
 	defer timer.Stop()
 	role := filepath.Base(os.Args[0])
@@ -120,7 +123,12 @@ func main() {
 			toolList, instruction = "Read", "Use only the supplied Read tool, exactly once for the user's specified path. Do not use any other tool."
 		}
 		args = append(args, "--strict-mcp-config", "--mcp-config", `{"mcpServers":{}}`, "--tools", toolList, "--system-prompt", instruction)
-		env := append(os.Environ(), "CLAUDE_CODE_SKIP_PROMPT_HISTORY=1", "CLAUDE_CODE_DISABLE_THINKING=1", "CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS=1")
+		env := append(os.Environ(), "CLAUDE_CODE_DISABLE_THINKING=1", "CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS=1")
+		if cfg.HistoryStage == 0 {
+			env = append(env, "CLAUDE_CODE_SKIP_PROMPT_HISTORY=1")
+		} else if cfg.HistoryStage == 1 {
+			args = append(args, "--session-id", cfg.HistoryID)
+		}
 		_ = syscall.Exec(cfg.Client, args, env)
 		os.Exit(71)
 	case "kiro-cli", "kiro-cli-chat":
@@ -218,6 +226,9 @@ func forward(r io.Reader, w io.Writer, from string, g *frameGuard) error {
 		kind, err := g.inspect(from, line)
 		if err == nil {
 			err = noteModel(from, line)
+		}
+		if err == nil {
+			err = noteHistory(from, line)
 		}
 		if err != nil {
 			record("guard-failed", nil)
@@ -348,6 +359,9 @@ func fakeACP() {
 		if err == nil {
 			err = noteModel("agent", data)
 		}
+		if err == nil {
+			err = noteHistory("agent", data)
+		}
 		if err != nil {
 			record("guard-failed", nil)
 			os.Exit(71)
@@ -371,6 +385,9 @@ func fakeACP() {
 		kind, err := g.inspect("client", line)
 		if err == nil {
 			err = noteModel("client", line)
+		}
+		if err == nil {
+			err = noteHistory("client", line)
 		}
 		if err != nil {
 			record("guard-failed", nil)
@@ -408,6 +425,15 @@ func fakeACP() {
 				continue
 			}
 			cancel = make(chan struct{})
+			if cfg.HistoryStage > 0 {
+				text := "ArchiveUI_101"
+				if cfg.HistoryStage == 2 {
+					text = cfg.HistorySeed + " ArchiveUI_107"
+				}
+				send(map[string]any{"jsonrpc": "2.0", "method": "session/update", "params": map[string]any{"sessionId": "owned-stream", "update": map[string]any{"sessionUpdate": "agent_message_chunk", "content": map[string]string{"type": "text", "text": text}}}})
+				reply(r.ID, map[string]string{"stopReason": "end_turn"})
+				continue
+			}
 			if cfg.ModelCheck {
 				text := "ModelFirst_61"
 				if followScope.Load() {

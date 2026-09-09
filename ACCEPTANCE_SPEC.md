@@ -213,8 +213,10 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
   operation and native persistence suppression remain negative controls. Reject malformed resume IDs
   before finite startup commands, and reject unsafe source directory roots without following them.
   Verify source settings and joined runtime cleanup separately from intentionally retained native
-  data. D87 covers finite text resume; interactive selection, pending tools, media/checkpoints,
-  concurrent writers and retention behavior remain broader gates.
+  data. D87 covers finite text resume and D88 covers compiled foreground run with explicit-ID resume,
+  a restored answer visible before new input, correlated ACP context/completion and keyboard cleanup.
+  Interactive selection, pending tools, media/checkpoints, concurrent writers and retention behavior
+  remain broader gates.
 - Simultaneous title and main requests receive separate Kiro sessions.
 - The combined title classifier accepts explicit disabled thinking or omission with all other
   title signals present. Ordinary structured output, loose title mentions, tools and explicit

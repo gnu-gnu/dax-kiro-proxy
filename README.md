@@ -58,10 +58,12 @@ access that same data. Source settings remain separate, and temporary routing cr
 removed on exit. Without these options, the client profile and its conversations are ephemeral.
 
 D87 verifies explicit-ID text resume with fresh profiles, addresses, tokens and backend processes,
-using both an independent ACP peer and actual Kiro. The backend starts a fresh restricted session
-from the client-supplied history; hidden Kiro context is not restored. Native interactive picker,
-pending-tool recovery, file checkpoints, media sidecars and concurrent history writers remain
-separate checks; the text result does not complete the alpha resume gate.
+using both an independent ACP peer and actual Kiro. D88 also verifies ordinary terminal `run`,
+keyboard exit and a new `run --resume UUID`: the previous answer appears before new input, followed
+by a successful answer using restored context and joined cleanup. The backend starts a fresh
+restricted session from client-supplied history; hidden Kiro context is not restored. The interactive
+session picker, pending-tool recovery, file checkpoints, media sidecars and concurrent history writers
+remain separate checks; these text results do not complete the full alpha resume gate.
 
 The diagnostic checks support Kiro CLI 2.21.2 (including its adjacent `kiro-cli-chat` helper) and Claude Code
 2.1.263. They use the installed CLIs' finite version/account/catalog commands, without an ACP session

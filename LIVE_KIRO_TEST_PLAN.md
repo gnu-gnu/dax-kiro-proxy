@@ -1225,3 +1225,42 @@ The actual result is finite text resume through recreated restricted backend ses
 establish interactive picker/continue, pending-tool recovery, media/checkpoint sidecars, concurrent
 native writers, retention cleanup or unobserved descendants. Keep these full alpha/release items
 open. Public-only local Claude advice and its assessment are retained in the D87 consultation folder.
+
+## D88: compiled foreground run followed by explicit-ID native resume
+
+Extend the D82-D86 terminal harness with two distinct run invocations over one disposable HOME and
+project. First use --client-history and an owned UUID passed to the native client. Join confirmed
+keyboard exit completely, then use the product's --resume UUID option in the new process. Require
+the previous generated answer visible before any new question is typed. Observe the typed question
+before pressing Enter. The second question asks for a random token supplied only in the first.
+
+The ACP witness first correlates session/new, rejects session/load and validates exact independent
+marker/token counts in each main prompt. It ignores foreign-session text and foreign reply IDs;
+answer credit requires the expected active-session text and correlated successful end_turn. Its
+text buffer is limited to 8 KiB. Cancelled/error replies never qualify. Existing exact-frame limits,
+one-main/at-most-one-title admission per launch, 70-second PTY lifetime, two-minute launch context,
+bounded receipt/UI capture and joined/emergency cleanup rules remain unchanged. Do not dispatch
+the second launch if any first-stage condition fails. No tools or real-user settings are used.
+
+The independent observer tests first fail for the missing witness, then cover missing/duplicated
+and foreign context, load attempts, split chunks, foreign IDs and unsuccessful completions. The
+full observer race suite passes in 1.226s. Actual Claude with fake ACP passes in 7.84s (9.120s race
+package), with two clean exits, restored second-stage history and new ownership.
+
+One actual Kiro 2.21.2 / Claude 2.1.263 episode passes in 29.71s (30.993s package). First stage:
+one main/one title, four groups/seven PIDs. Second stage: one main/no title, three groups/five PIDs.
+Both have one validated main input and one correlated answer receipt. The second terminal shows
+the old answer before input and the new answer with the recovered token afterward. Every recorded
+process/group, listener/runtime/profile is removed, terminal state restored and original settings
+unchanged. The two client/proxy/main-ACP identities, profiles and addresses differ. No guard or
+prompt error, emergency cleanup or live retry occurs. Fixed results are retained under
+`.cache/history-review/d88-terminal-history-control.log` and `d88-live-terminal-history.log`.
+
+This adds foreground explicit-ID text resume evidence. Native picker/continue, pending tools,
+cross-project changes, native data outside projects, concurrent writers/retention and arbitrary
+hooks/agents remain separate work; the full alpha/release objective is unchanged.
+
+The nine existing native-Claude/fake-ACP keyboard regressions pass in 42.903s. An initial opt-ins-off
+run inside the sandbox fails relay controls and aborts on an explicitly denied loopback bind. The
+unchanged test suite passes with the established local-socket permissions in 23.275s. Observer race,
+whole-repository/observer vet, formatting, whitespace and D87's 139 inventory checks also pass.

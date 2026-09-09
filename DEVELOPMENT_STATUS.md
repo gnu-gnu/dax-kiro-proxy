@@ -6,6 +6,25 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D88 verifies ordinary compiled terminal run, confirmed keyboard exit and a new run --resume UUID
+  using actual Kiro 2.21.2 / Claude 2.1.263. The earlier answer is visible before the second question
+  is entered. The fresh ACP prompt contains one old question, one old answer, one new question and
+  the independent random token once; the absent-control marker is absent. The active owning session's
+  text returns the token, and a correlated successful end precedes the answer receipt/UI completion.
+  Both keyboard exits restore terminal settings and remove every recorded group/PID, listener and
+  private runtime/profile with unchanged source settings. The first stage uses four groups/seven
+  PIDs; the second uses three/five. Client/proxy/main-ACP identities, profiles and addresses differ.
+  One live episode passes in 29.71s (30.993s race package), with two main prompts and one title, no
+  guard failure, prompt error, emergency cleanup or retry. The independent fake-ACP control first
+  passes in 7.84s (9.120s package), and observer negatives cover lost/duplicated/foreign context,
+  foreign response IDs, split chunks, cancellation and errors. The full observer race suite passes
+  in 1.226s. D87's saved public-only Claude advice covers this additional native-interface control.
+  No production/dependency/artifact change. Session picker/continue, pending tools, authentication
+  expiry, complete native asset/data preservation and full alpha/release gates remain open.
+  The nine existing installed-Claude/fake-ACP keyboard controls pass in 42.903s. An initially
+  sandboxed opt-ins-off suite fails relay controls and aborts at an explicitly denied loopback bind;
+  the unchanged suite with local sockets permitted passes in 23.275s. Whole-repository/observer vet,
+  formatting, whitespace and the existing D87 artifact's 139 byte checks pass.
 - D87 adds optional native conversation retention and explicit-ID resume. `run --client-history`
   connects only the native projects data directory to each temporary profile; `run --resume UUID`
   enables retention and forwards the validated ID. Default profiles remain ephemeral. Owned roots,
