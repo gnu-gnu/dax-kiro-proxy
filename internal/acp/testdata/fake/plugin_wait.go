@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"syscall"
 )
 
@@ -25,12 +26,30 @@ func fixturePluginMarker(path string) string {
 	if err != nil || len(data) < 16 || len(data) > 64 {
 		os.Exit(94)
 	}
+	if strings.HasPrefix(string(data), "VERIFIED ") {
+		if len(data) != 22 {
+			os.Exit(94)
+		}
+		for _, ch := range data[9:] {
+			if (ch < 'A' || ch > 'Z') && (ch < '2' || ch > '7') {
+				os.Exit(94)
+			}
+		}
+		return string(data)
+	}
 	for _, ch := range data {
 		if (ch < 'A' || ch > 'Z') && (ch < '0' || ch > '9') {
 			os.Exit(94)
 		}
 	}
 	return string(data)
+}
+
+func fixturePluginResultToken(answer string) string {
+	if token, ok := strings.CutPrefix(answer, "VERIFIED "); ok {
+		return token
+	}
+	return answer[len(answer)/2:]
 }
 
 // Inspect only this project's projection and the owned tool result. The installed client's

@@ -367,7 +367,7 @@ func main() {
 						}
 						suffix := ""
 						if pluginMarker {
-							suffix = "; Y=" + pluginAnswer[len(pluginAnswer)/2:]
+							suffix = "; Y=" + fixturePluginResultToken(pluginAnswer)
 						}
 						if (!pluginDenied && returned.Content[0].Text != "independent client asset result"+suffix) || (pluginDenied && !strings.Contains(returned.Content[0].Text, "independent fixture denial"+suffix)) {
 							os.Exit(96)

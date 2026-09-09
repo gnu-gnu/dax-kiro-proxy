@@ -4599,3 +4599,52 @@ See DEPENDENCY_REVIEW.md for the artifact identity and remaining license/release
 The final cleanup control preserves its private root if the recorded process group survives;
 the fresh setting/metadata run passes after that guard (7.33s test, 9.351s race package), with
 group disappearance established before root removal. This test-only change does not alter the build.
+
+## D100: simplify the live plugin completion challenge without weakening its source check
+
+D72's tool/registry/cleanup observations remain valid partial evidence, but its final answer did not
+contain the required random-string concatenation. The answer was not retained; its exact cause is
+still unknown. The revised test asks for VERIFIED followed by the fresh thirteen-character base32
+token delivered only in the second tool's success result or matching hook-refusal reason. The full
+22-byte phrase is absent from the prompt and tool results. It must occur in the final assistant
+events and independently in the reconstructed current terminal screen. The 132-byte prompt avoids
+asking the model to concatenate two unrelated random strings. It does not relax the exact phrase,
+tool/result identities, prefix history, execution ownership, error status or lifecycle checks.
+
+Independent allowance/refusal controls cover complete and split final output, token-only and prefix-
+only responses, prompt echo, early token/phrase disclosure and a whole phrase supplied by a tool.
+The first run exposes that an early bare token could precede tool delivery under the old guard
+(1.055s failing package). The guard now rejects that case before exposing a tool, including when
+the token spans events. All sixteen new cases and existing sequence guards pass in 1.799s.
+
+The first native-client/fake-ACP new-phrase rehearsal fails because the independent peer still
+extracts the token by halving the final marker. That rule is valid for the historical equal-length
+halves but discards two token bytes for the new fixed prefix. A separate fixture regression first
+fails (0.865s), then passes (1.734s) after distinguishing the two owned marker formats. This fixture
+defect was introduced by the new recipe and does not explain the older D72 live answer. The original
+native recipe passes its allowance/refusal pair in 14.39s; the combined initial run remains failed
+(143.180s package). After the fixture fix, the new actual-Claude/fake-ACP pair passes in 12.93s
+(14.347s package), with three main requests/two backend processes per case, generated/displayed
+phrases, effects one/zero, unchanged sources and cleanup. Local observer controls pass in 1.302s.
+
+The public-only local Claude consultation is saved and assessed in
+.cache/claude-consult/work/public-completion-design-review-jymaj95u/answer.md. Its provenance
+counterexamples are useful; its claim that deliberate refusal delivery must fail is inapplicable.
+The refusal branch verifies zero execution and its matching error response. Its unsupported claims
+about likely transport-versus-formatting causes are not adopted. The source boundary is unchanged.
+
+LIVE_KIRO_TEST_PLAN.md records the finite live recipe and prerequisites. One allowance, then only
+on success one hook refusal, may run after the local gates. Each retains the original three-main-
+request/two-prompt/two-process bound and stops on failure. No production source or dependency changes;
+the D99 artifact remains current. A pass will cover this owned plugin's data path, not arbitrary
+plugin assets, semantic correctness, actual model-selected skills or the remaining release gates.
+
+Pre-live race regressions pass ACP 5.713s, interop 24.225s and the independent peer 1.192s, with all
+real opt-ins disabled. Applicable vet and formatting/whitespace checks pass. Automatic approval
+review rejects the actual Kiro/Claude test command before process creation, citing missing explicit
+user approval for enabling Kiro credit use and transmitting the test to an external service.
+No D100 Kiro prompt or native live episode occurs. Approval is required for the prepared maximum
+of one allowance plus one hook refusal, two ACP prompts per case (four total), with synthetic
+questions/results and the client's default instructions/tool definitions sent to Kiro. Credit use
+is provider-dependent and is not estimated here. The action remains pending; this record does not
+override the rejection or claim a live pass. The remaining independent product work is unaffected.

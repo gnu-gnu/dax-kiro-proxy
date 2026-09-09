@@ -218,6 +218,9 @@ func (t *pluginSequenceTurn) Next(ctx context.Context) (inference.Event, error) 
 						reason = "early_marker"
 					}
 				}
+				if valid && t.round < 3 && g.resultSuffix != "" && strings.Contains(joined, g.resultSuffix) {
+					valid, reason = false, "early_result_token"
+				}
 				keep := min(len(joined), len(g.finalMarker)-1)
 				t.tail = strings.Clone(joined[len(joined)-keep:])
 			}

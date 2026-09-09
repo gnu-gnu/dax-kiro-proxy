@@ -66,6 +66,11 @@ func TestClaudeGuardedPluginRegistrySequence(t *testing.T) {
 	t.Run("hook_denied", func(t *testing.T) { observeClaudePluginSources(t, "guarded-wait-tool-denied") })
 }
 
+func TestClaudePluginResultPhrase(t *testing.T) {
+	t.Run("allowed", func(t *testing.T) { observeClaudePluginSources(t, "guarded-wait-tool-phrase") })
+	t.Run("hook_denied", func(t *testing.T) { observeClaudePluginSources(t, "guarded-wait-tool-phrase-denied") })
+}
+
 func TestClaudePluginToolThroughGatewayAndACP(t *testing.T) {
 	t.Run("allowed", func(t *testing.T) { observeClaudePluginSources(t, "proxy-tool") })
 	t.Run("hook_denied", func(t *testing.T) { observeClaudePluginSources(t, "proxy-tool-denied") })
@@ -75,6 +80,7 @@ func observeClaudePluginSources(t *testing.T, mode string) {
 	t.Helper()
 	liveMode := strings.HasPrefix(mode, "live-wait-tool")
 	guardedMode := strings.HasPrefix(mode, "guarded-wait-tool")
+	phraseMode := liveMode || strings.HasPrefix(mode, "guarded-wait-tool-phrase")
 	if liveMode && (os.Getenv("DAX_INTEROP_KIRO_CREDIT_OPT_IN") != "1" || os.Getenv("DAX_INTEROP_KIRO_BINARY") == "") {
 		t.Fatal("live plugin mode requires explicit Kiro opt-in")
 	}
@@ -113,6 +119,9 @@ func observeClaudePluginSources(t *testing.T, mode string) {
 	if liveMode || guardedMode {
 		finalMarker = rand.Text()
 		resultSuffix = finalMarker[len(finalMarker)/2:]
+		if phraseMode {
+			finalMarker = "VERIFIED " + resultSuffix
+		}
 	}
 	writeJSON(settings, map[string]any{})
 	if denied {
@@ -554,6 +563,9 @@ func observeClaudePluginSources(t *testing.T, mode string) {
 					if liveMode || guardedMode {
 						middle := len(finalMarker) / 2
 						waitPrompt = "WaitForMcpServers {}, then " + ownedPluginToolName + " {} once each. After both, reply X+Y; X=" + finalMarker[:middle] + ", Y is in the result."
+						if phraseMode {
+							waitPrompt = "WaitForMcpServers {}, then " + ownedPluginToolName + " {} once each. Reply exactly VERIFIED Y, using Y from the result."
+						}
 						answer = finalMarker
 						if len(waitPrompt) > 150 || strings.Contains(waitPrompt, resultSuffix) {
 							t.Fatal("derived marker prompt is ambiguous or exceeds one terminal row")

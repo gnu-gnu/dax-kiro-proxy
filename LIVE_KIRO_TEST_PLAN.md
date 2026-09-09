@@ -1825,3 +1825,68 @@ d99-final-kiro.log passes all three actual no-prompt cases in 21.702s: auto quer
 The D99 development binary and frozen effort inventory pass 139 checks; no new dependencies.
 d99-final-cleanup.log verifies the final preserve-on-surviving-group guard: high/low readbacks,
 joined ownership, root removal and source preservation pass (7.33s test, 9.351s race package).
+
+## D100: a plain phrase derived from the fresh plugin result
+
+The prior D72 result challenge failed its exact final-text condition after completing both tool
+round trips. Its raw 33-byte answer was not retained, so no particular formatting cause is known.
+The revised recipe reduces the instruction-following task without relaxing protocol or screen
+evidence. The 132-byte owned prompt is:
+
+```text
+WaitForMcpServers {}, then mcp__plugin_dax-owned_owned__owned_probe {} once each. Reply exactly VERIFIED Y, using Y from the result.
+```
+
+Only the second tool's exact success text or matching hook-refusal reason contains a fresh thirteen-
+character base32 Y. The expected 22-byte phrase is VERIFIED, one ASCII space, then Y. That whole
+phrase is absent from the prompt and both tool results. It must appear in final assistant events
+and independently on the current reconstructed screen. Neither token-only output, prefix-only output,
+prompt echo, whole-phrase tool output, early complete phrase nor early token disclosure can pass.
+Event-split matching remains supported; erased/raw terminal output is not substituted for the screen.
+The refusal branch still requires zero native plugin calls and a matching error result. It verifies
+client refusal delivery, not successful tool execution.
+
+Independent controls first expose that an early standalone result token could pass the old guard
+before tool delivery (d100-phrase-guard-red.log, 1.055s package). The guard now rejects that disclosure,
+including across text events. The sixteen new allowance/refusal cases and existing sequence guards
+pass in d100-phrase-guards.log (1.799s). The owned fake peer accepts the exact new fixed-prefix marker
+in addition to the historical all-uppercase marker. The old actual-client/fake-ACP recipe remains
+available as a regression; TestClaudePluginResultPhrase supplies the new rehearsal.
+
+Before live model work, both native-client/fake-ACP allowance/refusal recipes and applicable local
+checks must pass. Then TestKiroLivePluginRegistryReplacement admits one revised allowance and, only
+if it succeeds, one revised hook refusal. A failure stops this sequence for diagnosis; no dispatched
+case is retried in this recipe. Per case, the unchanged budget is three main Messages requests plus
+at most one locally answered auxiliary request, two ACP prompts/processes, one wait and one owned
+plugin request, native plugin calls one/zero, one recreation, 45-second original turn deadline,
+20-second setup/first-event limits, 60-second client UI lifetime and three-minute total deadline.
+Both source snapshots and all recorded processes, relay artifacts, listener and private client
+configuration must pass cleanup checks. This does not authorize unrelated tools or global settings
+changes, and does not change production behavior or D99's artifact.
+
+The public-only local Claude consultation is saved and read at
+.cache/claude-consult/work/public-completion-design-review-jymaj95u/answer.md (one turn, 5,757 stdout
+bytes). Its fresh-phrase counterexamples inform the controls. Its claim that a deliberate refusal
+branch must fail is rejected: allowance and refusal have separate effect/status expectations.
+Claims about the likelihood of transport defects versus model formatting failures are unsupported
+and not adopted. A phrase pass remains bounded data-path evidence, not general semantic correctness.
+
+The first native rehearsal (d100-native-phrase-controls.log) keeps the original recipe green
+(14.39s pair), but both new cases fail after the independent peer incorrectly halves the new marker.
+The peer regression d100-fixture-token-red.log reproduces that newly introduced two-byte truncation;
+d100-fixture-token-fixed.log passes in 1.734s after correcting only the fixture. The old D72 live
+answer's cause remains unknown. d100-native-phrase-fixed.log then passes the new allowance/refusal
+pair in 12.93s (14.347s race package): full phrases generated and displayed, three main requests,
+two backend processes per case, effects one/zero, preserved sources and joined cleanup.
+d100-local-controls.log passes observer controls in 1.302s. All live Kiro opt-ins remain disabled
+during these rehearsals; their responses come from independently authored ACP fixtures.
+
+d100-prelive-regressions.log passes ACP/interop/independent-peer race suites in
+5.713s/24.225s/1.192s; d100-final-vet.log passes the applicable vet checks. The next actual Kiro
+command is rejected by automatic approval review before process creation because explicit approval
+for Kiro credit use and external transmission is absent. There is no d100-live-plugin-phrase.log
+or D100 Kiro model invocation from that attempt. The concrete pending action is one allowance,
+then only on success one hook refusal, at most four ACP prompts total under the per-case bounds
+above. It sends synthetic test questions/results and default client instructions/tool definitions
+to Kiro, with provider-dependent credit use. Do not treat preparation as approval or bypass the
+review rejection. Production and the verified D99 artifact remain unchanged.

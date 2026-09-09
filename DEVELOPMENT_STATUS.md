@@ -6,6 +6,18 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D100 prepares a simpler fresh-result phrase for the unresolved actual plugin completion gate.
+  Sixteen independent allowance/refusal counterexamples first expose early-token disclosure, then
+  pass with the corrected guard and existing sequence tests (1.799s). A new fixture token-extraction
+  regression catches and fixes a two-byte truncation introduced by the changed marker format.
+  The revised actual-Claude/fake-ACP allowance/refusal pair passes in 12.93s (14.347s package), with
+  exact generated/displayed phrases, three main requests/two backend processes per case, effects
+  one/zero, preserved sources and cleanup. ACP/interop/fake-peer race regressions pass in
+  5.713s/24.225s/1.192s; applicable vet and formatting checks pass. The attempted actual Kiro command
+  was rejected before process creation by automatic approval review, citing absent explicit user
+  approval for Kiro credits and external transmission. No D100 Kiro model work occurred; the live
+  allowance/refusal sequence awaits that approval. Production, dependencies and D99 artifact stay
+  unchanged. This is completed preparation, not completed actual-plugin acceptance.
 - D99 corrects the private effort envelope to command/args/value using an independently recorded
   unmodified Kiro 2.21.2 terminal request. A fresh empty-agent ACP control applies high/low through
   the production adapter on an advertised Sonnet 4.6 model and confirms matching-session metadata
