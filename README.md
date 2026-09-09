@@ -108,6 +108,13 @@ the same private profile also completes a tool round trip. Fresh immediate print
 omit the tool. Dynamic tool changes, broader plugin assets and actual Kiro plugin turns remain open
 (D65-D66).
 
+The product status display now yields to existing user/project/local status choices, including
+commands without a refresh interval. It supplies a bounded user-scope default only when no such
+choice or uncertain project source is found. Linked worktrees and unsafe/ambiguous sources suppress
+this optional default; native settings resolution and separate notice/metrics hooks remain with
+the client. Installed UI checks verify precedence, unchanged sources, no extra periodic execution
+and process cleanup (D67). Dynamic changes and managed/custom source coverage remain separate work.
+
 Development launch and release readiness are separate milestones in ACCEPTANCE_SPEC.md. The next
 priority is client-environment preservation, broader client request compatibility and the
 live alpha lifecycle checks. Optional web/account-usage

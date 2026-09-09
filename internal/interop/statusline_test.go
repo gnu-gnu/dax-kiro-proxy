@@ -53,6 +53,10 @@ func TestClaudeStatuslineRefreshWithoutModelTurn(t *testing.T) {
 }
 
 func observeClaudeStatusUI(t *testing.T, startup *startupObservation, completion bool) {
+	observeClaudeStatusCase(t, startup, completion, nil)
+}
+
+func observeClaudeStatusCase(t *testing.T, startup *startupObservation, completion bool, existing *existingStatusObservation) {
 	t.Helper()
 	clientExecutable := os.Getenv("DAX_INTEROP_CLAUDE_BINARY")
 	if clientExecutable == "" {
@@ -119,6 +123,9 @@ func observeClaudeStatusUI(t *testing.T, startup *startupObservation, completion
 	metricsShown := make(chan struct{})
 	var metricsRendered sync.Once
 	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if existing != nil && existing.handle(w, r, func() { completed.Do(func() { close(ready) }) }) {
+			return
+		}
 		if startup != nil && startup.handle(w, r) {
 			return
 		}
@@ -154,6 +161,9 @@ func observeClaudeStatusUI(t *testing.T, startup *startupObservation, completion
 	if startup != nil {
 		startup.prepare(t, root, settings, server.URL)
 		defer startup.checkChildren(t, root)
+	}
+	if existing != nil {
+		existing.prepare(t, settings, project, server.URL)
 	}
 	before := fileFingerprint(t, settings)
 	proxy := filepath.Join(filepath.Dir(buildRelayObserver(t)), "owned-relay")
@@ -227,6 +237,16 @@ func observeClaudeStatusUI(t *testing.T, startup *startupObservation, completion
 		ranToExit = true
 	case <-ctx.Done():
 	}
+	if existing != nil && existing.scope == "project_event_only" && !ranToExit {
+		quiet := time.NewTimer(7 * time.Second)
+		select {
+		case <-quiet.C:
+		case got = <-finished:
+			ranToExit = true
+		case <-ctx.Done():
+		}
+		quiet.Stop()
+	}
 	if completion && !ranToExit {
 		select {
 		case <-metricsShown:
@@ -281,6 +301,9 @@ func observeClaudeStatusUI(t *testing.T, startup *startupObservation, completion
 	mu.Lock()
 	count, elapsed := calls, interval
 	mu.Unlock()
+	if existing != nil {
+		count, elapsed, visible = existing.check(t, normalized, count)
+	}
 	t.Logf("status_requests=%d, refresh_interval_ms=%d, status_model_visible=%v, model_requests=%d, model_starts=%d, catalog_requests=%d, terminal_exit=%d, terminal_bytes=%d, setup_stage=%d, setup_markers=%v, client_pid_recorded=%v, client_pid_gone=%v, client_group_gone=%v, runner_active=%d, terminal_active=%d", count, elapsed.Milliseconds(), visible, messageRequests.Load(), backend.starts.Load(), backend.lists.Load(), got.result.ExitCode, len(got.result.Stdout), got.setupAnswers, markers, openErr == nil && parseErr == nil && pid > 1, pid > 1 && errors.Is(syscall.Kill(pid, 0), syscall.ESRCH), groupGone, runner.Active(), terminalOwner.Active())
 	t.Logf("startup_notice_requests=%d, startup_notice_visible=%v", noticeRequests.Load(), noticeVisible)
 	if noticeRequests.Load() != 1 || !noticeVisible {
@@ -301,7 +324,11 @@ func observeClaudeStatusUI(t *testing.T, startup *startupObservation, completion
 	if completion && (!metricsVisible || !secondInput.Load() || completionBackend.badInput.Load() || completionBackend.mainTurns.Load() != 2 || completionBackend.titleTurns.Load() < 1 || completionBackend.titleTurns.Load() > 2 || len(queue.Drain().Records) != 0) {
 		t.Error("interactive completion notice or later input contract failed")
 	}
-	if count < 2 || count > 10 || elapsed == 0 || !visible || messageRequests.Load() != wantModels || backend.starts.Load() != wantModels || metricRequests.Load() != wantMetrics || !groupGone || runner.Active() != 0 || terminalOwner.Active() != 0 || errors.Is(got.err, childproc.ErrCleanup) || errors.Is(got.err, childproc.ErrIO) || errors.Is(got.err, childproc.ErrOutputLimit) || fileFingerprint(t, settings) != before {
+	minimumCalls := 2
+	if existing != nil && existing.scope == "project_event_only" {
+		minimumCalls = 1
+	}
+	if count < minimumCalls || count > 10 || elapsed == 0 || !visible || messageRequests.Load() != wantModels || backend.starts.Load() != wantModels || metricRequests.Load() != wantMetrics || !groupGone || runner.Active() != 0 || terminalOwner.Active() != 0 || errors.Is(got.err, childproc.ErrCleanup) || errors.Is(got.err, childproc.ErrIO) || errors.Is(got.err, childproc.ErrOutputLimit) || fileFingerprint(t, settings) != before {
 		t.Fatal("installed client status refresh or terminal cleanup was not established")
 	}
 	if startup != nil {

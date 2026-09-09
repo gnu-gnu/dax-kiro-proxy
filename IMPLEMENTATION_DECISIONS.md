@@ -2607,3 +2607,71 @@ Applicable uncached opt-ins-off race suites pass: ACP 5.697s and interop 21.071s
 go vet and formatting/whitespace checks pass. No dependency changes. Plugin-provided hooks, skills
 and agents, existing status commands, remote assets/OAuth, custom roots, dynamic registry changes,
 immediate fresh print bootstrap and actual Kiro plugin/reconstruction remain separate work.
+
+## D67: preserve native status commands and their refresh behavior
+
+The prior profile preserved source bytes but unconditionally set the product statusLine in the
+command-line overlay. An installed-client positive control confirms that the source user command
+never runs while the product display polls twice. Byte preservation alone did not preserve behavior.
+
+The product display is now an optional user-scope default. An existing user statusLine value is
+kept exactly, including an empty/null choice; the proxy does not repair or add fields to it. The
+client decides whether such a value is valid. The command-line layer carries no statusLine. Native
+client precedence therefore selects project/local settings. Routing/authentication and the separate
+additive startup/metrics hooks retain their existing layers and credential separation.
+
+Moving the default to user scope was insufficient on its own. With a project command and no
+refreshInterval, the product's lower-scope five-second timer still caused a later invocation during
+an otherwise quiet seven-second observation. The final implementation suppresses the entire default
+when a project source contains a statusLine key or cannot be checked safely. It examines only the
+known settings.json/settings.local.json names under .claude, conservatively walking ancestors until
+a normal owned repository root or filesystem root. Worktree/git metadata files are not opened or
+resolved to another checkout; that uncertain case suppresses the default. Unsafe/link entries,
+malformed settings, read errors, the 64-directory limit or the aggregate 2 MiB allowance also omit
+the optional default. Each individual read retains the existing bounded file checks. A default
+that would push the private user snapshot over its 2 MiB bound is omitted as well.
+
+This check is not an independent settings resolver. Conservative suppression can omit the product
+display even when the client would ignore an ancestor source. It neither changes original settings
+nor blocks preparation on optional-display uncertainty. The remaining source settings and separate
+UI hooks still belong to the client; the product status helper still receives only its private UI
+credential through the existing isolated command. Managed policy sources, custom configuration
+roots and status changes made after startup are not covered by these new controls.
+
+The public [settings reference](https://code.claude.com/docs/en/settings) documents native scopes,
+local-file placement when starting below a repository root and worktree exceptions. The public
+[status-line reference](https://code.claude.com/docs/en/statusline) documents command execution and
+event-driven versus configured periodic updates. Both were checked on 2026-09-09. Field merging and
+the resulting invocation counts here come from the pinned unmodified client, not an assumption
+that a higher-scope object replaces every lower-scope member.
+
+Independent installed tests create owned user/project/local settings and fixed status commands.
+Each command acknowledges execution only to a bounded loopback observer and prints its fixed scope
+label. It neither saves client stdin nor requests a model. Tests assert actual display, expected
+refresh behavior, zero calls to lower-priority/product commands, source byte equality and joined
+client process cleanup. They retain normalized fixed flags/counts only; no terminal payload or
+credentials are saved. The default product display and its isolated helper retain prior coverage.
+
+Recorded observations:
+
+- status-existing-before.TFn7aI fails in 7.774s: the owned user command has zero calls and no
+  display; the product polls twice. No model turn occurs and client cleanup still succeeds.
+- status-native-scopes.8zRrCu passes four command-precedence cases and the default five-second
+  product display after the first change (21.231s), but does not establish timer preservation.
+- status-event-only.IlJ2Yr then fails in 9.600s: the project command renders, yet runs twice over
+  7.144s, with one late call caused by the remaining periodic default. This is not acceptance evidence.
+- status-existing-preserved.su5wci passes the final five-case scope/timer matrix, default display,
+  held startup-hook ordering, two synthetic completion turns and disabled hooks in 47.718s. The
+  event-only project command runs exactly once over 7.139s with zero late calls. Existing status
+  cases make zero product status requests and zero model requests; all source bytes and observed
+  cleanup pass. Independent startup notices remain visible, including while product status is absent.
+- status-policy-regression.WhdXnq separately passes enabled user/project hooks, permission refusal
+  and gateway routing in 2.985s. This test's exact name was absent from the prior selection; it is
+  not claimed as part of that combined run.
+
+Unit controls first reproduce the unwanted host override and merged default, then pass after the
+correction. They cover unchanged user values, project/local/ancestor choices, linked worktrees and
+unsafe/ambiguous settings while retaining independent hooks/routing. Applicable uncached race
+suites with installed opt-ins off pass: launcher 23.325s, interop 21.563s and command 1.535s.
+Whole-repository go vet, formatting, whitespace, build and executable help pass. No dependencies
+change. The development executable includes this fix; alpha/release gates remain open.

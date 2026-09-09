@@ -96,9 +96,6 @@ func PrepareClient(cfg ClientConfig) (*ClientProfile, error) {
 	if err != nil {
 		return nil, ErrRuntime
 	}
-	if store.Write("settings.json", user) != nil {
-		return nil, ErrRuntime
-	}
 	if store.Write(".claude.json", mcpState) != nil {
 		return nil, ErrRuntime
 	}
@@ -109,7 +106,7 @@ func PrepareClient(cfg ClientConfig) (*ClientProfile, error) {
 	for key, value := range hostEnvironment(cfg.GatewayURL, cfg.ModelToken) {
 		env[key] = value
 	}
-	// Connection, authentication, optional traffic and product status use the command-line layer.
+	// Connection, authentication and optional traffic use the command-line layer.
 	// Permission policy retains its user < project < local < managed order. Product hooks are additive.
 	host := map[string]any{"env": hostEnvironment(cfg.GatewayURL, cfg.ModelToken), "apiKeyHelper": "", "awsAuthRefresh": "", "awsCredentialExport": "", "otelHeadersHelper": ""}
 	root, err := privatefs.New(path)
@@ -125,13 +122,33 @@ func PrepareClient(cfg ClientConfig) (*ClientProfile, error) {
 		// The client invokes this command. The display helper has no model/provider environment;
 		// its sole credential is read from the private file, never embedded in a shell argument.
 		command := "/usr/bin/env -i PATH=/usr/bin:/bin " + quote(cfg.StatusExecutable) + " statusline --config " + quote(filepath.Join(path, "statusline.json"))
-		host["statusLine"] = map[string]any{"type": "command", "command": command, "refreshInterval": 5}
+		// Status is a user-scope default. Keep an existing value exactly, and let the client
+		// resolve higher-priority project/local/managed settings through its native rules.
+		fields, err := ndjson.Object(user)
+		if err != nil {
+			return nil, ErrSettings
+		}
+		if _, exists := fields["statusLine"]; !exists && clientStatusDefaultAllowed(cfg.Project) {
+			fields["statusLine"], _ = json.Marshal(map[string]any{"type": "command", "command": command, "refreshInterval": 5})
+			withDefault, err := json.Marshal(fields)
+			if err != nil {
+				return nil, ErrRuntime
+			}
+			// This optional display must not enlarge an otherwise valid settings snapshot past
+			// its bound. The independent notice/metrics hooks can still use their UI config.
+			if len(withDefault) <= MaxSettingsBytes {
+				user = withDefault
+			}
+		}
 		noticeCommand := "/usr/bin/env -i PATH=/usr/bin:/bin " + quote(cfg.StatusExecutable) + " model-notice --config " + quote(filepath.Join(path, "statusline.json"))
 		metricsCommand := "/usr/bin/env -i PATH=/usr/bin:/bin " + quote(cfg.StatusExecutable) + " turn-metrics --config " + quote(filepath.Join(path, "statusline.json"))
 		host["hooks"] = map[string]any{
 			"SessionStart": []any{map[string]any{"matcher": "startup", "hooks": []any{map[string]any{"type": "command", "command": noticeCommand, "timeout": 3}}}},
 			"Stop":         []any{map[string]any{"hooks": []any{map[string]any{"type": "command", "command": metricsCommand, "timeout": 3}}}},
 		}
+	}
+	if store.Write("settings.json", user) != nil {
+		return nil, ErrRuntime
 	}
 	overlay, _ := json.Marshal(host)
 	if root.Write("host-settings.json", overlay) != nil {

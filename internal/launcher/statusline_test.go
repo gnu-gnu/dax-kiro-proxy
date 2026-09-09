@@ -53,7 +53,7 @@ func TestStatuslineProfileOwnsOnlyUICredentialAndPreservesSource(t *testing.T) {
 		t.Fatal("cannot write independent status shim")
 	}
 	cfg.StatusExecutable = shim
-	original := []byte(`{"statusLine":{"type":"command","command":"private-original-status-command"},"hooks":{},"permissions":{"defaultMode":"manual"}}`)
+	original := []byte(`{"hooks":{},"permissions":{"defaultMode":"manual"}}`)
 	writeSettings(t, cfg.UserSettings, original)
 	p, err := launcher.PrepareClient(cfg)
 	if err != nil {
@@ -74,7 +74,14 @@ func TestStatuslineProfileOwnsOnlyUICredentialAndPreservesSource(t *testing.T) {
 			RefreshInterval int
 		} `json:"statusLine"`
 	}
-	if json.Unmarshal(data, &overlay) != nil || overlay.StatusLine.Type != "command" || overlay.StatusLine.RefreshInterval != 5 || !strings.HasPrefix(overlay.StatusLine.Command, "/usr/bin/env -i PATH=/usr/bin:/bin ") {
+	if json.Unmarshal(data, &overlay) != nil || overlay.StatusLine.Command != "" {
+		t.Fatal("product status must not override native settings scopes")
+	}
+	data, _ = os.ReadFile(filepath.Join(p.Path(), "client", "settings.json"))
+	var defaults struct {
+		StatusLine json.RawMessage `json:"statusLine"`
+	}
+	if json.Unmarshal(data, &defaults) != nil || json.Unmarshal(defaults.StatusLine, &overlay.StatusLine) != nil || overlay.StatusLine.Type != "command" || overlay.StatusLine.RefreshInterval != 5 || !strings.HasPrefix(overlay.StatusLine.Command, "/usr/bin/env -i PATH=/usr/bin:/bin ") {
 		t.Fatal("missing isolated five-second status command")
 	}
 	if len(overlay.Hooks) != 2 || len(overlay.Hooks["SessionStart"]) != 1 || overlay.Hooks["SessionStart"][0].Matcher != "startup" || len(overlay.Hooks["SessionStart"][0].Hooks) != 1 || len(overlay.Hooks["Stop"]) != 1 || overlay.Hooks["Stop"][0].Matcher != "" || len(overlay.Hooks["Stop"][0].Hooks) != 1 {
@@ -130,6 +137,94 @@ func TestStatuslineProfileOwnsOnlyUICredentialAndPreservesSource(t *testing.T) {
 	}
 	if data, err := os.ReadFile(cfg.UserSettings); err != nil || !bytes.Equal(data, original) {
 		t.Fatal("source status or permission settings changed")
+	}
+}
+
+func TestStatuslineDefaultsKeepAnExistingUserChoice(t *testing.T) {
+	for _, value := range []string{`{"type":"command","command":"private-original-status-command","padding":3}`, `null`, `{"type":"command","command":""}`} {
+		cfg := profileConfig(t)
+		tokens, _ := gateway.NewTokens()
+		cfg.StatusExecutable, cfg.UIToken = runtimeProxy, tokens.UI
+		original := []byte(`{"statusLine":` + value + `}`)
+		writeSettings(t, cfg.UserSettings, original)
+		p, err := launcher.PrepareClient(cfg)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var user, overlay map[string]json.RawMessage
+		data, _ := os.ReadFile(p.SettingsPath())
+		if json.Unmarshal(data, &overlay) != nil || overlay["statusLine"] != nil {
+			t.Error("host status overrides an existing user choice")
+		}
+		data, _ = os.ReadFile(filepath.Join(p.Path(), "client", "settings.json"))
+		var want, got any
+		if json.Unmarshal(data, &user) != nil || json.Unmarshal(user["statusLine"], &got) != nil || json.Unmarshal([]byte(value), &want) != nil {
+			t.Fatal("invalid preserved status choice")
+		}
+		before, _ := json.Marshal(want)
+		after, _ := json.Marshal(got)
+		if !bytes.Equal(before, after) {
+			t.Error("status fields were added to an existing user choice")
+		}
+		if err := p.Close(); err != nil {
+			t.Error(err)
+		}
+		if source, err := os.ReadFile(cfg.UserSettings); err != nil || !bytes.Equal(source, original) {
+			t.Error("source status setting changed")
+		}
+	}
+}
+
+func TestStatuslineDefaultYieldsToProjectChoicesAndUncertainRoots(t *testing.T) {
+	for _, mode := range []string{"project", "local", "ancestor-local", "linked-worktree", "malformed", "linked-settings"} {
+		t.Run(mode, func(t *testing.T) {
+			cfg := profileConfig(t)
+			tokens, _ := gateway.NewTokens()
+			cfg.StatusExecutable, cfg.UIToken = runtimeProxy, tokens.UI
+			sourceRoot := cfg.Project
+			if mode == "ancestor-local" {
+				cfg.Project = filepath.Join(sourceRoot, "subdirectory")
+				if os.Mkdir(cfg.Project, 0700) != nil {
+					t.Fatal("cannot prepare nested owned project")
+				}
+			}
+			if os.Mkdir(filepath.Join(sourceRoot, ".claude"), 0700) != nil {
+				t.Fatal("cannot prepare owned project settings")
+			}
+			name := "settings.json"
+			if mode == "local" || mode == "ancestor-local" {
+				name = "settings.local.json"
+			}
+			path := filepath.Join(sourceRoot, ".claude", name)
+			switch mode {
+			case "linked-worktree":
+				writeSettings(t, filepath.Join(sourceRoot, ".git"), []byte("independent metadata must not be resolved"))
+			case "malformed":
+				writeSettings(t, path, []byte(`{"statusLine":`))
+			case "linked-settings":
+				target := filepath.Join(cfg.Home, "linked-choice.json")
+				writeSettings(t, target, []byte(`{}`))
+				if os.Symlink(target, path) != nil {
+					t.Fatal("cannot prepare owned settings link")
+				}
+			default:
+				writeSettings(t, path, []byte(`{"statusLine":{"type":"command","command":"independent project status"}}`))
+			}
+			p, err := launcher.PrepareClient(cfg)
+			if err != nil {
+				t.Fatal("optional display uncertainty blocked client preparation", err)
+			}
+			defer p.Close()
+			var user, host map[string]json.RawMessage
+			data, _ := os.ReadFile(filepath.Join(p.Path(), "client", "settings.json"))
+			if json.Unmarshal(data, &user) != nil || user["statusLine"] != nil {
+				t.Error("product display fields can merge into a project choice")
+			}
+			data, _ = os.ReadFile(p.SettingsPath())
+			if json.Unmarshal(data, &host) != nil || host["statusLine"] != nil || host["hooks"] == nil || host["env"] == nil {
+				t.Error("status suppression changed separate hooks or mandatory routing")
+			}
+		})
 	}
 }
 

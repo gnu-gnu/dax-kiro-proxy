@@ -6,6 +6,19 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D67 preserves existing user/project/local status commands instead of overriding them from the
+  command-line layer. An existing user choice stays exact; a bounded conservative project-source
+  check suppresses the entire optional default, preventing its refresh timer from merging into
+  another command. Unsafe/ambiguous roots and linked worktrees omit that default without blocking
+  client preparation or changing routing/hooks. Actual Claude 2.1.263 passes five scope/timer
+  controls: only the selected command runs, source bytes remain unchanged, and an event-only
+  project command runs once over 7.139s with no late poll. Existing/default status, startup ordering,
+  two-turn completion notices and disabled-hook regressions pass together in 47.718s; the separately
+  selected enabled user/project policy/hook case passes in 2.985s. All responses are local synthetic
+  fixtures, with no Kiro/model-provider calls. Applicable uncached race suites pass: launcher
+  23.325s, interop 21.563s and command 1.535s; whole-repository go vet, formatting, whitespace, build
+  and executable help pass. Dynamic/managed/custom status sources remain unverified. No dependency
+  changes; the development executable includes this correction.
 - D66 verifies the owned plugin tool with actual Claude 2.1.263 and independent fake ACP through
   the real gateway, schema worker, relay and session driver. Controlled interactive readiness then
   client allowance produces exactly one native call; a user PreToolUse refusal produces zero and
