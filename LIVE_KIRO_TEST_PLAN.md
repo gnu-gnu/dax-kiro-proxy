@@ -1661,3 +1661,42 @@ Private fixed-class logs under `.cache/history-review/`: `d96-idle-close-before.
 `d96-idle-close-after.log`, `d96-pending-32-waves.log`, `d96-full-regression.log`,
 `d96-native-policy-control.log`, `d96-live-resumed-allow.log` and `d96-vet.log`.
 The refreshed local artifact and its 139 offline byte checks are recorded in DEPENDENCY_REVIEW.md.
+
+## D97: root presence and unintended alias exclusion
+
+Use the unmodified pinned Claude 2.1.263 with disposable HOME/project/private profiles and a bounded
+authenticated local server. Kiro credit and binary opt-ins remain off. Eight streaming controls send
+only initialize/get_settings/get_context_usage, with 64 KiB frames, 32 total frames, five-second read
+deadlines and fifteen-second process lifetimes. Check exact effective exclusion arrays, original/
+alias path presence, unchanged owned HOME trees, successful native exit and absent owned groups/
+profiles. Model and token-count request counts must remain zero.
+
+The initial hypothesis test fails on empty and comment-only roots: both are absent without exclusions
+(3.98s test / 4.976s package). Separately named counterfactuals preserve that distinction, compare
+active plain/frontmatter/import-only roots with exact/glob-excluded roots, and add a pattern excluding
+only the relocated wrapper. All eight pass in 3.76s. Their absence observations never authorize a
+production exclusion decision.
+
+A separate two-launch natural/direct-alias comparison sends one synthetic local Messages request
+per launch, no external inference or tool effect. Its only exclusion is **/client/CLAUDE.md, which
+matches the private alias and not the owned original root. Natural execution retains root text and
+four import hops before project instructions; the alias loses that root and its imports, retaining
+personal rules and project instructions without duplicates. Both complete with group/profile cleanup,
+and candidate source trees/global JSON/import files remain unchanged. The control passes in 0.97s.
+
+```sh
+DAX_INTEROP_KIRO_CREDIT_OPT_IN=0 DAX_INTEROP_KIRO_BINARY= \
+  DAX_INTEROP_CLAUDE_BINARY=/Users/geunwooshim/.local/bin/claude \
+  go test -race -p 1 -count=1 -timeout 2m \
+  -run '^TestClaude(MemoryListingIsNotRootExclusionOracle|PersonalRootAliasOverExclusionCounterfactual)$' \
+  -v ./internal/interop
+```
+
+Combined race package 6.644s; existing native memory/control/alias/depth/additional-directory
+regressions pass in 22.858s. Logs: `.cache/history-review/d97-wrapper-oracle-initial.log`,
+`d97-exclusion-counterfactuals.log`, `d97-memory-regressions.log`, `d97-interop-regression.log` and
+`d97-vet.log`. Logs retain fixed categories, synthetic marker facts and counts only. The public
+[memory documentation](https://code.claude.com/docs/en/memory),
+[settings documentation](https://code.claude.com/docs/en/settings) and
+[CLI reference](https://code.claude.com/docs/en/cli-reference) were checked on 2026-09-10; no private
+client source or dependency is used. Production, dependencies and D96 artifact bytes do not change.

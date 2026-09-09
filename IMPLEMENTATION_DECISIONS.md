@@ -4445,3 +4445,37 @@ The 13,589,266-byte artifact records parent c121224 and vcs.modified=true, ident
 uncommitted source bytes rather than claiming a later commit. Its 139 byte checks pass; D87 remains
 an unchanged historical snapshot with its old executable retained privately. Release clearance and
 the remaining interoperability/soak gates remain open.
+
+## D97: distinguish native memory presence from exclusion policy
+
+Continue the personal-root compatibility investigation without installing a candidate. A private
+root wrapper imports the original personal CLAUDE.md only for local native context/settings
+inspection. Hypothesis: original path presence can decide whether the direct root alias should be
+excluded. Require initialized, correlated, bounded control replies, exact effective exclusions,
+zero model/token-count requests, unchanged owned source trees and joined process/profile cleanup.
+The public memory documentation describes absolute-path glob exclusions and imports; it does not
+define an absent context entry as proof of exclusion. No custom glob/instruction parser is added.
+
+The initial seven-case hypothesis test fails for empty and comment-only roots (3.98s test,
+4.976s package). Both lack an original context entry without any exclusion. Plain, frontmatter and
+import-only roots are present; exact and glob-excluded original roots are absent. Retain that red
+evidence. A separately named eight-case counterfactual additionally shows that excluding only the
+private wrapper hides both its own entry and the imported original. It passes in 3.76s with all
+eight zero-inference observations and clean ownership. Absence is not a native exclusion oracle.
+
+Also compare natural versus linked execution with the same exclusion **/client/CLAUDE.md. It matches
+only the owned private alias, not the original HOME/.claude/CLAUDE.md. The natural local Messages
+request includes unconditional root text and all four relative-import hops before project text;
+the linked candidate loses that root and every hop while retaining personal rules/project text.
+Both synthetic responses complete; the candidate leaves sources unchanged and both client groups/
+profiles are gone. This 0.97s counterfactual establishes the opposite direction from D77's original-
+path exclusion bypass. Merely adding exclusions for an alias cannot fix both directions.
+
+The combined counterfactual race package passes in 6.644s, and the existing memory/control/alias/
+depth/additional-directory regressions pass in 22.858s. These observations reject decision rules;
+they do not grant personal-memory acceptance or prove every native solution impossible. The
+production private profile, dependency selections and D96 artifact stay unchanged. Exact evidence
+and command bounds are recorded in LIVE_KIRO_TEST_PLAN.md.
+
+The final opt-ins-off interop race suite passes in 24.230s. Interop vet, formatting, whitespace
+and all 139 unchanged D96 artifact byte checks pass.

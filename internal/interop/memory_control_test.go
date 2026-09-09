@@ -25,11 +25,26 @@ import (
 // every CLI wire envelope. These independently authored read-only requests test the
 // pinned public executable as a black box. No SDK code or provider inference is used.
 func TestClaudeMemoryControlObservations(t *testing.T) {
+	observeMemoryControls(t, []string{"rule-plain", "rule-conditional", "rule-excluded", "user-alias", "user-alias-excluded"})
+}
+
+// Absence is not an exclusion oracle: empty/comment-only roots are absent without an
+// exclusion, and a pattern can suppress just the relocated wrapper. These are rejected
+// decision rules, not acceptance of a production root-memory adapter.
+func TestClaudeMemoryListingIsNotRootExclusionOracle(t *testing.T) {
+	observeMemoryControls(t, []string{
+		"wrapper-plain", "wrapper-frontmatter", "wrapper-excluded", "wrapper-glob-excluded",
+		"wrapper-empty", "wrapper-comments", "wrapper-import-only", "wrapper-alias-excluded",
+	})
+}
+
+func observeMemoryControls(t *testing.T, modes []string) {
+	t.Helper()
 	executable := os.Getenv("DAX_INTEROP_CLAUDE_BINARY")
 	if executable == "" {
 		t.Skip("set DAX_INTEROP_CLAUDE_BINARY for owned memory controls")
 	}
-	for _, mode := range []string{"rule-plain", "rule-conditional", "rule-excluded", "user-alias", "user-alias-excluded"} {
+	for _, mode := range modes {
 		t.Run(mode, func(t *testing.T) {
 			root, err := os.MkdirTemp("/private/tmp", "dax-memory-control-")
 			if err != nil {
@@ -43,8 +58,21 @@ func TestClaudeMemoryControlObservations(t *testing.T) {
 			}
 			original := filepath.Join(base, "CLAUDE.md")
 			content := "Independent root memory marker.\n"
-			if mode == "rule-conditional" {
+			wrapper := strings.HasPrefix(mode, "wrapper-")
+			if mode == "rule-conditional" || mode == "wrapper-frontmatter" {
 				content = "---\npaths:\n  - \"never-opened/*.go\"\n---\n" + content
+			}
+			if mode == "wrapper-empty" {
+				content = ""
+			}
+			if mode == "wrapper-comments" {
+				content = "<!-- Independent human-only note. -->\n"
+			}
+			if mode == "wrapper-import-only" {
+				content = "@../independent-import.txt\n"
+				if os.WriteFile(filepath.Join(home, "independent-import.txt"), []byte("Independent imported memory marker.\n"), 0600) != nil {
+					t.Fatal("fixture")
+				}
 			}
 			if os.WriteFile(original, []byte(content), 0600) != nil || os.WriteFile(filepath.Join(home, ".claude.json"), []byte("{}"), 0600) != nil {
 				t.Fatal("fixture")
@@ -54,6 +82,12 @@ func TestClaudeMemoryControlObservations(t *testing.T) {
 			excluded := strings.HasSuffix(mode, "excluded")
 			if excluded {
 				value["claudeMdExcludes"] = []string{original}
+			}
+			if mode == "wrapper-glob-excluded" {
+				value["claudeMdExcludes"] = []string{"**/home/.claude/CLAUDE.md"}
+			}
+			if mode == "wrapper-alias-excluded" {
+				value["claudeMdExcludes"] = []string{"**/client/CLAUDE.md"}
 			}
 			data, _ := json.Marshal(value)
 			if os.WriteFile(settings, data, 0600) != nil {
@@ -99,14 +133,18 @@ func TestClaudeMemoryControlObservations(t *testing.T) {
 			}
 			defer profile.Close()
 			destination := filepath.Join(profile.Path(), "client", "CLAUDE.md")
-			if !strings.HasPrefix(mode, "user-alias") {
+			if !strings.HasPrefix(mode, "user-alias") && !wrapper {
 				rules := filepath.Join(profile.Path(), "client", "rules")
 				if os.Mkdir(rules, 0700) != nil {
 					t.Fatal("fixture")
 				}
 				destination = filepath.Join(rules, "root.md")
 			}
-			if os.Symlink(original, destination) != nil {
+			if wrapper {
+				if os.WriteFile(destination, []byte("@~/.claude/CLAUDE.md\n"), 0600) != nil {
+					t.Fatal("fixture")
+				}
+			} else if os.Symlink(original, destination) != nil {
 				t.Fatal("fixture")
 			}
 			before := boundedPluginTree(t, home)
@@ -212,6 +250,12 @@ func TestClaudeMemoryControlObservations(t *testing.T) {
 			if excluded {
 				wantExcludes = []string{original}
 			}
+			if mode == "wrapper-glob-excluded" {
+				wantExcludes = []string{"**/home/.claude/CLAUDE.md"}
+			}
+			if mode == "wrapper-alias-excluded" {
+				wantExcludes = []string{"**/client/CLAUDE.md"}
+			}
 			if !settingsOK || effectiveErr != nil || !reflect.DeepEqual(excludes, wantExcludes) {
 				t.Error("live effective exclusions differ")
 			}
@@ -248,10 +292,21 @@ func TestClaudeMemoryControlObservations(t *testing.T) {
 			if mode == "rule-conditional" || mode == "rule-excluded" {
 				wantMemories = 0
 			}
+			rootVisible := wrapper && !excluded && mode != "wrapper-empty" && mode != "wrapper-comments"
+			if rootVisible {
+				wantMemories = 2
+				if mode == "wrapper-import-only" {
+					wantMemories++
+				}
+			}
+			if mode == "wrapper-alias-excluded" {
+				wantMemories = 0
+			}
 			if len(memories) != wantMemories {
 				t.Error("memory exclusion/conditional observation changed")
 			}
-			if originalListed != (mode == "rule-plain") || aliasListed != strings.HasPrefix(mode, "user-alias") || homeRelative || projectRelative {
+			aliasVisible := strings.HasPrefix(mode, "user-alias") || wrapper && mode != "wrapper-alias-excluded"
+			if originalListed != (mode == "rule-plain" || rootVisible) || aliasListed != aliasVisible || homeRelative || projectRelative {
 				t.Error("native memory path identity changed")
 			}
 			if !contextOK || modelRequests.Load() != 0 || counts.Load() != 0 {

@@ -100,17 +100,27 @@ func TestClaudeAdditionalDirectoryMemoryCounterfactual(t *testing.T) {
 	observePersonalCustomizationSources(t, personalSourceOptions{instructions: true, chainLength: 5, rootFrontmatter: true, modes: []string{"natural", "additional", "natural_excluded", "additional_excluded"}})
 }
 
+// Even if original exclusions were mapped onto an alias, a pattern matching only the
+// temporary path can hide otherwise active personal memory. No adapter is enabled.
+func TestClaudePersonalRootAliasOverExclusionCounterfactual(t *testing.T) {
+	observePersonalCustomizationSources(t, personalSourceOptions{
+		instructions: true, chainLength: 5, rootFrontmatter: true, privatePathExclusion: true,
+		modes: []string{"natural", "linked_alias_hidden"},
+	})
+}
+
 type personalSourceOptions struct {
-	instructions    bool
-	homePrefix      string
-	chainLength     int
-	rootFrontmatter bool
-	rulesOnly       bool
-	modes           []string
-	aliasExclusion  bool
-	exclusionScope  string
-	persistSession  bool
-	skipHistory     bool
+	instructions         bool
+	homePrefix           string
+	chainLength          int
+	rootFrontmatter      bool
+	rulesOnly            bool
+	modes                []string
+	aliasExclusion       bool
+	exclusionScope       string
+	persistSession       bool
+	skipHistory          bool
+	privatePathExclusion bool
 }
 
 func observePersonalCustomizationSources(t *testing.T, options personalSourceOptions) {
@@ -379,6 +389,9 @@ func observePersonalCustomizationSources(t *testing.T, options personalSourceOpt
 				excluded := strings.HasSuffix(mode, "_excluded")
 				read := strings.HasSuffix(mode, "_read")
 				source := map[string]any{"disableAllHooks": true}
+				if options.privatePathExclusion {
+					source["claudeMdExcludes"] = []string{"**/client/CLAUDE.md"}
+				}
 				if read {
 					source["permissions"] = map[string]any{"allow": []string{"Read(/" + readPath + ")"}, "deny": []string{"Bash", "Write", "Edit"}}
 				}
@@ -544,6 +557,13 @@ func observePersonalCustomizationSources(t *testing.T, options personalSourceOpt
 					}
 					wantOrder = append(append([]string{}, nativeOrder[2:]...), nativeOrder[0])
 				}
+				aliasHidden := mode == "linked_alias_hidden"
+				if aliasHidden {
+					if len(nativeOrder) != 8 {
+						t.Fatal("incomplete native alias-exclusion control")
+					}
+					wantOrder = nativeOrder[2:]
+				}
 				if instructions && !excluded && wantPersonal && !reflect.DeepEqual(wantOrder, seen.InstructionOrder) {
 					t.Error("native instruction ordering changed")
 				}
@@ -555,7 +575,7 @@ func observePersonalCustomizationSources(t *testing.T, options personalSourceOpt
 					if mode == "tilde" {
 						wantHops = []int{1, 2, 3} // Measured rejected wrapper defect, not product acceptance.
 					}
-					if excluded || additional {
+					if excluded || additional || aliasHidden {
 						wantHops = nil
 					}
 					if !reflect.DeepEqual(seen.PersonalHops, wantHops) {
@@ -578,7 +598,7 @@ func observePersonalCustomizationSources(t *testing.T, options personalSourceOpt
 				wantInstructions := instructions && wantPersonal && !excluded
 				// The rejected direct-link candidate demonstrably bypasses this original-path
 				// CLAUDE.md exclusion. Keep it as a counterfactual, never a successful adapter.
-				wantMemory := (wantInstructions || mode == "linked_excluded") && !options.rulesOnly
+				wantMemory := (wantInstructions || mode == "linked_excluded") && !options.rulesOnly && !aliasHidden
 				wantProjectMemory := instructions && !options.rulesOnly
 				if seen.PersonalInstructions != (wantMemory && !missingRootBody) || seen.PersonalImport != (wantMemory && !additional) || seen.PersonalRule != wantInstructions || seen.PersonalRuleImport != wantInstructions || seen.ProjectInstructions != wantProjectMemory || seen.ProjectImport != wantProjectMemory || seen.ProjectRule != instructions || seen.ProjectRuleImport != instructions || seen.Conditional != read || seen.PersonalConditional != read || seen.ProjectConditional != read || seen.ReadRequested != read || seen.ReadMatched != read {
 					t.Error("instruction/import scope or conditional rule activation changed")

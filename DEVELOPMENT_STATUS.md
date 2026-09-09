@@ -1,11 +1,20 @@
 # Development status and acceptance evidence
 
-Last updated: 2026-09-09. Overall objective: complete the standalone Go Kiro ACP proxy and launcher
+Last updated: 2026-09-10. Overall objective: complete the standalone Go Kiro ACP proxy and launcher
 contract described in PRODUCT_SPEC.md, including the full acceptance/release gates. This document
 does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D97 rules out a context-list absence oracle for personal root exclusions. The initial hypothesis
+  fails for empty/comment-only roots without an exclusion (3.98s test, 4.976s race package).
+  Eight separate counterfactual controls pass in 3.76s: active plain/frontmatter/import-only roots,
+  original exact/glob exclusions, empty/comment-only roots and an excluded private wrapper. All
+  use zero model/token-count requests and preserve sources/cleanup. A two-launch native/local-response
+  control passes in 0.97s: a private-path-only glob hides linked root text and four import hops that
+  remain active naturally. Combined race package 6.644s; existing memory regressions pass in 22.858s.
+  These are rejected-adapter observations, not completed personal-memory compatibility. Production,
+  dependencies and the D96 development artifact remain unchanged.
 - D96 removes the fixed one-second wait when closing an idle authenticated relay connection.
   An independent ready-peer regression fails at 1,018ms before the change and passes at 18ms after
   it; eight concurrent Close callers join cleanup without terminating the healthy ACP owner.

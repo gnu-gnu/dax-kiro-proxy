@@ -87,6 +87,10 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
   Any replacement must also preserve original settings and plugin registrations through interactive
   startup and native plugin management. A no-history print pass is insufficient (D80). Tests named
   counterfactual deliberately reproduce rejected adapter defects and do not satisfy this gate.
+  A replacement must handle both original-path exclusion and unintended exclusion of its relocated
+  path. Local context-list absence cannot identify exclusion: empty/comment-only roots are also
+  absent without a policy match. D97's controls reproduce these distinctions without enabling an
+  adapter; effective initial settings alone do not prove later dynamic-policy preservation.
 
 ## C. Anthropic compatibility
 

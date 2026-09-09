@@ -245,6 +245,9 @@ Tested adapters either bypass its original exclusion, lose one import hop or omi
 with path frontmatter. None is enabled. This remains a client-environment compatibility gap.
 D93 also rejects using the public additional-directory memory option as a substitute: the measured
 candidate loses the root's relative imports and moves its text after project instructions.
+D97 also rejects using absence from local context inspection as an exclusion decision: empty and
+comment-only roots disappear without an exclusion. A pattern matching only the temporary root path
+can hide otherwise active personal instructions, so adding alias exclusions alone is insufficient.
 Further controls (D80) reject redirecting the settings-stage configuration path to the original
 HOME: history suppression helps finite print runs, but interactive startup still changes original
 settings and plugin uninstall changes the original registration. The private profile stays in use.
