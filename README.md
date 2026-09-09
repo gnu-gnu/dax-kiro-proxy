@@ -55,6 +55,10 @@ or model prompt. `--kiro` and `--client` accept absolute executable paths. Priva
 defaults to `~/.dax-kiro-proxy`; `--state-dir` selects a different private directory. Temporary runtime
 files are removed when the command finishes. Source client settings are not modified.
 
+The local Kiro main/helper now report 2.21.2. Production preflight still rejects that version;
+D58's separate read-only tests admit exactly 2.21.2 for resource observations without transferring
+2.21.1 execution-policy evidence. A version migration and fresh applicable checks remain necessary.
+
 `doctor` succeeding means its checks completed; inspect `launch_available` and `policy` separately.
 The current `run` command stops with exit 3 after successful preflight because effective Kiro execution
 restrictions remain unverified. There is no override. Its full startup/runtime/shutdown composition is
@@ -70,6 +74,11 @@ the Write content/permission screen is checked before input. Bare refusal now ve
 the existing deadline and safe recreation for a following question, using actual Claude with fake
 ACP. Remaining isolation paths and real Kiro variants still need verification; these results do not
 enable run.
+
+On Kiro 2.21.2, seven initial-session file-resource controls pass: active inherited files disappear
+when default-resource inheritance is disabled, including with a separate session workspace. An
+override in the process launch directory can re-enable inheritance; the launch directory must stay
+owned and isolated. Skills, other resource sources and reload/load need separate evidence.
 
 Development launch and release readiness are separate milestones in ACCEPTANCE_SPEC.md. The next
 priority is effective Kiro isolation and real client tool approval/denial/hook round trips, followed

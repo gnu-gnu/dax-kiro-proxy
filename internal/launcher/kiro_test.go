@@ -81,9 +81,11 @@ func TestKiroPreflightNeverConfusesInvalidOutputOrTimeoutWithKnownLogin(t *testi
 	if _, err := launcher.CheckKiro(t.Context(), f, cfg); !errors.Is(err, launcher.ErrLoginCheck) {
 		t.Fatal("timeout was treated as identity evidence")
 	}
-	f = &preflightFixture{version: "3.0.0"}
-	if _, err := launcher.CheckKiro(t.Context(), f, cfg); !errors.Is(err, launcher.ErrKiroVersion) || len(f.calls) != 1 {
-		t.Fatal("unsupported Kiro version reached login lookup")
+	for _, version := range []string{"2.21.2", "3.0.0"} {
+		f = &preflightFixture{version: version}
+		if _, err := launcher.CheckKiro(t.Context(), f, cfg); !errors.Is(err, launcher.ErrKiroVersion) || len(f.calls) != 1 {
+			t.Fatal("unsupported Kiro version reached login lookup")
+		}
 	}
 	cfg.ScopeKey = [32]byte{}
 	if _, err := launcher.CheckKiro(t.Context(), f, cfg); !errors.Is(err, launcher.ErrConfig) {

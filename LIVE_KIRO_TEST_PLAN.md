@@ -1,5 +1,10 @@
 # Bounded Kiro interoperability experiments
 
+The installed Kiro main/helper now report 2.21.2. The 2.21.1 live results below are historical evidence
+for that version. Production preflight still requires 2.21.1; D58's narrow test-only admission for
+2.21.2 cannot run model, relay, catalog or native-effect variants. No 2.21.2 model prompt has run as
+part of that observation. Version migration and applicable fresh checks precede further live use.
+
 The D57 bare-refusal controls use actual Claude and independent fake ACP only. One observes silent
 refusal until the unchanged 45-second turn deadline, with a 55-second test terminal lifetime; another
 observes one following request without dispatch; a third admits one new question after proving that

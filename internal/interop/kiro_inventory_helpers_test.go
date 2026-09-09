@@ -26,6 +26,13 @@ var (
 // Name presence is not permission status or evidence that a native tool was denied. The in-memory
 // session identifier is excluded from live diagnostics. This report never enables production policy.
 type inventoryReport struct {
+	contextFiles      map[string]string
+	contextFile       string
+	contextDescriptor json.RawMessage
+	contextQueried    bool
+	ContextAvailable  bool
+	ContextFields     map[string]string
+	ContextMetaShape  map[string]string
 	// Kept only in memory for a separately opted-in prompt experiment, never in live diagnostics.
 	session                                                            string
 	SessionCreated, Advertised, ToolsAvailable, QuerySent, Success     bool
@@ -45,6 +52,123 @@ type inventoryReport struct {
 	MCPMatches                                                         map[string]int
 	ToolMatches                                                        map[string]bool
 	ModelCatalog                                                       inventoryCatalogReport
+}
+
+type contextShapeReport struct {
+	RelativeAgentMatched         bool
+	AbsoluteNames, RelativeNames int
+	OwnedMatches                 map[string]bool
+	Items, MatchedItems          int
+	ContextTokens                float64
+	OwnedFileMatched             bool
+	QuerySent, Success           bool
+	Verbose                      bool
+	Bytes                        int
+	Shape                        map[string]string
+}
+
+// This is a single read-only wire experiment, not a generic private-command dispatcher.
+func readOnlyContextShow(ctx context.Context, client *acp.Client, inventory *inventoryReport) (contextShapeReport, error) {
+	report := contextShapeReport{Shape: map[string]string{}, OwnedMatches: map[string]bool{}}
+	if inventory == nil || !inventory.ContextAvailable || inventory.contextQueried || inventory.session == "" {
+		return report, errInventoryShape
+	}
+	fields, err := ndjson.Object(inventory.contextDescriptor)
+	if err != nil {
+		return report, errInventoryShape
+	}
+	meta, err := ndjson.Object(fields["meta"])
+	var commands []string
+	if err != nil || json.Unmarshal(meta["subcommands"], &commands) != nil || len(commands) > 32 {
+		return report, errInventoryShape
+	}
+	show := false
+	for _, command := range commands {
+		show = show || command == "show"
+	}
+	if !show {
+		return report, errInventoryShape
+	}
+	if err := ctx.Err(); err != nil {
+		return report, err
+	}
+	inventory.contextQueried = true
+	report.QuerySent = true
+	raw, err := client.Call(ctx, "_kiro.dev/commands/execute", map[string]any{"sessionId": inventory.session, "command": map[string]any{"command": "context", "args": map[string]any{"subcommand": "show", "verbose": true}}})
+	if err != nil {
+		return report, err
+	}
+	report.Bytes = len(raw)
+	if len(raw) > 64<<10 {
+		return report, errInventoryLimit
+	}
+	fields, err = ndjson.Object(raw)
+	if err != nil || len(fields) > 32 {
+		return report, errInventoryShape
+	}
+	if string(fields["success"]) != "true" && string(fields["success"]) != "false" {
+		return report, errInventoryShape
+	}
+	report.Success = string(fields["success"]) == "true"
+	if data, err := ndjson.Object(fields["data"]); err == nil {
+		report.Verbose = string(data["verbose"]) == "true"
+		breakdown, err := ndjson.Object(data["breakdown"])
+		if err != nil {
+			return report, errInventoryShape
+		}
+		files, err := ndjson.Object(breakdown["contextFiles"])
+		if err != nil || inventoryKind(files["tokens"]) != "number" || json.Unmarshal(files["tokens"], &report.ContextTokens) != nil || report.ContextTokens < 0 || report.ContextTokens > 1e9 {
+			return report, errInventoryShape
+		}
+		var items []json.RawMessage
+		if len(files["items"]) > 0 && (inventoryKind(files["items"]) != "array" || json.Unmarshal(files["items"], &items) != nil) || len(items) > 128 {
+			return report, errInventoryShape
+		}
+		report.Items = len(items)
+		for _, raw := range items {
+			item, err := ndjson.Object(raw)
+			name, valid := inventoryString(item["name"], 4096)
+			if err != nil || !valid || string(item["matched"]) != "true" && string(item["matched"]) != "false" {
+				return report, errInventoryShape
+			}
+			if string(item["matched"]) == "true" {
+				report.MatchedItems++
+				path := filepath.Clean(strings.TrimPrefix(name, "file://"))
+				if filepath.IsAbs(path) {
+					report.AbsoluteNames++
+				} else {
+					report.RelativeNames++
+					report.RelativeAgentMatched = report.RelativeAgentMatched || path == "AGENTS.md"
+				}
+				if inventory.contextFile != "" && path == inventory.contextFile {
+					report.OwnedFileMatched = true
+				}
+				for label, expected := range inventory.contextFiles {
+					if path == expected {
+						report.OwnedMatches[label] = true
+					}
+				}
+			}
+		}
+	} else {
+		return report, errInventoryShape
+	}
+	if err := observeContextMeta(raw, "result", 0, report.Shape); err != nil {
+		return report, err
+	}
+	for {
+		n, available, err := client.TryNext()
+		if err != nil {
+			return report, err
+		}
+		if !available {
+			break
+		}
+		if err := inventory.observe(n, inventory.session); err != nil {
+			return report, err
+		}
+	}
+	return report, nil
 }
 
 type inventoryPrerequisite struct {
@@ -322,6 +446,24 @@ func (r *inventoryReport) observe(n acp.Notification, session string) error {
 				return errInventoryShape
 			}
 			seen[name] = true
+			if name == "context" {
+				r.ContextAvailable = true
+				r.contextDescriptor = append(json.RawMessage(nil), raw...)
+				r.ContextFields = map[string]string{}
+				if len(item) > 32 {
+					return errInventoryLimit
+				}
+				for key, value := range item {
+					if !inventoryMember(key) {
+						return errInventoryShape
+					}
+					r.ContextFields[key] = inventoryKind(value)
+				}
+				r.ContextMetaShape = map[string]string{}
+				if err := observeContextMeta(item["meta"], "meta", 0, r.ContextMetaShape); err != nil {
+					return err
+				}
+			}
 		}
 		r.Commands = len(commands)
 		r.ToolsAvailable = seen["tools"]
@@ -343,6 +485,51 @@ func (r *inventoryReport) observe(n acp.Notification, session string) error {
 			var text string
 			if string(content["type"]) == `"text"` && inventoryKind(content["text"]) == "string" && json.Unmarshal(content["text"], &text) == nil {
 				r.observeText(text)
+			}
+		}
+	}
+	return nil
+}
+
+// Retain schema member paths and kinds, not descriptions, defaults, or arbitrary string values.
+func observeContextMeta(raw json.RawMessage, path string, depth int, shape map[string]string) error {
+	if len(shape) >= 128 || len(path) > 256 {
+		return errInventoryLimit
+	}
+	kind := inventoryKind(raw)
+	shape[path] = kind
+	if depth >= 6 {
+		return nil
+	}
+	if kind == "object" {
+		fields, err := ndjson.Object(raw)
+		if err != nil || len(fields) > 32 {
+			return errInventoryShape
+		}
+		for key, value := range fields {
+			if key == "description" || key == "default" || key == "examples" {
+				continue
+			}
+			if !inventoryMember(key) {
+				return errInventoryShape
+			}
+			if err := observeContextMeta(value, path+"."+key, depth+1, shape); err != nil {
+				return err
+			}
+		}
+	}
+	if kind == "array" {
+		var values []json.RawMessage
+		if json.Unmarshal(raw, &values) != nil || len(values) > 32 {
+			return errInventoryShape
+		}
+		for _, value := range values {
+			if inventoryKind(value) == "object" {
+				if err := observeContextMeta(value, path+"[]", depth+1, shape); err != nil {
+					return err
+				}
+			} else if string(value) == `"show"` {
+				shape[path+".show"] = "enum"
 			}
 		}
 	}

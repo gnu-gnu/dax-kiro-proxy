@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -76,6 +77,13 @@ func inventoryFixture(mode string) {
 					owner = "fixture-other-session"
 				}
 				commands := []any{map[string]any{"name": name}}
+				if strings.HasPrefix(mode, "inventory-context") {
+					subcommands := []string{"show", "add"}
+					if mode == "inventory-context-no-show" {
+						subcommands = []string{"add"}
+					}
+					commands = append(commands, map[string]any{"name": "context", "meta": map[string]any{"subcommands": subcommands}})
+				}
 				if mode == "inventory-duplicate" {
 					commands = append(commands, map[string]any{"name": "tools"})
 				}
@@ -95,7 +103,7 @@ func inventoryFixture(mode string) {
 			reply(q.ID, result)
 			stage++
 		case stage == 2 && q.Method == "_kiro.dev/commands/execute":
-			if mode != "inventory-ready" && mode != "inventory-other-cwd" && mode != "inventory-catalog" && mode != "inventory-listed" && mode != "inventory-mcp-ready" && mode != "inventory-mcp-multiple" && mode != "inventory-mcp-late" && mode != "inventory-rejected" && mode != "inventory-bad-result" {
+			if !strings.HasPrefix(mode, "inventory-context") && mode != "inventory-ready" && mode != "inventory-other-cwd" && mode != "inventory-catalog" && mode != "inventory-listed" && mode != "inventory-mcp-ready" && mode != "inventory-mcp-multiple" && mode != "inventory-mcp-late" && mode != "inventory-rejected" && mode != "inventory-bad-result" {
 				os.Exit(73)
 			}
 			var p struct {
@@ -105,7 +113,22 @@ func inventoryFixture(mode string) {
 					Args map[string]json.RawMessage `json:"args"`
 				} `json:"command"`
 			}
-			if json.Unmarshal(q.Params, &p) != nil || p.Session != session || p.Command.Name != "tools" || p.Command.Args == nil || len(p.Command.Args) != 0 || queries != 0 {
+			if json.Unmarshal(q.Params, &p) != nil || p.Session != session {
+				os.Exit(74)
+			}
+			if strings.HasPrefix(mode, "inventory-context") && mode != "inventory-context-no-show" && queries == 1 && p.Command.Name == "context" && len(p.Command.Args) == 2 && string(p.Command.Args["subcommand"]) == `"show"` && string(p.Command.Args["verbose"]) == "true" {
+				queries++
+				files := map[string]any{"tokens": 23, "items": []any{map[string]any{"name": "/owned/marker", "matched": true, "tokens": 23, "content": "private-resource-fixture"}}}
+				if mode == "inventory-context-null-tokens" {
+					files["tokens"] = nil
+				}
+				if mode == "inventory-context-null-items" {
+					files["items"] = nil
+				}
+				reply(q.ID, map[string]any{"success": true, "data": map[string]any{"verbose": true, "breakdown": map[string]any{"contextFiles": files}}})
+				continue
+			}
+			if p.Command.Name != "tools" || p.Command.Args == nil || len(p.Command.Args) != 0 || queries != 0 {
 				os.Exit(74)
 			}
 			queries++

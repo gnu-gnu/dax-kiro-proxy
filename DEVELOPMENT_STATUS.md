@@ -6,6 +6,18 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D58 observes the installed Kiro main/helper reporting 2.21.2; the reason for the change is unknown.
+  Production preflight remains pinned to 2.21.1 and rejects 2.21.2 before account lookup. The separate
+  empty-agent read-only observer admits exactly 2.21.2 and sends no model prompt. One explicit file
+  resource and seven default-resource controls pass: active AGENTS/steering entries become absent
+  under suppression, including separate launch/session directories. Only the launch directory's
+  settings override re-enables inheritance in this matrix. The absolute steering path identifies
+  that directory; AGENTS.md is reported relatively and is not assigned an invented absolute base.
+  All owned source bytes and observed cleanup checks pass. The seven-case race package passes in
+  37.905s; the explicit-resource case passes in 6.181s. Skills, other default roots, reload/load,
+  fresh version-specific native effects and actual Kiro-approved tools remain unverified.
+  Final uncached race suites pass: interop 24.291s, ACP 5.689s and launcher 21.469s, with installed
+  opt-ins off. Whole-repository go vet, formatting and whitespace checks also pass.
 - D57 fixes the next-question path after bare permission refusal. The client defers its matching
   error result until the next question and combines it with new text; no immediate cancellation
   request or Stop/PostToolBatch hook was observed. Exact owner/history/result validation now retires

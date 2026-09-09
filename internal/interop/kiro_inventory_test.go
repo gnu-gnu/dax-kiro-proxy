@@ -50,6 +50,10 @@ func TestKiroReadOnlyToolsInventoryProtocol(t *testing.T) {
 		wantErr        error
 	}{
 		{"ready", true, true, nil},
+		{"context", true, true, nil},
+		{"context-null-tokens", true, true, nil},
+		{"context-null-items", true, true, nil},
+		{"context-no-show", true, true, nil},
 		{"other-cwd", true, true, nil},
 		{"catalog", true, true, nil},
 		{"catalog-mismatch", false, false, errInventoryCatalog},
@@ -109,6 +113,21 @@ func TestKiroReadOnlyToolsInventoryProtocol(t *testing.T) {
 			}
 			if test.mode == "catalog" && (!report.ModelCatalog.Decoded || report.ModelCatalog.AliasMatches != 3 || !report.ModelCatalog.ACPAuto) {
 				t.Fatal("the actual session result did not pass the catalog comparison")
+			}
+			if strings.HasPrefix(test.mode, "context") {
+				report.contextFile = "/owned/marker"
+				got, err := readOnlyContextShow(ctx, client, &report)
+				encoded, _ := json.Marshal(got)
+				if test.mode != "context" {
+					if !errors.Is(err, errInventoryShape) || got.QuerySent != (test.mode != "context-no-show") {
+						t.Fatal("invalid context evidence was accepted or unadvertised query dispatched", err)
+					}
+				} else if err != nil || !got.Success || !got.QuerySent || !got.Verbose || got.MatchedItems != 1 || !got.OwnedFileMatched || got.ContextTokens != 23 || strings.Contains(string(encoded), "private-resource-fixture") || strings.Contains(string(encoded), "/owned/marker") {
+					t.Fatal("context observation failed or retained content", err)
+				}
+				if _, err := readOnlyContextShow(ctx, client, &report); !errors.Is(err, errInventoryShape) {
+					t.Fatal("context query budget was not enforced")
+				}
 			}
 			if test.mode == "ready" && (report.DataKinds["tools"] != "array" || report.DataSizes["tools"] != 0) {
 				t.Fatal("bounded result shape was not observed")
@@ -173,6 +192,59 @@ func TestInventoryDiagnosticBoundsAndPrivacy(t *testing.T) {
 	}
 	if !o.Error(401, "login required", nil) {
 		t.Fatal("account failure classification changed")
+	}
+}
+
+func TestContextAdvertisementKeepsOnlyProtocolShape(t *testing.T) {
+	r := inventoryReport{NotificationKinds: map[string]int{}}
+	raw := json.RawMessage(`{"sessionId":"owned-session","commands":[{"name":"context","description":"private-resource-content","argsSchema":{"type":"object","properties":{"action":{"type":"string","enum":["show","add"]}}}}]}`)
+	if err := r.observe(acp.Notification{Method: "_kiro.dev/commands/available", Params: raw}, "owned-session"); err != nil {
+		t.Fatal(err)
+	}
+	if !r.ContextAvailable || r.ContextFields["argsSchema"] != "object" || len(r.contextDescriptor) == 0 {
+		t.Fatal("context descriptor was not observed")
+	}
+	encoded, _ := json.Marshal(r.ContextFields)
+	if strings.Contains(string(encoded), "private-resource-content") {
+		t.Fatal("description entered retained shape diagnostics")
+	}
+}
+
+func TestKiroPinnedContextCommandAdvertisement(t *testing.T) {
+	executable := os.Getenv("DAX_INTEROP_KIRO_BINARY")
+	if executable == "" {
+		t.Skip("set DAX_INTEROP_KIRO_BINARY for an owned context descriptor observation; no model prompt")
+	}
+	observePinnedInventory(t, executable, []string{}, []string{}, "", inventoryVariant{version: "2.21.2"})
+}
+
+func TestKiroPinnedReadOnlyContextShow(t *testing.T) {
+	executable := os.Getenv("DAX_INTEROP_KIRO_BINARY")
+	if executable == "" {
+		t.Skip("set DAX_INTEROP_KIRO_BINARY for owned context show; no model prompt")
+	}
+	observePinnedInventory(t, executable, []string{}, []string{}, "", inventoryVariant{version: "2.21.2", context: true})
+}
+
+func TestKiroPinnedExplicitResourceContext(t *testing.T) {
+	executable := os.Getenv("DAX_INTEROP_KIRO_BINARY")
+	if executable == "" {
+		t.Skip("set DAX_INTEROP_KIRO_BINARY for owned resource context inspection; no model prompt")
+	}
+	observePinnedInventory(t, executable, []string{}, []string{}, "", inventoryVariant{version: "2.21.2", context: true, resource: true})
+}
+
+func TestKiroPinnedDefaultResourceInheritance(t *testing.T) {
+	executable := os.Getenv("DAX_INTEROP_KIRO_BINARY")
+	if executable == "" {
+		t.Skip("set DAX_INTEROP_KIRO_BINARY for owned resource inclusion/exclusion; no model prompt")
+	}
+	for _, mode := range []string{"inherit", "suppress", "split-session-only", "split-inherit", "split-suppress", "workspace-override", "launch-override"} {
+		if !t.Run(mode, func(t *testing.T) {
+			observePinnedInventory(t, executable, []string{}, []string{}, "", inventoryVariant{version: "2.21.2", context: true, resourceControl: mode})
+		}) {
+			return
+		}
 	}
 }
 
@@ -255,6 +327,11 @@ func observePinnedToolsInventory(t *testing.T, executable string, declaredTools,
 }
 
 type inventoryVariant struct {
+	resourceControl string
+	// Exact test-only version admission for new read-only observations; no production policy grant.
+	version     string
+	context     bool
+	resource    bool
 	sources     *mcpScopeProbe
 	directories *inventoryDirectoryProbe
 	catalog     bool
@@ -263,6 +340,9 @@ type inventoryVariant struct {
 
 func observePinnedInventory(t *testing.T, executable string, declaredTools, listedTools []string, relayExecutable string, variant inventoryVariant) {
 	t.Helper()
+	if variant.version != "" && (variant.version != "2.21.2" || len(declaredTools) != 0 || relayExecutable != "" || variant.native != nil || variant.catalog || variant.sources != nil || variant.directories != nil) {
+		t.Fatal("new-version observation must remain an empty-agent read-only probe")
+	}
 	if variant.directories != nil && (variant.sources != nil || relayExecutable != "") {
 		t.Fatal("directory controls require the separate no-MCP inventory setup")
 	}
@@ -341,6 +421,82 @@ func observePinnedInventory(t *testing.T, executable string, declaredTools, list
 	if os.WriteFile(filepath.Join(configuration, "settings", "cli.json"), []byte(`{"chat.disableInheritingDefaultResources":true}`), 0600) != nil {
 		t.Fatal("cannot write owned inventory configuration")
 	}
+	if variant.resourceControl != "" {
+		mode := variant.resourceControl
+		if mode != "inherit" && mode != "suppress" && mode != "split-session-only" && mode != "split-inherit" && mode != "split-suppress" && mode != "workspace-override" && mode != "launch-override" {
+			t.Fatal("unknown owned resource control")
+		}
+		if !variant.context || variant.version != "2.21.2" || variant.resource {
+			t.Fatal("resource control cannot share another probe")
+		}
+		if strings.HasPrefix(mode, "split-") || mode == "workspace-override" || mode == "launch-override" {
+			sessionDirectory = filepath.Join(root, "resource-workspace")
+		}
+		paths := []string{filepath.Join(sessionDirectory, "AGENTS.md"), filepath.Join(sessionDirectory, ".kiro", "steering", "owned-default.md")}
+		if sessionDirectory != cwd && mode != "split-session-only" {
+			paths = append(paths, filepath.Join(cwd, "AGENTS.md"), filepath.Join(cwd, ".kiro", "steering", "owned-default.md"))
+		}
+		before := map[string][]byte{}
+		for _, path := range paths {
+			if os.MkdirAll(filepath.Dir(path), 0700) != nil {
+				t.Fatal("cannot prepare resource workspace")
+			}
+			content := []byte(strings.Repeat("Independent inherited context fixture.\n", 200))
+			if os.WriteFile(path, content, 0600) != nil {
+				t.Fatal("cannot seed owned default resource")
+			}
+			before[path] = content
+		}
+		settingsPath := filepath.Join(configuration, "settings", "cli.json")
+		disabled := !strings.HasSuffix(mode, "inherit") && mode != "split-session-only"
+		settings, _ := json.Marshal(map[string]bool{"chat.disableInheritingDefaultResources": disabled})
+		if os.WriteFile(settingsPath, settings, 0600) != nil {
+			t.Fatal("cannot write resource inheritance setting")
+		}
+		before[settingsPath] = settings
+		if mode == "workspace-override" || mode == "launch-override" {
+			directory := sessionDirectory
+			if mode == "launch-override" {
+				directory = cwd
+			}
+			path := filepath.Join(directory, ".kiro", "settings", "cli.json")
+			value := []byte(`{"chat.disableInheritingDefaultResources":false}`)
+			if os.MkdirAll(filepath.Dir(path), 0700) != nil || os.WriteFile(path, value, 0600) != nil {
+				t.Fatal("cannot seed owned workspace override")
+			}
+			before[path] = value
+		}
+		before[filepath.Join(cwd, ".kiro", "agents", name+".json")] = readOwnedInventoryAgent(t, filepath.Join(cwd, ".kiro", "agents", name+".json"))
+		defer func() {
+			for path, content := range before {
+				if string(readOwnedInventoryAgent(t, path)) != string(content) {
+					t.Error("resource control source changed")
+				}
+			}
+		}()
+	}
+	if variant.resource {
+		resourcePath := filepath.Join(root, "owned-context.txt")
+		content := []byte(strings.Repeat("Independent context fixture.\n", 200))
+		if os.WriteFile(resourcePath, content, 0600) != nil {
+			t.Fatal("cannot prepare owned context resource")
+		}
+		agentPath := filepath.Join(cwd, ".kiro", "agents", name+".json")
+		var agent map[string]json.RawMessage
+		if json.Unmarshal(readOwnedInventoryAgent(t, agentPath), &agent) != nil {
+			t.Fatal("cannot read owned context agent")
+		}
+		agent["resources"], _ = json.Marshal([]string{"file://" + resourcePath})
+		raw, _ := json.Marshal(agent)
+		if os.WriteFile(agentPath, raw, 0600) != nil {
+			t.Fatal("cannot write owned context agent")
+		}
+		defer func() {
+			if string(readOwnedInventoryAgent(t, resourcePath)) != string(content) || string(readOwnedInventoryAgent(t, agentPath)) != string(raw) {
+				t.Error("context sources changed during observation")
+			}
+		}()
+	}
 	nativePolicies := map[string][]byte{}
 	if variant.native != nil {
 		for _, path := range []string{filepath.Join(cwd, ".kiro", "agents", name+".json"), filepath.Join(configuration, "settings", "cli.json")} {
@@ -377,7 +533,24 @@ func observePinnedInventory(t *testing.T, executable string, declaredTools, list
 		return result, err
 	})
 	kiroConfig := launcher.KiroConfig{Executable: executable, Home: os.Getenv("HOME"), Directory: cwd, ScopeKey: key}
-	info, err := launcher.CheckKiro(ctx, observed, kiroConfig)
+	var info launcher.KiroInfo
+	if variant.version == "" {
+		info, err = launcher.CheckKiro(ctx, observed, kiroConfig)
+	} else {
+		// Verify the installed pair without granting it production preflight or model admission.
+		info = launcher.KiroInfo{Executable: executable, Helper: filepath.Join(filepath.Dir(executable), "kiro-cli-chat"), Version: variant.version}
+		for i, path := range []string{info.Executable, info.Helper} {
+			label := "kiro-cli"
+			if i == 1 {
+				label = "kiro-cli-chat"
+			}
+			result, checkErr := observed.Run(ctx, childproc.Command{Executable: path, Directory: cwd, Args: []string{"--version"}, Environment: []string{"HOME=" + os.Getenv("HOME"), "PATH=" + filepath.Dir(executable) + ":/usr/bin:/bin:/usr/sbin:/sbin", "TMPDIR=" + scratch, "TERM=dumb", "LANG=en_US.UTF-8"}})
+			if checkErr != nil || result.ExitCode != 0 || strings.TrimSpace(string(result.Stdout)) != label+" "+variant.version {
+				err = launcher.ErrKiroVersion
+				break
+			}
+		}
+	}
 	if err != nil {
 		t.Fatalf("inventory preflight failed: %v", err)
 	}
@@ -411,6 +584,42 @@ func observePinnedInventory(t *testing.T, executable string, declaredTools, list
 		defer stopInventory()
 	}
 	report, callErr := readOnlyToolsInventoryAfter(inventoryContext, client, sessionDirectory, 3*time.Second, required)
+	if variant.context {
+		if variant.resourceControl != "" {
+			report.contextFiles = map[string]string{"agent": filepath.Join(sessionDirectory, "AGENTS.md"), "steering": filepath.Join(sessionDirectory, ".kiro", "steering", "owned-default.md")}
+			if sessionDirectory != cwd {
+				report.contextFiles["launch_agent"] = filepath.Join(cwd, "AGENTS.md")
+				report.contextFiles["launch_steering"] = filepath.Join(cwd, ".kiro", "steering", "owned-default.md")
+			}
+		}
+		if variant.resource {
+			report.contextFile = filepath.Join(root, "owned-context.txt")
+		}
+		if callErr != nil || !report.Success {
+			t.Error("context prerequisites failed")
+		} else {
+			contextReport, contextErr := readOnlyContextShow(ctx, client, &report)
+			t.Logf("context_show=%+v, failure=%s", contextReport, kiroSetupFailure(contextErr))
+			if contextErr != nil || !contextReport.Success {
+				t.Error("read-only context-show wire observation failed")
+			}
+			if variant.resource && (!contextReport.Verbose || contextReport.MatchedItems != 1 || !contextReport.OwnedFileMatched || contextReport.ContextTokens <= 0) {
+				t.Error("explicit resource inclusion was not established")
+			}
+			if variant.resourceControl != "" {
+				mode := variant.resourceControl
+				positive := strings.HasSuffix(mode, "inherit") || mode == "launch-override"
+				matched := (contextReport.OwnedMatches["agent"] || contextReport.RelativeAgentMatched) && contextReport.OwnedMatches["steering"]
+				if sessionDirectory != cwd {
+					matched = (contextReport.OwnedMatches["launch_agent"] || contextReport.RelativeAgentMatched) && contextReport.OwnedMatches["launch_steering"] && !contextReport.OwnedMatches["agent"] && !contextReport.OwnedMatches["steering"]
+				}
+				t.Logf("resource_control=%s, owned_matches=%v, matched_items=%d, context_tokens=%v", mode, contextReport.OwnedMatches, contextReport.MatchedItems, contextReport.ContextTokens)
+				if !contextReport.Verbose || contextReport.RelativeNames != btoi(contextReport.RelativeAgentMatched) || positive && (!matched || contextReport.MatchedItems != 2 || contextReport.ContextTokens <= 0) || !positive && (contextReport.MatchedItems != 0 || contextReport.ContextTokens != 0) {
+					t.Error("default-resource inclusion or exclusion was not established")
+				}
+			}
+		}
+	}
 	var nativeErr error
 	if variant.native != nil {
 		if callErr != nil || !report.Success || !report.AliasMatched || report.DataSizes["tools"] != 1 || len(report.ListedNativeNames) != 0 || !report.ModelCatalog.CLIAuto || !report.ModelCatalog.ACPAuto {
@@ -466,6 +675,7 @@ func observePinnedInventory(t *testing.T, executable string, declaredTools, list
 		report.SessionCreated, report.Advertised, report.Commands, report.ToolsAvailable, report.QuerySent, report.Success, promptSent, report.ResultBytes, report.ResultKinds, report.UnknownResultFields, report.Notifications, report.NotificationKinds, report.TextBytes, report.NativeNames,
 		closeErr == nil && groupGone && runner.Active() == 0, time.Since(started).Milliseconds())
 	t.Logf("declared_tool_count=%d, data_kinds=%v, data_container_sizes=%v, tool_entry_kinds=%v, listed_native_names=%v", len(declaredTools), report.DataKinds, report.DataSizes, report.ToolEntryKinds, report.ListedNativeNames)
+	t.Logf("context_command_advertised=%v, context_descriptor_shape=%v, context_metadata_shape=%v", report.ContextAvailable, report.ContextFields, report.ContextMetaShape)
 	if variant.catalog {
 		t.Logf("catalog_comparison=%+v, model_selection_sent=false, model_prompt_sent=false", report.ModelCatalog)
 		if !report.ModelCatalog.Decoded || !report.ModelCatalog.CLIAuto || !report.ModelCatalog.ACPAuto {

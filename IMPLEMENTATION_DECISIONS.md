@@ -2009,3 +2009,85 @@ permission-rule/hook cases, five interactive approval/comment-denial/no-input ca
 next-request observation and actual recovery. Recovery again verifies old-owner retirement before
 replacement and no denied effect (7.27s). The separate unchanged-deadline result above remains the
 deadline evidence; it was not rerun merely to repeat a passing test.
+
+## D58: initial file-resource inheritance on installed Kiro 2.21.2 (review R06)
+
+Both installed Kiro executables now report 2.21.2. The cause of this change was not observed.
+The first new observation failed the production 2.21.1 version check before ACP startup; it did
+not establish a resource failure. Production preflight and execution-policy admission remain
+unchanged. A separate test-only exact 2.21.2 check verifies both executables and admits only owned
+empty-agent read-only observations. It cannot enable relay, catalog, native-effect or model variants.
+Existing 2.21.1 live evidence does not automatically verify this version.
+
+The public [context documentation](https://kiro.dev/docs/cli/chat/context/),
+[agent configuration reference](https://kiro.dev/docs/cli/custom-agents/configuration-reference/)
+and [slash-command reference](https://kiro.dev/docs/cli/reference/slash-commands/), checked 2026-09-09,
+describe default resources, custom-agent resources and context inspection. The default-inheritance
+switch is a CLI setting, not an agent field. An explicit file-resource positive control alone cannot
+prove default-resource exclusion: the defaults themselves must first be observed active.
+
+The owned session advertises context with name, description and meta, including the show subcommand.
+It does not advertise a JSON argument schema. An independently tested private wire request is:
+
+```json
+{"sessionId":"<owned session>","command":{"command":"context","args":{"subcommand":"show","verbose":true}}}
+```
+
+This is sent to _kiro.dev/commands/execute once, only after the matching session's advertisement
+and successful empty tools inventory. It is not a general command dispatcher. Without verbose,
+the successful reply lacked per-file items; that earlier shape observation was not inclusion proof.
+The observer bounds the response to 64 KiB, objects/metadata traversal, item count, names and numeric
+estimates. It retains field kinds, counts, fixed labels and Boolean path matches; descriptions,
+contents, raw paths and session identity are not diagnostics. Null token/item values cannot count
+as an empty context, a missing show advertisement cannot dispatch, and another query is refused.
+An independent fake checks the exact request, rejects prompts/extra commands and supplies these
+malformed counterfactuals. No model prompt or billable-token claim is made by context inspection.
+
+An explicitly declared owned file is observed as one matched item with 1,450 context tokens in
+.cache/interop-observations/context-resource.GhEpvZ, exit 0, 6.181s race-enabled package. This is Kiro's
+local context estimate, not measured provider-billed usage. The agent and file bytes stay unchanged.
+
+The default-resource matrix seeds only independently authored AGENTS.md and steering files. P is
+the owned process launch directory, W the session/new cwd, and H the owned KIRO_HOME. Each custom
+agent retains resources=[], hooks={}, empty tool lists and includeMcpJson=false. The setting below
+is chat.disableInheritingDefaultResources in H/settings/cli.json; overrides use .kiro/settings/cli.json.
+
+| Control | Files / directories | Setting | Observed matched files / context estimate |
+| --- | --- | --- | --- |
+| inherit | P=W, both files | false | 2 / 3,900 |
+| suppress | P=W, both files | true | 0 / 0 |
+| split-session-only | P empty, W has both | false | 0 / 0 |
+| split-inherit | P and W each have both | false | 2 / 3,900, absolute steering belongs to P |
+| split-suppress | P and W each have both | true | 0 / 0 |
+| workspace-override | P and W each have both | true, W overrides false | 0 / 0 |
+| launch-override | P and W each have both | true, P overrides false | 2 / 3,900, absolute steering belongs to P |
+
+Kiro reports the matched AGENTS.md name relatively and steering absolutely. The observer retains
+that distinction; it does not invent an absolute base for AGENTS.md. The positive same-directory
+case and split-session-only negative control establish additional source evidence. Counts alone
+do not identify arbitrary unseen resources or establish skill metadata exclusion.
+
+The final seven cases pass in .cache/interop-observations/resource-inheritance.pFFtbL, exit 0,
+36.13s test / 37.905s race-enabled package. Each establishes empty tool inventory, verbose successful
+context inspection, unchanged owned sources and joined ACP-group cleanup. One earlier matrix
+incorrectly expected W-only files to load and failed; another assumed all matched names were absolute
+and failed. Those observations corrected the experiment's assumptions rather than proving a backend
+restriction failure. They remain recorded in resource-inheritance.2nSgTx and resource-inheritance.MG4Dog.
+
+The practical consequence is to retain an owned launch directory: a setting there can override
+the owned global suppression. The tested W setting does not do so during initial session creation.
+This does not prove other global roots, skills, reload/load, hidden internal reads or native effects.
+Neither production run nor any execution-policy verification flag changes in this decision.
+
+The authorized local Claude consultation used only a generic public-protocol question, with tools,
+MCP and hooks disabled and a 60-second/64-KiB bound. It exited 0 with one answer saved in
+.cache/claude-consult/work/resource-context-review-otqlrrqa. answer.md/result.json were read and
+review.md records the assessment. Runtime advertisement and active inclusion/exclusion controls
+were adopted; advice placing the CLI setting in the agent and assuming advertised schemas was
+corrected against public documentation and the independent observations. No repository or earlier
+implementation material was sent. Dependencies and production behavior are unchanged.
+
+The final uncached race suites pass with all installed CLI opt-ins disabled: interop 24.291s,
+ACP 5.689s and launcher 21.469s. They include malformed-context and query-budget counterfactuals
+and rejection of 2.21.2 at the unchanged production preflight. Whole-repository go vet, formatting
+and whitespace checks pass.
