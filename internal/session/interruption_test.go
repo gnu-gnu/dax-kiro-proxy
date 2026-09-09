@@ -61,9 +61,6 @@ func TestNewQuestionAfterDeniedToolsRecreatesWithoutReplaying(t *testing.T) {
 					b.Messages[i].Content[0].Raw = json.RawMessage(`{"type":"tool_result","tool_use_id":"unrelated","is_error":true,"content":"denied"}`)
 				},
 				func(b *anthropic.Request) {
-					b.Messages[i].Content[0].Raw = json.RawMessage(strings.Replace(string(b.Messages[i].Content[0].Raw), `"is_error":true`, `"is_error":false`, 1))
-				},
-				func(b *anthropic.Request) {
 					b.Messages[i].Content = append(b.Messages[i].Content, b.Messages[i].Content[0])
 				},
 				func(b *anthropic.Request) { b.Messages[i].Content[1].Text = ""; b.Messages[i].Content[2].Text = "  " },
@@ -75,6 +72,15 @@ func TestNewQuestionAfterDeniedToolsRecreatesWithoutReplaying(t *testing.T) {
 				}
 				if d.State() != before {
 					t.Fatal("invalid recovery consumed pending ownership")
+				}
+			}
+			if expired {
+				// A live successful result plus text uses bounded continuation recreation. It
+				// cannot revive the retired denial's separate new-question recovery window.
+				bad := cloneInterruptionRequest(next)
+				bad.Messages[i].Content[0].Raw = json.RawMessage(strings.Replace(string(bad.Messages[i].Content[0].Raw), `"is_error":true`, `"is_error":false`, 1))
+				if _, err := d.Start(t.Context(), bad); !errors.Is(err, inference.ErrRequest) || d.State() != before {
+					t.Fatal("expired successful result revived retired work", err)
 				}
 			}
 			got, text := observedTurn(t, d, next)

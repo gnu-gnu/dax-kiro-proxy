@@ -23,6 +23,8 @@ import (
 	"dax-kiro-proxy/internal/gateway"
 	"dax-kiro-proxy/internal/launcher"
 	"dax-kiro-proxy/internal/requestfamily"
+	"dax-kiro-proxy/internal/schemacheck"
+	"dax-kiro-proxy/internal/session"
 )
 
 const pluginSkillBody = "Independent skill invocation marker for client asset preservation."
@@ -40,7 +42,12 @@ func TestClaudeGitPluginSourcePreservation(t *testing.T) {
 }
 
 func observePluginAssets(t *testing.T, gitSource bool) {
+	observePluginAssetMode(t, gitSource, pluginAssetsOnly)
+}
+
+func observePluginAssetMode(t *testing.T, gitSource bool, mode pluginAssetMode) {
 	t.Helper()
+	modelSelected, gatewayMode := mode != pluginAssetsOnly, mode == pluginGatewaySkill
 	executable := os.Getenv("DAX_INTEROP_CLAUDE_BINARY")
 	if executable == "" {
 		t.Skip("set DAX_INTEROP_CLAUDE_BINARY for owned plugin hook/skill controls")
@@ -75,14 +82,41 @@ func observePluginAssets(t *testing.T, gitSource bool) {
 	write(settings, []byte(`{}`))
 	write(global, []byte(`{}`))
 	tokens, _ := gateway.NewTokens()
-	const model, answer = "claude-dax-plugin-assets", "independent plugin assets complete"
+	model := "claude-dax-plugin-assets"
+	const answer = "independent plugin assets complete"
+	var proxyBackend *defaultClientBackend
+	var proxyHandler http.Handler
+	var validator *schemacheck.Pool
+	if modelSelected {
+		workerDir := filepath.Join(root, "worker")
+		if os.Mkdir(workerDir, 0700) != nil {
+			t.Fatal("cannot create owned skill schema worker")
+		}
+		proxy := filepath.Join(filepath.Dir(buildRelayObserver(t)), "owned-relay")
+		validator, err = schemacheck.New(schemacheck.Config{Executable: proxy, Directory: workerDir})
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer validator.Close()
+		if gatewayMode {
+			var finish func()
+			proxyBackend, proxyHandler, model, finish = prepareSkillGateway(t, root, proxy, tokens, validator)
+			defer finish()
+		}
+	}
 	type observation struct {
 		requests                                                int
 		decoded, skillListed, skillBody, hookContext, skillTool bool
+		skillCall, resultMatch, latestResult                    bool
+		results                                                 int
+		comparison                                              defaultClientComparison
+		shape                                                   string
+		expandedText, proxyComplete                             bool
 	}
 	var mu sync.Mutex
 	var seen observation
 	var total int
+	var first *anthropic.Request
 	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "HEAD" {
 			w.WriteHeader(404)
@@ -125,10 +159,78 @@ func observePluginAssets(t *testing.T, gitSource bool) {
 				w.WriteHeader(400)
 				return
 			}
+			var skillSchema json.RawMessage
 			for _, raw := range request.Tools {
-				var tool struct{ Name string }
+				var tool struct {
+					Name   string
+					Schema json.RawMessage `json:"input_schema"`
+				}
 				if json.Unmarshal(raw, &tool) == nil && tool.Name == "Skill" {
 					seen.skillTool = true
+					skillSchema = tool.Schema
+				}
+			}
+			if modelSelected {
+				if len(request.Messages) > 32 {
+					w.WriteHeader(400)
+					return
+				}
+				request.Identity = anthropic.ClientIdentity{Session: r.Header.Get("x-claude-code-session-id"), Agent: r.Header.Get("x-claude-code-agent-id"), ParentAgent: r.Header.Get("x-claude-code-parent-agent-id")}
+				if seen.requests == 1 {
+					input := json.RawMessage(`{"skill":"dax-assets:owned-skill"}`)
+					if seen.skillBody || !seen.skillListed || skillSchema == nil || validator.Validate(r.Context(), skillSchema, input) != nil {
+						w.WriteHeader(400)
+						return
+					}
+					first, seen.skillCall = request, true
+					if !gatewayMode {
+						writeObservedMessage(w, request.Stream, model, []map[string]any{{"type": "tool_use", "id": ownedSkillUseID, "name": "Skill", "input": input}}, "tool_use")
+						return
+					}
+				}
+				if seen.requests != 1 && seen.requests != 2 || first == nil {
+					w.WriteHeader(429)
+					return
+				}
+				if seen.requests == 2 {
+					expectedID := ownedSkillUseID
+					if gatewayMode {
+						expectedID = observedSkillID(request)
+					}
+					seen.results, seen.resultMatch = inspectSkillReturn(request, expectedID)
+					seen.comparison = compareDefaultRequests(first, request)
+					results, err := request.LatestToolResults()
+					seen.latestResult = err == nil && len(results) == 1 && results[0].ID == expectedID
+					if i := request.LatestUserIndex(); i >= 0 {
+						for _, block := range request.Messages[i].Content {
+							if block.Type == "text" && strings.Contains(block.Text, pluginSkillBody) {
+								seen.expandedText = true
+							}
+						}
+					}
+					var shape []string
+					for _, message := range request.Messages {
+						if len(message.Content) > 32 {
+							w.WriteHeader(400)
+							return
+						}
+						var kinds []string
+						for _, block := range message.Content {
+							kinds = append(kinds, block.Type)
+						}
+						shape = append(shape, message.Role+"["+strings.Join(kinds, ",")+"]")
+					}
+					seen.shape = strings.Join(shape, " ")
+					if !seen.resultMatch {
+						w.WriteHeader(400)
+						return
+					}
+				}
+				if gatewayMode {
+					r.Body = io.NopCloser(bytes.NewReader(body))
+					proxyHandler.ServeHTTP(w, r)
+					seen.proxyComplete = proxyBackend.starts.Load() == 2 && !proxyBackend.failed.Load() && proxyBackend.State() == session.Idle
+					return
 				}
 			}
 			writeObservedMessage(w, request.Stream, model, []map[string]any{{"type": "text", "text": answer}}, "end_turn")
@@ -138,6 +240,9 @@ func observePluginAssets(t *testing.T, gitSource bool) {
 	}))
 	server.Config.ReadHeaderTimeout, server.Config.ReadTimeout, server.Config.WriteTimeout, server.Config.IdleTimeout = time.Second, 2*time.Second, 2*time.Second, 2*time.Second
 	server.Config.MaxHeaderBytes = 8 << 10
+	if gatewayMode {
+		server.Config.WriteTimeout = 20 * time.Second
+	}
 	server.Start()
 	defer server.Close()
 	runner, err := childproc.New(childproc.Config{Timeout: 20 * time.Second, MaxOutputBytes: 128 << 10})
@@ -235,6 +340,17 @@ func observePluginAssets(t *testing.T, gitSource bool) {
 	if gitSource {
 		cases = cases[len(cases)-3:]
 	}
+	if modelSelected {
+		cases = cases[:3]
+		cases[0].name, cases[1].name, cases[2].name = "natural_model_skill", "prepared_model_skill", "hooks_disabled_model_skill"
+		for i := range cases {
+			cases[i].skill = false
+		}
+		cases[2].disableHooks = true
+	}
+	if gatewayMode {
+		cases = cases[1:2]
+	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			if tc.management != "" {
@@ -252,6 +368,7 @@ func observePluginAssets(t *testing.T, gitSource bool) {
 			oldStarts, oldStops := inspectPluginHookProcesses(t, observations)
 			mu.Lock()
 			seen = observation{}
+			first = nil
 			beforeRequests := total
 			mu.Unlock()
 			profile, err := launcher.PrepareClient(cfg)
@@ -263,8 +380,11 @@ func observePluginAssets(t *testing.T, gitSource bool) {
 			if tc.skill {
 				prompt = "/dax-assets:owned-skill"
 			}
+			if modelSelected {
+				prompt = "Use the independently installed skill and return a brief text response."
+			}
 			command := profile.Command()
-			if tc.name == "natural_normal" {
+			if strings.HasPrefix(tc.name, "natural_") {
 				command = natural
 			}
 			var result childproc.Result
@@ -299,8 +419,16 @@ func observePluginAssets(t *testing.T, gitSource bool) {
 			if interactive {
 				completed = !t.Failed()
 			} // The shared UI observer asserts rendered text.
-			t.Logf("request=%+v, startup_hooks=%d, stop_hooks=%d, completed=%v", got, starts-oldStarts, stops-oldStops, completed)
-			if starts-oldStarts != wantHooks || stops-oldStops != wantHooks || !completed || got.requests != 1 || !got.decoded || got.skillListed != tc.enabled || got.skillBody != tc.skill || got.hookContext != (wantHooks == 1) {
+			t.Logf("requests=%d, decoded=%v, skill_listed=%v, skill_body=%v, hook_context=%v, skill_tool=%v, startup_hooks=%d, stop_hooks=%d, completed=%v", got.requests, got.decoded, got.skillListed, got.skillBody, got.hookContext, got.skillTool, starts-oldStarts, stops-oldStops, completed)
+			wantRequests := 1
+			if modelSelected {
+				t.Logf("skill_called=%v, results=%d, matching_result=%v, latest_result=%v, client_skill_text=%v, proxy_complete=%v, comparison=%+v, history_shape=%s", got.skillCall, got.results, got.resultMatch, got.latestResult, got.expandedText, got.proxyComplete, got.comparison, got.shape)
+				wantRequests = 2
+				if !got.skillCall || !got.resultMatch || !got.expandedText || got.results != 1 || (gatewayMode && !got.proxyComplete) {
+					t.Error("model-selected skill round trip not established")
+				}
+			}
+			if starts-oldStarts != wantHooks || stops-oldStops != wantHooks || !completed || got.requests != wantRequests || !got.decoded || got.skillListed != tc.enabled || got.skillBody != (tc.skill || modelSelected) || got.hookContext != (wantHooks == 1) {
 				t.Error("plugin hook or skill activation did not match source controls")
 			}
 			if strings.HasPrefix(tc.name, "private_") {
@@ -330,7 +458,7 @@ func observePluginAssets(t *testing.T, gitSource bool) {
 					t.Error("private plugin uninstall failed")
 				}
 			}
-			if tc.name != "natural_normal" && (!reflect.DeepEqual(beforeSeed, boundedPluginTree(t, seed)) || !reflect.DeepEqual(beforeMarket, boundedPluginTree(t, market)) || beforeSettings != fileFingerprint(t, settings) || beforeGlobal != fileFingerprint(t, global) || beforeGit != fileFingerprint(t, filepath.Join(home, ".gitconfig"))) {
+			if !strings.HasPrefix(tc.name, "natural_") && (!reflect.DeepEqual(beforeSeed, boundedPluginTree(t, seed)) || !reflect.DeepEqual(beforeMarket, boundedPluginTree(t, market)) || beforeSettings != fileFingerprint(t, settings) || beforeGlobal != fileFingerprint(t, global) || beforeGit != fileFingerprint(t, filepath.Join(home, ".gitconfig"))) {
 				t.Error("prepared plugin startup changed original sources")
 			}
 			if profile.Close() != nil {

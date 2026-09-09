@@ -19,12 +19,39 @@ type continuationRestart struct {
 	count             int
 }
 
-// A changed registry or standing instruction requires a fresh ACP prompt. Validate
+// A changed registry, standing instruction or added client text requires a fresh ACP prompt. Validate
 // the complete delivered batch and immutable prior content before revoking any old ownership.
 func (d *Driver) restartForContinuation(ctx context.Context, r *anthropic.Request, registry *toolregistry.Registry, results []anthropic.ToolResult) (*continuationRestart, error) {
 	i := r.LatestUserIndex()
-	if i < 0 || len(results) == 0 || len(r.Messages[i].Content) != len(results) {
+	if i < 0 || len(results) == 0 {
 		return nil, nil
+	}
+	additionalText := len(r.Messages[i].Content) != len(results)
+	if additionalText {
+		success := false
+		for _, result := range results {
+			success = success || !result.IsError
+		}
+		// All-denial/new-question recovery has its own bounded retired-outcome policy.
+		if !success {
+			return nil, nil
+		}
+		nonempty := false
+		for j, block := range r.Messages[i].Content {
+			if j < len(results) {
+				if block.Type != "tool_result" {
+					return nil, inference.ErrRequest
+				}
+			} else {
+				if block.Type != "text" {
+					return nil, inference.ErrRequest
+				}
+				nonempty = nonempty || strings.TrimSpace(block.Text) != ""
+			}
+		}
+		if !nonempty {
+			return nil, inference.ErrRequest
+		}
 	}
 	suffix := r.Messages[i+1:]
 	stamp, err := compatibility(r, registry)
@@ -42,7 +69,7 @@ func (d *Driver) restartForContinuation(ctx context.Context, r *anthropic.Reques
 		return nil, nil
 	}
 	repeated := d.repeatedSystem(previous.pendingHistory, suffix)
-	if stamp == previous.compat && repeated {
+	if stamp == previous.compat && repeated && !additionalText {
 		d.mu.Unlock()
 		return nil, nil
 	}

@@ -68,9 +68,9 @@ Allowed transitions:
 - waiting-for-tools to joined retirement and a fresh session when D57 proves a complete matching
   error-result batch followed by a new question; a bounded retired outcome can establish the same proof;
 - prompting to idle on successful end-turn;
-- waiting-for-tools to joined retirement and a fresh session for D63's single changed standing
-  message, full prior-history prefix and complete delivered result batch, at most once under the
-  original logical-turn deadline;
+- waiting-for-tools to joined retirement and a fresh session for a changed standing message,
+  validated registry, or D73's successful results followed by client text; require the complete
+  prior-history prefix and delivered batch under the original deadline and shared recreation limit;
 - any live state to canceling on client disconnect, timeout, or explicit cancellation;
 - transport/protocol/auth failures to unhealthy;
 - canceling or unhealthy to closed after cleanup.
@@ -160,8 +160,9 @@ reject on this same-prompt path. New system or user text cannot be injected into
 ACP prompt through that path.
 
 D70 extends D63's bounded fresh-session path to changed tool registries. The latest user message
-must contain only the exact delivered tool results; owner/model/effort/top-level system/metadata and
-tool-choice policy stay unchanged. Validate the new registry before any state mutation. For changed
+must contain the exact delivered tool results, with only D73's eligible trailing text permitted;
+owner/model/effort/top-level system/metadata and tool-choice policy stay unchanged. Validate the new
+registry before any state mutation. For changed
 standing instructions, the preceding standing sequence must have one system message, and the new
 suffix must be one text-only system
 message. All prior message anchors must match as a complete prefix; ordinary truncated-overlap
@@ -173,6 +174,12 @@ same per-turn reconstruction counter, bounded to sixteen by default. A failed re
 replay consumed ownership, and budget exhaustion does not prevent an otherwise compatible same-prompt
 continuation. Existing multi-message standing-sequence rules remain unchanged. Cumulative/regrouped
 call/result histories still reject: D70 proves D69's grouping was caused by reused fixture message IDs.
+
+D73's trailing-text case requires at least one successful result and all result blocks before one
+or more text-only blocks, including nonempty text. It forces full-history recreation even with
+unchanged registry/standing instructions. The new client content stays separate from tool output.
+The original turn deadline and shared recreation budget still apply; success plus text cannot revive
+a retired turn. All-denial/new-question recovery retains its separate rules and retired-outcome bound.
 
 ## 8. Persistent resume flow
 

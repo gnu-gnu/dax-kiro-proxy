@@ -62,6 +62,13 @@ func main() {
 		signal.Ignore(syscall.SIGTERM)
 	}
 	defaultReplacement := false
+	skillMode, skillReplacement := mode == "chat-tools-plugin-skill", false
+	if skillMode {
+		if len(os.Args) != 3 {
+			os.Exit(94)
+		}
+		skillReplacement = defaultClientProcess(os.Args[2])
+	}
 	defaultLaunch := mode == "chat-tools-default-client-launch"
 	defaultClient := mode == "chat-tools-default-client" || defaultLaunch
 	pluginMarker := mode == "chat-tools-plugin-wait-marker"
@@ -205,6 +212,8 @@ func main() {
 				}
 				if defaultClient {
 					relayChild = startFixtureRelayNamed(p.MCP[0], p.CWD, false, "Read")
+				} else if skillMode {
+					relayChild = startFixtureRelayNamed(p.MCP[0], p.CWD, false, "Skill")
 				} else if mode == "chat-tools-plugin-client" {
 					relayChild = startFixtureRelayNamed(p.MCP[0], p.CWD, false, os.Args[2])
 				} else if pluginWait {
@@ -356,6 +365,14 @@ func main() {
 					reply(q.ID, map[string]any{"stopReason": "end_turn"})
 					continue
 				}
+				if skillMode && skillReplacement {
+					if promptCount != 1 || !expandedSkillHistory(p.Prompt) {
+						os.Exit(95)
+					}
+					write(map[string]any{"jsonrpc": "2.0", "method": "session/update", "params": map[string]any{"sessionId": session, "update": map[string]any{"sessionUpdate": "agent_message_chunk", "content": map[string]any{"type": "text", "text": "independent plugin assets complete"}}}})
+					reply(q.ID, map[string]any{"stopReason": "end_turn"})
+					continue
+				}
 				if mode == "chat-tools-plugin-client" && defaultReplacement {
 					if promptCount != 1 || !pluginClientHistory(p.Prompt, os.Args[2], pluginDenied) {
 						os.Exit(95)
@@ -456,6 +473,17 @@ func main() {
 						}
 						emit("independent plugin observation complete")
 						reply(q.ID, map[string]any{"stopReason": "end_turn"})
+						continue
+					}
+					if skillMode {
+						relayChild.send(3, "tools/call", map[string]any{"name": relayChild.alias, "arguments": map[string]string{"skill": "dax-assets:owned-skill"}})
+						var retired struct {
+							Error bool `json:"isError"`
+						}
+						if json.Unmarshal(relayChild.read(), &retired) != nil || (!relayChild.responseError && !retired.Error) {
+							os.Exit(96)
+						}
+						hanging = append(hanging, q.ID)
 						continue
 					}
 					if mode == "chat-tools-effect-launch" || mode == "chat-tools-effect-restart-launch" {

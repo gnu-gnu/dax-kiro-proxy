@@ -59,6 +59,10 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
   tool check also observes the client's connected MCP panel. This does not close immediate-input,
   arbitrary dynamic-registry or model-selected skill compatibility (D68). D70 adds the bounded
   wait-to-plugin path below.
+- Verify a model-selected owned skill separately from user slash invocation. Validate the advertised
+  Skill schema, observe exactly one matching successful result and the expanded body as separate
+  client text, and complete through the real gateway/relay with fake ACP. Require preserved sources,
+  native hook enable/disable behavior and joined old/replacement process cleanup (D73).
 
 ## C. Anthropic compatibility
 
@@ -139,6 +143,13 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
   and further tool handoffs, and reject replay after completion or failed replacement. Exact repeated
   suffixes continue normally, including after the restart allowance is exhausted. Multi-message
   changed sequences remain unsupported. Distinguish actual-client/fake-ACP evidence from live Kiro.
+- A complete delivered result batch containing at least one success may be followed by nonempty
+  client text in the same user message. Require all result blocks first and only text blocks after
+  them. Recreate from the complete immutable prefix and full supplied content, including when the
+  registry/standing instructions repeat. Preserve policy, original deadline and shared recreation
+  budget; validate the projection/result limits before joined revocation. Malformed, reordered,
+  empty-only, non-text, truncated or oversized candidates consume no pending ownership. Do not
+  revive expired successful work, replay tools or put client text inside a tool result (D73).
 - Use distinct message IDs for independent model responses. Compare fresh IDs with a duplicate-ID
   counterfactual before attributing client history regrouping to ordinary tool use. Keep regrouped
   history, prior results mixed into the new delivered batch and truncated replacement prefixes
@@ -154,7 +165,8 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
   repeated standing instructions. Join old process/relay cleanup before a fresh full-history prompt;
   never resolve those results into the abandoned prompt, replay a tool or reuse canceled state.
   The same proof may use the bounded five-minute retired outcome. Missing, duplicate, partial,
-  successful, cross-owner or divergent results reject without consuming recovery ownership.
+  successful, cross-owner or divergent results reject on this all-denial/retired-outcome path without
+  consuming recovery ownership; active D73 continuations follow the separate rule above.
 - Cancellation and timeout resolve all suspended relay calls and remove owner-only socket/config data.
 - MCP starts only after authenticated supervisor/child PID checks and verified ACP group membership.
   A peer cannot supply its own PID/group, forge a join, replay an attachment or replace a valid child.

@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"dax-kiro-proxy/internal/acp"
 	"dax-kiro-proxy/internal/acppool"
 	"dax-kiro-proxy/internal/anthropic"
 	"dax-kiro-proxy/internal/inference"
@@ -138,7 +139,8 @@ func TestRegistryReplacementRetainsOriginalDeadline(t *testing.T) {
 	if _, err := d.Start(t.Context(), bad); !errors.Is(err, inference.ErrRequest) {
 		t.Fatal("terminal outcome crossed owners", err)
 	}
-	if _, err := d.Start(t.Context(), last); !errors.Is(err, context.DeadlineExceeded) {
+	// Either the turn owner or its ACP request can observe the same original deadline first.
+	if _, err := d.Start(t.Context(), last); !errors.Is(err, context.DeadlineExceeded) && !errors.Is(err, acp.ErrTimeout) {
 		t.Fatal("matching history lost its timeout", err)
 	}
 	if _, err := d.Start(t.Context(), last); !errors.Is(err, inference.ErrRequest) {

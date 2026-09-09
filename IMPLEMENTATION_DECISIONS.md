@@ -3050,3 +3050,87 @@ this decision. Development run admission is unchanged.
 Final opt-ins-off race tests pass ACP 5.439s and interop 20.887s in
 plugin-result-final-unit.R8Vjmv. Whole-repository/fixture vet, formatting and whitespace pass.
 Broader plugin assets, model-selected skills, live lifecycle and release gates remain outstanding.
+
+## D73: client text after successful tool results
+
+An independent synthetic model asks the pinned Claude 2.1.263 client to invoke only the freshly
+authored plugin skill, after validating the exact input against its advertised Skill schema. Native
+HOME, prepared private profile and prepared hooks-disabled controls all complete in
+plugin-model-skill.HRgSI8 (4.84s test, 6.105s race package), without Kiro or external inference.
+Each has two main requests, one matching successful result, expanded skill text and a final answer.
+Enabled hooks run once at startup/stop; disabling them preserves the skill but suppresses both.
+Prepared sources and observed hook/client cleanup remain intact.
+
+The second request has the shape `user[text,text] system[text] assistant[tool_use]
+user[tool_result,text] system[text]`. Its complete prior prefix, owner, model, effort, top-level
+system, metadata and registry remain equal; the single trailing standing message changes. The
+extra user text is the client-expanded skill body, outside the successful tool result. The previous
+driver rejects it: ordinary continuation/recreation requires result-only content, while the separate
+new-question recovery accepts only denials. Synthetic endpoint success alone is not driver acceptance.
+
+The public [client tool-result contract](https://platform.claude.com/docs/en/agents-and-tools/tool-use/handle-tool-calls),
+checked 2026-09-09, permits user text after the tool-result blocks for client-only calls. It does
+not permit placing text before the results or interposing a message before the result message.
+Its pending server-tool exception does not establish any new support here.
+
+The adopted extension is a full-history recreation for a complete delivered client-result batch
+containing at least one success, followed only by nonempty client text in that same user message.
+It must preserve every previous block, owner and policy, validate the registry/results/projection
+before revocation, join old cleanup, retain the original absolute deadline and share the existing
+recreation bound. It must not inject the new text into a tool result or replay effects. The rule is
+based on validated message structure, not a Skill-name exception. Expired successful work cannot
+be revived by appending text. The existing all-denial/new-question recovery remains separate.
+
+The initial observation/helper tests pass in 1.847s; they first fail to build before the new harness
+entry point exists. Independent state/process tests then fail against the old driver in
+result-text-red.NTjIRc (4.162s), before implementing the new path. They require exact history and
+ownership, result order/identity, nonempty text-only additions, projection bounds, joined old cleanup,
+no replay, one original deadline, failed-replacement cleanup and the existing recreation budget.
+
+The first candidate run fails in result-text-candidate.HG16AW (17.327s). A focused fixed-index
+diagnostic (4.972s) identifies the test's ninth mutation: it incorrectly treats the 4 MiB relay
+result limit as the ACP prompt limit, whose default is 8 MiB. The test now selects a 64 KiB ACP
+frame limit and exceeds that exact bound; no application limit is changed to satisfy the test.
+result-text-boundary.BiDhzi passes the new and existing instruction/registry/denial recovery matrix
+in 14.390s. The former active-success rejection control moves to this new continuation policy;
+the expired-success negative control remains in the all-denial recovery test.
+
+plugin-skill-gateway.AoBM3j passes the installed-client source/skill controls and real-gateway/fake-ACP
+skill round trip in 17.743s under race. The gateway case takes 4.45s: two main requests, one exact
+Skill call, matching success, the skill body in a separate user text block, one changed standing
+instruction, two joined backend groups and final client output. Its complete old prefix, owner,
+model, effort, top-level system, metadata and registry remain equal. The independent replacement
+fake verifies the full projected history, exact Skill input/result ID, separate skill body and
+standing update before responding. It accepts at most two processes and requires the old group gone
+before replacement; the original relay may receive only retirement, never the successful result.
+
+Three synthetic native/prepared/hooks-disabled controls independently verify the same client shape,
+including explicit skill-body presence in the added user text. Eleven existing plugin skill/hook/
+source controls also pass. All preserve the expected enabled/disabled hooks and prepared source
+bytes/tree/modes, with observed client/hook/ACP cleanup. No actual Kiro or external model inference
+runs in D73. No dependency is added; actual Kiro skills and broader plugin/lifecycle/release checks
+remain open.
+
+The first complete opt-ins-off regression, skill-result-core.hTaccS, fails only an existing registry
+deadline assertion. The ACP request reports `acp.ErrTimeout` while the test requires only
+`context.DeadlineExceeded`; either owner can observe the same original deadline first. The test now
+accepts either sentinel while retaining the original timing, cleanup, ownership and replay checks.
+No application timeout behavior changes. The complete session suite then passes in
+skill-result-session-final.AKWBsX (28.513s).
+
+The first all-client regression, skill-result-claude.6suCOR, passes 30 of 31 top-level controls
+but fails the omit-betas completion aggregate (253.515s). It records exit zero, one accepted request
+and the expected declarations; its aggregate does not distinguish a runner error from missing
+answer evidence. The exact cause remains unclassified. The observer now adds only fixed runner-error
+categories and answer/JSON-result booleans; the acceptance condition is unchanged and raw client
+output is not retained. Five finite repetitions of the four documented-option controls all pass in
+capability-completion-diagnostic.wgmpkq (20 cases, 11.116s), with no runner errors and matching answers.
+Those passes do not erase or explain the original failure.
+
+The final complete opt-ins-off race regression passes in skill-final-core.QZ6DoB (session 27.252s,
+interop 22.639s, launcher 23.546s). Whole-repository/fixture vet, formatting, whitespace, build and
+executable help pass. The development binary is rebuilt with D73; run admission is unchanged.
+All 31 installed-Claude top-level controls pass together in skill-final-claude.VE8lEz (252.391s
+under race), including the instrumented option controls, native permissions, bare refusal/deadline
+recovery, default-tool denial, plugin wait allowance/refusal, preserved assets/status and new Skill
+cases. All use local synthetic responses or fake ACP, with Kiro credit opt-in disabled.

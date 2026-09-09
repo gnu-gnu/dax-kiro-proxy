@@ -88,9 +88,10 @@ are outside the initial-session evidence; the proxy issues no configuration relo
 
 Default Claude Code traffic with 25 tools and its ordinary system prompt passes text and a Read
 hook-denial round trip through the real gateway/validator/relay with fake ACP. Exact full-history
-continuations can recreate after a changed standing instruction or validated tool registry (D70),
-with joined cleanup, one original deadline and a default limit of sixteen recreations per turn.
-Unchanged continuations keep their prompt. Recreation adds provider work and loses hidden backend
+continuations can recreate after a changed standing instruction, validated tool registry (D70), or
+successful tool results followed by client text (D73), with joined cleanup, one original deadline
+and a default limit of sixteen recreations per turn. Unchanged result-only continuations keep their
+prompt. Recreation adds provider work and loses hidden backend
 context. Actual Kiro also passes default-tool Read hook refusal and one joined recreation (D71), with
 all 25 client tools and ordinary thinking/context declarations. D72's actual registry experiment
 reaches the wait, expanded tools, one plugin call and joined cleanup, but fails its final-answer
@@ -117,8 +118,10 @@ The private profile now also snapshots the two bounded native plugin registratio
 the first session load installed plugin skills and hooks while retaining the read-only content seed.
 Installed-client checks cover namespaced skill invocation, SessionStart/Stop hooks, disable/re-enable,
 hook suppression and source preservation. Private uninstall leaves the original source intact; a Git
-seed rejects marketplace update/removal even when a real local revision is available. Model-selected
-skills, other plugin assets and custom roots remain unverified (D68); full actual Kiro plugin
+seed rejects marketplace update/removal even when a real local revision is available. A model-selected
+owned skill now also completes through the real gateway/relay with fake ACP (D73), preserving its
+successful result and separate client-expanded instructions through one joined recreation. Other
+plugin assets, custom roots and actual Kiro skills remain unverified; full actual Kiro plugin
 acceptance remains open after D72's partial observation.
 
 The product status display now yields to existing user/project/local status choices, including

@@ -6,6 +6,21 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D73 supports successful client tool results followed by separate client text through bounded
+  full-history recreation, including the pinned client's model-selected plugin skill expansion.
+  Exact history/policy/result ownership, joined old cleanup, the original deadline and the shared
+  recreation budget remain required; expired success and replay reject. Independent state/process
+  tests precede the change. Actual Claude with the real gateway/relay and independent fake ACP
+  completes one Skill/result/text round trip across two joined backend processes; synthetic native,
+  prepared and hooks-disabled controls verify the same client shape and source/hook preservation.
+  The final complete opt-ins-off race suite passes (session 27.252s, interop 22.639s, launcher
+  23.546s), and all 31 installed-Claude top-level controls pass together in 252.391s. An earlier
+  registry test accepted only one of two valid deadline sentinels and is corrected without changing
+  timing or cleanup requirements. An earlier omit-betas completion failure remains unclassified;
+  added fixed diagnostics and 20 finite positive follow-ups preserve the original acceptance rule.
+  Whole-repository/fixture vet, formatting, whitespace, build and executable help pass. No dependency
+  is added and no actual Kiro model call runs. The development binary includes D73, run stays enabled,
+  and actual Kiro skills, full plugin completion and remaining alpha/release gates stay open.
 - D72 adds bounded actual-Kiro wait-to-plugin experiments and separate protocol, final-text, display
   and cleanup evidence. The final actual allowance reaches three main requests, two exact tool/result
   pairs, the expanded registry, one native plugin call and two joined prepared processes. It fails
@@ -16,7 +31,8 @@ does not redefine completion around an intermediate phase.
   25.368s; the shared UI/hook/Git regression passes in 17.655s. Final opt-ins-off race tests pass ACP
   5.439s and interop 20.887s; whole-repository/fixture vet, formatting and whitespace pass. Actual
   registry/tool progress is partial evidence, not a completed live plugin acceptance gate. Only
-  tests/documents change, development run admission is unchanged, and the D70 executable is current.
+  tests/documents change and development run admission is unchanged. Its unchanged D70 executable
+  is subsequently rebuilt by D73.
 - D71 verifies default-tool Read refusal and joined session recreation with actual Kiro 2.21.2/v2
   and Claude 2.1.263 in 24.81s (26.304s race package). All 25 default tools and thinking/context
   declarations remain present. The exact single Read is hook-denied; its matching result and changed

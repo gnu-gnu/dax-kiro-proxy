@@ -177,9 +177,10 @@ The next client request must return all and only the tool-result IDs in that res
 successfully delivered batch. Later relay calls remain queued for a subsequent response. Validate
 the complete result set and final encoded result sizes before completing any suspended call.
 
-An exact repeated standing system suffix and unchanged registry continue the same ACP prompt. D70
-extends D63's replacement path to a changed validated registry, with or without changed standing
-instructions. A changed suffix must be one text-only system message after a result-only user message,
+A result-only request with an exact repeated standing system suffix and unchanged registry continues
+the same ACP prompt. D70 extends D63's replacement path to a changed validated registry, with or
+without changed standing instructions. A changed suffix must be one text-only system message after a result-only user message
+or the eligible result/text message below,
 and the last standing sequence must also have exactly one message. This requires the entire prior
 history as an exact prefix, unchanged owner/model/effort/top-level system/metadata/tool-choice policy,
 and the complete delivered result set. Regrouped history and repeated prior results still reject.
@@ -190,6 +191,14 @@ Recreation is bounded to sixteen times per logical turn by default and retains t
 deadline, including replacement setup. Expired work, truncated history, multiple changed messages or an
 exhausted restart allowance reject. Full-history recreation loses unreported backend context and
 may add provider work; it is not equivalent to keeping the original backend conversation.
+
+D73 also recreates when the complete delivered client-result batch contains at least one success
+and is followed by text in the same user message. All results must precede all text; the additional
+blocks must be text-only and include nonempty content. The same full-prefix, policy, validation,
+joined-cleanup, original-deadline and recreation-count rules apply even if the standing instructions
+and registry are unchanged. Preserve the supplied text as client text in the full projection, never
+as tool output. This covers client-expanded skill instructions without a tool-name exception.
+Expired successful work cannot use the separate all-denial/new-question recovery window.
 
 Each HTTP completion uses a fresh message ID, including tool handoffs. D70's installed-client
 counterfactual shows that reusing one ID across separate responses can regroup earlier calls/results;
