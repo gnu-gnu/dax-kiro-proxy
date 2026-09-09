@@ -6,6 +6,18 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D96 removes the fixed one-second wait when closing an idle authenticated relay connection.
+  An independent ready-peer regression fails at 1,018ms before the change and passes at 18ms after
+  it; eight concurrent Close callers join cleanup without terminating the healthy ACP owner.
+  Surviving-peer failure and the separate one-second peer-exit bound remain intact. The same D95
+  32-wave/544-request episode passes in 10.67s (14.637s package), down from 41.61s, with all 512 ACP
+  groups and 512 relay/config owners removed. Settled FD/goroutine counts stay 70/108, final 5/2;
+  GC-retained heap baseline/peak/final is 1,182,048/1,326,592/940,816 bytes. Full opt-ins-off race tests
+  pass (27 packages; six without tests), as do vet and native-client allow/deny/hook resume controls
+  (17.877s package). One actual Kiro/Claude allowed-Bash resume episode passes in 47.55s (48.873s
+  package): two ACP prompts/four HTTP requests, two effects, exact old history, unchanged sources
+  and joined observed cleanup. The rebuilt development artifact has a new relay-close inventory;
+  139 byte checks pass with no dependency/notice change. Remaining alpha/release gates stay open.
 - D95 extends repeated HTTP load to eight concurrent delivered tool batches and denial/new-question
   recovery. A final 32-wave episode passes under race detection in 41.61s (45.299s package): 544
   requests, 256 inert handoffs, 32 rejected internally paired foreign-owner histories and 256 fresh

@@ -269,11 +269,17 @@ D95 separately covers 256 concurrent single-call denial/recovery episodes and 32
 rejections, with all 512 ACP groups and 512 relay children/config directories cleaned. Its finite
 fixture evidence still leaves actual-client, multi-call/shared-process and long-duration soak open.
 
-Phase 7 has frozen dependency inventories and retained scoped notices. For the D87 native-history
+D96 removes a fixed one-second idle relay shutdown delay by closing accepted connections immediately,
+while retaining handler/peer joins and cleanup failures. The same 544-request fixture episode drops
+from 41.61s to 10.67s with all recorded ownership removed. Whole-repository race tests, native-client
+allow/deny/hook controls and actual Kiro/Claude allowed-tool resume pass. These finite measurements
+do not establish general throughput or complete the remaining soak gates.
+
+Phase 7 has frozen dependency inventories and retained scoped notices. For the D96 relay-close
 development artifact, run `python3 tools/verify_dependency_inventory.py --gomodcache .cache/gomod
---snapshot native-history --binary dist/dax-kiro-proxy`. The default `development` snapshot identifies
-D78's earlier D77 binary, and `installation` identifies D79; neither matches this later rebuild and
-its changed production sources. These offline byte checks
+--snapshot relay-close --binary dist/dax-kiro-proxy`. The default `development` snapshot identifies
+D78's earlier D77 binary, `installation` identifies D79 and `native-history` identifies D87. Those
+historical snapshots do not match this rebuild and its changed production source. These offline byte checks
 do not grant release license clearance; see DEPENDENCY_REVIEW.md for resource differences and
 remaining packaging/rights work.
 

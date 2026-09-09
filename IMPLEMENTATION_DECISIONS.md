@@ -4399,3 +4399,49 @@ semantics, native RSS or long-duration release soak.
 Final opt-ins-off race regressions pass: ACP 5.416s, pool 2.554s, gateway 3.397s, session 38.741s,
 relay 10.413s, MCP 5.689s, schema 3.125s and interop 24.826s. Whole-repository/fake-peer vet,
 formatting, whitespace and the unchanged D87 artifact's 139 byte checks pass.
+
+## D96: revoke idle relay connections immediately during shutdown
+
+D95's repeated idle eviction exposes a fixed one-second delay in the relay socket's Close path.
+D39 set each accepted connection's read/write deadline to one second in the future, then joined
+its handler. An idle authenticated lifetime reader therefore waited for that artificial deadline
+before notifying its child of lifetime loss. Close now closes accepted Unix connections while it
+owns the connection registry, waking lifetime/request readers immediately, then closes the broker
+and joins handlers. The existing lock still prevents a handler from changing deadlines after closure.
+
+This supersedes only D39's connection-deadline mechanism. Preserve the separate one-second check
+for actual recorded peer disappearance, private-directory removal and retained ErrCleanup on failure.
+Concurrent/repeated callers still join the same sync.Once outcome. Socket Close does not signal a
+wire-supplied PID or terminate a healthy ACP owner. No wire contract, resource limit or dependency
+changes. Existing cancellation-safe relay stdio remains responsible for waking its own blocked I/O.
+
+First add an independent authenticated idle-peer test, measuring only after the full handshake.
+Eight simultaneous Close callers must finish below 750ms, close broker admission, leave no accepted
+connection or pending job, observe the peer gone and remove private artifacts while its healthy
+group owner remains alive. Before the change it fails at 1,018ms; afterward it passes at 18ms.
+Existing attachment authentication/lifetime cases and socket cleanup pass (5.800s race package).
+The deliberately lingering peer still fails cleanup after its separate bound (1.07s case).
+
+Repeat the same D95 32-wave fixture with unchanged limits/assertions: 544 HTTP requests, 256 inert
+handoffs, 32 foreign-history rejections, 256 fresh recoveries and 512 joined ACP/relay owners pass
+in 10.67s (14.637s race package), compared with 41.61s before. Settled FD/goroutine counts stay
+70/108 and finish at 5/2. GC-retained heap baseline/peak/final is 1,182,048/1,326,592/940,816 bytes.
+This finite same-fixture comparison does not establish general throughput or long-duration soak.
+
+The full opt-ins-off repository race suite passes (27 packages, six without tests), as do repository/
+fake-peer vet, formatting and whitespace checks. Installed Claude with fake ACP passes all current
+allow/deny/hook resume cases (15.86s test, 17.877s package). One separately bounded actual Kiro/Claude
+allow-Bash case passes in 47.55s (48.873s package): two main ACP prompts/four HTTP requests, exact
+old history in both resumed requests, two distinct successful effects, unchanged sources and joined
+recorded process/group/profile/listener cleanup. No live deny/hook repeat or model retry is needed.
+Logs are recorded in LIVE_KIRO_TEST_PLAN.md; none contains raw model/tool payloads or credentials.
+
+Rebuild the local development command and freeze macos-arm64-relay-close.json. Its 100 selected
+repository input paths match D87, with only internal/relay/socket.go changed. The fresh collection
+contains 267 packages; all four external module versions/sums/package sets and selected native
+filenames match D87, and notice bytes remain unchanged. Record the full current import/file list
+without claiming a full prior Go-file-list comparison that the earlier snapshot cannot supply.
+The 13,589,266-byte artifact records parent c121224 and vcs.modified=true, identifying the captured
+uncommitted source bytes rather than claiming a later commit. Its 139 byte checks pass; D87 remains
+an unchanged historical snapshot with its old executable retained privately. Release clearance and
+the remaining interoperability/soak gates remain open.

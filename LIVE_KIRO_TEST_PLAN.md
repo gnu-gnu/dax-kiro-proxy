@@ -1621,3 +1621,43 @@ Final opt-ins-off race regressions pass in `d95-core-regressions.log`: ACP 5.416
 gateway 3.397s, session 38.741s, relay 10.413s, MCP 5.689s, schema 3.125s and interop 24.826s.
 Whole-repository/fake-peer vet passes (`d95-vet.log`), with formatting, whitespace and the unchanged
 D87 artifact's 139 byte checks. The fixture provenance inventory includes the new peer.
+
+## D96: immediate idle relay shutdown and actual resume regression
+
+The independent idle-attachment test completes authentication before measuring eight concurrent
+Close callers. Require less than 750ms, joined peer/handlers, revoked tool admission, empty accepted
+connections, removed private artifacts and a still-live healthy ACP owner. The original code fails
+at 1,018ms; immediate accepted-connection close passes at 18ms. Existing authentication/lifetime
+controls pass, including the deliberately surviving peer's retained cleanup failure (1.07s).
+The separate one-second peer-disappearance bound is unchanged.
+
+With real opt-ins off, repeat D95's exact 32-wave command above. All 544 requests, 256 handoffs,
+32 foreign-history rejections, 256 fresh recoveries and 512 ACP/relay/config joins pass in 10.67s
+(14.637s package), compared with 41.61s before. Steady FD/goroutine counts are 70/108, final 5/2;
+GC-retained heap baseline/peak/final is 1,182,048/1,326,592/940,816 bytes. Full opt-ins-off repository
+race tests pass (27 packages, six without tests); vet passes. Native Claude/fake-ACP allow/deny/hook
+resume controls also pass in 15.86s (17.877s package).
+
+Then use the existing real-client preflight, ownership/history/effect guards and credit opt-in for
+only the allowed-Bash resume case. Budget two main ACP prompts/four HTTP model requests and two
+owned append effects; do not dispatch the deny/hook subcases or blindly retry a failed episode.
+With the reviewed offline toolchain and pinned absolute client paths:
+
+```sh
+DAX_INTEROP_KIRO_CREDIT_OPT_IN=1 \
+  DAX_INTEROP_KIRO_BINARY=/Users/geunwooshim/.local/bin/kiro-cli \
+  DAX_INTEROP_CLAUDE_BINARY=/Users/geunwooshim/.local/bin/claude \
+  go test -race -p 1 -count=1 -timeout 5m \
+  -run '^TestKiroLiveResumedToolPolicy$/^allow-bash$' -v ./internal/interop
+```
+
+The single episode passes in 47.55s (48.873s package). Each stage receives one matching successful
+Bash handoff/result and end_turn; the resumed stage checks exact old history in both requests.
+Old/new effects and native hooks remain once, sources remain unchanged, both native clients exit 0,
+and recorded process/group/profile/listener ownership is removed. This checks the production close
+change with actual Kiro/Claude but does not extend the broader resume/soak acceptance scope.
+
+Private fixed-class logs under `.cache/history-review/`: `d96-idle-close-before.log`,
+`d96-idle-close-after.log`, `d96-pending-32-waves.log`, `d96-full-regression.log`,
+`d96-native-policy-control.log`, `d96-live-resumed-allow.log` and `d96-vet.log`.
+The refreshed local artifact and its 139 offline byte checks are recorded in DEPENDENCY_REVIEW.md.

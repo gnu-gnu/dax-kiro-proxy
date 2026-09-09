@@ -621,3 +621,31 @@ The new record passes 139 checks. Like its predecessors, it explicitly reports r
 Native transcript retention introduces no new dependency. Historical embedded resources, complete
 native/build/test attribution, security advisory/reachability review, clean-host distribution and
 owner rights remain open.
+
+## Immediate relay-close artifact snapshot — D96, 2026-09-09
+
+`third_party/inventory/macos-arm64-relay-close.json` records the rebuilt 13,589,266-byte development
+command, SHA-256 `56634fa10aacd2ea7335cab3abab9f3acdaf1db7d714f0630a778c02e496e951`.
+It identifies Go 1.27.1, darwin/arm64, CGO_ENABLED=1 and parent c1212243445363ec2596108ed0b4c8b71cd4021f
+with vcs.modified=true. The build captures the recorded uncommitted production inputs; it does not
+claim a subsequent commit identity. The same 100 repository input paths remain selected: 91 Go
+sources, seven embedded notice files and go.mod/go.sum. Only internal/relay/socket.go changes.
+
+Fresh command metadata contains 267 packages and the same four external module versions, sums and
+selected package sets as D87. Selected native filenames and stdlib vendor package names match too.
+The new snapshot records the complete current import paths and per-package selected filenames;
+D87's smaller record does not support claiming an independently compared full prior Go-file list.
+Retained notice/reference and embedded notice bytes remain unchanged. This carries the existing
+scoped review forward without a new dependency, fresh advisory review or native symbol analysis.
+
+The D87 report is preserved and hashed as the predecessor. Its executable is retained under the
+ignored history-review directory before replacing dist/dax-kiro-proxy. Historical snapshots no
+longer match the changed source bytes. Verify the current artifact using:
+
+```sh
+python3 tools/verify_dependency_inventory.py --gomodcache .cache/gomod --snapshot relay-close --binary dist/dax-kiro-proxy
+```
+
+All 139 byte checks pass, with release_clearance=false. Historical embedded resources, complete
+native/build/test attribution, advisory/reachability review, clean-host distribution and owner
+rights remain open; the faster shutdown does not alter those obligations.

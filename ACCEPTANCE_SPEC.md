@@ -286,6 +286,11 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
 - Relay lifetime loss cancels blocked stdio and pending tools. A surviving relay produces a retained
   cleanup error; idle release retires the owned ACP group and repeated idle/final shutdown joins that
   result. A driver with failed cleanup cannot be reused.
+  Closing the relay socket must immediately revoke accepted connections and wake idle lifetime
+  readers, without waiting for an artificial connection deadline. Measure after authenticated
+  readiness; concurrent Close callers must join handlers/peer disappearance and remove private
+  artifacts while leaving a healthy ACP owner alive. Retain the separate bounded peer-exit check
+  and failure for a surviving peer (D96).
   Manager eviction/pruning retains the failure, prevents further admission/discovery and joins it
   during final shutdown even after the failed binding has been removed from its map.
 - HTTP server shutdown cancels active request contexts and joins connection/handler cleanup, including

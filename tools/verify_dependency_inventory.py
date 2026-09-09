@@ -95,8 +95,10 @@ def main():
     parser.add_argument("--gomodcache", type=Path, required=True)
     parser.add_argument("--binary", type=Path,
                         help="also require byte identity with the recorded development artifact")
-    parser.add_argument("--snapshot", choices=("development", "installation", "native-history"),
-                        default="development", help="select the frozen D78, D79 or D87 artifact record")
+    parser.add_argument("--snapshot",
+                        choices=("development", "installation", "native-history", "relay-close"),
+                        default="development",
+                        help="select the frozen D78, D79, D87 or D96 artifact record")
     args = parser.parse_args()
     try:
         report = ROOT / ("third_party/inventory/macos-arm64-" + args.snapshot + ".json")

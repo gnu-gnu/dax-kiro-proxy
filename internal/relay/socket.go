@@ -186,7 +186,7 @@ func (s *Socket) serve(conn *net.UnixConn) {
 	_ = WriteFrame(conn, response)
 }
 
-// A handler cannot extend the shutdown deadline after Close takes ownership of its connection.
+// A handler cannot change I/O deadlines after Close takes ownership of its connection.
 func (s *Socket) setDeadline(conn *net.UnixConn, duration time.Duration, write bool) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -205,7 +205,8 @@ func (s *Socket) Close() error {
 		close(s.closing)
 		_ = s.listener.Close()
 		for conn := range s.connections {
-			_ = conn.SetDeadline(time.Now().Add(time.Second))
+			// Wake blocked lifetime and request readers immediately, then join their handlers.
+			_ = conn.Close()
 		}
 		s.mu.Unlock()
 		s.broker.Close()
