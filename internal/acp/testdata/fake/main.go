@@ -70,6 +70,7 @@ func main() {
 		skillReplacement = defaultClientProcess(os.Args[2])
 	}
 	defaultLaunch := mode == "chat-tools-default-client-launch"
+	lossRecovery := mode == "chat-tools-recovery-launch"
 	defaultClient := mode == "chat-tools-default-client" || defaultLaunch
 	pluginMarker := mode == "chat-tools-plugin-wait-marker"
 	pluginWait := mode == "chat-tools-plugin-wait" || pluginMarker
@@ -190,9 +191,9 @@ func main() {
 				os.Exit(26)
 			}
 			if strings.HasPrefix(mode, "chat-tools") {
-				if mode == "chat-tools-launch" || mode == "chat-tools-client-launch" || mode == "chat-tools-effect-launch" || mode == "chat-tools-effect-restart-launch" || defaultLaunch {
+				if mode == "chat-tools-launch" || mode == "chat-tools-client-launch" || mode == "chat-tools-effect-launch" || mode == "chat-tools-effect-restart-launch" || defaultLaunch || lossRecovery {
 					manifestIndex := 2
-					if mode == "chat-tools-client-launch" || mode == "chat-tools-effect-launch" || mode == "chat-tools-effect-restart-launch" {
+					if mode == "chat-tools-client-launch" || mode == "chat-tools-effect-launch" || mode == "chat-tools-effect-restart-launch" || lossRecovery {
 						manifestIndex = 3
 					}
 					if defaultLaunch {
@@ -326,6 +327,14 @@ func main() {
 				}
 				if mode == "chat-before" {
 					hanging = append(hanging, q.ID)
+					continue
+				}
+				if lossRecovery {
+					if promptCount != 1 || !freshRecoveryPrompt(p.Prompt, os.Args[2]) {
+						os.Exit(95)
+					}
+					write(map[string]any{"jsonrpc": "2.0", "method": "session/update", "params": map[string]any{"sessionId": session, "update": map[string]any{"sessionUpdate": "agent_message_chunk", "content": map[string]string{"type": "text", "text": "Independent recovery complete."}}}})
+					reply(q.ID, map[string]any{"stopReason": "end_turn"})
 					continue
 				}
 				if pluginWait {

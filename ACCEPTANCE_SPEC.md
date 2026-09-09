@@ -192,6 +192,11 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
   lifetime session. Compatible turns retain that session; a changed tool policy replaces the owned
   launch without interrupting an unrelated binding. Partial preparation failure revokes its relay.
 - A process crash invalidates every attached session, fails all waiters, and never replays pending tools.
+- Observe process loss before a client tool handoff separately from ordinary cancellation. Require a
+  verified owned-group termination, joined old cleanup, an actual backend error with the caller
+  context still live, and a client-visible failure before admitting a new independent request.
+  Verify a new process completes that request without tool effects. A repeated client UUID alone
+  does not prove historical continuation or identical native system context (D75).
 - Rejection of a local invalid model or unsupported prompt does not cancel a healthy active sibling.
 
 ## G. Cancellation and load

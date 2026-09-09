@@ -6,6 +6,20 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D75 prepares and verifies process-loss/fresh-request recovery with actual Claude and independent
+  fake ACP. One exact Read is intercepted before client delivery; the owned ACP group is killed,
+  its real error reaches the client and old cleanup joins before a new text request completes in a
+  different process. Both client invocations preserve the explicit owner, model/tools/metadata and
+  user policy; the native billing-header fragment changes and is preserved unchanged in the request.
+  Independent negative controls distinguish caller cancellation/timeouts, missing failure, changed
+  policy, results, further tools and requests. The final rehearsal passes in 5.080s. Public-only
+  local Claude advice is saved, read and assessed; earlier diagnostic failures are retained.
+  The actual-Kiro attempt stops at preflight before any ACP/model work (3.946s). Both pinned 2.21.2
+  executables currently return whoami exit 1/account:null; the separate read-only shape test passes
+  in 4.816s but does not establish login. Login renewal has been requested. Live recovery stays open.
+  Applicable core race suites pass ACP 5.882s, session 27.869s and interop 21.593s; whole-repository/
+  fixture vet, formatting and whitespace pass. Only tests/evidence change and the D73 build remains
+  current. Development policy admission remains enabled, but current login verification blocks launch.
 - D74 verifies launcher cancellation after a delivered tool handoff with actual Kiro 2.21.2/v2 and
   Claude 2.1.263 (17.13s test, 18.514s race package). One exact Read reaches an effect-free held
   client hook while the driver waits for results. Eight launcher cancellations join in 1,061ms:

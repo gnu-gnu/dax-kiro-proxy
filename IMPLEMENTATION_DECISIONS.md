@@ -3192,3 +3192,91 @@ The final opt-ins-off complete interop race suite passes in cancellation-final-u
 cancellation-runtime-regression.Wha8bs (5.588s). Whole-repository/fixture vet, formatting and
 whitespace pass. Only independent fixtures, tests and evidence documents change; the D73
 development executable and run admission remain current.
+
+## D75: process loss before client tool delivery and a fresh request
+
+The next alpha observation kills only an independently observed owned ACP process group after the
+driver produces one exact Read request, before that request reaches the client. The test guard
+validates its name/arguments, records the live relay group, sends one SIGKILL and waits at most five
+seconds for joined process/relay/policy cleanup, Unstarted state and an empty pool. It then calls the
+real turn again and returns its actual error. No tool event or invented failure is sent to the client.
+The client must exit with a JSON error result; an owned denying-hook marker must remain absent.
+
+Only after that failure and cleanup pass may a second independently supplied text request start.
+Two finite print invocations use the same prepared profile, explicit fresh UUID (supported by the
+pinned public client's help), model, tools and fixed user-supplied system instructions. Persistence
+is disabled. The second request contains only its new user text and native standing context, no
+assistant/tool/result history; it is a fresh request, not continuation/resume of the failed turn.
+The replacement must be a different prepared process with old cleanup joined before its creation.
+Only text and a delivered end_turn may complete the second request. Further requests, results,
+effects or replacements fail. The production driver receives the original client requests unchanged.
+
+Independent guard controls precede the implementation and initially fail to build in
+process-loss-guard-red.jSqpNR. They then pass in 4.136s and 1.516s. They cover actual versus absent
+failure, caller cancellation versus internal retirement, recovery before cleanup, owner/model/tools/
+fixed-policy changes, unexpected questions/results, further tool effects and a third request.
+
+The first installed-client/fake-ACP rehearsal, process-loss-rehearsal.eyLND8 (5.198s package), proves
+the initial failure and cleanup but rejects the second request's system equality. Its first error
+is a transport/closed class. Diagnostic process-loss-shape.ibkGSk instead stops at the first error
+(3.367s), and process-loss-error-shape.AfAExd identifies internal context.Canceled with no signal/
+cleanup-wait failure or deadline (3.192s). The application can cancel the owned turn during retirement
+before transport EOF wins. A new negative control first fails in 0.716s, then separates an active
+caller context from actual caller cancellation. The accepted observed set is transport failure,
+closed process, or internal context cancellation only after the confirmed signal/cleanup and with
+the caller context still live. EOF, success and deadline outcomes do not establish this case.
+No application error handling changes.
+
+The authorized local Claude public-only consultation is saved, fully read and assessed in
+public-process-failure-review-y58ob59a (one turn, 6,494 stdout bytes). It supports separating causal,
+client-error, cleanup and recovery evidence. Do not infer a signal exit status or raw transport EOF
+that the public owner does not expose, signal unrelated processes, silently normalize metadata,
+or infer history continuity merely from a reused UUID. No source/client payload is supplied and the
+advice is not acceptance evidence.
+
+process-loss-causal-shape.lUf0yZ passes the guards and initial loss but still rejects system equality
+(4.088s). process-loss-system-shape.I1YD2Q (3.726s) identifies three top-level system blocks: the
+fixed user policy and other block stay exact, while the first x-anthropic-billing-header block
+changes a short fragment. Identity/model/effort/tools/metadata and the trailing standing message
+remain equal. The changed request prefix is its intended new question, with no prior history.
+
+The test observation now allows only that first single-line billing block's equal-length variation
+within one hexadecimal span of at most 32 bytes, under a 256-byte block bound. All non-text block
+fields, other system blocks and the literal owned policy remain exact. Unknown headers, non-hex or
+multiline changes and changed block metadata reject. Independent controls precede this predicate
+and fail to build before it exists. This is not a production normalization or pending-continuation
+exception: the original billing block is passed to the fresh session. Full wire-system equality
+remains false and is logged as such; no claim of identical backend context is made.
+
+process-loss-policy-rehearsal.wG3Mle passes the independent controls and installed-client/fake-ACP
+round trip in 5.080s (3.36s test). One intercepted Read becomes a real client-visible error, no client
+hook executes, and a new request under the same explicit owner reaches a fresh process and final
+text. Two requests/processes, one joined replacement, one final completion, original sources and
+all observed client/relay/ACP/artifact cleanup pass. The independent replacement fake requires one
+full prompt with an empty prior history, the new exact question, native standing context and no old
+target path. Earlier unobserved second-process flags do not establish cleanup leaks.
+
+Only test fixtures, observers and evidence change. The separately opted-in actual-Kiro recipe is in
+LIVE_KIRO_TEST_PLAN.md. This is not interactive same-process continuation, delivered pending-result
+replay, simultaneous sibling failure, foreground Ctrl+C or complete alpha/release evidence.
+
+Final pre-live guard controls include caller deadlines and nil error as negatives and pass in
+1.843s. Interop/independent-ACP vet and whitespace pass before the actual attempt. The added labels
+explicitly distinguish preserved owned policy from unequal native billing-header text.
+
+The actual-Kiro invocation live-process-loss.8PHpmH stops in version/account preflight, before
+any ACP process or model request (3.60s test, 3.946s race package). This is not an executed
+process-loss experiment. Both installed version commands still report 2.21.2. The compiled
+doctor with fresh owned settings/state also stops at login_check (2,396ms). The separate read-only
+main/helper diagnostic, process-loss-account-diagnostic.9j2vIn (4.816s race package), finds both
+whoami commands exit 1 with an object containing account:null and no verified identity. Its test
+passes as a shape observation, not as a successful login check. No credentials, login state or
+client configuration are modified. Login renewal has been requested from the user; no further
+actual model attempt runs while identity is absent.
+
+The complete applicable opt-ins-off race regression passes in process-loss-core-regression.Cjvd9l:
+ACP 5.882s, session 27.869s and interop 21.593s. Whole-repository/fixture vet, formatting and whitespace
+pass. No application or dependency change; the D73 executable remains current. Development policy
+admission stays enabled for the measured installation, but current login preflight prevents launch.
+Live process-loss/recovery acceptance remains open until the prepared sequence actually runs and
+passes; local fake-ACP recovery and read-only diagnostics do not substitute for that evidence.

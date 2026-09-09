@@ -16,7 +16,7 @@
     "https://kiro.dev/docs/cli/2x-reference/"
   ],
   "repository_sources": ["PROTOCOL_SPEC.md", "ACCEPTANCE_SPEC.md", "IMPLEMENTATION_DECISIONS.md"],
-  "fixtures": ["fake/main.go", "fake/relay.go", "fake/pool.go", "fake/inventory.go", "fake/native.go"],
+  "fixtures": ["fake/main.go", "fake/relay.go", "fake/pool.go", "fake/inventory.go", "fake/native.go", "fake/recovery.go"],
   "constraints": [
     "No imports from proxy implementation packages",
     "fixture/* methods are synthetic test controls, not Kiro capabilities",
@@ -35,6 +35,8 @@
     "The chat-tools-effect-launch case reads only the owned request/expectation manifest, relays one exact argument object and validates its returned status/content before completion; only the public client reads/writes the separate effect file or executes the specified shell command",
     "The native-control peer verifies empty ACP capabilities, one inventory/model selection/prompt, rejection of permission/filesystem/terminal requests, and terminal completion",
     "Native observer contamination controls deliberately create one synthetic marker or read and emit an owned random canary; these are independent test instrumentation that must fail the isolation observer, never real user data or client tool execution",
-    "Other native controls supply a foreign session, tool status, absent text, cancelled stop reason or silent turn to prevent those outcomes from counting as restriction proof"
+    "Other native controls supply a foreign session, tool status, absent text, cancelled stop reason or silent turn to prevent those outcomes from counting as restriction proof",
+    "The chat-tools-recovery-launch peer accepts one full prompt with empty prior history, the exact new synthetic question and native standing context; it rejects the old target path and returns only independent fixed text",
+    "The process-loss harness terminates only its observed owned ACP group before the pending Read reaches the client; no captured live prompt, model text or previous implementation is an input to the recovery fixture"
   ]
 }

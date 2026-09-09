@@ -63,7 +63,8 @@ Kiro configuration with default-resource suppression, and each ACP process has a
 agent directory. The client continues to decide tool permissions and execute tools.
 
 `doctor` succeeding means its checks completed; inspect `launch_available` and `policy` separately.
-The current installed combination reports `launch_available: true` and `policy: verified`. This means
+For this measured combination, successful login and policy checks report `launch_available: true`
+and `policy: verified`. This means
 the measured development policy is available, not that the client has initialized or all release
 gates have passed. The compiled run command's full terminal/startup/tool/shutdown composition passes
 with independent fake processes. This development build is not a release or installation procedure.
@@ -99,6 +100,11 @@ all 25 client tools and ordinary thinking/context declarations. D72's actual reg
 reaches the wait, expanded tools, one plugin call and joined cleanup, but fails its final-answer
 marker condition; the full live plugin gate remains open. Other lifecycle paths remain alpha
 checks. No general Messages/API compatibility is implied.
+
+Actual Claude with fake ACP also verifies process loss before Read delivery, a client-visible error,
+joined old cleanup and a fresh text request in a new process (D75). Its actual-Kiro invocation stops
+before model work because both CLI entry points currently report no logged-in account. Login renewal
+is required for further live work; development execution-policy admission remains enabled.
 
 The temporary client profile now retains standard-HOME user/local MCP declarations and decisions
 at their native scopes. Installed-client controls verify all three MCP scopes, disabled/re-enabled

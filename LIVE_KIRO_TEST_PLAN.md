@@ -783,3 +783,83 @@ further requests occur; no canary is observed in model output. No second actual 
 This closes only the described suspended-runtime observation, not foreground Ctrl+C, streamed HTTP
 disconnect, process-loss recovery or the remaining alpha/release gates. Application behavior and
 development run admission are unchanged; the development executable remains the D73 build.
+
+## Process loss before tool delivery and a fresh request
+
+D75 prepares one actual Kiro 2.21.2/v2 / Claude 2.1.263 sequence after its independent guards and
+installed-client/fake-ACP rehearsal pass. The continuing user authorization covers this finite alpha
+check. A separate credit opt-in is mandatory and no failed actual attempt is automatically repeated.
+
+The first user input is the existing single-Read instruction with a newly created temporary path.
+The random synthetic canary in that file is not supplied to the model. Both client invocations use
+this fixed system text:
+
+```text
+Independent process recovery exercise. Request the listed Read client tool only when the user asks for Read, exactly once with the specified file_path and no other arguments. Otherwise finish with a brief text acknowledgement. Do not use native tools, inspect other files or configuration, delegate, retry, or disclose file content.
+```
+
+The second independently supplied user input is:
+
+```text
+Do not request any tool. Reply with a brief acknowledgement of this new independent request.
+```
+
+Both invocations use a fresh owned HOME/project/settings/profile, an empty strict MCP configuration,
+only Read, disabled session persistence and one generated explicit conversation UUID. The second
+process receives only its new user text and native standing context, not a saved conversation. The
+owned Read hook would deny and record any accidental client invocation; its marker must stay absent.
+No repository, actual user asset or previous implementation is supplied. The installed client itself
+is unmodified. Experimental/thinking omissions stay scoped to the finite test commands.
+
+The shared restricted Kiro execution preparation follows exact-version/account/catalog preflight and
+uses the advertised auto model without fallback. The test allows one active ACP process and two
+sequential prepared launches, one exact intercepted Read in the first phase, two total main requests,
+four HTTP connections and bounded validators/relay owners. At the validated Read event, before tool
+delivery, record the live owned relay group and SIGKILL only that group. Within five seconds require
+the group/relay gone, policy artifacts removed, cleanup complete, an empty pool and Unstarted driver.
+Then return the real turn's observed error. Transport/closed/internal-cancellation classes are accepted
+only with the caller context still active and the termination/cleanup proof; success, EOF, deadlines
+and caller cancellation are negative controls. The first client must exit with a JSON error result.
+
+Only that complete first-phase proof authorizes the second test request. The new process must follow
+joined old cleanup. It may return text and one delivered end_turn, with no tool or additional request.
+The original requests are passed unchanged. Identity, model, effort, tools, metadata and literal user
+policy stay exact. The pinned client changes a short hexadecimal fragment in its first billing-header
+system block between print invocations; D75's bounded observation predicate distinguishes that from
+changed policy without removing or rewriting the block. Full wire-system equality is not claimed.
+
+The whole harness has three minutes, each client invocation one minute, each new independent turn
+45 seconds and setup/first event twenty seconds. The five-second termination observation does not
+extend the active request deadline. A maximum of two ACP prompts does not establish two billed calls
+or a fixed credit bound. If the first phase fails, the second is not sent. There is no automatic retry.
+
+Passing also requires no hook activity or canary disclosure, unchanged source settings/canary, both
+observed client and ACP/relay groups gone, all policy/profile artifacts removed and clean HTTP/pool/
+driver/validator shutdown. Record only fixed categories, counts, sizes and booleans; client output
+is inspected in bounded memory and never retained. No unowned process table or PID is searched.
+
+After the local controls pass, select only:
+
+```sh
+DAX_INTEROP_KIRO_CREDIT_OPT_IN=1 \
+DAX_INTEROP_KIRO_BINARY=/absolute/path/to/kiro-cli \
+DAX_INTEROP_CLAUDE_BINARY=/absolute/path/to/claude \
+GOTOOLCHAIN=go1.27.1 \
+GOMODCACHE="$PWD/.cache/gomod" \
+GOCACHE="$PWD/.cache/gobuild" \
+go test -race -p 1 -count=1 -timeout=4m -v \
+  -run '^TestKiroLiveProcessLossAndFreshRequest$' ./internal/interop
+```
+
+This sequence does not establish interactive continuation in one client process, late results after
+a delivered tool call, simultaneous sibling-session failure, terminal Ctrl+C, authentication expiry
+or restart/resume. Those remain distinct from this process-loss/fresh-request observation.
+
+The first opted-in invocation, live-process-loss.8PHpmH, stops at login preflight (3.946s race
+package); it creates no ACP process and sends no model request. The installed pair remains 2.21.2.
+A fresh-state compiled doctor also stops at login verification, and the main/helper read-only
+diagnostic process-loss-account-diagnostic.9j2vIn records exit 1/account:null for both (4.816s).
+The account has no currently verified login. The user has been asked to complete public CLI login;
+no credentials or authentication state are modified by this work. No actual sequence is retried.
+The full live process-loss gate remains open. The fake-ACP rehearsal and applicable core race
+regression pass, as recorded in D75, without external model inference.
