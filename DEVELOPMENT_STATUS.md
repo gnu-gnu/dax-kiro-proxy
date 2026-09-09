@@ -6,6 +6,20 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D95 extends repeated HTTP load to eight concurrent delivered tool batches and denial/new-question
+  recovery. A final 32-wave episode passes under race detection in 41.61s (45.299s package): 544
+  requests, 256 inert handoffs, 32 rejected internally paired foreign-owner histories and 256 fresh
+  full-history text recoveries without another handoff. All 512 recorded ACP groups and 512 relay
+  children/config directories are joined/removed across recovery, next-wave idle eviction and final
+  shutdown. With eight idle replacements and the schema pool retained between waves, FD/goroutine
+  counts remain 70/108; final counts are 5/2. GC-retained Go heap baseline/peak/final is
+  1,204,528/1,351,096/942,832 bytes. History/ownership counterfactuals pass in 3.098s package. The initial
+  peer delayed child reaping and produced a wave-two cleanup failure; correcting only the peer makes
+  the eight-wave control pass in 10.49s (13.639s package). Product cleanup remains strict. Actual-client,
+  multi-call, prepared/shared-process, native-RSS and long-duration soak remain open.
+  Final opt-ins-off race regressions pass: ACP 5.416s, pool 2.554s, gateway 3.397s, session 38.741s,
+  relay 10.413s, MCP 5.689s, schema 3.125s and interop 24.826s. Whole-repository/fake-peer vet,
+  formatting, whitespace and the unchanged D87 artifact's 139 byte checks pass.
 - D94 adds a bounded HTTP/process churn regression using one gateway/manager/pool for 64 waves of
   eight concurrent client identities. All 1,024 requests succeed through their expected phase:
   512 buffered completions and 512 same-backend active streams followed by caller cancellation.

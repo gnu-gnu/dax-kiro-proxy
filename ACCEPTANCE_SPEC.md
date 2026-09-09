@@ -303,6 +303,14 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
   budget, and reject observer controls with retained descriptors, wrong history or terminal output
   substituted for cancellation. D94 covers 64 waves/1,024 requests with eight concurrent sessions;
   its short text-only fixture run does not complete actual-client, pending-tool or long-duration soak.
+- Also exercise concurrent delivered tool batches after their HTTP responses finish. A syntactically
+  valid request pairing another session's call ID must reject while all original pending owners
+  remain available. Matching denials plus new questions must join old ACP/relay ownership and preserve
+  exact original history in fresh responses without another handoff. Bound idle eviction and final
+  cleanup across repeated waves; observe relay PID/group membership and config/directory removal
+  independently of pool counters. D95 covers eight single-call sessions for 32 waves, including
+  steady descriptor/Go-goroutine counts and a declared heap envelope. Multi-call batches, real clients,
+  prepared policy, shared ACP processes, native RSS and long-duration soak remain separate checks.
 - Prepared policy cleanup occurs once after ACP/router shutdown and before releasing capacity.
   Repeated idle release joins the same cleanup result. A retired cleanup failure remains visible to
   pool shutdown and prevents admission of further launch artifacts.

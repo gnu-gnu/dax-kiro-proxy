@@ -50,6 +50,10 @@ func main() {
 		churnFixture()
 		return
 	}
+	if mode == "pending-churn" {
+		pendingChurnFixture()
+		return
+	}
 	if strings.HasPrefix(mode, "inventory-") {
 		inventoryFixture(mode)
 		return

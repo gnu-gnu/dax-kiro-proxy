@@ -4352,3 +4352,50 @@ shared-process stress, native RSS and long-duration release evidence remain sepa
 Applicable opt-ins-off race regressions pass: ACP 5.183s, pool 2.435s, gateway 3.502s, session
 29.327s and interop 23.569s. Whole-repository/fake-peer vet, formatting, whitespace and the frozen
 D87 artifact's 139 byte checks pass. The fixture provenance inventory includes the new peer.
+
+## D95: concurrent pending-tool denial, recovery and idle eviction
+
+Extend finite load evidence to eight independent one-call tool batches, using one HTTP server,
+transport, manager, process pool and schema pool throughout. Each synthetic client receives one
+inert client_action handoff and completes its HTTP response while its ACP/relay remain live. All
+eight IDs, processes, relay children and config paths are distinct. A foreign-owner control replaces
+both the assistant call ID and matching result ID with another live session's ID, so the Messages
+envelope is internally paired and passes request/control decoding. It must receive HTTP 400 while
+all original pending processes/relays remain live and their valid recoveries remain possible.
+
+Then supply each exact original batch's error result followed by a distinct new question. Require a
+fresh observed ACP PID/relay/config, first prompt count one, exact old question/assistant text/call
+ID/name/input, matching error result and new question in a full-history projection. The response
+must end normally without another tool handoff. Independently require old leader/group/relay absence
+and removed old config/directory. Keep the eight completed replacements idle; new identities in
+the next wave evict them, and all their recorded ownership/artifacts must be gone before that wave's
+pending barrier. Four final closes join the last idle owners, server, manager and schema resources.
+
+The new independent ACP peer has one session/prompt, twelve 64 KiB-bounded frames and a thirty-second
+lifetime. It launches only its supplied effect-free MCP relay, exposes bounded synthetic identity/
+prompt/config-path observations, never reads the config and never implements the requested action.
+An initial fixture delayed child Wait until ACP EOF; the second wave receives 502 and retained relay
+cleanup errors in 4.13s. Promptly reaping that owned child while ACP stays idle makes the eight-wave
+test pass in 10.49s / 13.639s race package. No product cleanup rule is relaxed. OS zombie state was
+not separately sampled; the child-wait scheduling diagnosis comes from the peer's lifecycle code
+and the corrected control, not an observed native Kiro defect.
+
+Defaults are eight waves; DAX_FIXTURE_PENDING_WAVES accepts 8..32. Limits are eight manager bindings,
+eight one-session ACP processes/eight idle slots, at most eight schema workers, eight client
+connections/sixteen server connections, sixteen KiB observed HTTP bodies, twenty seconds per wave
+and three minutes per episode. After four warmup waves, use D94's fixed +2 FD/+16 goroutine/+8 MiB
+GC-retained test-process heap envelope. Eight idle ACP/relay owners and the reusable schema pool
+remain deliberately present at these sampling points; final shutdown must clear all owner counters.
+
+The final 32-wave race episode, including the strengthened internally paired foreign-owner control,
+passes in 41.61s / 45.299s package: 544 HTTP requests, 256 inert handoffs, 32 rejected foreign histories,
+256 fresh text recoveries and 512 joined ACP groups plus 512 joined relay children/config directories.
+Steady FD/goroutine baseline and peak are 70/108; final counts are 5/2. Heap baseline/peak/final are
+1,204,528/1,351,096/942,832 bytes. Independent history/ownership observers pass in 3.098s package.
+No actual client, external inference, native tool effect, production or dependency change. The finite
+run does not establish multi-call batches, real client UI/hooks, prepared/native policy, shared-process
+semantics, native RSS or long-duration release soak.
+
+Final opt-ins-off race regressions pass: ACP 5.416s, pool 2.554s, gateway 3.397s, session 38.741s,
+relay 10.413s, MCP 5.689s, schema 3.125s and interop 24.826s. Whole-repository/fake-peer vet,
+formatting, whitespace and the unchanged D87 artifact's 139 byte checks pass.

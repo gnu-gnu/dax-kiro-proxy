@@ -265,6 +265,9 @@ A bounded independent-process concurrency test now covers 1,024 local HTTP reque
 and eight simultaneous sessions. All 512 observed ACP process/group instances are joined, with
 stable settled descriptor/goroutine counts and recorded Go heap bounds (D94). This short fixture
 test does not complete actual-client, pending-tool or long-duration release soak.
+D95 separately covers 256 concurrent single-call denial/recovery episodes and 32 foreign-history
+rejections, with all 512 ACP groups and 512 relay children/config directories cleaned. Its finite
+fixture evidence still leaves actual-client, multi-call/shared-process and long-duration soak open.
 
 Phase 7 has frozen dependency inventories and retained scoped notices. For the D87 native-history
 development artifact, run `python3 tools/verify_dependency_inventory.py --gomodcache .cache/gomod

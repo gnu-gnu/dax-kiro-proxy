@@ -1552,3 +1552,72 @@ change is made.
 Applicable opt-ins-off race regressions pass in `d94-core-regressions.log`: ACP 5.183s, pool
 2.435s, gateway 3.502s, session 29.327s and interop 23.569s. Whole-repository/fake-peer vet passes
 (`d94-vet.log`), along with formatting, whitespace and the unchanged D87 artifact's 139 byte checks.
+
+## D95: concurrent pending-tool denial and recovery
+
+Use only synthetic HTTP clients and an independently authored pending-churn ACP peer, with real
+client/model opt-ins disabled. The inert client_action has no execution implementation or file effect.
+One server/transport/manager/process pool/schema pool serves all waves. Per wave, eight unique
+identities receive complete HTTP tool handoffs while their owned ACP/relay groups remain pending.
+Require unique call IDs, leaders, relay children and private relay configs, actual child/group
+membership, regular 0600 configs, zero active HTTP requests and eight busy backend sessions.
+
+Before recovery, send one internally paired foreign-owner request: use another live call's ID in
+both the forged assistant block and its result. Check that its Messages envelope/control fields
+decode before dispatch, require HTTP 400, and recheck all original pending ownership. Then return
+each exact original call's error result followed by its own new question. Require new ACP/relay/
+config ownership and a first full-history prompt retaining exact original question, assistant text,
+call ID/name/input and matching denial before that question. No new tool handoff may occur. Check
+old leader/group/relay disappearance and old config/directory removal independently of manager stats.
+
+Keep eight successful replacement sessions idle. New identities in the following wave must evict
+them and remove their recorded processes/relay artifacts before the next pending barrier. Close the
+last idle owners and server/schema resources four times at final shutdown and require zero owner
+counters plus removed recorded ownership. Observations remain in bounded memory; logs contain only
+counts, fixed failure classes and resource measurements, never prompts, results, IDs or config paths.
+
+Limits: eight one-session ACP processes/eight manager bindings/eight idle slots; eight schema workers;
+eight client/sixteen server connections; sixteen KiB HTTP observation; twenty seconds per wave;
+three minutes per episode. The peer accepts one session/prompt, twelve frames of at most 64 KiB and
+thirty seconds lifetime. It starts/reaps only its supplied MCP child and does not open relay config.
+Default eight waves; DAX_FIXTURE_PENDING_WAVES accepts 8..32. Sample FD/goroutine/post-GC heap after
+each settled wave, using the fourth as baseline and D94's +2/+16/+8 MiB ceilings. These samples retain
+the known eight idle ACP/relay owners and reusable schema workers; they do not represent zero-owner
+baseline. The finite extended command with the reviewed offline Go 1.27.1 environment is:
+
+```sh
+DAX_FIXTURE_PENDING_WAVES=32 DAX_INTEROP_KIRO_CREDIT_OPT_IN=0 \
+  DAX_INTEROP_KIRO_BINARY= DAX_INTEROP_CLAUDE_BINARY= \
+  go test -race -p 1 -count=1 -timeout 4m \
+  -run '^TestConcurrentPendingToolDenialChurn$' -v ./internal/session
+```
+
+The first run fails at wave two in 4.13s (7.293s package): HTTP 502 and retained relay-cleanup errors.
+Its new peer postpones Wait on its child until ACP EOF. Prompt reaping while ACP remains idle fixes
+that fixture lifecycle, without relaxing product cleanup. The corrected eight-wave test passes in
+10.49s / 13.639s package, 136 HTTP requests, 64 inert handoffs/recoveries and 128 joined ACP groups/
+relay children. The earlier foreign-ID control used an unmatched result; the final extended run
+below strengthens it to a syntactically valid paired foreign history. No native zombie state or
+Kiro defect is inferred from the initial fixture failure.
+
+Independent corrupt-history/ownership controls pass in 3.098s package. The final 32-wave run passes
+in 41.61s / 45.299s package: 544 HTTP requests, 256 inert handoffs, 32 foreign-history rejections,
+256 exact fresh text recoveries, 512 joined ACP group instances and 512 joined relay children with
+removed private configs/directories. Each wave ends with eight accounted idle groups; intermediate
+joined counts exclude them, and final counts include their joined shutdown.
+
+| Test-process observation | Warmup baseline | Post-warmup peak | Final shutdown |
+| --- | ---: | ---: | ---: |
+| OS descriptor count | 70 | 70 | 5 |
+| Go goroutines | 108 | 108 | 2 |
+| GC-retained Go heap bytes | 1,204,528 | 1,351,096 | 942,832 |
+
+Logs in `.cache/history-review/`: `d95-pending-initial.log`, `d95-pending-reaped.log`,
+`d95-pending-observers.log`, `d95-pending-32-waves.log`. This is finite independent one-call-per-session
+evidence, not actual Kiro/Claude, UI/hook approval, multi-call batches, prepared/native policy,
+shared ACP process, native RSS or long-duration release soak. No product/dependency/artifact change.
+
+Final opt-ins-off race regressions pass in `d95-core-regressions.log`: ACP 5.416s, pool 2.554s,
+gateway 3.397s, session 38.741s, relay 10.413s, MCP 5.689s, schema 3.125s and interop 24.826s.
+Whole-repository/fake-peer vet passes (`d95-vet.log`), with formatting, whitespace and the unchanged
+D87 artifact's 139 byte checks. The fixture provenance inventory includes the new peer.
