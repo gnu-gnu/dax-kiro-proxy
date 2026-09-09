@@ -19,6 +19,7 @@ import (
 	"dax-kiro-proxy/internal/catalog"
 	"dax-kiro-proxy/internal/childproc"
 	"dax-kiro-proxy/internal/inference"
+	"dax-kiro-proxy/internal/installation"
 	"dax-kiro-proxy/internal/launcher"
 	"dax-kiro-proxy/internal/relay"
 	"dax-kiro-proxy/internal/relay/mcp"
@@ -30,6 +31,21 @@ import (
 )
 
 func main() {
+	// Helpers acquire their own shared lease before dispatch. The parent also holds
+	// its lease until child cleanup finishes, preserving executable paths for reexec.
+	var lease io.Closer
+	if len(os.Args) < 2 || (os.Args[1] != "install" && os.Args[1] != "uninstall") {
+		executable, err := os.Executable()
+		if err == nil {
+			lease, err = installation.Lease(executable)
+		}
+		if err != nil {
+			os.Exit(installationFailure(os.Stderr, err))
+		}
+		if lease != nil {
+			defer lease.Close()
+		}
+	}
 	if childproc.IsTerminalReclaimer(os.Args[1:]) {
 		return
 	}
@@ -48,6 +64,8 @@ func main() {
 	}
 	files := childproc.AttachedIO{Stdin: os.Stdin, Stdout: os.Stdout, Stderr: os.Stderr, Foreground: true}
 	services := commandServices{
+		home: os.UserHomeDir, source: installationSource,
+		install: installation.Install, uninstall: installation.Uninstall,
 		defaults: defaultOptions, inspect: launcher.Inspect, run: launcher.Run,
 		statusline: statusline.Display,
 		notice:     startupnotice.Output,
@@ -71,11 +89,18 @@ func main() {
 		displayDeadline.Stop()
 	}
 	stop()
+	if lease != nil {
+		lease.Close()
+	}
 	os.Exit(code)
 }
 
 // Injection is local to command tests. CLI arguments cannot select an alternate launcher or policy.
 type commandServices struct {
+	home       func() (string, error)
+	source     func() (string, error)
+	install    func(context.Context, string, string, bool) error
+	uninstall  func(context.Context, string) error
 	defaults   func() (launcher.LaunchOptions, error)
 	inspect    func(context.Context, launcher.LaunchOptions) (launcher.StartupReport, error)
 	run        func(context.Context, launcher.LaunchOptions, childproc.AttachedIO) (launcher.LaunchResult, error)
@@ -86,12 +111,17 @@ type commandServices struct {
 	metrics    func(context.Context, string) (string, error)
 }
 
-const helpText = `usage: dax-kiro-proxy <doctor|models|run> [options]
+const helpText = `usage: dax-kiro-proxy <doctor|models|run|install|uninstall> [options]
   doctor           inspect startup requirements without launching the client
   models           list Kiro model aliases without a model turn
   run              launch the client when Kiro execution restrictions are verified
   version          show the development version
-options:
+  install          install this executable and retained notices for the current user
+  uninstall        remove an idle managed installation; preserve user settings
+installation options:
+  --bin-dir PATH   absolute installation directory (default: ~/.local/bin)
+  --force          replace an intact idle installation (install only)
+launch/diagnostic options:
   --kiro PATH      Kiro executable
   --client PATH    Claude Code executable
   --state-dir PATH product state directory
@@ -153,6 +183,9 @@ func execute(ctx context.Context, args []string, files childproc.AttachedIO, out
 		}
 	}
 	command := args[0]
+	if command == "install" || command == "uninstall" {
+		return executeInstallation(ctx, args, out, diagnostics, services)
+	}
 	if command != "doctor" && command != "models" && command != "run" {
 		return usageError(diagnostics)
 	}

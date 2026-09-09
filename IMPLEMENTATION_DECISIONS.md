@@ -3496,3 +3496,94 @@ account mutation, installer execution or release publication occurs. This closes
 top-level notice/artifact-correlation work and establishes precise resource differences, while full
 historical licensing, component attribution, advisory scanning, installer/clean-host testing and
 owner rights remain open. D75's absent login and D77's personal-root-memory gap are unchanged.
+
+## D79: publish per-user executable generations and protect active helper paths
+
+Phase 7's local installation contract now has explicit `install`, `install --force` and `uninstall`
+commands. They resolve their own executable and a per-user destination without launcher settings,
+Kiro/client probes, credentials, model work, downloads, shell-profile edits or services. The default
+destination is HOME/.local/bin; `--bin-dir` accepts an absolute clean owned directory. A custom
+destination must also be specified on later operations. The source must be an owned regular
+executable, not a symlink/hardlink/special file, with no group/other write permission. The CLI resolves
+its own symlink before handing that source to the installer; there is no arbitrary `--source` option.
+
+The public `dax-kiro-proxy` link points to `.dax-kiro-proxy-install/current/dax-kiro-proxy`.
+The private manager has a fixed format marker, a stable zero-byte lock and `current` pointing to
+one `generation-` directory with a random 128-bit lowercase hexadecimal identifier. Each generation
+contains the executable, a strict manifest and retained notice/reference files. Owned directories
+use 0700, executable files 0700 and metadata/notices 0600. Existing parent directories retain their
+modes. User/client settings, credentials, source executable, unrelated bin entries and product state
+are outside the installation contents and remain intact after uninstall. Empty destination parents
+are retained. Repeated uninstall of an absent installation succeeds.
+
+Bounds are 128 MiB per source executable, 16 KiB per manifest, sixteen payload files per generation,
+64 KiB per notice, 1 MiB total notices and four retained generation/stage directories. The command's
+ordinary argument bounds also apply. Paths and exact file types/modes/owner/link counts are checked
+through os.Root and no-follow bounded file opens; manifests reject duplicate/unknown members,
+unexpected paths, invalid sizes/hashes and mismatching content. Unknown or changed entries refuse
+both force replacement and uninstall, before their planned destructive work. These checks are not
+a signed provenance guarantee or a transaction against arbitrary concurrent edits by the same user.
+Filesystem call latency still depends on the host filesystem; byte/count bounds are not a hard
+wall-clock bound for an unresponsive kernel/filesystem operation.
+
+Every installed normal command and internal helper acquires a shared nonblocking flock before
+dispatch and holds it through its process lifetime/owned child cleanup. Installer commands instead
+take an exclusive nonblocking lock. Busy operations reject without changing the active generation.
+The existing manager never recreates a missing lock; root and lock inode identities are rechecked
+after acquisition and before mutation. This preserves paths a parent still needs to spawn helpers.
+A startup racing installation can fail explicitly; uninterrupted startup during replacement is not
+promised. Self reinstall/uninstall operates from the already mapped executable and does not spawn a
+helper from its removed path.
+
+Installation writes a `staging-` directory, syncs files/directories, writes the manifest last and
+validates the complete result before renaming it into a generation. A temporary pointer is renamed
+atomically over `current`; the initial public link is created exclusively. Before publication,
+ordinary failure/cancellation cleans only this invocation's recorded creation identities after
+rechecking the entire tree. Failure to prove ownership preserves the stage and reports incomplete
+cleanup. A later invocation reclaims only fully validated inactive artifacts; invalid or incomplete
+stages are never deleted by name. A low-level bootstrap failure may retain an incomplete manager
+for inspection. Process exit/power loss can occur outside these ordinary-error cleanup paths.
+
+After changing `current`, failures explicitly report partial publication and retain the new
+generation. They never silently restore the old executable. Cancellation arriving after publication
+does not interrupt the remaining bounded cleanup. Uninstall validates everything before removing
+the public link, then removes known pointers/payloads, marker and finally lock/manager. A filesystem
+failure after removal starts reports incomplete cleanup and leaves remaining artifacts for inspection.
+Neither installation nor uninstall claims an all-or-nothing transaction across arbitrary failures.
+
+The seven runtime/reference texts reviewed in D78 are embedded unchanged into the single executable
+and installed beside each generation. The test-only LLVM notice is excluded from this ordinary
+executable. The JSON Schema historical-license reference remains explicitly a reference, not a
+retroactive rights determination. No external module is added or upgraded. The new D79 artifact
+snapshot separately records 267 selected packages, the same four external module versions/sums,
+ninety production Go source records, seven embedded texts and go.mod/go.sum. The earlier D78 report
+is retained unchanged. The new snapshot records a dirty build based on D78 plus exact selected
+production inputs; it is not falsely attributed to a clean commit. See DEPENDENCY_REVIEW.md.
+
+Independent installation tests are written before their APIs and first fail because implementation
+is absent; CLI dispatch tests likewise fail on missing service fields. Passing tests then cover
+normal/forced/repeated operations, eighteen unsafe/changed-content cases, invalid source/cancellation,
+twelve pre-publication failure/cancellation cases, shared leases and retired-generation rejection.
+Real child process exits at prepared/published checkpoints separately verify retained current state,
+kernel lock release and bounded recovery; ordinary injected failures are not substituted for these
+process controls. Changed-lock identity and ambiguous-partial-stage preservation also pass.
+These are process exits on the current filesystem, not a sudden power-loss/durability experiment.
+
+The actual compiled command is copied into an isolated HOME outside the repository and initialized
+as a schema helper. Its seven notice files are byte-exact. While the helper is held, force install
+and uninstall both reject; after joined helper exit, self reinstall publishes a different executable
+path and self uninstall removes installation artifacts. A second uninstall succeeds from the source.
+Six user/project/product/unrelated-file sentinels, their modes, source bytes and observed process
+group cleanup pass. The focused compiled race run passes in 5.629s (3.67s test). Final installation
+and command race suites pass in 7.667s and 4.963s after adding committed-cancellation coverage and
+ensuring bootstrap-cleanup errors retain the explicit cleanup status. Applicable launcher/childproc/ACP/schema regressions
+pass in 26.376s, 5.840s, 5.010s and 3.075s. Whole-repository vet, formatting, whitespace, build and
+executable help pass. This development-host test does not substitute for clean supported macOS
+release installation, full live alpha lifecycle, soak tests or owner/dependency license clearance.
+
+The bounded public-only local Claude consultation `public-install-review-review-sssx6nt0` is saved,
+read fully and assessed. Stable locking, partial-publication reporting and independent crash checks
+are useful advice; deleting invalid stages by name and a mistaken extra path segment are rejected.
+The response supplies no validation or implementation-source authority. No earlier implementation
+is consulted, no real client/user configuration changes and no Kiro model request occurs. Development
+run policy remains enabled; D75 login renewal and D77 personal-root-memory fidelity remain open.

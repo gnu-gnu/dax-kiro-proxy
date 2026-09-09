@@ -48,14 +48,19 @@ def check_record(path, record, limit):
         raise ValueError("inventory byte mismatch")
 
 
-def verify(cache, binary=None):
-    report = json.loads(read_regular(REPORT, 1 << 20))
+def verify(cache, binary=None, report_path=None):
+    report = json.loads(read_regular(report_path or REPORT, 1 << 20))
     if report["format"] != 1 or report["release_clearance"] is not False:
         raise ValueError("unsupported snapshot")
-    if len(report["notices"]) > 32 or len(report["modules"]) > 32:
+    if (len(report["notices"]) > 32 or len(report["modules"]) > 32
+            or len(report["repository_inputs"]) > 512):
         raise ValueError("inventory entry limit")
     count = 0
     for record in report["repository_inputs"] + report["notices"]:
+        check_record(safe_path(ROOT, record["path"]), record, 1 << 20)
+        count += 1
+    if "prior_snapshot" in report:
+        record = report["prior_snapshot"]
         check_record(safe_path(ROOT, record["path"]), record, 1 << 20)
         count += 1
     for module in [report["toolchain"]] + report["modules"]:
@@ -90,9 +95,12 @@ def main():
     parser.add_argument("--gomodcache", type=Path, required=True)
     parser.add_argument("--binary", type=Path,
                         help="also require byte identity with the recorded development artifact")
+    parser.add_argument("--snapshot", choices=("development", "installation"),
+                        default="development", help="select the frozen D78 or D79 artifact record")
     args = parser.parse_args()
     try:
-        result = verify(args.gomodcache, args.binary)
+        report = REPORT if args.snapshot == "development" else ROOT / "third_party/inventory/macos-arm64-installation.json"
+        result = verify(args.gomodcache, args.binary, report)
     except (OSError, ValueError, KeyError, TypeError):
         print("dependency snapshot verification failed", file=sys.stderr)
         return 1

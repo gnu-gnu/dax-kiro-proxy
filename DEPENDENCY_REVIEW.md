@@ -531,10 +531,11 @@ claim exhaustive table-generation, per-file exception or linked-artifact attribu
 
 ### Offline verification and remaining work
 
-Verify the frozen report against the existing reviewed cache and its exact binary:
+Verify the historical D78 report against the existing reviewed cache. Add `--binary` with a retained
+copy of the exact D77 artifact to check that artifact as well; later development builds differ:
 
 ```sh
-python3 tools/verify_dependency_inventory.py --gomodcache .cache/gomod --binary dist/dax-kiro-proxy
+python3 tools/verify_dependency_inventory.py --gomodcache .cache/gomod --snapshot development
 ```
 
 The tool performs no network request, executes no dependency and changes no file. It checks
@@ -559,3 +560,38 @@ present-day match cannot prove historical acquisition or absence of modification
 attribution, current advisory/reachability scanning, final archive contents, clean macOS installation/
 uninstall, owner rights, intended distribution and project license remain release work. Local
 packaging/installer implementation can continue without claiming that distribution is cleared.
+
+## Installation artifact snapshot — D79, 2026-09-09
+
+The new installer embeds exactly the seven already reviewed runtime/reference texts and excludes
+the test-only LLVM notice. Installed-file tests compare all seven against the embedded bytes, retain
+their runtime/reference directories and check their modes. This packaging step does not resolve the
+historical JSON Schema applicability questions above or select a project license.
+
+`third_party/inventory/macos-arm64-installation.json` identifies the new 13,572,242-byte command
+artifact, SHA-256 `de7230ccb99bbe2fa8b011c7b89a6286734cebe9fc554310a0f05ea273e64e89`.
+The Go 1.27.1 darwin/arm64 build has CGO_ENABLED=1 and reports D78's Git revision plus
+`vcs.modified:true`. Its exact ninety selected first-party production Go files and seven embedded
+texts are recorded alongside go.mod/go.sum, so the dirty build is not misrepresented as a clean
+revision. Rebuilding later can change the artifact identity and needs its own evidence.
+
+The newly collected command graph has 267 packages. Compared with D78's 265-package collection,
+only the first-party installation and notices packages are added; none is removed. The four external
+modules' versions, sums and selected package sets are identical. Existing dependency Go/native/embed
+filename selections also match the previous collection. All retained notice and go.mod/go.sum bytes
+match D78. This is a scoped graph/input comparison, not a new linked-symbol, toolchain provenance or
+security-advisory analysis. The frozen D78 report remains unchanged and is itself hashed in D79.
+
+```sh
+python3 tools/verify_dependency_inventory.py --gomodcache .cache/gomod --snapshot installation --binary dist/dax-kiro-proxy
+```
+
+This passes 138 file-record checks, including the exact artifact and prior report; some retained
+texts participate as both source-embedding and notice records. The preserved D77 artifact still
+passes the original forty checks. Both snapshots report `release_clearance:false`. The verifier
+also rejects seven independently mutated owned fixtures: changed, missing or symlinked production
+source; changed prior snapshot; false clearance; excessive source records; and an escaping path. It
+selects a named frozen report, does not discover current dependencies and does not change files.
+Unchanged external licensing evidence is carried forward explicitly; full historical-resource,
+native/build/test attribution, advisory/reachability, clean-host release packaging and owner-rights
+work remains open. No new dependency or client/model work is needed for this local installer.

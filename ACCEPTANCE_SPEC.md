@@ -348,6 +348,18 @@ must reject changed/missing inputs, exceeded bounds, unsafe paths/file types and
 clearance. Passing a snapshot/cache comparison does not establish new-source reachability, complete
 attribution, absence of vulnerabilities or distribution rights (D78).
 
+The per-user development installer must copy only its own executable and retained notices into an
+owned private generation. Independent tests must cover normal install, explicit force replacement,
+self reinstall/uninstall, repeated uninstall, source/settings preservation and exact notice bytes.
+Unknown or changed files, unsafe ownership/modes/links, missing markers/locks, exceeded bounds and
+invalid sources must reject without overwriting those contents. Active executable/helper leases
+must refuse replacement/removal; interrupted startup may fail explicitly during mutation. Ordinary
+pre-publication failure/cancellation must clean this invocation's provably owned staging files and
+keep the previous executable. Process-exit tests must separately demonstrate recovery before and
+after publication, with no rollback of an already published generation. An ambiguous partial stage
+is preserved and reported. Passing these checks in a temporary HOME on the development host is not
+the clean-host release check above (D79).
+
 ## Release-blocking invariants
 
 Any of these is an unconditional release blocker:

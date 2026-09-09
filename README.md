@@ -67,7 +67,28 @@ For this measured combination, successful login and policy checks report `launch
 and `policy: verified`. This means
 the measured development policy is available, not that the client has initialized or all release
 gates have passed. The compiled run command's full terminal/startup/tool/shutdown composition passes
-with independent fake processes. This development build is not a release or installation procedure.
+with independent fake processes. This development build is not a release.
+
+For a local per-user installation of the development executable:
+
+```sh
+./dist/dax-kiro-proxy install
+~/.local/bin/dax-kiro-proxy --help
+./dist/dax-kiro-proxy install --force
+~/.local/bin/dax-kiro-proxy uninstall
+```
+
+`install` copies its own executable and seven retained notice/reference files into a private
+generation under `~/.local/bin`. `--bin-dir /absolute/directory` selects another owned directory;
+use that same option for later reinstall or uninstall. The command creates the public executable
+link but does not change PATH, shell profiles, client settings, credentials or product state.
+Stop installed proxy/helper processes before replacing or removing the installation. `--force`
+only replaces a fully validated idle installation; changed or unknown files are preserved and
+reported. Repeated uninstall succeeds when the managed installation is already absent. An interrupted
+publication can leave the new generation active; the error says so. Valid retained generations can
+be recovered by retrying, while incomplete/changed artifacts require inspection and are preserved.
+Tests cover an isolated HOME on the current macOS arm64 host, including self reinstall/uninstall;
+clean-host release installation and complete license clearance remain open (D79).
 
 The initial-session native-effect challenge and real-client Read-hook refusal both pass freshly on
 Kiro 2.21.2, with unchanged files and joined process cleanup. Six actual Kiro 2.21.2 / Claude 2.1.263
@@ -160,10 +181,12 @@ priority is client-environment preservation, broader client request compatibilit
 live alpha lifecycle checks. Optional web/account-usage
 features, full Anthropic API coverage and release soak tests are not development-launch prerequisites.
 
-Phase 7 now has an identified development-binary dependency inventory and retained scoped notices
-(D78). `python3 tools/verify_dependency_inventory.py --gomodcache .cache/gomod --binary
-dist/dax-kiro-proxy` checks that frozen snapshot offline. It is not a release license clearance or
-an installer; see DEPENDENCY_REVIEW.md for resource differences and remaining packaging/rights work.
+Phase 7 has frozen dependency inventories and retained scoped notices. For the D79 installation
+development artifact, run `python3 tools/verify_dependency_inventory.py --gomodcache .cache/gomod
+--snapshot installation --binary dist/dax-kiro-proxy`. The default `development` snapshot still
+identifies D78's earlier D77 binary; it does not match later rebuilds. These offline byte checks
+do not grant release license clearance; see DEPENDENCY_REVIEW.md for resource differences and
+remaining packaging/rights work.
 
 ## Naming
 

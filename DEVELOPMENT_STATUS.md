@@ -6,6 +6,25 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D79 adds per-user `install`, `install --force` and `uninstall`, copying only this executable and
+  seven retained notice/reference files. Shared process/helper leases prevent replacement/removal
+  while in use; exclusive publication and validated cleanup preserve user/client state and foreign
+  or modified entries. Tests first fail on missing APIs/dispatch, then pass normal/forced/repeated
+  operations, unsafe contents, cancellation, changed lock identity, real process exit before/after
+  publication and bounded recovery. An ambiguous partial stage is preserved. The compiled binary
+  passes an isolated-HOME exercise outside the repository, including worker initialization, busy
+  refusal, self reinstall/uninstall, exact notices, settings/source preservation and joined groups
+  (5.629s race package). Final focused race suites pass installation 7.667s and command 4.963s;
+  applicable regressions pass launcher 26.376s, childproc 5.840s, ACP 5.010s and schema 3.075s.
+  Whole-repository vet, formatting, whitespace, build and executable help pass. Public-only local
+  Claude advice is saved/read/assessed; advice to delete invalid stages by name is rejected.
+  The new frozen artifact has 267 selected packages, four unchanged external modules and seven
+  newly embedded reviewed notices. Its 99 repository-input records include 90 production Go files;
+  138 offline file-record checks pass; seven owned negative controls reject changed/missing/unsafe
+  sources, a changed prior report, exceeded record count, escaping paths and false clearance.
+  The original D78 snapshot/artifact still passes forty checks.
+  This is local development installation evidence, not clean-host release or license clearance.
+  Login renewal, personal CLAUDE.md preservation, live alpha and remaining release gates stay open.
 - D78 adds an artifact-linked dependency inventory, eight scoped notice/reference records and an
   offline byte verifier. The clean D77 darwin/arm64 command binary records four external modules;
   its selected graph has 265 packages. All nineteen embedded metaschemas have published/tag URLs,
