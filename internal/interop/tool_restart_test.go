@@ -72,6 +72,10 @@ func observeNativeToolHistory(t *testing.T, live bool, kind, holdMode string) {
 
 func observeToolHistory(t *testing.T, live bool, kind, holdMode, followPolicy string) {
 	t.Helper()
+	interactiveFollow := strings.HasPrefix(followPolicy, "ui-")
+	if interactiveFollow && (live || holdMode != "") {
+		t.Fatal("interactive resume currently covers completed history with independent ACP only")
+	}
 	if followPolicy != "" && (kind != "allow-bash" || holdMode != "" && holdMode != "interrupt" && holdMode != "interrupt-preface") {
 		t.Fatal("resumed policy requires an owned completed or interrupted first Bash operation")
 	}
@@ -241,6 +245,8 @@ func observeToolHistory(t *testing.T, live bool, kind, holdMode, followPolicy st
 		}
 		defer manager.Close()
 		guard := &toolRestartBackend{backend: manager, models: models, stage: stage, identity: id, expect: currentEffect.expect, previous: previous, beforeUse: currentEffect.beforeUse, interrupted: interrupted, question: prompts[0], followup: followup, followQuestion: prompts[1]}
+		interactive := followup && interactiveFollow
+		guard.allowTitles = interactive
 		if followup {
 			guard.beforeUse = func() bool {
 				oldSafe := toolRestartEffectsOnce(effect)
@@ -286,11 +292,17 @@ func observeToolHistory(t *testing.T, live bool, kind, holdMode, followPolicy st
 		if held != nil && stage == 0 {
 			command.Args = append(command.Args, "--session-id", id)
 		}
-		command.Args = append(command.Args, "--print", "--output-format", "json", "--tools", effect.expect.Tool, "--strict-mcp-config", "--mcp-config", `{"mcpServers":{}}`, "--system-prompt", system, prompts[stage])
+		if !interactive {
+			command.Args = append(command.Args, "--print", "--output-format", "json")
+		}
+		command.Args = append(command.Args, "--tools", effect.expect.Tool, "--strict-mcp-config", "--mcp-config", `{"mcpServers":{}}`, "--system-prompt", system, prompts[stage])
 		command.Environment = append(command.Environment, "CLAUDE_CODE_DISABLE_THINKING=1", "CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS=1")
 		var result childproc.Result
 		var runErr error
-		if held != nil && stage == 0 {
+		uiPassed := false
+		if interactive {
+			result, uiPassed = runResumedToolTerminal(t, ctx, stageRoot, project, id, profile, command, effect, followEffect, guard)
+		} else if held != nil && stage == 0 {
 			result, runErr = runHeldRestartClient(t, ctx, runner, command, guard, held, effect)
 		} else {
 			result, runErr = runner.Run(ctx, command)
@@ -314,14 +326,18 @@ func observeToolHistory(t *testing.T, live bool, kind, holdMode, followPolicy st
 		if followup {
 			wantStarts, wantUses = 2, 1
 		}
-		passed := runErr == nil && result.ExitCode == 0 && decoded && response.Type == "result" && response.Subtype == "success" && !response.IsError && nativeHistoryID(response.SessionID) && response.SessionID == guard.identity && strings.Count(response.Result, marker) == 1 && strings.Count(guard.text, marker) == 1 && !guard.failed && guard.starts == wantStarts && guard.uses == wantUses && guard.results == wantResults && guard.ends == 1
+		clientPassed := runErr == nil && result.ExitCode == 0 && decoded && response.Type == "result" && response.Subtype == "success" && !response.IsError && nativeHistoryID(response.SessionID) && response.SessionID == guard.identity && strings.Count(response.Result, marker) == 1
+		if interactive {
+			clientPassed = uiPassed && nativeHistoryID(id) && guard.identity == id
+		}
+		passed := clientPassed && strings.Count(guard.text, marker) == 1 && !guard.failed && guard.starts == wantStarts && guard.uses == wantUses && guard.results == wantResults && guard.ends == 1
 		if followup {
 			passed = passed && guard.handoffs == 1 && guard.historyChecks == 2 && guard.pair.failed == followEffect.expect.IsError
 		}
 		if interrupted && stage == 0 {
 			passed = held.ready && errors.Is(runErr, context.Canceled) && !guard.failed && guard.starts == 1 && guard.uses == 1 && guard.handoffs == 1 && guard.results == 0 && guard.ends == 0 && !strings.Contains(guard.text, marker)
 			previous = completedToolPair{use: guard.issued, input: canonicalToolObject(guard.issued.Input), text: guard.text}
-		} else {
+		} else if !interactive {
 			id, previous = response.SessionID, guard.pair
 		}
 		guard.mu.Unlock()

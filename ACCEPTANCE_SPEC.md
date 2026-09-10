@@ -242,8 +242,14 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
   require a new ID, exact new operation and matching success/refusal, including the hook reason.
   Old effects/hooks stay one. A new allowed append and its hooks occur once; refused targets and
   success hooks stay absent. Join fresh and old ownership and preserve both source policies. D92
-  covers finite Bash allowance, configured denial and hook veto with actual Kiro/Claude. It does
-  not establish interactive approval screens; D98 separately extends new work to interrupted history.
+  covers finite Bash allowance, configured denial and hook veto with actual Kiro/Claude. D106 adds
+  actual Claude/independent-ACP interactive one-time approval, comment refusal and hook veto after
+  completed-history resume. Before typing, require the current exact operation and selected choice,
+  a delivered fresh handoff with proven old history, and no new effect. A previous call ID, missing
+  handoff, changed session or already-returned result cannot authorize input. Require current final
+  display, matching result and joined recorded terminal/client/backend ownership. Hook veto must
+  complete without a permission decision. This does not establish actual Kiro interactive resume,
+  keyboard exit or unfinished-operation approval; D98 separately covers interrupted history.
 - A finite native restart after cancellation at a delivered PreToolUse wait must join the original
   hook/client/backend ownership before a fresh resume. Require no original effect/result, including
   after a late release marker, and retain the exact original question and observed partial text or

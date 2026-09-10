@@ -103,7 +103,8 @@ func resumedPairAfterHistory(r *anthropic.Request, prior completedToolPair, issu
 
 func prepareFollowupEffect(t *testing.T, root, project, policy string) (*clientEffectProbe, string) {
 	t.Helper()
-	if policy != "allow-bash" && policy != "deny-bash" && policy != "hook-bash" {
+	basePolicy := strings.TrimPrefix(policy, "ui-")
+	if basePolicy != "allow-bash" && basePolicy != "deny-bash" && basePolicy != "hook-bash" {
 		t.Fatal("unknown resumed operation policy")
 	}
 	owned, target := filepath.Join(root, "followup-policy"), filepath.Join(project, "followup")
@@ -121,7 +122,7 @@ func prepareFollowupEffect(t *testing.T, root, project, policy string) (*clientE
 	}
 	for _, entry := range []struct{ event, marker string }{{"PreToolUse", e.pre}, {"PostToolUse", e.post}} {
 		output := `{}`
-		if policy == "hook-bash" && entry.event == "PreToolUse" {
+		if basePolicy == "hook-bash" && entry.event == "PreToolUse" {
 			data, _ := json.Marshal(map[string]any{"hookSpecificOutput": map[string]string{"hookEventName": "PreToolUse", "permissionDecision": "deny", "permissionDecisionReason": clientDenialReason}})
 			output = string(data)
 		}
@@ -143,7 +144,7 @@ func followupEffectMatches(e *clientEffectProbe) bool {
 		}
 	}
 	pre, err := readDenialArtifact(filepath.Dir(e.pre), filepath.Base(e.pre), 64)
-	if e.kind == "hook-bash" {
+	if strings.TrimPrefix(e.kind, "ui-") == "hook-bash" || e.interactive {
 		return err == nil && string(pre) == "observed\n"
 	}
 	return os.IsNotExist(err) || err == nil && string(pre) == "observed\n"

@@ -98,8 +98,12 @@ tools after completed history; interactive pending recovery remains separate.
 D92 additionally verifies a distinct new Bash operation after completed-history resume under
 current allow/deny rules and a PreToolUse veto with actual Kiro/Claude. Old tool history stays exact
 and old effects remain once; the new operation executes once or returns its matching refusal.
-All six stages clean up and preserve source settings. Interactive approval after resume remains
-a separate check; D98 extends new work to an interrupted history.
+All six stages clean up and preserve source settings. D106 additionally verifies interactive
+one-time Bash approval, refusal with a comment and hook veto after completed-history resume with
+actual Claude and independent ACP. Old effects remain once, new results retain exact ownership,
+and completion is visible before joined terminal cleanup. Actual Kiro interactive resume and
+interrupted-history permission screens remain separate checks; D98 extends configured-policy work
+to an interrupted history.
 
 D98 verifies a distinct new Bash operation after cancellation at a delivered native hook wait and
 explicit-ID resume. With actual Kiro/Claude, the old operation stays unexecuted after late hook

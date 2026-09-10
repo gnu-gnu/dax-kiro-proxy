@@ -4919,3 +4919,53 @@ release clearance. No production, dependency or artifact change is made; D100 st
 The opt-ins-off interop race suite passes in 28.339s. Interop vet, formatting/whitespace and all
 141 unchanged D101 artifact checks pass, with release clearance false. The new observer is separate
 from existing restart paths; no native transcript interpretation is added to production code.
+
+## D106: current interactive permissions after completed-tool native resume
+
+Extend D92's independent-ACP observer with a terminal second launch. The first native print launch
+completes one owned Bash append and records its exact public tool pair and native session ID.
+Join its client/backend/listener/profile before creating fresh ownership. The second launch resumes
+that ID with current manual permissions and a distinct owned append request. Both source policies
+are fingerprinted; native history remains client-managed, without a transcript parser or fabricated
+resume/result record. Initial allowance is a configured rule; only the new operation is interactive.
+
+Before input, require the new request to retain the old successful pair, one delivered current
+handoff, a distinct matching call ID/command, unchanged old effect/hook counts and no new effect.
+This is public handoff evidence, not direct inspection of the session manager's private state.
+The existing screen controller requires the exact current command and selected one-time Yes. It
+waits 500 ms, then approves once or navigates to No, opens the reason field, verifies the authored
+reason's echo and submits it. Each subsequent key requires a changed selected frame. A hook veto
+receives no decision keys and must complete without an observed operation permission menu.
+
+The result request must preserve the old pair again and contain one exact new matching result,
+including the refusal flag/reason when expected. The old append and pre/post hooks remain once.
+New approval appends once with both hooks once; both refusal cases leave the target and success
+hook absent and require the current pre-hook once. Independent controls reject missing, repeated,
+changed-session, old-ID, wrong-operation and already-returned handoffs. Auxiliary title requests
+have a separate limit of two and controlled local replies; they cannot enter ACP or consume main
+history evidence. No title request occurs in the three measured episodes.
+
+The new terminal helper has a 25-second lifetime, 256 KiB capture limit and bounded current-screen
+inspection. It records an owned exec wrapper's native PID/group, observes the final response marker
+both in the backend and current UI, then signals that group and joins the attached terminal owner.
+This is controlled process shutdown after visible completion, not keyboard-exit evidence. Source
+settings remain unchanged and no project permission rule is saved. Existing outer checks remove
+each profile, relay config, agent directory and listener and join recorded ACP/relay ownership.
+Raw terminal, request/history contents and credentials are not logged; only fixed markers/counts/
+booleans are recorded. Tests use disposable HOME/project data and never dispatch actual Kiro.
+
+Fourteen handoff controls and a title-isolation control pass alongside existing history/permission
+guards in 2.166s under race. Actual Claude 2.1.263 one-time approval passes in 9.45s (10.745s package).
+Comment refusal and hook veto pass in 10.45s (11.736s package). All six initial/resumed stages retain
+exact history, effect witnesses, source preservation and cleanup; new handoffs/results/completions
+occur once per resumed stage. Refusal-witness controls additionally cover interactive policies.
+
+This closes the finite fake-ACP completed-history interactive Bash check. Actual Kiro interactive
+resume, unfinished tool approval, uncertain effect/acknowledgement windows, arbitrary tools and
+keyboard exit remain separate gates. No production, dependency or frozen artifact changes are
+made, and D100's pending external-model experiment is not attempted.
+
+Existing actual-Claude/fake-ACP completed-tool, current-policy and interrupted-policy resume
+regressions pass in 52.792s. The opt-ins-off interop race suite passes in 23.899s, including the
+extended interactive refusal-witness controls. Interop vet, formatting/whitespace and all 141
+unchanged D101 artifact checks pass. Release clearance remains false.

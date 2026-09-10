@@ -14,6 +14,7 @@ import (
 	"dax-kiro-proxy/internal/catalog"
 	"dax-kiro-proxy/internal/inference"
 	"dax-kiro-proxy/internal/ndjson"
+	"dax-kiro-proxy/internal/requestfamily"
 )
 
 type completedToolPair struct {
@@ -120,6 +121,8 @@ func sameCompletedPair(a, b completedToolPair) bool {
 }
 
 type toolRestartBackend struct {
+	allowTitles    bool
+	titleAttempts  atomic.Int32
 	followup       bool
 	followQuestion string
 	historyChecks  int
@@ -164,6 +167,12 @@ func (b *toolRestartBackend) Models(ctx context.Context) ([]inference.Model, err
 	return b.models.List(), nil
 }
 func (b *toolRestartBackend) Start(ctx context.Context, r *anthropic.Request) (inference.Turn, error) {
+	if r != nil && b.allowTitles && requestfamily.Classify(r) == requestfamily.Title {
+		if b.titleAttempts.Add(1) > 2 {
+			return nil, inference.ErrRequest
+		}
+		return &completionDisplayTurn{model: r.Model, text: `{"title":"Owned resumed permission exercise"}`}, nil
+	}
 	b.mu.Lock()
 	b.starts++
 	n := b.starts

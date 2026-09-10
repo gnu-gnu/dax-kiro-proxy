@@ -52,14 +52,14 @@ func TestResumedPolicyHandoffRequiresFreshOwnership(t *testing.T) {
 }
 
 func TestResumedPolicyRefusalWitnessRejectsEffects(t *testing.T) {
-	for _, policy := range []string{"deny-bash", "hook-bash"} {
+	for _, policy := range []string{"deny-bash", "hook-bash", "ui-deny-bash", "ui-hook-bash"} {
 		t.Run(policy, func(t *testing.T) {
 			root := t.TempDir()
 			if os.Chmod(root, 0700) != nil {
 				t.Fatal("owned witness directory")
 			}
-			e := &clientEffectProbe{kind: policy, expect: &toolEffectExpectation{Tool: "Bash", IsError: true}, path: filepath.Join(root, "effect"), pre: filepath.Join(root, "pre"), post: filepath.Join(root, "post")}
-			if policy == "hook-bash" && followupEffectMatches(e) {
+			e := &clientEffectProbe{kind: policy, interactive: strings.HasPrefix(policy, "ui-"), expect: &toolEffectExpectation{Tool: "Bash", IsError: true}, path: filepath.Join(root, "effect"), pre: filepath.Join(root, "pre"), post: filepath.Join(root, "post")}
+			if (strings.TrimPrefix(policy, "ui-") == "hook-bash" || e.interactive) && followupEffectMatches(e) {
 				t.Fatal("absent hook counted as a veto")
 			}
 			if os.WriteFile(e.pre, []byte("observed\n"), 0600) != nil || !followupEffectMatches(e) {

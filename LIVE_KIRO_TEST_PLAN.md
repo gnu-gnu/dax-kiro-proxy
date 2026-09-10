@@ -2030,3 +2030,36 @@ is sent. No production behavior changes or previously rejected model experiment 
 
 d105-interop-race.log passes the opt-ins-off suite in 28.339s; d105-interop-vet.log exits zero.
 Formatting/whitespace and all 141 unchanged D101 artifact checks pass, without release clearance.
+
+## D106: interactive new-tool policy after completed-history resume
+
+`TestClaudeResumedInteractiveToolPolicyWithFakeACP` requires the pinned native Claude only. Keep
+`DAX_INTEROP_KIRO_CREDIT_OPT_IN=0` and the Kiro binary unset. Every answer comes from the independently
+authored ACP peer through the production gateway, session manager and relay. Disposable native
+history is shared between a print initial launch and a fresh explicit-ID terminal resume; no
+external inference, actual user history or model credit is used.
+
+Each of three episodes first completes one configured-allowed append and joins its ownership.
+The fresh resumed client receives a different append under manual permissions. Test one-time Yes,
+No with a verified comment, and a PreToolUse veto without decision input. Require old effect/hooks
+once, old public pair exact in both resumed requests, distinct new call ownership and matching
+success/refusal. Check current operation/selected option and delivered handoff before input, and
+require current final display before controlled group termination and joined cleanup. The terminal
+deadline is 25 seconds and capture is bounded to 256 KiB. Fixed observations only are logged.
+
+d106-resumed-permission-guards.log passes new handoff/title controls with existing history and
+permission controls in 2.166s. d106-native-resumed-allow.log passes one-time approval in 9.45s
+(10.745s race package); d106-native-resumed-refusals.log passes comment refusal and hook veto in
+10.45s (11.736s package). All six stages pass exact history, effects, source-policy preservation
+and removal of recorded processes/groups, profiles, listeners and relay artifacts. No new standing
+project permission is saved. No auxiliary title request is observed; its separate local budget
+cannot consume main-turn evidence.
+
+These checks cover completed-history Bash with independent ACP. Actual Kiro interactive resume,
+pending-tool approval, bare denial after resume, keyboard exit and broad crash/duplicate-effect
+guarantees remain separate. There is no production/dependency change or new live-model admission.
+
+d106-native-resume-regressions.log passes existing completed-tool, configured-policy and interrupted-
+policy native controls in 52.792s. d106-interop-race.log passes the opt-ins-off suite in 23.899s;
+d106-interop-vet.log exits zero. Formatting/whitespace and all 141 unchanged D101 artifact checks
+pass, without release clearance.

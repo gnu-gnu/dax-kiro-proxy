@@ -6,6 +6,22 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D106 verifies new interactive Bash permissions after native completed-tool resume using actual
+  Claude 2.1.263 and independent ACP. One-time approval passes in 9.45s (10.745s race package);
+  comment refusal and PreToolUse veto pass in 10.45s (11.736s package). All six stages preserve the
+  original successful pair and once-only old effects/hooks. The new append occurs once after
+  approval or stays absent with its matching refusal; both resumed requests preserve old history.
+  Current final display precedes controlled terminal shutdown, with all recorded ownership joined
+  and both source policies unchanged. Fourteen fresh-handoff controls and bounded title isolation
+  pass with existing history/permission guards in 2.166s; refusal witnesses also reject missing or
+  repeated interactive hooks. No Kiro model prompt or credit use occurs. These are completed-history
+  Bash observations with a controlled backend, not actual Kiro interactive resume, interrupted-work
+  approval, keyboard exit or general exactly-once execution. Production/dependencies and D101's
+  binary remain unchanged; remaining full-product gates stay open.
+  Existing completed/interrupted native-resume policy regressions pass in 52.792s. The opt-ins-off
+  interop race suite passes in 23.899s, including the added interactive refusal witnesses. Interop
+  vet, formatting/whitespace and all 141 unchanged D101 artifact checks pass; release clearance
+  remains false.
 - D105 distinguishes same-ID transcript retention from resumed model context. Eight native Claude
   episodes compare ordinary and prepared configuration paths, sequential writes and both completion
   orders for overlapping writers. All 32 local synthetic turns pass in 16.02s (17.435s race package).
