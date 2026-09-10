@@ -2063,3 +2063,34 @@ d106-native-resume-regressions.log passes existing completed-tool, configured-po
 policy native controls in 52.792s. d106-interop-race.log passes the opt-ins-off suite in 23.899s;
 d106-interop-vet.log exits zero. Formatting/whitespace and all 141 unchanged D101 artifact checks
 pass, without release clearance.
+
+## D107: interactive new-tool policy after an interrupted history
+
+`TestClaudeInterruptedResumedInteractiveToolPolicyWithFakeACP` uses pinned native Claude and the
+existing independent ACP peer. Keep Kiro opt-in zero and its binary unset. Create disposable
+no-text and partial-text histories, each interrupted at the exact delivered native PreToolUse
+wait. Require repeated cancellation, joined old ownership and no effect after late hook release
+before launching an explicit-ID terminal resume with fresh profile, endpoint, token and ACP owner.
+
+For each history, verify one-time Bash approval, refusal with an echoed comment, and native hook
+veto. The old operation remains unexecuted; its exact original question and partial text or native
+placeholder must precede the new question in both resumed requests. No unfinished tool pair is
+fabricated. Before any decision, check the expected interrupted-history proof, current distinct
+handoff/command, joined old hook and absence of old/new effects. A veto gets no decision input.
+Require the matching new result, visible completion and joined cleanup with unchanged sources.
+The terminal lifetime is 25 seconds; capture stays bounded to 256 KiB and is not logged raw.
+
+d107-interrupted-permission-guards.log passes thirty delivery/history-kind controls with existing
+history, refusal and title controls in 2.200s. d107-native-interrupted-allow.log passes no-text
+history approval in 9.93s (11.206s race package); d107-native-interrupted-refusals.log passes its
+comment refusal and hook veto in 11.82s (13.185s package). d107-native-partial-permissions.log passes
+all three partial-text cases in 17.53s (18.830s package). All six episodes/twelve stages preserve
+old history, absent old effects, new effect/result ownership, source policies and joined cleanup.
+Two new appends execute once; four new refusals leave no effect or successful hook. Title count
+is zero. These observations do not establish actual Kiro interactive resume, unfinished-operation
+retry, bare refusal, keyboard exit or uncertain side-effect windows. No production change occurs.
+
+d107-native-resume-regressions.log passes the completed-history interactive and interrupted-history
+configured-policy controls in 47.631s. d107-interop-race.log passes the opt-ins-off suite in 24.430s;
+d107-interop-vet.log exits zero. Formatting/whitespace and all 141 unchanged D101 artifact checks
+pass, without release clearance.

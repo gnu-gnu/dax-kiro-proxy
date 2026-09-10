@@ -235,8 +235,12 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
   independent effect/hook witnesses and joined new cleanup. Old history cannot substitute for
   the new result. D98 supplies no-text/partial-text native-client controls with independent ACP
   for allowance, configured denial and hook veto, plus one actual Kiro/Claude allowed-operation
-  episode. Interactive prompts, actual refusals after interrupted history, uncertain effect windows
-  and concurrent/multiple tools remain separate gates.
+  episode. D107 adds native-terminal one-time Bash approval, refusal with a comment and hook veto
+  for both forms using independent ACP. Require the expected interrupted-history proof and old
+  effect/hook cleanup after late release before every permission decision; completed-history
+  evidence cannot substitute. The new result must complete visibly, with joined ownership and
+  unchanged source policies. Actual Kiro interactive prompts/refusals after interrupted history,
+  uncertain effect windows and concurrent/multiple tools remain separate gates.
 - A distinct new tool after completed-history resume must obey current client settings and hooks.
   Preserve the old successful pair before the exact new question and again in the result request;
   require a new ID, exact new operation and matching success/refusal, including the hook reason.

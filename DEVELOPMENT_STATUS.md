@@ -6,6 +6,22 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D107 extends native interactive new-tool permissions to interrupted histories with independent
+  ACP. No-text history passes one-time Bash approval in 9.93s (11.206s race package), then comment
+  refusal/hook veto in 11.82s (13.185s package). Partial-text history passes all three in 17.53s
+  (18.830s package). Across six episodes/twelve stages, every old delivered operation remains
+  unexecuted after repeated cancellation, joined old ownership and late hook release. Both resumed
+  requests retain the exact old question and native placeholder or measured partial text; no old
+  tool result is invented. Two new appends occur once and four new refusals leave no target/success
+  hook. All final responses are currently visible before joined terminal cleanup, with unchanged
+  source policies. Thirty handoff controls now separate completed/interrupted histories and reject
+  mismatched proof, identity, operation and delivery/result phases (2.200s with existing guards).
+  This verifies new work after an abandoned operation, not execution retry, actual Kiro interactive
+  resume, bare denial, keyboard exit or uncertain side-effect windows. No production, dependency
+  or D101 artifact change occurs; full-product acceptance remains open.
+  Existing completed-history interactive and interrupted-history configured-policy regressions
+  pass in 47.631s. The opt-ins-off interop race suite passes in 24.430s; interop vet, formatting/
+  whitespace and all 141 unchanged D101 artifact checks pass, with release clearance false.
 - D106 verifies new interactive Bash permissions after native completed-tool resume using actual
   Claude 2.1.263 and independent ACP. One-time approval passes in 9.45s (10.745s race package);
   comment refusal and PreToolUse veto pass in 10.45s (11.736s package). All six stages preserve the

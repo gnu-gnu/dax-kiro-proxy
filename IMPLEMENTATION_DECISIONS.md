@@ -4969,3 +4969,54 @@ Existing actual-Claude/fake-ACP completed-tool, current-policy and interrupted-p
 regressions pass in 52.792s. The opt-ins-off interop race suite passes in 23.899s, including the
 extended interactive refusal-witness controls. Interop vet, formatting/whitespace and all 141
 unchanged D101 artifact checks pass. Release clearance remains false.
+
+## D107: interactive new work after a delivered operation was interrupted
+
+Combine the existing independent interrupted-history observer with D106's native terminal second
+launch. Keep the first operation under a real owned PreToolUse wait, correlate its receipt with
+the delivered call, cancel repeatedly and join the recorded hook/client/backend owners. Create
+the late release marker and prove no original effect or successful hook occurs before resuming.
+Do not retry that operation or manufacture a result when native history omits its unfinished pair.
+
+Two initial-history forms are required: no assistant text, and an independently authored partial
+response before the handoff. Both use the unchanged independent ACP peer and native hook fixture.
+On fresh explicit-ID terminal resume, request a distinct Bash append with current manual policy.
+The public request guard requires the exact original question and measured partial text or native
+non-completion placeholder before the exact new question. Validate that prefix again in the new
+result request, with a distinct call ID, matching decoded input and expected result/status/reason.
+
+The permission observer now takes the expected history kind explicitly. Its public-delivery proof
+must match that kind and the guard's successfully established abandoned-history state. Factor the
+old-effect check so both pre-delivery validation and every current-screen callback require the
+appropriate witness: once-only completed effects, or absent interrupted effects with joined old
+hook ownership and a successful late-release check. Any failed witness latches the terminal check
+unsuccessful and prevents decision input. The completed-history path retains its original meaning.
+Thirty independent controls cover both expected history kinds and invalid ownership, operation,
+history proof, missing delivery, repeated requests and already-returned results; with existing
+history/refusal/title controls they pass in 2.200s under race.
+
+The current operation screen still requires a selected one-time Yes and a 500 ms no-effect window.
+For refusal, navigate to No, verify the authored comment in its field and submit once. A native
+PreToolUse veto must complete without an operation permission menu or decision keys. Every new
+result requires current final display before controlled terminal shutdown. The same 25-second
+terminal and 256 KiB capture bounds apply; record only fixed marker/shape/count/Boolean observations.
+No actual Kiro process, external model request, original user history or credits are involved.
+
+With native Claude 2.1.263, no-text history approval passes in 9.93s (11.206s race package); its
+comment refusal and hook veto pass in 11.82s (13.185s package). Partial-text history passes all
+three in 17.53s (18.830s package). Six episodes/twelve stages produce eighteen main HTTP requests
+and twelve independent ACP prompts/owners. All six original operations stay unexecuted, while two
+new appends execute once and four new refusals have no target or success hook. Both resumed
+requests retain the required old history. Source policies and project permission-rule absence
+remain intact. Recorded original hook/client, resumed client/terminal and ACP/relay ownership is
+joined; profiles, listeners and private launch artifacts are removed. New hook receipts are checked
+separately. No auxiliary title request is observed.
+
+This adds interactive permission evidence for a new operation after an abandoned one. It does
+not establish retry of unfinished work, arbitrary effect/acknowledgement crash windows, actual
+Kiro interactive resume, bare refusal or keyboard exit. Production, dependencies, launch admission
+and D101's artifact stay unchanged. D100's separately pending model experiment is not dispatched.
+
+Existing completed-history interactive and interrupted-history configured-policy regressions pass
+in 47.631s. The opt-ins-off interop race suite passes in 24.430s. Interop vet, formatting/whitespace
+and all 141 unchanged D101 artifact checks pass; release clearance remains false.

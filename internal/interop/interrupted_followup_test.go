@@ -24,6 +24,18 @@ func TestClaudeInterruptedResumedToolPolicyWithFakeACP(t *testing.T) {
 	}
 }
 
+func TestClaudeInterruptedResumedInteractiveToolPolicyWithFakeACP(t *testing.T) {
+	for _, history := range []string{"interrupt", "interrupt-preface"} {
+		for _, policy := range []string{"ui-allow-bash", "ui-deny-bash", "ui-hook-bash"} {
+			if !t.Run(history+"/"+policy, func(t *testing.T) {
+				observeToolHistory(t, false, "allow-bash", history, policy)
+			}) {
+				return
+			}
+		}
+	}
+}
+
 func TestKiroLiveInterruptedResumedToolPolicy(t *testing.T) {
 	if os.Getenv("DAX_INTEROP_KIRO_CREDIT_OPT_IN") != "1" {
 		t.Skip("interrupted resume with new work requires explicit Kiro credit opt-in")

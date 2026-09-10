@@ -28,62 +28,66 @@ func TestClaudeResumedInteractiveToolPolicyWithFakeACP(t *testing.T) {
 	}
 }
 
-// This observes a completed public handoff, not the manager's private session state.
-func (b *toolRestartBackend) resumedHandoffPending(identity string) bool {
+// This observes delivery of the current public handoff, not the manager's private session state.
+func (b *toolRestartBackend) resumedHandoffPending(identity string, interrupted bool) bool {
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	return nativeHistoryID(identity) && b.identity == identity && b.stage == 1 && b.followup && !b.interrupted && !b.failed &&
+	return nativeHistoryID(identity) && b.identity == identity && b.stage == 1 && b.followup && b.interrupted == interrupted && b.abandoned == interrupted && !b.failed &&
 		b.starts == 1 && b.historyChecks == 1 && b.uses == 1 && b.handoffs == 1 && b.results == 0 && b.ends == 0 &&
 		b.expect != nil && b.issued.Valid() && b.expect.matches(b.issued) && b.previous.use.ID != "" && b.issued.ID != b.previous.use.ID
 }
 
-func (b *toolRestartBackend) resumedOperationCompleted(identity string) bool {
+func (b *toolRestartBackend) resumedOperationCompleted(identity string, interrupted bool) bool {
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	return nativeHistoryID(identity) && b.identity == identity && b.stage == 1 && b.followup && !b.failed &&
+	return nativeHistoryID(identity) && b.identity == identity && b.stage == 1 && b.followup && b.interrupted == interrupted && b.abandoned == interrupted && !b.failed &&
 		b.starts == 2 && b.historyChecks == 2 && b.uses == 1 && b.handoffs == 1 && b.results == 1 && b.ends == 1 &&
 		b.expect != nil && b.pair.failed == b.expect.IsError && strings.Count(b.text, "ToolArchiveResumed_137") == 1
 }
 
 func TestResumedPermissionRequiresCurrentDeliveredHandoff(t *testing.T) {
 	const identity = "e617c3b8-a732-4e19-84e5-91fb249d00d8"
-	for _, kind := range []string{"current", "other-session", "initial-stage", "no-followup", "interrupted", "failed", "old-id", "wrong-command", "no-history", "no-handoff", "no-use", "already-returned", "extra-request", "ended"} {
-		t.Run(kind, func(t *testing.T) {
-			expect := &toolEffectExpectation{Tool: "Bash", Input: json.RawMessage(`{"command":"printf fresh >> /owned/fresh"}`)}
-			b := &toolRestartBackend{identity: identity, stage: 1, followup: true, starts: 1, historyChecks: 1, uses: 1, handoffs: 1, expect: expect,
-				previous: completedToolPair{use: anthropic.ToolUse{ID: "old-owned-call"}}, issued: anthropic.ToolUse{ID: "fresh-owned-call", Name: "Bash", Input: expect.Input}}
-			switch kind {
-			case "other-session":
-				b.identity = "0271486e-7fa0-47ca-9225-c32a67dd597c"
-			case "initial-stage":
-				b.stage = 0
-			case "no-followup":
-				b.followup = false
-			case "interrupted":
-				b.interrupted = true
-			case "failed":
-				b.failed = true
-			case "old-id":
-				b.issued.ID = b.previous.use.ID
-			case "wrong-command":
-				b.issued.Input = json.RawMessage(`{"command":"printf old >> /owned/old"}`)
-			case "no-history":
-				b.historyChecks = 0
-			case "no-handoff":
-				b.handoffs = 0
-			case "no-use":
-				b.uses = 0
-			case "already-returned":
-				b.results = 1
-			case "extra-request":
-				b.starts = 2
-			case "ended":
-				b.ends = 1
-			}
-			if b.resumedHandoffPending(identity) != (kind == "current") {
-				t.Fatal("permission input admitted without the current exact handoff")
-			}
-		})
+	for _, interrupted := range []bool{false, true} {
+		for _, kind := range []string{"current", "other-session", "initial-stage", "no-followup", "wrong-history-mode", "unproven-history-kind", "failed", "old-id", "wrong-command", "no-history", "no-handoff", "no-use", "already-returned", "extra-request", "ended"} {
+			t.Run("interrupted="+strconv.FormatBool(interrupted)+"/"+kind, func(t *testing.T) {
+				expect := &toolEffectExpectation{Tool: "Bash", Input: json.RawMessage(`{"command":"printf fresh >> /owned/fresh"}`)}
+				b := &toolRestartBackend{identity: identity, stage: 1, followup: true, interrupted: interrupted, abandoned: interrupted, starts: 1, historyChecks: 1, uses: 1, handoffs: 1, expect: expect,
+					previous: completedToolPair{use: anthropic.ToolUse{ID: "old-owned-call"}}, issued: anthropic.ToolUse{ID: "fresh-owned-call", Name: "Bash", Input: expect.Input}}
+				switch kind {
+				case "other-session":
+					b.identity = "0271486e-7fa0-47ca-9225-c32a67dd597c"
+				case "initial-stage":
+					b.stage = 0
+				case "no-followup":
+					b.followup = false
+				case "wrong-history-mode":
+					b.interrupted = !interrupted
+				case "unproven-history-kind":
+					b.abandoned = !interrupted
+				case "failed":
+					b.failed = true
+				case "old-id":
+					b.issued.ID = b.previous.use.ID
+				case "wrong-command":
+					b.issued.Input = json.RawMessage(`{"command":"printf old >> /owned/old"}`)
+				case "no-history":
+					b.historyChecks = 0
+				case "no-handoff":
+					b.handoffs = 0
+				case "no-use":
+					b.uses = 0
+				case "already-returned":
+					b.results = 1
+				case "extra-request":
+					b.starts = 2
+				case "ended":
+					b.ends = 1
+				}
+				if b.resumedHandoffPending(identity, interrupted) != (kind == "current") {
+					t.Fatal("permission input admitted without the current exact handoff")
+				}
+			})
+		}
 	}
 }
 
@@ -105,7 +109,7 @@ func TestResumedPermissionTitlesDoNotConsumeHistory(t *testing.T) {
 	}
 }
 
-func runResumedToolTerminal(t *testing.T, parent context.Context, root, project, identity string, profile *launcher.ClientProfile, command childproc.Command, old, effect *clientEffectProbe, backend *toolRestartBackend) (childproc.Result, bool) {
+func runResumedToolTerminal(t *testing.T, parent context.Context, root, project, identity string, profile *launcher.ClientProfile, command childproc.Command, effect *clientEffectProbe, backend *toolRestartBackend, interrupted bool, oldSafe func() bool) (childproc.Result, bool) {
 	t.Helper()
 	const lifetime = 25 * time.Second
 	ctx, cancel := context.WithTimeout(parent, lifetime)
@@ -149,8 +153,8 @@ func runResumedToolTerminal(t *testing.T, parent context.Context, root, project,
 	done := make(chan outcome, 1)
 	go func() {
 		result, answers, err := runObservedTerminal(ctx, owner, command, nil, func(screen string) string {
-			pending := backend.resumedHandoffPending(identity)
-			if !toolRestartEffectsOnce(old) {
+			pending := backend.resumedHandoffPending(identity, interrupted)
+			if oldSafe == nil || !oldSafe() {
 				oldChanged = true
 			}
 			lower := strings.ToLower(screen)
@@ -162,7 +166,7 @@ func runResumedToolTerminal(t *testing.T, parent context.Context, root, project,
 					}
 				}
 			}
-			if backend.resumedOperationCompleted(identity) && strings.Contains(screen, "ToolArchiveResumed_137") {
+			if backend.resumedOperationCompleted(identity, interrupted) && strings.Contains(screen, "ToolArchiveResumed_137") {
 				visibleCompletion.Store(true)
 			}
 			return p.next(screen, pending && !hookVeto && !p.unexpectedEffect && !oldChanged)
@@ -194,7 +198,7 @@ wait:
 					}
 				}
 			}
-			if owned && visibleCompletion.Load() && backend.resumedOperationCompleted(identity) {
+			if owned && visibleCompletion.Load() && backend.resumedOperationCompleted(identity, interrupted) {
 				completed = true
 				break wait
 			}

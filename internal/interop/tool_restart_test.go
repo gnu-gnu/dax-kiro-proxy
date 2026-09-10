@@ -73,8 +73,8 @@ func observeNativeToolHistory(t *testing.T, live bool, kind, holdMode string) {
 func observeToolHistory(t *testing.T, live bool, kind, holdMode, followPolicy string) {
 	t.Helper()
 	interactiveFollow := strings.HasPrefix(followPolicy, "ui-")
-	if interactiveFollow && (live || holdMode != "") {
-		t.Fatal("interactive resume currently covers completed history with independent ACP only")
+	if interactiveFollow && live {
+		t.Fatal("interactive resume currently uses independent ACP only")
 	}
 	if followPolicy != "" && (kind != "allow-bash" || holdMode != "" && holdMode != "interrupt" && holdMode != "interrupt-preface") {
 		t.Fatal("resumed policy requires an owned completed or interrupted first Bash operation")
@@ -247,13 +247,15 @@ func observeToolHistory(t *testing.T, live bool, kind, holdMode, followPolicy st
 		guard := &toolRestartBackend{backend: manager, models: models, stage: stage, identity: id, expect: currentEffect.expect, previous: previous, beforeUse: currentEffect.beforeUse, interrupted: interrupted, question: prompts[0], followup: followup, followQuestion: prompts[1]}
 		interactive := followup && interactiveFollow
 		guard.allowTitles = interactive
+		oldSafe := func() bool {
+			if interrupted {
+				return held.effectsAbsent(effect) && held.hookGone() && held.lateChecked
+			}
+			return toolRestartEffectsOnce(effect)
+		}
 		if followup {
 			guard.beforeUse = func() bool {
-				oldSafe := toolRestartEffectsOnce(effect)
-				if interrupted {
-					oldSafe = held.effectsAbsent(effect) && held.hookGone() && held.lateChecked
-				}
-				return effect != followEffect && oldSafe && followEffect.beforeUse()
+				return effect != followEffect && oldSafe() && followEffect.beforeUse()
 			}
 		}
 		guard.observeProcess = func() error {
@@ -301,7 +303,7 @@ func observeToolHistory(t *testing.T, live bool, kind, holdMode, followPolicy st
 		var runErr error
 		uiPassed := false
 		if interactive {
-			result, uiPassed = runResumedToolTerminal(t, ctx, stageRoot, project, id, profile, command, effect, followEffect, guard)
+			result, uiPassed = runResumedToolTerminal(t, ctx, stageRoot, project, id, profile, command, followEffect, guard, interrupted, oldSafe)
 		} else if held != nil && stage == 0 {
 			result, runErr = runHeldRestartClient(t, ctx, runner, command, guard, held, effect)
 		} else {
