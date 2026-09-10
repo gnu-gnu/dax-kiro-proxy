@@ -2411,7 +2411,10 @@ The projection keeps mcpServers objects; enabledMcpjsonServers, disabledMcpjsonS
 enabledMcpServers, disabledMcpServers and mcpContextUris string arrays; enableAllProjectMcpServers;
 and per-project hasTrustDialogAccepted Booleans. It preserves original project keys and declaration
 values, including tool-specific MCP authentication, in owner-only temporary files. It excludes
-unrelated provider sign-in, model defaults, conversation and other global state. Unrecognized
+unrelated provider sign-in, model defaults, conversation and other global state. Reviewed on
+2026-09-10, claudeAiMcpEverConnected joins that exclusion: the client writes it to record which
+claude.ai connectors have ever been connected, so it declares no server and carries no execution
+policy, and omitting it cannot broaden execution. Other unrecognized
 MCP-related keys reject rather than silently dropping a possibly restrictive policy. Malformed
 objects, duplicate keys, null array elements, unsafe source modes/links and files over 2 MiB reject
 before runtime creation. This is a pinned mapping, not a general client-state migration facility.

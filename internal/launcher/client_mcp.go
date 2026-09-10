@@ -82,6 +82,11 @@ func clientMCPFields(fields map[string]json.RawMessage, project bool) (map[strin
 			if string(value) != "true" && string(value) != "false" {
 				return nil, ErrSettings
 			}
+		case "claudeAiMcpEverConnected":
+			// Reviewed: a claude.ai connector breadcrumb, not a server declaration or an
+			// execution policy. Excluding it cannot broaden execution, and it is unrelated
+			// account state that must stay out of the private client root.
+			continue
 		case "hasTrustDialogAccepted":
 			if !project {
 				continue

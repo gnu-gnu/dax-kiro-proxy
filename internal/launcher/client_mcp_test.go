@@ -14,7 +14,7 @@ import (
 
 func TestClientMCPStateKeepsNativeScopesWithoutProviderState(t *testing.T) {
 	cfg := profileConfig(t)
-	source := []byte(`{"apiKey":"unrelated-provider-secret","oauthAccount":{"token":"unrelated-oauth-secret"},"mcpServers":{"owned":{"command":"/fixture/mcp","env":{"MCP_ACCESS_TOKEN":"owned-mcp-credential"}}},"disabledMcpServers":["inactive"],"projects":{"/fixture/project":{"mcpServers":{"local":{"type":"http","url":"https://mcp.invalid/endpoint","headers":{"Authorization":"owned-mcp-header"}}},"enabledMcpjsonServers":["approved"],"disabledMcpjsonServers":["refused"],"enabledMcpServers":["owned-opt-in"],"enableAllProjectMcpServers":false,"hasTrustDialogAccepted":true,"lastPrompt":"private-conversation-must-not-copy"}},"model":"unrelated-provider-model"}`)
+	source := []byte(`{"apiKey":"unrelated-provider-secret","oauthAccount":{"token":"unrelated-oauth-secret"},"mcpServers":{"owned":{"command":"/fixture/mcp","env":{"MCP_ACCESS_TOKEN":"owned-mcp-credential"}}},"disabledMcpServers":["inactive"],"claudeAiMcpEverConnected":["claude.ai Gmail"],"projects":{"/fixture/project":{"mcpServers":{"local":{"type":"http","url":"https://mcp.invalid/endpoint","headers":{"Authorization":"owned-mcp-header"}}},"enabledMcpjsonServers":["approved"],"disabledMcpjsonServers":["refused"],"enabledMcpServers":["owned-opt-in"],"enableAllProjectMcpServers":false,"hasTrustDialogAccepted":true,"lastPrompt":"private-conversation-must-not-copy"}},"model":"unrelated-provider-model"}`)
 	path := filepath.Join(cfg.Home, ".claude.json")
 	writeSettings(t, path, source)
 	p, err := launcher.PrepareClient(cfg)
