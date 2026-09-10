@@ -8,7 +8,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -122,7 +121,8 @@ func TestClaudeToolResultThroughGatewayACPAndMCP(t *testing.T) {
 	server := httptest.NewServer(handler)
 	defer server.Close()
 	version, err := runner.Run(t.Context(), childproc.Command{Executable: executable, Directory: root, Environment: []string{"HOME=" + home, "PATH=/usr/bin:/bin:/usr/sbin:/sbin", "TERM=dumb"}, Args: []string{"--version"}})
-	if err != nil || strings.TrimSpace(string(version.Stdout)) != launcher.SupportedClientVersion+" (Claude Code)" {
+	clientVersion, ok := launcher.ClientVersionFromOutput(version.Stdout)
+	if err != nil || !ok {
 		t.Fatal("unverified installed client version")
 	}
 	profile, err := launcher.PrepareClient(launcher.ClientConfig{RuntimeParent: root, Home: home, Project: project, UserSettings: userSettings, Executable: executable, Version: launcher.SupportedClientVersion, Model: model, GatewayURL: server.URL, ModelToken: tokens.Model, Environment: []string{"PATH=/usr/bin:/bin:/usr/sbin:/sbin", "TERM=dumb"}})
@@ -147,5 +147,5 @@ func TestClaudeToolResultThroughGatewayACPAndMCP(t *testing.T) {
 	if err := profile.Close(); err != nil {
 		t.Fatal(err)
 	}
-	t.Logf("client=%s, streamed_tool_result=true, client_permission_denial=true, ACP_prompts=1, source_settings_unchanged=true, driver_closed=true", launcher.SupportedClientVersion)
+	t.Logf("client=%s, streamed_tool_result=true, client_permission_denial=true, ACP_prompts=1, source_settings_unchanged=true, driver_closed=true", clientVersion)
 }

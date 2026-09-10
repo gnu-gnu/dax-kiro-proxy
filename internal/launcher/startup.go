@@ -36,17 +36,20 @@ type PhaseTiming struct {
 	Milliseconds int64  `json:"milliseconds"`
 }
 type StartupReport struct {
-	KiroVersion          string            `json:"kiro_version,omitempty"`
-	ClientVersion        string            `json:"client_version,omitempty"`
-	Login                string            `json:"login"`
-	Policy               string            `json:"policy"`
-	LaunchAvailable      bool              `json:"launch_available"`
-	SelectedModel        string            `json:"selected_model,omitempty"`
-	ModelSource          ModelSource       `json:"model_source,omitempty"`
-	CatalogStale         bool              `json:"catalog_stale"`
-	Models               []inference.Model `json:"models,omitempty"`
-	Phases               []PhaseTiming     `json:"phases"`
-	ClientInitialization string            `json:"client_initialization"`
+	KiroVersion   string `json:"kiro_version,omitempty"`
+	ClientVersion string `json:"client_version,omitempty"`
+	// ClientVersionMeasured is true only for the exact build behind the recorded evidence;
+	// another admitted build of the same major version reports false (D110).
+	ClientVersionMeasured bool              `json:"client_version_measured"`
+	Login                 string            `json:"login"`
+	Policy                string            `json:"policy"`
+	LaunchAvailable       bool              `json:"launch_available"`
+	SelectedModel         string            `json:"selected_model,omitempty"`
+	ModelSource           ModelSource       `json:"model_source,omitempty"`
+	CatalogStale          bool              `json:"catalog_stale"`
+	Models                []inference.Model `json:"models,omitempty"`
+	Phases                []PhaseTiming     `json:"phases"`
+	ClientInitialization  string            `json:"client_initialization"`
 }
 type LaunchResult struct {
 	Startup StartupReport
@@ -228,11 +231,11 @@ func start(ctx context.Context, opts LaunchOptions, files childproc.AttachedIO, 
 		if setup.Err() != nil {
 			return setup.Err()
 		}
-		version, named := strings.CutSuffix(strings.TrimSpace(string(output.Stdout)), " (Claude Code)")
-		if e != nil || output.ExitCode != 0 || len(output.Stdout) > 256 || !named || !CompatibleClientVersion(version) {
+		version, ok := ClientVersionFromOutput(output.Stdout)
+		if e != nil || output.ExitCode != 0 || !ok {
 			return ErrClientVersion
 		}
-		result.Startup.ClientVersion = version
+		result.Startup.ClientVersion, result.Startup.ClientVersionMeasured = version, version == SupportedClientVersion
 		return nil
 	}); err != nil {
 		return result, err

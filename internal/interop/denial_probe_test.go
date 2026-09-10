@@ -123,7 +123,7 @@ func runClientToolProbe(t *testing.T, clientExecutable, kiroExecutable, effectKi
 	versionContext, stopVersion := context.WithTimeout(ctx, 5*time.Second)
 	version, err := runner.Run(versionContext, childproc.Command{Executable: clientExecutable, Directory: root, Environment: []string{"HOME=" + home, "PATH=/usr/bin:/bin:/usr/sbin:/sbin", "TERM=dumb", "DISABLE_AUTOUPDATER=1", "DISABLE_TELEMETRY=1", "DISABLE_ERROR_REPORTING=1"}, Args: []string{"--version"}})
 	stopVersion()
-	if err != nil || strings.TrimSpace(string(version.Stdout)) != launcher.SupportedClientVersion+" (Claude Code)" {
+	if err != nil || !launcher.CompatibleClientOutput(version.Stdout) {
 		t.Fatal("client version preflight failed")
 	}
 	relayExecutable := buildRelayObserver(t)

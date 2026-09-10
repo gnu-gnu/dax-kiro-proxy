@@ -321,7 +321,11 @@ func execute(ctx context.Context, args []string, files childproc.AttachedIO, out
 			data = append(data, "Kiro: "+launcher.SupportedKiroVersion+"\n"...)
 		}
 		if launcher.CompatibleClientVersion(report.ClientVersion) {
-			data = append(data, "Claude Code: "+report.ClientVersion+"\n"...)
+			line := "Claude Code: " + report.ClientVersion
+			if !report.ClientVersionMeasured {
+				line += " (unmeasured; measured " + launcher.SupportedClientVersion + ")"
+			}
+			data = append(data, line+"\n"...)
 		}
 		if safeAlias(report.SelectedModel) {
 			data = append(data, "Selected model: "+report.SelectedModel+"\n"...)

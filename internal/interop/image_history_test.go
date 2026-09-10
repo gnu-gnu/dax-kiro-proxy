@@ -231,7 +231,7 @@ func TestClaudeImageToolResultAndNativeResume(t *testing.T) {
 	}
 	defer runner.Close()
 	v, err := runner.Run(ctx, childproc.Command{Executable: client, Directory: root, Environment: []string{"HOME=" + home, "PATH=/usr/bin:/bin"}, Args: []string{"--version"}})
-	if err != nil || strings.TrimSpace(string(v.Stdout)) != launcher.SupportedClientVersion+" (Claude Code)" {
+	if err != nil || !launcher.CompatibleClientOutput(v.Stdout) {
 		t.Fatal("unverified client")
 	}
 	fake := buildDenialACPFixture(t, ctx, runner, root)

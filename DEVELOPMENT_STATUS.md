@@ -6,6 +6,36 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D112 opts the prepared client out of a later build's unknown-model context-window enforcement.
+  Installed Claude 2.1.267 printed that notice for the launch alias through `run`; the measured
+  2.1.263 build never did, and product IDs are absent from every client catalog by design. The
+  opt-out is the client's own switch named in that message, absent from the public env-var
+  reference; the documented alternatives would assert model or window equivalences this project
+  has not measured. A four-arm text-output print control passes in 1.75s (3.744s race package):
+  natural shows the notice, JSON output hides it, opt-out and prepared show none, all complete
+  with unchanged sources. An expect-driven foreground `run` shows the notice with the D110/D111
+  artifact and none with the opt-out build. No Kiro model request occurs. The whole-repository
+  opt-ins-off race suite and vet pass on the final code.
+- D111 reviews the client's `claudeAiMcpEverConnected` breadcrumb as an exclusion from the MCP
+  projection instead of a rejection. Installed Claude 2.1.267 writes it as a string array; it
+  declares no server and carries no decision. The unit regression keeps declarations while
+  omitting it, and the D64 installed-client scope control now seeds it at the source: all fourteen
+  natural/prepared cases pass in 7.55s (10.370s race package), fresh prepared profiles connect
+  every native scope, source bytes stay unchanged, and a profile prepared after seeding keeps
+  mcpServers without the breadcrumb. No tool call or Kiro model request occurs. Other unrecognized
+  MCP-related keys still reject; remote claude.ai connector preservation remains open.
+- D110 admits a Claude Code build by major version after the installed client updated itself to
+  2.1.267 and the exact 2.1.263 check rejected every launch. The measured pin is unchanged; startup
+  records the detected build and `client_version_measured`, and doctor labels other admitted builds
+  unmeasured. The nineteen installed-client evidence gates use the same admission parser and four
+  controls log the observed version. Parser/admission cases pass with the launcher suite (31.490s
+  race package) and the command suite (4.726s); with the installed 2.1.267 client the gateway
+  contract passes in 0.67s. The whole-repository opt-ins-off race suite passes all tested packages
+  (interop 28.069s, launcher 27.673s, session 28.468s); vet and whitespace pass. The development
+  artifact is rebuilt and frozen as the `client-version` inventory recorded in DEPENDENCY_REVIEW.md;
+  D109's executable is retained. This is a directed deviation from ACCEPTANCE_SPEC.md
+  section I, recorded as such: evidence on 2.1.267 is labeled with that version and does not make
+  it measured. Actual Kiro work and the remaining alpha/release gates are unchanged.
 - D109 fixes completed tool-result images being serialized as base64 text during fresh ACP context
   reconstruction. The initial projection regression fails in 0.928s. An actual Claude/independent-ACP
   episode reproduces the gap: initial Read/MCP image delivery succeeds, but after source PNG removal,

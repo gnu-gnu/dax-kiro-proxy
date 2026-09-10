@@ -68,7 +68,7 @@ func runProcessLossProbe(t *testing.T, client, kiro string) {
 	versionCtx, stopVersion := context.WithTimeout(ctx, 5*time.Second)
 	version, err := runner.Run(versionCtx, childproc.Command{Executable: client, Directory: root, Environment: []string{"HOME=" + home, "PATH=/usr/bin:/bin", "DISABLE_AUTOUPDATER=1"}, Args: []string{"--version"}})
 	stopVersion()
-	if err != nil || strings.TrimSpace(string(version.Stdout)) != launcher.SupportedClientVersion+" (Claude Code)" {
+	if err != nil || !launcher.CompatibleClientOutput(version.Stdout) {
 		t.Fatal("unverified client for process-loss probe")
 	}
 	filename, hookMarker := filepath.Join(project, "unread-fixture"), filepath.Join(root, "unexpected-client-read")

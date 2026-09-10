@@ -517,7 +517,7 @@ func observePersonalCustomizationSources(t *testing.T, options personalSourceOpt
 				version := command
 				version.Args = []string{"--version"}
 				v, err := runner.Run(ctx, version)
-				if err != nil || strings.TrimSpace(string(v.Stdout)) != launcher.SupportedClientVersion+" (Claude Code)" {
+				if err != nil || !launcher.CompatibleClientOutput(v.Stdout) {
 					t.Fatal("unverified installed client")
 				}
 				beforeHome, beforeProject := boundedPluginTree(t, filepath.Join(home, ".claude")), boundedPluginTree(t, project)

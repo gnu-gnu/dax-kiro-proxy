@@ -76,7 +76,7 @@ func TestClaudeClientMCPSources(t *testing.T) {
 		return result
 	}
 	version := run(t, natural, "--version")
-	if strings.TrimSpace(string(version.Stdout)) != launcher.SupportedClientVersion+" (Claude Code)" {
+	if !launcher.CompatibleClientOutput(version.Stdout) {
 		t.Fatal("unverified client version")
 	}
 	cwd, err := os.Getwd()
@@ -96,6 +96,23 @@ func TestClaudeClientMCPSources(t *testing.T) {
 	for _, scope := range []string{"user", "local", "project"} {
 		run(t, natural, "mcp", "add", "--scope", scope, "dax-owned-"+scope, "--", peer, scope, observations)
 	}
+	// The client's connector breadcrumb declares no server and carries no policy (D111). Seed it
+	// at the source so every prepared profile below is projected from a global file containing
+	// it; the native scopes must still connect and the source must stay byte-identical.
+	globalPath := filepath.Join(home, ".claude.json")
+	seedReviewedExclusion := func() {
+		t.Helper()
+		var global map[string]any
+		if json.Unmarshal(boundedAssetFile(t, globalPath), &global) != nil {
+			t.Fatal("invalid owned global fixture")
+		}
+		global["claudeAiMcpEverConnected"] = []string{"dax-owned-connector"}
+		data, err := json.Marshal(global)
+		if err != nil || os.WriteFile(globalPath, data, 0600) != nil {
+			t.Fatal("cannot seed reviewed connector breadcrumb")
+		}
+	}
+	seedReviewedExclusion()
 	protected := []string{settings, filepath.Join(home, ".claude.json"), filepath.Join(project, ".mcp.json")}
 	before := make([][]byte, len(protected))
 	for i, path := range protected {
@@ -197,7 +214,6 @@ func TestClaudeClientMCPSources(t *testing.T) {
 			}
 		}
 	}
-	globalPath := filepath.Join(home, ".claude.json")
 	setDisabled := func(names []string) {
 		t.Helper()
 		var global map[string]any
@@ -255,6 +271,38 @@ func TestClaudeClientMCPSources(t *testing.T) {
 	}
 	if json.Unmarshal(boundedAssetFile(t, filepath.Join(profileDir, ".claude.json")), &written) != nil || written.Servers["dax-runtime-check"] == nil || written.Projects[project].Servers["dax-runtime-local"] == nil {
 		t.Fatal("private MCP writer location or scope shape changed")
+	}
+	// A profile prepared after seeding must carry the declarations but not the breadcrumb, and
+	// the natural client must have left that source key in place for the pairs above to see it.
+	var sourceKeys map[string]json.RawMessage
+	if json.Unmarshal(boundedAssetFile(t, globalPath), &sourceKeys) != nil {
+		t.Fatal("owned global source unreadable")
+	}
+	if _, present := sourceKeys["claudeAiMcpEverConnected"]; !present {
+		t.Fatal("natural client removed the seeded connector breadcrumb; the prepared pairs did not observe it")
+	}
+	fresh, err := launcher.PrepareClient(config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	freshDir := ""
+	for _, entry := range fresh.Command().Environment {
+		if value, ok := strings.CutPrefix(entry, "CLAUDE_CONFIG_DIR="); ok {
+			freshDir = value
+		}
+	}
+	var projected map[string]json.RawMessage
+	if json.Unmarshal(boundedAssetFile(t, filepath.Join(freshDir, ".claude.json")), &projected) != nil {
+		t.Fatal("private projection unreadable")
+	}
+	_, breadcrumb := projected["claudeAiMcpEverConnected"]
+	_, declarations := projected["mcpServers"]
+	t.Logf("projection_excludes_breadcrumb=%v, projection_keeps_declarations=%v", !breadcrumb, declarations)
+	if breadcrumb || !declarations {
+		t.Error("private projection did not apply the reviewed exclusion while keeping declarations")
+	}
+	if fresh.Close() != nil {
+		t.Error("fresh projection profile cleanup failed")
 	}
 	for i, path := range protected {
 		if !bytes.Equal(before[i], boundedAssetFile(t, path)) {

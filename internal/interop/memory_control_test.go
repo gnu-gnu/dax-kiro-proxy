@@ -157,7 +157,7 @@ func observeMemoryControls(t *testing.T, modes []string) {
 			}
 			defer runner.Close()
 			v, err := runner.Run(t.Context(), version)
-			if err != nil || strings.TrimSpace(string(v.Stdout)) != launcher.SupportedClientVersion+" (Claude Code)" {
+			if err != nil || !launcher.CompatibleClientOutput(v.Stdout) {
 				t.Fatal("unverified client")
 			}
 			command.Args = append(command.Args, "--print", "--input-format", "stream-json", "--output-format", "stream-json", "--verbose", "--no-session-persistence", "--tools", "", "--strict-mcp-config", "--mcp-config", `{"mcpServers":{}}`)

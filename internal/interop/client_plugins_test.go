@@ -409,7 +409,7 @@ func observeClaudePluginSources(t *testing.T, mode string) {
 		}
 		return result
 	}
-	if version := run(t, natural, "--version"); strings.TrimSpace(string(version.Stdout)) != launcher.SupportedClientVersion+" (Claude Code)" {
+	if version := run(t, natural, "--version"); !launcher.CompatibleClientOutput(version.Stdout) {
 		t.Fatal("unverified client version")
 	}
 	cwd, err := os.Getwd()

@@ -171,7 +171,7 @@ func observeNativeRestartPlan(t *testing.T, live bool, plan *concurrentHistoryPl
 	}
 	beforeSettings, beforeGlobal := fileFingerprint(t, settings), fileFingerprint(t, global)
 	version, err := runner.Run(ctx, childproc.Command{Executable: client, Directory: root, Environment: []string{"HOME=" + home, "PATH=/usr/bin:/bin"}, Args: []string{"--version"}})
-	if err != nil || strings.TrimSpace(string(version.Stdout)) != launcher.SupportedClientVersion+" (Claude Code)" {
+	if err != nil || !launcher.CompatibleClientOutput(version.Stdout) {
 		t.Fatal("unverified native client")
 	}
 	relay := buildRelayObserver(t)

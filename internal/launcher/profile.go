@@ -28,11 +28,34 @@ var (
 )
 
 const MaxSettingsBytes = 2 << 20
+
+// SupportedClientVersion is the measured client build behind the recorded installed-client
+// evidence. Launch admission compares only its major component (D110); startup reports
+// whether the detected build is this measured one rather than treating it as verified.
 const SupportedClientVersion = "2.1.263"
+
+// ClientVersionFromOutput parses the client's --version output and reports whether that
+// build is admitted. The output must be the bare version followed by the client's name.
+func ClientVersionFromOutput(output []byte) (string, bool) {
+	if len(output) > 256 {
+		return "", false
+	}
+	version, named := strings.CutSuffix(strings.TrimSpace(string(output)), " (Claude Code)")
+	if !named || !CompatibleClientVersion(version) {
+		return "", false
+	}
+	return version, true
+}
+
+// CompatibleClientOutput is ClientVersionFromOutput's admission result alone.
+func CompatibleClientOutput(output []byte) bool {
+	_, ok := ClientVersionFromOutput(output)
+	return ok
+}
 
 // CompatibleClientVersion reports whether a client build may launch. Only the
 // major component is compared against SupportedClientVersion, so minor and
-// patch updates of the validated client stay usable without repinning.
+// patch updates of the measured client stay usable without repinning.
 func CompatibleClientVersion(version string) bool {
 	major, ok := clientVersionMajor(version)
 	if !ok {
@@ -311,7 +334,11 @@ func hostEnvironment(endpoint, token string) map[string]string {
 		"CLAUDE_CODE_DISABLE_OFFICIAL_MARKETPLACE_AUTOINSTALL": "1",
 		"CLAUDE_CODE_DISABLE_NONSTREAMING_FALLBACK":            "1",
 		"CLAUDE_CODE_MAX_RETRIES":                              "0",
-		"DISABLE_TELEMETRY":                                    "1", "DISABLE_ERROR_REPORTING": "1", "DISABLE_AUTOUPDATER": "1",
+		// Product model IDs are deliberately absent from the client's built-in catalog (D08). A
+		// later client clamps unknown models to an assumed context window; keep the measured
+		// build's behavior of deferring to the API instead (D112).
+		"CLAUDE_CODE_DISABLE_UNKNOWN_MODEL_WINDOW_ENFORCEMENT": "1",
+		"DISABLE_TELEMETRY": "1", "DISABLE_ERROR_REPORTING": "1", "DISABLE_AUTOUPDATER": "1",
 		"HTTP_PROXY": "", "HTTPS_PROXY": "", "ALL_PROXY": "", "http_proxy": "", "https_proxy": "", "all_proxy": "",
 		"NO_PROXY": "127.0.0.1,localhost,::1", "no_proxy": "127.0.0.1,localhost,::1",
 	}

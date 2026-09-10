@@ -123,19 +123,26 @@ hook release, the original question/partial text or placeholder stays exact, and
 cleans up. These checks do not retry the abandoned operation. Actual Kiro interactive permissions
 and uncertain effect/acknowledgement windows remain open.
 
-The diagnostic checks support Kiro CLI 2.21.2 (including its adjacent `kiro-cli-chat` helper) and Claude Code
-2.1.263. They use the installed CLIs' finite version/account/catalog commands, without an ACP session
-or model prompt. `--kiro` and `--client` accept absolute executable paths. Private scope/cache state
+The diagnostic checks support Kiro CLI 2.21.2 (including its adjacent `kiro-cli-chat` helper) and the
+measured Claude Code 2.1.263; another Claude Code build with the same major version is admitted and
+reported as unmeasured (D110). They use the installed CLIs' finite version/account/catalog commands,
+without an ACP session or model prompt. `--kiro` and `--client` accept absolute executable paths. Private scope/cache state
 defaults to `~/.dax-kiro-proxy`; `--state-dir` selects a different private directory. Temporary runtime
 files are removed when the command finishes. Source client settings are not modified.
 
 Development `run` is enabled on macOS arm64 for the measured Kiro 2.21.2/v2 and Claude Code 2.1.263
-combination. Run it from a foreground terminal. Other versions, mismatched main/helper pairs and
-unverified execution platforms are rejected; there is no trust override. Each launch owns a temporary
+combination. Run it from a foreground terminal. Other Kiro versions, mismatched main/helper pairs,
+other Claude Code major versions and unverified execution platforms are rejected; there is no trust
+override. A same-major Claude Code build launches without new measurement and `doctor` marks it
+unmeasured (D110). The prepared client environment also keeps the measured build's handling of product
+model IDs: a later build's unknown-model context-window notice is opted out (D112). Each launch owns
+a temporary
 Kiro configuration with default-resource suppression, and each ACP process has a separate relay-only
 agent directory. The client continues to decide tool permissions and execute tools.
 
 `doctor` succeeding means its checks completed; inspect `launch_available` and `policy` separately.
+`client_version` is the detected build; `client_version_measured` says whether it is the measured
+one.
 For this measured combination, successful login and policy checks report `launch_available: true`
 and `policy: verified`. This means
 the measured development policy is available, not that the client has initialized or all release

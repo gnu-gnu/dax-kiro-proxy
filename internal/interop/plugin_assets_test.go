@@ -285,7 +285,7 @@ func observePluginAssetProfile(t *testing.T, gitSource bool, mode pluginAssetMod
 		}
 		return result
 	}
-	if version := run(t, natural, "--version"); strings.TrimSpace(string(version.Stdout)) != launcher.SupportedClientVersion+" (Claude Code)" {
+	if version := run(t, natural, "--version"); !launcher.CompatibleClientOutput(version.Stdout) {
 		t.Fatal("unverified client version")
 	}
 	const pluginID = "dax-assets@dax-assets-market"

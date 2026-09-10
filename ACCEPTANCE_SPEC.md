@@ -41,6 +41,11 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
   decisions at native scopes. Installed-client positive/negative controls verify project approval,
   server disable/re-enable, local/project/user name precedence, unchanged source bytes and complete
   observed process cleanup. Copying JSON alone is not interoperability evidence (D64).
+- A client-written MCP-named key that declares no server and carries no decision may become a
+  reviewed exclusion from that projection (D111). Require an installed-client control that seeds
+  the key at the source, keeps every native scope connecting in fresh prepared profiles, leaves
+  source bytes unchanged and shows the projected private file without the key. Every other
+  unrecognized MCP-related key must still reject.
 - Plugin source preservation requires an active full-client startup control and disabled/re-enabled
   counterparts, with source tree entries/content/modes unchanged and observed peer cleanup. Finite
   CLI listings and successful peer initialization do not prove later model-visible tool availability
@@ -132,6 +137,11 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
 - Catalog accepts valid unique Kiro models and rejects empty/duplicate/alias-colliding catalogs.
 - Stable client-facing IDs are deterministic and distinct for normalized-name collisions.
 - Reverse mapping rejects an ID absent from the current catalog.
+- The prepared client keeps the measured build's handling of product model IDs, which no client
+  catalog describes. On a later build that prints an unknown-model window notice, require a
+  text-output natural print control that shows the notice, the same arm with the opt-out and the
+  prepared profile without it, and a foreground `run` observation without it. JSON output hides the
+  notice and cannot serve as the positive control (D112).
 - Configured initial model wins the first turn; later client model selection calls set-model while idle.
 - Last interactive model is restored without changing the client’s global default.
 - Removing one-launch model/effort overrides preserves an otherwise compatible last-model preference,
@@ -422,7 +432,9 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
   cleanup afterward; this does not establish tool-result recovery or persisted restart/resume.
 - Public startup rejects invalid binaries/settings, failed login, unknown configured models and an
   unverified execution policy before launching a model-facing runtime. There is no CLI/config trust
-  override. Diagnostic success reports launch availability separately. Startup cancellation joins
+  override; a Claude Code build sharing the measured major version is admitted but reported as
+  unmeasured (D110). Diagnostic success reports launch availability separately. Startup
+  cancellation joins
   catalog refresh before closing its command runner or removing private runtime files; replaced roots
   are preserved with a cleanup failure. Stable scope keys never regenerate from malformed state.
 
@@ -489,7 +501,10 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
 An inactive inheritance positive control cannot establish effective exclusion. A client-hook denial
 alone does not establish native-tool restrictions or approved execution. Bind evidence to the tested
 CLI/engine and effective execution policy; keep unverified paths disabled. Unknown/new versions must
-not inherit verification automatically. No trust override may stand in for this evidence.
+not inherit verification automatically. No trust override may stand in for this evidence. D110
+records one directed exception: a Claude Code build sharing the measured 2.1.263 major version is
+admitted without new measurement, reported as unmeasured, and evidence gathered on it is recorded
+with its observed version. Kiro keeps its exact main/helper pin.
 
 Optional private metadata, account usage, native web support and full Anthropic option parity are
 not conditions for development run. Their absence must not interrupt supported ordinary turns.

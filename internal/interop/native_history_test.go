@@ -82,7 +82,7 @@ func observeNativeHistory(t *testing.T, mode string) {
 	}
 	defer runner.Close()
 	v, err := runner.Run(ctx, childproc.Command{Executable: client, Directory: root, Args: []string{"--version"}, Environment: []string{"HOME=" + home, "PATH=/usr/bin:/bin", "TERM=dumb"}})
-	if err != nil || strings.TrimSpace(string(v.Stdout)) != launcher.SupportedClientVersion+" (Claude Code)" {
+	if err != nil || !launcher.CompatibleClientOutput(v.Stdout) {
 		t.Fatal("unverified native client")
 	}
 	const model = "claude-dax-native-history"

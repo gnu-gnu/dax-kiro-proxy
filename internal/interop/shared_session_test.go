@@ -306,7 +306,7 @@ func newSharedSessionEpisode(t *testing.T, mode string) *sharedSessionEpisode {
 		t.Fatal("shared session runner")
 	}
 	v, err := e.runner.Run(ctx, childproc.Command{Executable: e.client, Directory: root, Environment: []string{"HOME=" + e.home, "PATH=/usr/bin:/bin"}, Args: []string{"--version"}})
-	if err != nil || strings.TrimSpace(string(v.Stdout)) != launcher.SupportedClientVersion+" (Claude Code)" {
+	if err != nil || !launcher.CompatibleClientOutput(v.Stdout) {
 		t.Fatal("unverified shared session client")
 	}
 	return e

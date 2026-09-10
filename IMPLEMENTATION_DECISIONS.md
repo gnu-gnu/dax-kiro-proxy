@@ -553,7 +553,7 @@ The initial environment permits only named OS/terminal/tool-socket variables, wi
 CLAUDE_CONFIG_DIR supplied explicitly. The host sets the literal loopback HTTP URL, one ephemeral
 model token in both supported auth variables, provider-host guard, discovery and no automatic retry
 or nonstreaming fallback. HTTP proxy variables are cleared; loopback bypass, telemetry opt-out and
-automatic-update opt-out are explicit. No remote endpoint, URL credential or unknown model alias is
+automatic-update opt-out are explicit. D112 later adds the client's unknown-model window opt-out. No remote endpoint, URL credential or unknown model alias is
 accepted by this initial adapter. A separate UI credential is not part of the model connection.
 
 The public [settings precedence](https://code.claude.com/docs/en/settings) and
@@ -2411,10 +2411,8 @@ The projection keeps mcpServers objects; enabledMcpjsonServers, disabledMcpjsonS
 enabledMcpServers, disabledMcpServers and mcpContextUris string arrays; enableAllProjectMcpServers;
 and per-project hasTrustDialogAccepted Booleans. It preserves original project keys and declaration
 values, including tool-specific MCP authentication, in owner-only temporary files. It excludes
-unrelated provider sign-in, model defaults, conversation and other global state. Reviewed on
-2026-09-10, claudeAiMcpEverConnected joins that exclusion: the client writes it to record which
-claude.ai connectors have ever been connected, so it declares no server and carries no execution
-policy, and omitting it cannot broaden execution. Other unrecognized
+unrelated provider sign-in, model defaults, conversation and other global state. D111 records the
+reviewed exclusion of the client's `claudeAiMcpEverConnected` breadcrumb. Other unrecognized
 MCP-related keys reject rather than silently dropping a possibly restrictive policy. Malformed
 objects, duplicate keys, null array elements, unsafe source modes/links and files over 2 MiB reject
 before runtime creation. This is a pinned mapping, not a general client-state migration facility.
@@ -5145,3 +5143,119 @@ in 11.100s. Existing native text and completed Write/Bash history controls pass 
 case in 18.465s. These are finite native PNG transport/retention observations. Actual Kiro image
 interpretation, other native image formats, media sidecars and broader alpha/release gates remain
 open. Development admission and dependencies are unchanged.
+
+## D110: admit compatible client builds by major version and report measurement state
+
+The installed Claude Code client updated itself from the measured 2.1.263 to 2.1.267 on this host,
+observed 2026-09-10. The exact-equality check in the `client_version` phase then rejected every
+launch, and both `doctor` and `run` reported an unsupported client. ACCEPTANCE_SPEC.md section I,
+D24 and D62 pin the client exactly and reject other versions without a trust override; D59 is the
+precedent for moving a pin explicitly after fresh evidence. The user directed a different policy
+for now: admit any client build whose major version equals the measured pin's. This decision
+records that deviation, its bounds and its risk, rather than treating the admitted build as verified.
+
+`SupportedClientVersion` remains the measured build behind every recorded installed-client result.
+Startup parses the `--version` output as a bounded dotted decimal followed by the client's name,
+admits it only when its major component equals the measured pin's, and records the detected version.
+`StartupReport.ClientVersion` carries the detected build; the new `client_version_measured` Boolean
+is true only for the exact measured build, and `doctor` prints
+`Claude Code: <version> (unmeasured; measured 2.1.263)` for any other admitted build. The client
+profile accepts the detected version under the same rule. Malformed, oversized, prerelease-suffixed
+or different-major outputs still reject before any finite Kiro command runs.
+
+The installed-client evidence gates in internal/interop used the same exact-equality check with
+`t.Fatal`, so an admitted but unmeasured client made every opt-in control fail rather than skip.
+Those nineteen gates now use the shared admission parser, and the four controls that logged the
+pin log the observed version instead. Evidence collected on an unmeasured build must be recorded
+with that observed version; it does not retroactively become 2.1.263 evidence and does not make
+the new build measured. No test bound, deadline, request budget or product isolation rule changes.
+
+Risk and limits: a later 2.x client may change request shapes, onboarding, hooks or assets in ways
+the recorded evidence does not cover, and this policy admits it without new measurement. The
+measured combination in README.md and ACCEPTANCE_SPEC.md remains Kiro 2.21.2/v2 with Claude 2.1.263.
+A D59-style explicit migration of the measured pin, with a fresh regression pass on the new build,
+remains the way to make that build measured. Kiro preflight keeps its exact main/helper pin. No
+dependency changes.
+
+The independent parser/admission cases pass with the launcher suite (31.490s race package) and the
+command suite, including the new unmeasured-render case (4.726s). With the installed 2.1.267 client,
+TestClaudeClientGatewayContract passes in 0.67s and D111's MCP scope control passes in 7.55s
+(10.370s race package), so the opt-in pipeline is open again on the admitted build; both log the
+observed version. The whole-repository opt-ins-off race suite passes every tested package (interop
+28.069s, launcher 27.673s, session 28.468s); whole-repository vet and whitespace checks pass. Logs
+under `.cache/history-review/`: `d110-all-race.log`, `d110-all-vet.log` and
+`d111-native-mcp-breadcrumb.log`. The rebuilt development artifact and its `client-version`
+inventory are recorded in DEPENDENCY_REVIEW.md.
+
+## D111: exclude the client's connector breadcrumb from the MCP projection
+
+With the client admitted under D110, the same host's launch stopped at client profile preparation.
+D64's projection of `HOME/.claude.json` rejects any unrecognized key whose name contains "mcp" so
+that a possibly restrictive policy is never silently dropped. The installed 2.1.267 client writes a
+top-level `claudeAiMcpEverConnected` key: a JSON array of strings naming claude.ai connectors the
+account has connected at some point (observed 2026-09-10; the values are not recorded). It declares
+no server, contains no enable/disable decision and grants no execution authority, so omitting it
+cannot broaden what the private client can do. Copying it would move unrelated account state into
+the private root, which D64 excludes.
+
+The key is now a reviewed exclusion in the projection for both the global and per-project objects.
+Every other unrecognized MCP-related key still rejects; the pinned-mapping rule is unchanged. The
+public MCP and settings references cited by D64 do not document this key, so the exclusion rests on
+the observed shape and on the absence of any declaration or decision in it. Remote claude.ai
+connectors and their OAuth state remain separate preservation work, as D64 records; this decision
+does not claim that the private profile reproduces a connected claude.ai connector.
+
+The unit regression seeds the key beside real declarations and requires the projection to keep
+mcpServers and disabledMcpServers while omitting it; the existing `futureMcpPolicy` rejection
+control stays. The installed-client MCP scope control now seeds the key into the owned global file
+before its fourteen natural/prepared cases. All fourteen pass with Claude 2.1.267 (7.55s test,
+10.370s race package): the native user/local/project scopes still connect in fresh prepared
+profiles, disable/re-enable and precedence behave as before, prepared runs leave the source bytes
+unchanged, the natural client retains the seeded key, and a profile prepared after seeding keeps
+`mcpServers` while omitting the breadcrumb (`projection_excludes_breadcrumb=true`). No tool is
+called and no Kiro model request is made. This verifies exclusion with preserved scopes; it does
+not observe any client UI that may consult the key.
+
+## D112: keep the measured client's unknown-model behavior through the prepared environment
+
+The installed 2.1.267 client, launched through `run` on 2026-09-10, printed a notice that the launch
+alias "isn't described by this version's model catalog", offered `behavesAs` on a `modelPicker` row,
+`modelOverrides` or a `[1m]` suffix, and said auto-compact would keep the session within an assumed
+200k-token window until then. No recorded observation of the measured 2.1.263 client shows such a
+notice. Product model IDs are deliberately absent from the client's built-in catalog (D08), so no
+client version can describe them. This is the first launcher-visible difference of an admitted
+unmeasured build under D110.
+
+The notice's own text names `CLAUDE_CODE_DISABLE_UNKNOWN_MODEL_WINDOW_ENFORCEMENT=1` as restoring the
+previous wait-for-the-API behavior. The public environment-variable reference does not document it
+(checked 2026-09-10); the public model-configuration reference documents `modelPicker`,
+`modelOverrides` and `[1m]` but not `behavesAs`, and says to append `[1m]` only when the underlying
+model supports 1M context. Mapping a Kiro model, in particular `auto`, to a client-known Claude model
+or to a 1M window would assert an equivalence this project has not measured, and a suffix would also
+change the alias that the catalog reverses (D08). The prepared client environment therefore sets the
+opt-out through the existing host environment and settings overlay (D24). It restores the measured
+build's behavior only; it does not describe the model, change routing, use the CLI catalog's
+context-window field (D30) or claim any window size.
+
+Black-box observations, all with the unmodified 2.1.267 client and no Kiro model request:
+
+- In print mode the notice goes to stderr beside a separate `[claude-code:unrecognized_model]`
+  diagnostic. With `--output-format json` the client omits the human notice and keeps only that
+  diagnostic; the D110 controls use JSON output, which is why they did not see it. With the opt-out
+  the notice disappears and the diagnostic remains. Gateway model discovery does not remove it.
+- `TestClaudeUnknownModelWindowNotice` runs four print arms with text output against a synthetic
+  local gateway that lists the alias. The unmodified client without the opt-out emits the notice
+  (positive control); the same arm with JSON output hides it; the same arm with the opt-out and the
+  prepared profile emit none. All four complete the fixture and the source settings stay unchanged
+  (1.75s test, 3.744s race package). On the measured build an absent positive control is logged and
+  the suppression assertions are not exercised.
+- An expect-driven terminal observation of the compiled `run` reproduces the interactive notice
+  with the D110/D111 artifact, which lacks the opt-out, and shows none with a development build
+  carrying it. Both runs pass the client's onboarding dialogs and exit through Ctrl+D with no
+  surviving proxy group. The procedure is retained as `d112-pty-observe.exp` with fixed facts only;
+  no terminal capture is kept.
+
+The launcher unit test requires the opt-out in the prepared environment. Existing D110 controls are
+unchanged. This does not make 2.1.267 measured and does not change compaction behavior on the
+measured build. Logs under `.cache/history-review/`: `d112-native-unknown-model.log`,
+`d112-pty-observation.log`, `d112-all-race.log` and `d112-all-vet.log`.

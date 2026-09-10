@@ -107,7 +107,7 @@ func observeClaudeStatusUsageCase(t *testing.T, startup *startupObservation, com
 	versionContext, stopVersion := context.WithTimeout(t.Context(), 5*time.Second)
 	version, err := runner.Run(versionContext, childproc.Command{Executable: clientExecutable, Directory: root, Args: []string{"--version"}, Environment: []string{"HOME=" + home, "PATH=/usr/bin:/bin:/usr/sbin:/sbin", "DISABLE_AUTOUPDATER=1", "DISABLE_TELEMETRY=1"}})
 	stopVersion()
-	if err != nil || strings.TrimSpace(string(version.Stdout)) != launcher.SupportedClientVersion+" (Claude Code)" {
+	if err != nil || !launcher.CompatibleClientOutput(version.Stdout) {
 		t.Fatal("pinned client version check failed")
 	}
 	models, _ := catalog.New([]catalog.Backend{{ID: "status-fixture", Name: "Independent status model"}}, "status-fixture")

@@ -58,7 +58,8 @@ func observeClientProfileHooks(t *testing.T, disabled bool) {
 	}
 	defer runner.Close()
 	version, err := runner.Run(context.Background(), childproc.Command{Executable: executable, Directory: root, Args: []string{"--version"}, Environment: []string{"HOME=" + home, "PATH=/usr/bin:/bin:/usr/sbin:/sbin", "TERM=dumb"}})
-	if err != nil || strings.TrimSpace(string(version.Stdout)) != launcher.SupportedClientVersion+" (Claude Code)" {
+	clientVersion, ok := launcher.ClientVersionFromOutput(version.Stdout)
+	if err != nil || !ok {
 		t.Fatal("unverified installed client version")
 	}
 	tokens, err := gateway.NewTokens()
@@ -256,7 +257,7 @@ func observeClientProfileHooks(t *testing.T, disabled bool) {
 	_, projectStopErr := os.Stat(projectStop)
 	mu.Lock()
 	defer mu.Unlock()
-	t.Logf("client=%s, messages=%d, models=%d, wrong_route=%d, user_hook=%v, project_hook_with_local_env=%v, tool_denied=%v, advertised_tools=%d, continuation_roles=%v, trailing_system_repeats_prior=%v, decoder_accepts=%v, exit=%d", launcher.SupportedClientVersion, messages, models, wrongRoute.Load(), userHook, projectHook, toolError, advertisedTools, continuationRoles, repeatedSystem, continuationDecoded, result.ExitCode)
+	t.Logf("client=%s, messages=%d, models=%d, wrong_route=%d, user_hook=%v, project_hook_with_local_env=%v, tool_denied=%v, advertised_tools=%d, continuation_roles=%v, trailing_system_repeats_prior=%v, decoder_accepts=%v, exit=%d", clientVersion, messages, models, wrongRoute.Load(), userHook, projectHook, toolError, advertisedTools, continuationRoles, repeatedSystem, continuationDecoded, result.ExitCode)
 	t.Logf("hooks_disabled=%v, startup_notice_requests=%d, notice_in_model_body=%v, ui_model_starts=%d, ui_model_lists=%d", disabled, noticeRequests.Load(), noticeInModelBody, uiBackend.starts.Load(), uiBackend.lists.Load())
 	t.Logf("metric_requests=%d, user_stop_hook=%v, project_stop_hook=%v", metricRequests.Load(), userStopErr == nil, projectStopErr == nil)
 	if runErr != nil || !bytes.Contains(result.Stdout, []byte(answer)) {

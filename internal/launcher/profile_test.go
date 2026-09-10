@@ -72,7 +72,7 @@ func TestClientProfileKeepsPoliciesAtUserScopeAndOwnsRouting(t *testing.T) {
 			t.Fatal("unapproved inherited environment reached client")
 		}
 	}
-	if env["ANTHROPIC_API_KEY"] != cfg.ModelToken || env["ANTHROPIC_AUTH_TOKEN"] != cfg.ModelToken || env["ANTHROPIC_BASE_URL"] != cfg.GatewayURL || env["CLAUDE_CODE_PROVIDER_MANAGED_BY_HOST"] != "1" || env["DISABLE_TELEMETRY"] != "1" {
+	if env["ANTHROPIC_API_KEY"] != cfg.ModelToken || env["ANTHROPIC_AUTH_TOKEN"] != cfg.ModelToken || env["ANTHROPIC_BASE_URL"] != cfg.GatewayURL || env["CLAUDE_CODE_PROVIDER_MANAGED_BY_HOST"] != "1" || env["DISABLE_TELEMETRY"] != "1" || env["CLAUDE_CODE_DISABLE_UNKNOWN_MODEL_WINDOW_ENFORCEMENT"] != "1" {
 		t.Fatal("gateway routing is not host owned")
 	}
 	if env["HTTP_PROXY"] != "" || env["HOME"] != cfg.Home || env["TERM"] != "xterm-256color" {
@@ -196,6 +196,28 @@ func TestClientProfileRejectsUnsafeSettingsAndInvalidLaunches(t *testing.T) {
 		})
 	}
 }
+func TestClientVersionOutputAdmission(t *testing.T) {
+	for _, tc := range []struct {
+		output  string
+		version string
+		ok      bool
+	}{
+		{launcher.SupportedClientVersion + " (Claude Code)\n", launcher.SupportedClientVersion, true},
+		{"2.1.267 (Claude Code)", "2.1.267", true},
+		{"1.0.0 (Claude Code)", "", false},
+		{"3.0.0 (Claude Code)", "", false},
+		{"2.1.263", "", false},
+		{"2.1.263 (Claude Code) extra", "", false},
+		{"2.1.263-dev (Claude Code)", "", false},
+		{strings.Repeat("2", 250) + " (Claude Code)", "", false},
+	} {
+		version, ok := launcher.ClientVersionFromOutput([]byte(tc.output))
+		if version != tc.version || ok != tc.ok || launcher.CompatibleClientOutput([]byte(tc.output)) != tc.ok {
+			t.Fatalf("output %q: got %q/%v, want %q/%v", tc.output, version, ok, tc.version, tc.ok)
+		}
+	}
+}
+
 func TestMissingSettingsAndConcurrentRuntimeCleanup(t *testing.T) {
 	cfg := profileConfig(t)
 	p, err := launcher.PrepareClient(cfg)

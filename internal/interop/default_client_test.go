@@ -254,7 +254,8 @@ func observeClaudeDefaultRequest(t *testing.T, denyRead bool) {
 	}
 	before := fileFingerprint(t, settings)
 	version, err := runner.Run(ctx, childproc.Command{Executable: executable, Directory: root, Args: []string{"--version"}, Environment: []string{"HOME=" + home, "PATH=/usr/bin:/bin:/usr/sbin:/sbin", "TERM=dumb"}})
-	if err != nil || strings.TrimSpace(string(version.Stdout)) != launcher.SupportedClientVersion+" (Claude Code)" {
+	clientVersion, ok := launcher.ClientVersionFromOutput(version.Stdout)
+	if err != nil || !ok {
 		t.Fatal("unverified installed client version")
 	}
 	fake := buildDenialACPFixture(t, ctx, runner, root)
@@ -320,7 +321,7 @@ func observeClaudeDefaultRequest(t *testing.T, denyRead bool) {
 	mu.Lock()
 	observed := shape
 	mu.Unlock()
-	t.Logf("client=%s, shape=%+v, backend_starts=%d, backend_failed=%v, state=%s, exit=%d, stdout_bytes=%d", launcher.SupportedClientVersion, observed, backend.starts.Load(), backend.failed.Load(), driver.State(), result.ExitCode, len(result.Stdout))
+	t.Logf("client=%s, shape=%+v, backend_starts=%d, backend_failed=%v, state=%s, exit=%d, stdout_bytes=%d", clientVersion, observed, backend.starts.Load(), backend.failed.Load(), driver.State(), result.ExitCode, len(result.Stdout))
 	backend.mu.Lock()
 	t.Logf("continuation=%+v", backend.comparison)
 	backend.first = nil

@@ -108,7 +108,7 @@ func runLauncherCancellationProbe(t *testing.T, client, kiro string) {
 	versionContext, endVersion := context.WithTimeout(ctx, 5*time.Second)
 	version, err := runner.Run(versionContext, childproc.Command{Executable: client, Directory: root, Environment: []string{"HOME=" + home, "PATH=/usr/bin:/bin", "DISABLE_AUTOUPDATER=1"}, Args: []string{"--version"}})
 	endVersion()
-	if err != nil || strings.TrimSpace(string(version.Stdout)) != launcher.SupportedClientVersion+" (Claude Code)" {
+	if err != nil || !launcher.CompatibleClientOutput(version.Stdout) {
 		t.Fatal("cancellation client version is unverified")
 	}
 	hook := buildCancellationHook(t, ctx, runner, root)

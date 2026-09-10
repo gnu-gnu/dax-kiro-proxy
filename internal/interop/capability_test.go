@@ -81,7 +81,8 @@ func observeThinkingRejection(t *testing.T, executable, errorMessage, retries st
 	}
 	defer runner.Close()
 	version, err := runner.Run(t.Context(), childproc.Command{Executable: executable, Directory: root, Environment: []string{"HOME=" + home, "PATH=/usr/bin:/bin:/usr/sbin:/sbin", "TERM=dumb"}, Args: []string{"--version"}})
-	if err != nil || strings.TrimSpace(string(version.Stdout)) != launcher.SupportedClientVersion+" (Claude Code)" {
+	clientVersion, ok := launcher.ClientVersionFromOutput(version.Stdout)
+	if err != nil || !ok {
 		t.Fatal("unverified client version")
 	}
 	tokens, err := gateway.NewTokens()
@@ -223,7 +224,7 @@ func observeThinkingRejection(t *testing.T, executable, errorMessage, retries st
 	}
 	validJSON := json.Unmarshal(result.Stdout, &completion) == nil
 	t.Logf("run_error=%v, cleanup_error=%v, io_error=%v, deadline_error=%v, exit_error=%v, output_limit=%v, raw_answer_present=%v, result_json=%v, result_matches=%v, client_error=%v", runErr != nil, errors.Is(runErr, childproc.ErrCleanup), errors.Is(runErr, childproc.ErrIO), errors.Is(runErr, context.DeadlineExceeded), errors.Is(runErr, childproc.ErrExit), errors.Is(runErr, childproc.ErrOutputLimit), bytes.Contains(result.Stdout, []byte(answer)), validJSON, validJSON && completion.Result == answer, completion.Error)
-	t.Logf("version=%s, retries=%s, omit_thinking=%v, omit_betas=%v, completed=%v, recovered=%v, exit=%d, request_count=%d, rejected=%d, accepted=%d, thinking_kinds=%v, context_declarations=%v, format_declarations=%v, beta_header_counts=%v, fields=%v, unknown_fields=%d, stdout_bytes=%d", launcher.SupportedClientVersion, retries, options.omitThinking, options.omitBetas, completed, completed && rejected > 0, result.ExitCode, len(thinkingKinds), rejected, accepted, thinkingKinds, contextDeclarations, formatDeclarations, betaHeaderCounts, fieldSets, unknownFields, len(result.Stdout))
+	t.Logf("version=%s, retries=%s, omit_thinking=%v, omit_betas=%v, completed=%v, recovered=%v, exit=%d, request_count=%d, rejected=%d, accepted=%d, thinking_kinds=%v, context_declarations=%v, format_declarations=%v, beta_header_counts=%v, fields=%v, unknown_fields=%d, stdout_bytes=%d", clientVersion, retries, options.omitThinking, options.omitBetas, completed, completed && rejected > 0, result.ExitCode, len(thinkingKinds), rejected, accepted, thinkingKinds, contextDeclarations, formatDeclarations, betaHeaderCounts, fieldSets, unknownFields, len(result.Stdout))
 	expectedThinking := "adaptive"
 	if options.omitThinking {
 		expectedThinking = "absent"
