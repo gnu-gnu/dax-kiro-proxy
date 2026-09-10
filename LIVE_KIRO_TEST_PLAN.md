@@ -2094,3 +2094,39 @@ d107-native-resume-regressions.log passes the completed-history interactive and 
 configured-policy controls in 47.631s. d107-interop-race.log passes the opt-ins-off suite in 24.430s;
 d107-interop-vet.log exits zero. Formatting/whitespace and all 141 unchanged D101 artifact checks
 pass, without release clearance.
+
+## D108: personal output-style preservation without external inference
+
+Use pinned Claude 2.1.263 with a local authenticated text backend, no Kiro process and an owned
+HOME/project. Before production changes, reproduce a selected personal style present in natural
+system instructions but absent from the prepared request despite a successful reply. Add the style
+tree to the existing bounded private asset snapshot; preserve its metadata and native user scope.
+
+Run six natural/prepared pairs: personal selection, keep-coding declaration, same-name project
+definition, project override, local override and Default. Give each arm fresh profile/credentials,
+one request and no client tool effect. Check selected authored markers only in system instructions,
+project memory only in user content and exact selected-block digest equality against that case's
+reference. Digests stay in memory; do not record raw requests, client instructions or credentials.
+Each child has a 20-second deadline and 128 KiB output cap, within a three-minute matrix deadline.
+Require exact fixed completion, source style/settings/project preservation, listener/profile removal
+and joined recorded client PID/group. Prepared execution must also leave the whole source config
+tree and global state unchanged; reference-only native metadata changes are not product mutations.
+
+d108-missing-style-regression.log fails the initial asset test; d108-native-style-missing.log
+separately fails the native missing-style control in 2.323s. d108-style-assets.log passes source
+snapshot/safety controls in 6.460s, including twelve output-style cases. d108-style-projection-final.log
+passes eight role guards in 2.029s. d108-native-style-final.log passes all twelve native cells in
+5.79s (7.873s race package). A preliminary MCP argument-order startup failure and a rejected assumed
+keep-coding size increase are recorded separately, not counted as preservation results. Both field
+values give the same observed native system shape here; preserve that observation's limits.
+
+The public-only CLI consultation answer and assessment are retained locally. No repository data
+or native requests are sent to that consultation. Personal CLAUDE.md and rule-alias exclusion gaps
+stay open, as do later-turn/UI, plugin/managed and actual Kiro style checks. This change does not
+dispatch D100's pending external-model experiment or change development-launch admission.
+
+d108-native-assets-regression.log passes existing personal customizations, rule sources, path
+characters and import depth in 26.045s. d108-all-race.log passes all 27 tested repository packages
+with native opt-ins disabled; six packages have no tests. d108-all-vet.log exits zero. Formatting,
+whitespace and all 141 D108 output-style development-artifact checks pass, with release clearance
+false and D101's previous executable retained unchanged.

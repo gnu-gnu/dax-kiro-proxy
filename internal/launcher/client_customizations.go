@@ -21,7 +21,7 @@ type clientAsset struct {
 	directory, executable bool
 }
 
-// Tool assets are private snapshots. Rules keep their original import bases and exclusion
+// Tool assets and output styles are private snapshots. Rules keep their original import bases and exclusion
 // paths through a native reference; this is not an immutable source snapshot or a tool sandbox.
 // Personal CLAUDE.md has no verified adapter. Interpret neither frontmatter nor commands.
 func clientCustomizations(home string) ([]clientAsset, error) {
@@ -105,7 +105,7 @@ func clientCustomizations(home string) ([]clientAsset, error) {
 		}
 		return nil
 	}
-	for _, name := range []string{"skills", "commands", "agents", "rules"} {
+	for _, name := range []string{"skills", "commands", "agents", "output-styles", "rules"} {
 		info, err := base.Lstat(name)
 		if errors.Is(err, os.ErrNotExist) {
 			continue

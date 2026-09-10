@@ -71,6 +71,14 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
   depth; unsafe links, nonregular sources and exceeded limits reject before partial activation.
   Preserve executable owner bits and exact bytes without parsing frontmatter or running commands;
   exclude unrelated state. Existing profiles keep their snapshot; fresh preparation sees updates (D76).
+- Personal output styles must also retain native user scope through the bounded asset snapshot.
+  Compare natural/prepared requests for user selection, same-name project definitions, project/local
+  setting precedence and Default. Require exact selected style-system-block equality and separate
+  project-memory user content, successful replies, unchanged source files and joined cleanup.
+  Preserve frontmatter bytes without interpreting them. A keep-coding declaration comparison must
+  use observed native behavior, not assumed default coding prose. D108 passes these initial-turn
+  controls with actual Claude and a local text backend. UI switching, plugin/managed styles, later
+  turns and actual Kiro behavior remain separate checks; this does not satisfy personal memory.
 - Personal rules must retain native user scope, original relative-import bases and path exclusions.
   Compare natural/prepared/stripped startup, full four-hop chains with an absent fifth hop and
   conditionally activated rules before and after exactly one successful client Read. Check original

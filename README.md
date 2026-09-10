@@ -285,6 +285,16 @@ depth sixteen, 2 MiB per file and 32 MiB total. Unsafe links, special files, wri
 exceeded limits reject preparation. Changes to the original assets take effect on a new launch;
 custom roots, actual agent execution and relative helper execution remain separate work.
 
+D108 also preserves personal `~/.claude/output-styles` as bounded private copies at native user
+scope. Installed-client comparisons verify personal selection, a same-name project definition,
+project/local selection precedence and a local Default override. Selected style instructions match
+the original client's system block while project memory remains separate user content; prepared
+runs leave source settings and assets unchanged. Style metadata is copied without interpretation.
+The `keep-coding-instructions` declaration matches the native reference, but these synthetic turns
+show no corresponding system-size change in that reference; no broader coding-behavior claim is
+made. Mid-session switching, plugin/managed styles and actual Kiro behavior remain separate checks.
+Personal CLAUDE.md and rule-exclusion issues below are still open.
+
 Personal `~/.claude/rules` now remains available at its native scope through a validated source
 reference (D77). Installed-client checks cover relative imports, original-path exclusions,
 conditional activation after Read and the full four-hop import limit. The source reference is
@@ -330,11 +340,11 @@ from 41.61s to 10.67s with all recorded ownership removed. Whole-repository race
 allow/deny/hook controls and actual Kiro/Claude allowed-tool resume pass. These finite measurements
 do not establish general throughput or complete the remaining soak gates.
 
-Phase 7 has frozen dependency inventories and retained scoped notices. For the D101 account-usage
+Phase 7 has frozen dependency inventories and retained scoped notices. For the D108 output-style
 development artifact, run `python3 tools/verify_dependency_inventory.py --gomodcache .cache/gomod
---snapshot usage --binary dist/dax-kiro-proxy`. The default `development` snapshot identifies
+--snapshot output-styles --binary dist/dax-kiro-proxy`. The default `development` snapshot identifies
 D78's earlier D77 binary, `installation` identifies D79, `native-history` identifies D87 and
-`relay-close` identifies D96; `effort` identifies D99. Those
+`relay-close` identifies D96; `effort` identifies D99 and `usage` identifies D101. Those
 historical snapshots do not match this rebuild and its changed production source. These offline byte checks
 do not grant release license clearance; see DEPENDENCY_REVIEW.md for resource differences and
 remaining packaging/rights work.

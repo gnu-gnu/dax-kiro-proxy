@@ -697,3 +697,26 @@ python3 tools/verify_dependency_inventory.py --gomodcache .cache/gomod --snapsho
 All 141 byte checks pass with release_clearance false. Existing advisory/reachability, native/build/
 test attribution, clean-host distribution and owner-rights work remain open. The read-only private
 usage observation is interoperability evidence and does not grant private-extension license rights.
+
+## Output-style artifact snapshot — D108, 2026-09-10
+
+`third_party/inventory/macos-arm64-output-styles.json` records the rebuilt 13,624,658-byte development
+command, SHA-256 `34bd1751b9055b0f68bc4378d446d8b15578e0540332282d1a93f614b67da9ab`.
+It identifies Go 1.27.1, darwin/arm64, CGO_ENABLED=1 and parent
+f1cae2cc1b0f07102566f3bc66cd86872ba9b75c with vcs.modified=true. The record captures the uncommitted
+D108 production inputs; it does not claim that the artifact was built from the subsequent commit.
+
+The 102 repository input records remain 93 selected Go files, seven embedded notice/reference files
+and go.mod/go.sum. Only internal/launcher/client_customizations.go changes from D101. The 267 import
+paths, four external module versions/sums/package sets, selected native files, stdlib vendor packages
+and retained notices are unchanged. No dependency is added or upgraded. D101's usage inventory is
+the hashed predecessor, and its executable is retained before replacement.
+
+```sh
+python3 tools/verify_dependency_inventory.py --gomodcache .cache/gomod --snapshot output-styles --binary dist/dax-kiro-proxy
+```
+
+All 141 byte checks pass against the published development artifact with release_clearance false.
+Existing advisory/reachability, native/build/test attribution, clean-host distribution and owner-rights work remain
+open. Preserving a user's style files and observing public client behavior grants no additional
+license or distribution rights.

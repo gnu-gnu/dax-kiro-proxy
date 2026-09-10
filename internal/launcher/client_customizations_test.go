@@ -23,6 +23,7 @@ func TestPersonalAssetsSnapshotPreservesSourceAndNativeScope(t *testing.T) {
 		"commands/nested/owned.md":       "Independent command.\n",
 		"commands/quotes '$()\n.md":      "---\r\nname: 독립\r\n---\r\nNo normalization",
 		"agents/nested/owned.md":         "---\nname: owned\n---\nIndependent agent.\n",
+		"output-styles/owned.md":         "---\nname: Owned output\nkeep-coding-instructions: true\n---\nIndependent style.\n",
 	}
 	for path, data := range original {
 		path = filepath.Join(base, path)
@@ -81,7 +82,7 @@ func TestPersonalAssetsSnapshotPreservesSourceAndNativeScope(t *testing.T) {
 }
 
 func TestPersonalAssetsRejectUnsafeAndOversizedSources(t *testing.T) {
-	for _, treeName := range []string{"skills", "rules"} {
+	for _, treeName := range []string{"skills", "rules", "output-styles"} {
 		t.Run(treeName, func(t *testing.T) {
 			for _, kind := range []string{"root-link", "tree-link", "file-link", "hard-link", "fifo", "writable-directory", "writable-file", "large-file", "total-bytes", "entries", "depth", "tree-file"} {
 				t.Run(kind, func(t *testing.T) {

@@ -6,6 +6,25 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D108 fixes omitted personal output-style files by adding `~/.claude/output-styles` to the existing
+  bounded native-scope snapshot. The new byte-preservation test fails before the change, and an
+  actual Claude control confirms that a successful prepared reply omitted the selected style while
+  natural execution included it (2.323s race package). After the fix, six natural/prepared pairs
+  pass in 5.79s (7.873s package): personal selection, keep-coding declaration, same-name project
+  precedence, project/local setting overrides and Default. Selected system-block digests, marker
+  roles and system sizes match each reference; original style/settings files stay unchanged and
+  prepared runs also preserve the full source config tree/global state. Natural controls mutate
+  disposable native metadata/cache state, so they are not an alternate production launch path.
+  Both keep-coding declaration values produce the same observed reference system shape here; a
+  size-increase assumption is rejected, without inferring general native behavior. Eight role guards
+  pass in 2.029s; snapshot/source-safety controls including twelve output-style cases pass in 6.460s.
+  The public-only Claude consultation was saved/read/assessed; raw-request logging advice is rejected.
+  No Kiro inference or client tool effect occurs. Personal-root and rule-exclusion fidelity gaps,
+  UI switching, plugin/managed styles and broader live/release gates remain open.
+  Existing native personal assets, rule sources/path characters and import-depth controls pass in
+  26.045s. Whole-repository offline race tests pass all 27 tested packages (six have no tests), and
+  whole-repository vet exits zero. Formatting/whitespace and the rebuilt D108 output-style artifact's
+  141 byte checks pass, with release clearance false; D101's executable is retained unchanged.
 - D107 extends native interactive new-tool permissions to interrupted histories with independent
   ACP. No-text history passes one-time Bash approval in 9.93s (11.206s race package), then comment
   refusal/hook veto in 11.82s (13.185s package). Partial-text history passes all three in 17.53s

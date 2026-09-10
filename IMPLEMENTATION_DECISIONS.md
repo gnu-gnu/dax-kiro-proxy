@@ -5020,3 +5020,65 @@ and D101's artifact stay unchanged. D100's separately pending model experiment i
 Existing completed-history interactive and interrupted-history configured-policy regressions pass
 in 47.631s. The opt-ins-off interop race suite passes in 24.430s. Interop vet, formatting/whitespace
 and all 141 unchanged D101 artifact checks pass; release clearance remains false.
+
+## D108: preserve personal output styles at native user scope
+
+The private client configuration copied a user's outputStyle setting but omitted the corresponding
+personal output-styles directory. An initial failing snapshot test establishes the missing source
+asset. A separate installed-client comparison reproduces the effect: ordinary Claude includes the
+selected authored style marker in its system instructions, while the prepared client completes the
+same local text turn successfully without that marker. Successful completion alone therefore does
+not demonstrate environment preservation.
+
+Add output-styles to the existing personal asset snapshot. The complete asset set shares the existing
+entry, depth, per-file and total-byte limits and source validation. Copy owned regular files privately
+with exact bytes and executable owner bits; reject unsafe links, special files and writable sources.
+Do not parse style frontmatter or translate settings. Claude resolves the selected style and its
+scope. Existing private profiles retain their copy; a later launch sees source changes. This adds no
+dependency and does not change tool execution, Kiro isolation or development admission.
+
+The [public output-style documentation](https://code.claude.com/docs/en/output-styles) identifies
+personal/project files and the outputStyle and keep-coding-instructions fields. A public-only
+bounded Claude CLI consultation is saved, read and
+assessed locally. Adopt its role-marker and native-reference comparisons, but reject saving raw
+model requests or unrestricted metadata. The observation uses fresh single-turn histories: it does
+not assume that user-message instructions disappear from subsequent full-history requests. Neither
+the documentation nor the consultation substitutes for an observed native result.
+
+Six scenarios each run natural/prepared controls with Claude 2.1.263 and a local authenticated text
+backend: personal selection, the same style with a keep-coding declaration, same-name project
+precedence, a project selection, a local selection and a local Default override. The reference
+removes only the process configuration-directory override from the same routing overlay. Each arm
+uses an owned HOME/project, fresh credentials/profile and one request; no Kiro process or tool effect
+occurs. Two native client tool declarations are admitted only to observe the coding-style context.
+The MCP argument is followed by an option before the positional question, because that argument is
+variadic in the measured client. A preliminary startup failure is distinct from the reproduced
+missing-style defect.
+
+Retain only authored marker counts, system sizes/counts, in-memory selected-block digests and fixed
+lifecycle facts. Require one selected style marker in one system block (none for Default), exact
+same-case native block equality and project memory once in user content. Eight independent controls
+reject misplaced or duplicated instructions. Require successful fixed completion, unchanged source
+style/settings/project inputs, removed profile/listener and joined recorded client PID/group. The
+ordinary native reference can modify disposable native cache/global metadata; prepared execution
+must additionally preserve the entire source configuration tree and global state. Do not promote
+the reference path to a production launcher workaround.
+
+The keep-coding declaration does not change the observed system size or selected block in this
+native reference, with either no tools or the two admitted declarations. An initial assertion that
+it must increase coding-instruction size is rejected. Preserve the field bytes and compare actual
+reference behavior without defining native coding prose or claiming a general client defect. This
+test establishes initial selected instructions, not the model's coding behavior or later turns.
+
+After the production fix, twelve native cells pass in 5.79s (7.873s race package). The pre-fix
+missing-style comparison fails in 2.323s. Eight role guards pass in 2.029s, and the asset controls
+including twelve new source-safety cases pass in 6.460s. Personal-root memory and private-alias rule
+exclusion fidelity remain incomplete. Interactive switching, managed/plugin styles, actual Kiro
+style behavior and broader live/release gates remain separate work.
+
+Existing native personal-asset/rule source, path-character and import-depth regressions pass in
+26.045s. All 27 tested packages pass whole-repository offline race tests; six packages have no tests.
+Whole-repository vet, formatting/whitespace and all 141 rebuilt D108 artifact checks pass. The new
+output-styles inventory records unchanged dependency selections and only one changed production
+input. D101's executable is retained before atomic development-artifact replacement. Release
+clearance remains false.
