@@ -30,6 +30,36 @@ var (
 const MaxSettingsBytes = 2 << 20
 const SupportedClientVersion = "2.1.263"
 
+// CompatibleClientVersion reports whether a client build may launch. Only the
+// major component is compared against SupportedClientVersion, so minor and
+// patch updates of the validated client stay usable without repinning.
+func CompatibleClientVersion(version string) bool {
+	major, ok := clientVersionMajor(version)
+	if !ok {
+		return false
+	}
+	supported, ok := clientVersionMajor(SupportedClientVersion)
+	return ok && major == supported
+}
+
+// clientVersionMajor accepts only bounded dotted decimal versions so a reported
+// value stays safe to compare and to echo back in diagnostics.
+func clientVersionMajor(version string) (string, bool) {
+	if version == "" || len(version) > 32 {
+		return "", false
+	}
+	fields := strings.Split(version, ".")
+	if len(fields) > 4 {
+		return "", false
+	}
+	for _, field := range fields {
+		if field == "" || len(field) > 8 || strings.TrimLeft(field, "0123456789") != "" {
+			return "", false
+		}
+	}
+	return fields[0], true
+}
+
 type ClientConfig struct {
 	RuntimeParent, Home, Project, UserSettings         string
 	Executable, Version, Model, GatewayURL, ModelToken string
@@ -200,7 +230,7 @@ func validClient(cfg ClientConfig) bool {
 	if cfg.ResumeSession != "" && (!cfg.KeepHistory || !validNativeSessionID(cfg.ResumeSession)) {
 		return false
 	}
-	if cfg.Version != SupportedClientVersion {
+	if !CompatibleClientVersion(cfg.Version) {
 		return false
 	}
 	if cfg.StatusExecutable != "" || cfg.UIToken != "" {

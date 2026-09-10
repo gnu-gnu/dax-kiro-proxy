@@ -166,12 +166,14 @@ func TestClientProfileRejectsUnsafeSettingsAndInvalidLaunches(t *testing.T) {
 			}
 		})
 	}
-	for _, kind := range []string{"version", "remote", "credentials", "path", "model", "token", "duplicate-env"} {
+	for _, kind := range []string{"version", "version-malformed", "remote", "credentials", "path", "model", "token", "duplicate-env"} {
 		t.Run(kind, func(t *testing.T) {
 			cfg := profileConfig(t)
 			switch kind {
 			case "version":
-				cfg.Version = "2.0.0"
+				cfg.Version = "1.0.0"
+			case "version-malformed":
+				cfg.Version = "2.1.263-dev"
 			case "remote":
 				cfg.GatewayURL = "http://gateway.invalid:32123"
 			case "credentials":
