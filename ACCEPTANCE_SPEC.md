@@ -234,6 +234,15 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
 
 ## F. Session continuity
 
+- Completed image tool results must stay native images when recreating ACP context. Preserve the
+  original call ID, error status and ordered result content, with separate result boundaries;
+  base64 embedded only in text is a failure. Enforce negotiated capability and combined media
+  limits before dispatch, without changing stored history or resending committed images in a delta.
+  With actual Claude and independent ACP, require one native Read and its matching image result,
+  remove the owned source image after joined cleanup, then resume the same native ID using fresh
+  resources. Require the same result/image bytes in the request and ACP prompt, no repeated Read
+  hooks, successful completion and preserved settings. D109 passes this finite PNG case; actual
+  Kiro image interpretation, other formats, sidecars and broader media retention remain separate.
 - A new tool after an interrupted native history must be checked separately from resuming completed
   work. Join the original delivered-but-unexecuted hook/client/backend before new admission, and
   require the old effect to remain absent after late hook release and throughout the new turn.

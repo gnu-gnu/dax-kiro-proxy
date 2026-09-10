@@ -6,6 +6,22 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D109 fixes completed tool-result images being serialized as base64 text during fresh ACP context
+  reconstruction. The initial projection regression fails in 0.928s. An actual Claude/independent-ACP
+  episode reproduces the gap: initial Read/MCP image delivery succeeds, but after source PNG removal,
+  the native resumed request still contains its image while ACP receives no native image (6.832s
+  failing package). Fresh projection now validates nested inline images, preserves result call/error
+  ownership and content order, and applies the existing combined media limits. Committed deltas do
+  not resend those images; unsupported result sources keep the existing opaque no-fetch fallback.
+  After the fix, both stages pass in 5.77s (7.522s package). The final native regression run passes
+  image resume in 5.11s and existing text/completed-tool history controls in 18.465s total. Encoded
+  bytes and decoded pixels match, with one Read and one receipt from each native hook across both
+  stages; source settings stay unchanged and all recorded client/ACP/relay ownership is removed.
+  Twelve request-observation guards pass in 2.108s. Projection order/ownership/capability, seven
+  malformed-or-excessive-media controls and opaque fallback pass in 11.100s. The public-only Claude
+  consultation is saved/read/assessed; its suggestion of a different resume ID and length-only image
+  heuristics are rejected. No actual Kiro inference runs. Actual image interpretation, other native
+  formats/sidecars and full alpha/release requirements remain open.
 - D108 fixes omitted personal output-style files by adding `~/.claude/output-styles` to the existing
   bounded native-scope snapshot. The new byte-preservation test fails before the change, and an
   actual Claude control confirms that a successful prepared reply omitted the selected style while

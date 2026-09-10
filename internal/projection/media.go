@@ -59,12 +59,35 @@ func FullWithCapabilities(r *anthropic.Request, caps acp.PromptCapabilities) ([]
 		return nil, anthropic.ErrRequest
 	}
 	hasMedia := false
-	for _, message := range r.Messages {
-		for _, block := range message.Content {
-			if media, ok := block.Media(); ok {
-				hasMedia = true
-				if media.Kind == "image" && !caps.Image || media.MIME == "application/pdf" && !caps.EmbeddedContext {
-					return nil, anthropic.ErrRequest
+	mediaCount, mediaBytes := 0, 0
+	results := make(map[[2]int]anthropic.ToolResult)
+	for i, message := range r.Messages {
+		for j, block := range message.Content {
+			content := []anthropic.Block{block}
+			var result anthropic.ToolResult
+			if block.Type == "tool_result" {
+				var err error
+				result, err = anthropic.DecodeToolResult(block.Raw)
+				if err != nil {
+					return nil, err
+				}
+				content, err = result.PromptContent()
+				if err != nil {
+					return nil, err
+				}
+				result.Content = content
+			}
+			for _, child := range content {
+				if media, ok := child.Media(); ok {
+					hasMedia = true
+					mediaCount++
+					mediaBytes += media.Bytes
+					if mediaCount > anthropic.MaxMediaParts || mediaBytes > anthropic.MaxMediaTotalBytes || media.Kind == "image" && !caps.Image || media.MIME == "application/pdf" && !caps.EmbeddedContext {
+						return nil, anthropic.ErrRequest
+					}
+					if block.Type == "tool_result" {
+						results[[2]int{i, j}] = result
+					}
 				}
 			}
 		}
@@ -108,7 +131,44 @@ func FullWithCapabilities(r *anthropic.Request, caps acp.PromptCapabilities) ([]
 		}{message.Role, i}); err != nil {
 			return nil, err
 		}
-		for _, block := range message.Content {
+		for j, block := range message.Content {
+			if result, ok := results[[2]int{i, j}]; ok {
+				// The result envelope binds every following content part to its original call and
+				// error status. Text stays JSON result content rather than becoming user instructions.
+				if err := appendJSON(struct {
+					Type    string `json:"type"`
+					ID      string `json:"tool_use_id"`
+					IsError bool   `json:"is_error"`
+					Count   int    `json:"content_blocks"`
+				}{"tool_result", result.ID, result.IsError, len(result.Content)}); err != nil {
+					return nil, err
+				}
+				for index, child := range result.Content {
+					entry := struct {
+						Type    string          `json:"type"`
+						ID      string          `json:"tool_use_id"`
+						Index   int             `json:"content_index"`
+						Content json.RawMessage `json:"content"`
+					}{"tool_result_content", result.ID, index, child.Raw}
+					media, image := child.Media()
+					if image {
+						entry.Content = json.RawMessage(`{"type":"image","source":"following_acp_image"}`)
+					}
+					if err := appendJSON(entry); err != nil {
+						return nil, err
+					}
+					if image {
+						parts = append(parts, Part{Type: "image", MIMEType: media.MIME, Data: media.Data})
+					}
+				}
+				if err := appendJSON(struct {
+					Type string `json:"type"`
+					ID   string `json:"tool_use_id"`
+				}{"tool_result_end", result.ID}); err != nil {
+					return nil, err
+				}
+				continue
+			}
 			media, ok := block.Media()
 			if !ok {
 				text := block.Text

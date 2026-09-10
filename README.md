@@ -89,6 +89,13 @@ hooks occur once across each episode. Old resources are joined before fresh prof
 backend ownership. The interrupted-work and subsequent policy checks below extend this evidence;
 these finite single-tool results do not establish general exactly-once crash recovery.
 
+D109 fixes image tool results losing their native image form when recreating backend context.
+An actual Claude/independent-ACP check reads an owned PNG once, removes the source file and resumes
+the same conversation with fresh resources. The completed result retains its call ID, image bytes
+and pixels; ACP receives the image directly, with no second Read or hook execution. Settings stay
+unchanged and recorded resources clean up. This covers one finite PNG result; actual Kiro image
+interpretation, other formats and broader media retention remain separate checks.
+
 D91 verifies cancellation before a delivered Bash operation executes, joined old ownership, and a
 fresh native resume with an explicitly non-executing question. No old effect occurs after late hook
 release. The measured native client omits the unfinished tool pair and retains its partial response
@@ -340,11 +347,12 @@ from 41.61s to 10.67s with all recorded ownership removed. Whole-repository race
 allow/deny/hook controls and actual Kiro/Claude allowed-tool resume pass. These finite measurements
 do not establish general throughput or complete the remaining soak gates.
 
-Phase 7 has frozen dependency inventories and retained scoped notices. For the D108 output-style
+Phase 7 has frozen dependency inventories and retained scoped notices. For the D109 tool-image
 development artifact, run `python3 tools/verify_dependency_inventory.py --gomodcache .cache/gomod
---snapshot output-styles --binary dist/dax-kiro-proxy`. The default `development` snapshot identifies
+--snapshot tool-images --binary dist/dax-kiro-proxy`. The default `development` snapshot identifies
 D78's earlier D77 binary, `installation` identifies D79, `native-history` identifies D87 and
-`relay-close` identifies D96; `effort` identifies D99 and `usage` identifies D101. Those
+`relay-close` identifies D96; `effort` identifies D99, `usage` identifies D101 and `output-styles`
+identifies D108. Those
 historical snapshots do not match this rebuild and its changed production source. These offline byte checks
 do not grant release license clearance; see DEPENDENCY_REVIEW.md for resource differences and
 remaining packaging/rights work.

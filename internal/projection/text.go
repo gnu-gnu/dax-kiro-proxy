@@ -38,6 +38,21 @@ func Full(r *anthropic.Request) ([]Text, error) {
 			if b.Type == "image" || b.Type == "document" {
 				return nil, anthropic.ErrRequest
 			}
+			if b.Type == "tool_result" {
+				result, err := anthropic.DecodeToolResult(b.Raw)
+				if err != nil {
+					return nil, err
+				}
+				content, err := result.PromptContent()
+				if err != nil {
+					return nil, err
+				}
+				for _, child := range content {
+					if _, ok := child.Media(); ok {
+						return nil, anthropic.ErrRequest
+					}
+				}
+			}
 		}
 	}
 	latest := r.LatestUserIndex()

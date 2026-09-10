@@ -112,3 +112,165 @@ func TestDocumentProjectionRequiresEmbeddingOnlyForBinaryContent(t *testing.T) {
 		t.Fatal("PDF missing from ACP resource content")
 	}
 }
+
+func TestHistoricalToolImagesRemainNativeAndOwnedByTheirResult(t *testing.T) {
+	picture, data := inlinePicture(t)
+	for _, failed := range []bool{false, true} {
+		r := projectedRequest(t, []any{
+			map[string]any{"role": "user", "content": "read the owned image"},
+			map[string]any{"role": "assistant", "content": []any{map[string]any{"type": "tool_use", "id": "image-call", "name": "Read", "input": map[string]string{"file_path": "/owned/image.png"}}}},
+			map[string]any{"role": "user", "content": []any{map[string]any{"type": "tool_result", "tool_use_id": "image-call", "is_error": failed, "content": []any{map[string]string{"type": "text", "text": "before image"}, picture, map[string]string{"type": "text", "text": "after image"}}}}},
+			map[string]any{"role": "assistant", "content": "image acknowledged"},
+			map[string]any{"role": "user", "content": "continue without reading again"},
+		})
+		parts, err := FullWithCapabilities(r, acp.PromptCapabilities{Image: true})
+		if err != nil {
+			t.Fatal(err)
+		}
+		images := 0
+		var owner string
+		index, envelopes, ends := 0, 0, 0
+		var sequence []string
+		for _, p := range parts {
+			if p.Type == "image" {
+				images++
+				if p.MIMEType != "image/png" || p.Data != data || owner != "image-call" || index != 2 {
+					t.Fatal("historical tool image changed")
+				}
+				sequence = append(sequence, "image")
+			} else if strings.Contains(p.Text, data) {
+				t.Fatal("historical tool image was serialized as text")
+			} else {
+				var entry struct {
+					Type    string
+					ID      string `json:"tool_use_id"`
+					IsError bool   `json:"is_error"`
+					Count   int    `json:"content_blocks"`
+					Index   int    `json:"content_index"`
+					Content struct{ Type, Text, Source string }
+				}
+				if json.Unmarshal([]byte(p.Text), &entry) != nil {
+					continue
+				}
+				switch entry.Type {
+				case "tool_result":
+					if owner != "" || entry.ID != "image-call" || entry.IsError != failed || entry.Count != 3 {
+						t.Fatal("result envelope lost ownership")
+					}
+					owner = entry.ID
+					envelopes++
+				case "tool_result_content":
+					if owner == "" || entry.ID != owner || entry.Index != index {
+						t.Fatal("result content lost order")
+					}
+					index++
+					if entry.Content.Type == "text" {
+						sequence = append(sequence, entry.Content.Text)
+					} else if entry.Content.Type != "image" || entry.Content.Source != "following_acp_image" {
+						t.Fatal("result image binding missing")
+					}
+				case "tool_result_end":
+					if owner == "" || entry.ID != owner || index != 3 {
+						t.Fatal("result boundary lost")
+					}
+					owner = ""
+					ends++
+				}
+			}
+		}
+		if images != 1 || owner != "" || envelopes != 1 || ends != 1 || strings.Join(sequence, "|") != "before image|image|after image" {
+			t.Fatal("historical tool image or result boundaries missing")
+		}
+		if _, err := Full(r); err == nil {
+			t.Fatal("text projection accepted an image result")
+		}
+		if _, err := FullWithCapabilities(r, acp.PromptCapabilities{}); err == nil {
+			t.Fatal("historical tool image bypassed capability negotiation")
+		}
+		delta, err := DeltaWithCapabilities(r, 4, acp.PromptCapabilities{})
+		if err != nil || len(delta) != 1 || delta[0].Text != "continue without reading again" {
+			t.Fatal("committed image leaked into the text delta")
+		}
+	}
+}
+
+func TestToolImageHistoryRejectsInvalidMediaAndCombinedLimits(t *testing.T) {
+	for _, kind := range []string{"invalid-base64", "wrong-mime", "broken-header", "dimension", "count", "combined-count", "total-bytes"} {
+		t.Run(kind, func(t *testing.T) {
+			picture, data := inlinePicture(t)
+			source := picture["source"].(map[string]any)
+			count := 1
+			switch kind {
+			case "invalid-base64":
+				source["data"] = "%%%"
+			case "wrong-mime":
+				source["media_type"] = "image/jpeg"
+			case "broken-header":
+				source["data"] = base64.StdEncoding.EncodeToString([]byte("not a picture"))
+			case "dimension":
+				var buffer bytes.Buffer
+				if png.Encode(&buffer, image.NewGray(image.Rect(0, 0, anthropic.MaxImageDimension+1, 1))) != nil {
+					t.Fatal("dimension fixture")
+				}
+				source["data"] = base64.StdEncoding.EncodeToString(buffer.Bytes())
+			case "count":
+				count = anthropic.MaxMediaParts + 1
+			case "combined-count":
+				count = anthropic.MaxMediaParts
+			case "total-bytes":
+				raw, _ := base64.StdEncoding.DecodeString(data)
+				padded := make([]byte, anthropic.MaxMediaTotalBytes/2+1)
+				copy(padded, raw)
+				source["data"] = base64.StdEncoding.EncodeToString(padded)
+				count = 2
+			}
+			content := make([]any, count)
+			for i := range content {
+				content[i] = picture
+			}
+			first := []any{map[string]string{"type": "text", "text": "initial"}}
+			if kind == "combined-count" {
+				first = append(first, picture)
+			}
+			r := projectedRequest(t, []any{
+				map[string]any{"role": "user", "content": first},
+				map[string]any{"role": "assistant", "content": []any{map[string]any{"type": "tool_use", "id": "bounded-image", "name": "Read", "input": map[string]string{"file_path": "/owned/image.png"}}}},
+				map[string]any{"role": "user", "content": []any{map[string]any{"type": "tool_result", "tool_use_id": "bounded-image", "content": content}}},
+				map[string]any{"role": "assistant", "content": "received"},
+				map[string]any{"role": "user", "content": "continue"},
+			})
+			before := append([]byte(nil), r.Messages[2].Content[0].Raw...)
+			if _, err := FullWithCapabilities(r, acp.PromptCapabilities{Image: true}); err == nil {
+				t.Fatal("invalid or excessive historical image accepted")
+			}
+			if !bytes.Equal(before, r.Messages[2].Content[0].Raw) {
+				t.Fatal("stored result changed on rejection")
+			}
+		})
+	}
+}
+
+func TestUnsupportedToolResultSourcesKeepOpaqueFallback(t *testing.T) {
+	content := []any{
+		map[string]any{"type": "image", "source": map[string]string{"type": "url", "url": "http://127.0.0.1/never-fetch"}},
+		map[string]any{"type": "document", "source": map[string]string{"type": "text", "media_type": "text/plain", "data": "opaque document"}},
+	}
+	r := projectedRequest(t, []any{map[string]any{"role": "user", "content": []any{map[string]any{"type": "tool_result", "tool_use_id": "opaque-call", "content": content}}}})
+	want := string(r.Messages[0].Content[0].Raw)
+	parts, err := FullWithCapabilities(r, acp.PromptCapabilities{})
+	if err != nil {
+		t.Fatal("opaque result rejected")
+	}
+	count := 0
+	for _, p := range parts {
+		if p.Type != "text" {
+			t.Fatal("unsupported result became native media")
+		}
+		if p.Text == want {
+			count++
+		}
+	}
+	if count != 1 {
+		t.Fatal("opaque fallback was changed or repeated")
+	}
+}

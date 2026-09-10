@@ -307,6 +307,15 @@ capability, base64 PDFs require embedded context, and plain-text documents can u
 URL/file-ID sources and enabled citation conversion are unsupported. Historical images remain native
 blocks. The final encoded prompt must fit the ACP frame before it can be dispatched.
 
+Fresh context also preserves inline images nested in a historical client tool result (D109).
+Each such result uses JSON text markers for its original tool_use_id, is_error and content count,
+then indexed content markers and a matching end marker. An image content marker is followed by
+the native ACP image; other result content remains JSON data within its result boundary. These
+markers are proxy prompt conventions, not new ACP methods or Anthropic wire blocks. Images in
+results share D19's negotiated image capability, header/dimension and total media bounds with
+top-level prompt media. Proven deltas do not resend committed result images. Existing opaque
+fallback for unsupported tool-result sources remains effect-free and performs no URL fetch.
+
 ### Model selection
 
 Call `session/set_model` with `sessionId` and exact backend `modelId`. Selection occurs only while the

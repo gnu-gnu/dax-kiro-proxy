@@ -720,3 +720,26 @@ All 141 byte checks pass against the published development artifact with release
 Existing advisory/reachability, native/build/test attribution, clean-host distribution and owner-rights work remain
 open. Preserving a user's style files and observing public client behavior grants no additional
 license or distribution rights.
+
+## Tool-image history artifact snapshot — D109, 2026-09-10
+
+`third_party/inventory/macos-arm64-tool-images.json` records the rebuilt 13,625,026-byte development
+command, SHA-256 `5c8cd3d2661e907d8b3fb05cdb6e18e8fb60c03b931ac5131e1eaf85ddc49971`.
+It identifies Go 1.27.1, darwin/arm64, CGO_ENABLED=1 and parent
+86ec14b90c7715ea9b263fb8091ea7c96e60a2e6 with vcs.modified=true. It captures the uncommitted D109
+production inputs rather than claiming a subsequent clean-commit build.
+
+There are still 102 repository inputs: 93 selected Go files, seven notice/reference files and
+go.mod/go.sum. Only the Anthropic client-tools and projection media/text files change from D108.
+The 267 import paths, four external module versions/sums/package sets, selected filenames/native
+files, stdlib vendor packages and retained notices are unchanged. No dependency is added or
+upgraded. D108's output-style inventory is the hashed predecessor.
+
+```sh
+python3 tools/verify_dependency_inventory.py --gomodcache .cache/gomod --snapshot tool-images --binary dist/dax-kiro-proxy
+```
+
+All 141 byte checks pass against the candidate with release_clearance false. Existing advisory/
+reachability, native/build/test attribution, clean-host distribution and owner-rights work remain
+open. The synthetic PNG and independent protocol cases are authored within this repository; no
+image fixture or implementation is imported from another project.

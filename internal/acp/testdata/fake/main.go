@@ -46,6 +46,10 @@ func main() {
 		nativeToolHistory()
 		return
 	}
+	if mode == "native-image-history" {
+		nativeImageHistory()
+		return
+	}
 	if mode == "http-churn" {
 		churnFixture()
 		return

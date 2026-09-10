@@ -5082,3 +5082,63 @@ Whole-repository vet, formatting/whitespace and all 141 rebuilt D108 artifact ch
 output-styles inventory records unchanged dependency selections and only one changed production
 input. D101's executable is retained before atomic development-artifact replacement. Release
 clearance remains false.
+
+## D109: restore tool-result images as native ACP content
+
+Fresh-session projection previously recognized only top-level images. It serialized a historical
+tool_result containing an image into JSON text, so a restarted conversation could retain its image
+in the client but omit native media at the backend. The initial independent projection regression
+fails in 0.928s. An actual Claude 2.1.263 comparison then proves both halves: its initial Read returns
+an image successfully through the real gateway/relay, while a fresh explicit-ID resume still sends
+that result over HTTP but the independent ACP peer receives zero image parts. The source PNG is
+removed between stages, and Read hooks remain once. This failing experiment takes 6.53s (6.832s
+race package); source settings and recorded cleanup already pass.
+
+Validate inline base64 images within result content before fresh projection, using D19's existing
+MIME/header/dimension and per-part limits. Apply the image capability, media count and total-byte
+limits to the combined top-level and result media. Keep the request and its history hashing input
+unchanged. Plain text projection rejects supported result images rather than silently flattening
+them. Other result content retains the existing opaque JSON fallback without fetching URLs; nested
+documents gain no new native support. A proven delta excludes committed images, as before.
+
+For a result containing native images, emit a JSON tool_result marker with the original tool_use_id,
+is_error and content_blocks count. Each tool_result_content marker retains the same ID and an
+ordered content_index. Text/opaque blocks stay nested JSON content; an image placeholder identifies
+the immediately following ACP image. Finish with a matching tool_result_end marker. These are prompt
+conventions inside public ACP text/image parts, not new protocol methods. Preserve result provenance
+and untrusted content boundaries; do not turn result text into standalone user instructions. The
+final encoded ACP frame limit still applies before dispatch. Production only validates image
+headers; full pixel decoding occurs in the independent fixture, not the proxy.
+
+The [public Anthropic result contract](https://platform.claude.com/docs/en/agents-and-tools/tool-use/handle-tool-calls)
+permits image content in a matching client result; the [public MCP image format](https://modelcontextprotocol.io/specification/2025-06-18/server/tools)
+defines image data and MIME fields. A public-only bounded Claude CLI consultation is saved, read
+and assessed. Adopt exact call/status, decoded-pixel and encoded-byte checks and source removal
+before resume. Reject its suggestion of a different native ID for resume and its text-length
+heuristics; neither proves this conversation's media preservation. No private client source or
+previous implementation is consulted, and no repository data is sent for that advice.
+
+The native test generates its own 12-by-9 PNG and permission/hook policy in a disposable HOME/project.
+An independent ACP peer requests exactly one Read through MCP; the unmodified client performs it.
+Check one matching successful result with the original pixels and bytes at HTTP and MCP, then a
+fixed completion. Join the first client/backend/relay and remove its temporary profile/listener
+before deleting the source image. Resume the same native ID with new profile/credentials/backend.
+Require the exact prior call/result and image bytes in public HTTP history, followed by the new
+question. The new ACP peer separately verifies call ID, error state, indexed result boundaries and
+one native image, without requesting a tool. Both native hook receipts remain exactly one. The
+client owns transcript writing; the test never parses or edits its transcript formats.
+
+The client runner has a 30-second timeout and 128 KiB output cap; each ACP peer has a 25-second
+lifetime and 1 MiB input-frame cap. The test has a 90-second overall deadline. Observations retain
+fixed counts and in-memory digests, never raw requests, tool outputs or image bytes in logs. Source
+settings/global state stay unchanged; both recorded native client and ACP groups plus relay PIDs
+are gone, and profiles/listeners are removed. The image remains absent after resume.
+
+After the fix, the native episode passes in 5.77s (7.522s package). Twelve independent request
+guards pass in 2.108s, rejecting absent/text-only/changed images, wrong calls/status/roles, duplicates,
+wrong order/session and system-marker contamination. Projection result order/ownership, missing
+capability, malformed base64/MIME/header/dimensions, combined count/bytes and opaque fallback pass
+in 11.100s. Existing native text and completed Write/Bash history controls pass with the final image
+case in 18.465s. These are finite native PNG transport/retention observations. Actual Kiro image
+interpretation, other native image formats, media sidecars and broader alpha/release gates remain
+open. Development admission and dependencies are unchanged.

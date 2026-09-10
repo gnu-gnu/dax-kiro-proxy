@@ -2130,3 +2130,30 @@ characters and import depth in 26.045s. d108-all-race.log passes all 27 tested r
 with native opt-ins disabled; six packages have no tests. d108-all-vet.log exits zero. Formatting,
 whitespace and all 141 D108 output-style development-artifact checks pass, with release clearance
 false and D101's previous executable retained unchanged.
+
+## D109: native image result through relay and restart
+
+Generate a 12-by-9 PNG in an owned project and use pinned Claude 2.1.263 with independent ACP/MCP
+peers and the real gateway, validator, session manager and relay. No Kiro process or external model
+request is used. The first peer requests one Read, checks the native image result and completes.
+Observe original pixel/byte identity and exact call ID/status at HTTP; require the same bytes and
+pixels at MCP. Source settings and native PreToolUse/PostToolUse receipts must stay unchanged/once.
+
+Join the initial client/ACP/relay and remove its private profile/listener. Delete the original PNG,
+then resume the same native ID through fresh resources with an explicitly non-executing question.
+Require the exact completed image result in public HTTP and its native image in the ACP prompt.
+The independent resumed peer checks the original Read ID/input, successful result envelope, ordered
+content markers and native image binding, and makes no tool request. The source stays absent and
+both hooks stay once. Neither peer reads the image file or native transcript. The test generates
+all inputs; full requests, result bytes and native transcript formats are never logged or parsed.
+
+d109-tool-image-before.log fails the initial projection in 0.928s. d109-native-image-before.log
+reproduces successful first delivery and zero resumed ACP images in 6.53s (6.832s race package).
+d109-native-image-after.log passes both stages after the fix in 5.77s (7.522s package).
+d109-image-guards.log passes twelve request provenance controls in 2.108s. d109-projection.log
+passes ownership/order/capability and malformed/oversized/opaque-result controls in 11.100s.
+d109-native-regressions.log passes image resume plus existing native text and completed-tool history
+in 18.465s. A stronger final ACP witness separately checks exact first-result bytes and resumed
+call/status/content boundaries. Limits are 30 seconds/128 KiB per client, 25 seconds/1 MiB frames
+per ACP peer and 90 seconds overall. The consultation answer and reviewed corrections are saved
+locally. Actual Kiro image interpretation, other native formats, sidecars and full release remain open.

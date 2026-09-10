@@ -31,6 +31,34 @@ func DecodeToolResult(raw []byte) (ToolResult, error) {
 	return result, nil
 }
 
+// PromptContent validates inline images for fresh ACP context without changing the stored result.
+// Other result types retain their opaque text fallback; URL sources are never fetched.
+func (r ToolResult) PromptContent() ([]Block, error) {
+	blocks := append([]Block(nil), r.Content...)
+	for i := range blocks {
+		if blocks[i].Type != "image" {
+			continue
+		}
+		fields, err := ndjson.Object(blocks[i].Raw)
+		if err != nil {
+			return nil, ErrRequest
+		}
+		source, err := ndjson.Object(fields["source"])
+		var kind string
+		if err != nil || !stringField(source["type"], &kind) {
+			return nil, ErrRequest
+		}
+		if kind != "base64" {
+			continue
+		}
+		blocks[i].media, err = decodeMedia(blocks[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return blocks, nil
+}
+
 // ClientContent validates the currently supported top-level message blocks. Result payloads can
 // contain unsupported content; the relay converts that payload to bounded text without effects.
 func (r *Request) ClientContent() bool {
