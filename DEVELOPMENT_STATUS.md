@@ -14,7 +14,8 @@ does not redefine completion around an intermediate phase.
   has not measured. A four-arm text-output print control passes in 1.75s (3.744s race package):
   natural shows the notice, JSON output hides it, opt-out and prepared show none, all complete
   with unchanged sources. An expect-driven foreground `run` shows the notice with the D110/D111
-  artifact and none with the opt-out build. No Kiro model request occurs. The whole-repository
+  artifact and none with the opt-out build, repeated with the frozen artifact. No Kiro model
+  request occurs. The whole-repository
   opt-ins-off race suite and vet pass on the final code.
 - D111 reviews the client's `claudeAiMcpEverConnected` breadcrumb as an exclusion from the MCP
   projection instead of a rejection. Installed Claude 2.1.267 writes it as a string array; it

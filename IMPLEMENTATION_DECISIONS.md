@@ -5252,8 +5252,9 @@ Black-box observations, all with the unmodified 2.1.267 client and no Kiro model
 - An expect-driven terminal observation of the compiled `run` reproduces the interactive notice
   with the D110/D111 artifact, which lacks the opt-out, and shows none with a development build
   carrying it. Both runs pass the client's onboarding dialogs and exit through Ctrl+D with no
-  surviving proxy group. The procedure is retained as `d112-pty-observe.exp` with fixed facts only;
-  no terminal capture is kept.
+  surviving proxy group. The frozen D110–D112 artifact repeats the opt-out observation with no
+  notice, a clean exit and no surviving proxy group. The procedure is retained as
+  `d112-pty-observe.exp` with fixed facts only; no terminal capture is kept.
 
 The launcher unit test requires the opt-out in the prepared environment. Existing D110 controls are
 unchanged. This does not make 2.1.267 measured and does not change compaction behavior on the

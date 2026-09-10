@@ -743,3 +743,28 @@ All 141 byte checks pass against the candidate with release_clearance false. Exi
 reachability, native/build/test attribution, clean-host distribution and owner-rights work remain
 open. The synthetic PNG and independent protocol cases are authored within this repository; no
 image fixture or implementation is imported from another project.
+
+## Client-admission artifact snapshot — D110–D112, 2026-09-10
+
+`third_party/inventory/macos-arm64-client-version.json` records the rebuilt 13,641,842-byte development
+command, SHA-256 `590d7c6acfe743cd3cb5921f752ef23e371d030c5e3df325c91f212fc410e64c`.
+It identifies Go 1.27.1, darwin/arm64, CGO_ENABLED=1 and the clean committed revision
+93182c901262f9ee5bd56c015b678e658cd9bca5 with vcs.modified=false; the inventory commit follows that
+revision rather than capturing uncommitted inputs.
+
+The 102 repository input records remain 93 selected Go files, seven notice/reference files and
+go.mod/go.sum. Four production files change from D109: the command's doctor rendering and the
+launcher's client_mcp.go, profile.go and startup.go. The 267 import paths, four external module
+versions/sums/package sets, selected native files, stdlib vendor packages and retained notices are
+unchanged. No dependency is added or upgraded. D109's tool-image inventory is the hashed
+predecessor; the D109, D110/D111 and D112 executables are retained under the ignored history-review
+directory.
+
+```sh
+python3 tools/verify_dependency_inventory.py --gomodcache .cache/gomod --snapshot client-version --binary dist/dax-kiro-proxy
+```
+
+All 141 byte checks pass against the candidate with release clearance false. Existing advisory/
+reachability, native/build/test attribution, clean-host distribution and owner-rights work remain
+open. Admitting a client build by major version and opting it out of a later build's window
+enforcement grant no license or distribution right and do not change the reviewed dependency set.
