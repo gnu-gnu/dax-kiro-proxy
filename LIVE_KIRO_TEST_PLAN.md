@@ -1938,3 +1938,35 @@ d102-personal-scope-regressions.log passes existing native rule/import-depth/ali
 in 12.709s. d102-interop-race.log passes the opt-ins-off suite in 26.279s and d102-interop-vet.log
 passes vet. Formatting/whitespace and D101's unchanged 141 artifact checks pass. No new product
 adapter is enabled; the original strict comparison remains failed evidence of an open requirement.
+
+## D103: account usage in the native Claude status line
+
+`TestClaudeUsageStatusWithBoundedRefresh` first exercises complete, failed-refresh and cancel-held
+cache episodes in the real Claude UI with a local synthetic backend and no Kiro binary. A held
+query must not prevent the cold view or five-second polls. After synthetic values render, advancing
+the fixture clock lets the next UI poll admit one failure; the same values must remain visibly
+stale. Closing with the first query still held must join it without publishing data. Current-screen
+verdict controls reject partial/incorrect/erased output and inferred remaining. The three native-UI
+cases pass in 27.45s (28.730s race package); the tightened next-poll failure check passes in 13.08s
+(15.127s package including eleven verdict controls).
+
+`TestKiroUsageVisibleInClaudeStatus` requires both pinned CLI paths and credit opt-in exactly zero.
+It permits one production-cache refresh, using only the existing finite version/account checks
+and the isolated session/new, tools and usage path. Claude receives no user prompt, has no tools
+or MCP servers and routes only to the owned local gateway. A synthetic last-turn record anchors
+the display label. Require the current screen's exact normalized used/limit fields after its cold
+view, regular polling, zero model requests and full recorded cleanup. Do not save actual amounts,
+terminal output, account identities or private response text. Source settings are fingerprinted;
+failed usage joins preserve their separate owned root.
+
+The native case passes in 14.94s (17.240s race package), recorded in d103-native-usage-ui.log.
+It observes three status requests, one ACP process, four recorded finite main-CLI checks, zero
+model requests and unchanged sources; the profile, usage files and recorded groups are removed.
+No credit-consuming inference is run. This check does not authorize the pending D100 plugin
+experiment or establish unobserved supplemental account semantics or release clearance.
+
+d103-status-ui-regressions.log passes all five existing-status scopes, startup ordering, default
+status, two local completion notices and the tightened held-cancellation assertion in 53.720s.
+d103-interop-race.log passes the opt-ins-off suite in 25.608s; d103-interop-vet.log exits zero.
+Formatting/whitespace and all 141 D101 artifact checks pass. No production or dependency change
+is made by this UI evidence work.

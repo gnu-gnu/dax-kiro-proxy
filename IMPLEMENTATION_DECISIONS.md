@@ -4757,3 +4757,53 @@ in 12.709s. The opt-ins-off interop race suite passes in 26.279s; interop vet, f
 and all 141 D101 artifact checks pass. The shared helper now places a supplied test exclusion at
 its requested native settings scope, rather than only moving original-target exclusions. No
 production setting merge, exclusion interpretation or artifact is changed by these tests.
+
+## D103: verify account usage in the native status line without a model turn
+
+Extend the owned-terminal status observer with an optional usage cache. Existing startup, completion
+and user-status scenarios keep their previous inputs. Usage episodes use the production gateway,
+status helper and prepared Claude profile, with an empty tool/MCP configuration and no user prompt.
+A fixed synthetic last-turn record supplies the model/effort/duration label; it is not evidence of
+a newly completed model turn. Every episode retains the existing five-second polling check and
+also waits for its specific current-screen condition before joining the owned terminal.
+
+The first independent refresh blocks until the current screen actually displays the unavailable
+view. Its completion supplies synthetic reported values. In the failure case, the clock advances
+61 seconds only after those values render; the next client status poll admits a failing refresh.
+Observer reads cannot start the initial or expired refresh ahead of that poll. The current screen
+must retain both numbers with a stale marker after failure. The cancellation case holds the first
+query through repeated status polls, asserts it is still refreshing before Close, then requires
+joined cancellation with no invented data. Fetch counts are one/two/one respectively. Eleven
+small controls reject false positives from incomplete amounts, substring matches, wrong models,
+erased screens, unsupported/refreshing views, inferred remaining or missing stale labels.
+
+All three synthetic native-UI cases pass in 27.45s (28.730s race package). The tightened next-poll
+failure control and verdict controls pass in 15.127s, with the failure case taking 13.08s. The
+observer's use of the current reconstructed screen prevents erased historical output from
+satisfying the account-value condition. Terminal bytes stay within the existing 256 KiB memory
+bound and are not written to disk; logs contain only fixed classes, booleans, counts and timings.
+
+The separate native case uses D101's lazy production cache with its 60-second TTL, 15-second
+deadline, isolated zero-tool agent and non-model command path. A bounded version/account preflight
+establishes scope before the UI starts. An owned shell observer records only a main-CLI command
+class and PID, then execs the unmodified pinned binary; ACP bytes are untouched. Exactly two main
+version checks, two identity checks and one ACP group are recorded across preflight and refresh.
+The adjacent helper is checked directly by the existing runner. Kiro source-settings existence,
+mode and bounded content fingerprints must stay unchanged. The usage root is separate from the
+UI root, so failed joins preserve it independently; normal completion leaves no refresh artifacts.
+
+Kiro 2.21.2 and Claude 2.1.263 pass this composition in 14.94s (17.240s race package). Three status
+requests include a 4.960-second interval. The cold model view and then the normalized used/limit
+values appear on the current screen, with zero model requests or backend starts. All recorded
+groups, the prepared profile and usage artifacts are removed, and source settings are unchanged.
+Actual values, identities and raw private payloads are never logged. No remaining balance is
+inferred. This verifies this account's observed fields, not nonempty add-on/bonus/enterprise data,
+provider billing precision, every terminal layout or complete release readiness. D100's separate
+credit-consuming plugin experiment remains pending and is not invoked by these tests.
+
+Only tests and evidence change. D101's production binary, inventory, dependencies and development
+admission stay unchanged. Native regressions cover all five existing-status scopes, startup-hook
+ordering, the default status view, two local completion notices and the tightened held-cancellation
+case; they pass together in 53.720s. The opt-ins-off interop race suite passes in 25.608s. Interop
+vet, formatting/whitespace and all 141 unchanged D101 artifact checks pass with release clearance
+still false. These results do not resolve the separate D102 personal-memory compatibility gaps.

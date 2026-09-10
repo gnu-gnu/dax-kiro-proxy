@@ -6,6 +6,21 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D103 verifies the production usage cache, gateway, status helper and prepared profile together
+  in the installed Claude UI. One actual Kiro refresh shows the cold view followed by the exact
+  normalized used/limit values on the current screen (14.94s test, 17.240s race package), with three
+  status polls, zero model requests, unchanged source settings and joined process/profile cleanup.
+  Actual amounts and raw terminal contents remain unlogged. Synthetic native-UI controls pass
+  completion, retained stale values after a failed refresh and cancellation of a held query
+  (27.45s test, 28.730s package). Eleven verdict controls reject incomplete/incorrect/erased displays,
+  refreshing or unsupported snapshots, inferred remaining and unmarked stale values. A tightened
+  failure control leaves refresh admission to the next UI poll and passes in 13.08s (15.127s package).
+  This is test/evidence work; production, D101's binary/dependencies and development admission are
+  unchanged. Nonempty supplemental account payloads, billing precision and broader release work
+  remain open; D100's separate model experiment is still pending.
+  Native status precedence/startup/completion and tightened held-cancellation regressions pass
+  in 53.720s. The opt-ins-off interop race suite passes in 25.608s; interop vet, formatting,
+  whitespace and all 141 unchanged D101 artifact checks pass.
 - D102 identifies an additional personal-rules compatibility gap. An exclusion matching only the
   private rules alias drops an otherwise naturally included rule and all four imports. The first
   strict natural/prepared comparison fails in 1.45s (2.514s package). Twelve separately named
@@ -27,9 +42,9 @@ does not redefine completion around an intermediate phase.
   resources. It reports server-used/conditional-limit credits, never inferred remaining or summed
   supplemental credits. The 60-second cache and 15-second refresh deadline keep status reads and
   model requests independent. Launcher/startup/usage race controls pass in 16.467s after fixing the
-  independent peer's macOS path-alias assertion. Native status rendering with account data, nonempty
-  supplemental payloads and full release gates remain separate. D100's actual plugin experiment
-  still awaits its required explicit approval.
+  independent peer's macOS path-alias assertion. D103 adds native status rendering with account data;
+  nonempty supplemental payloads and full release gates remain separate. D100's actual plugin
+  experiment still awaits its required explicit approval.
   Whole-repository race verification passes in 27 packages (six without tests), with interop
   26.839s, launcher 25.982s and session 28.581s. Whole-repository/new-peer vet, formatting and
   whitespace checks pass. D101's rebuilt development executable and new usage inventory pass all

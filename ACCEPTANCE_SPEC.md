@@ -387,6 +387,10 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
 - Status reads return cached data without waiting for a Kiro usage subprocess.
 - Refresh requests coalesce within the 60-second TTL and failure preserves last good/model-only status.
 - Status-line polling at five seconds does not create model turns.
+- Native status rendering must show a usable cold view while a refresh is held, then the reported
+  used and optional limit values after completion. A failed later refresh retains those values
+  with a stale marker; cancellation joins the held refresh without inventing data. Check the current
+  terminal screen, not erased history, and distinguish synthetic cache controls from actual account data.
 - The temporary client status command reads only its private UI credential, never client stdin or
   model/provider credentials, and cannot redirect that credential or select a different HTTP route.
   Invalid configuration, remote/hostname endpoints, proxy variables, oversized responses and stalled

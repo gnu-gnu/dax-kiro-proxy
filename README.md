@@ -227,9 +227,12 @@ asynchronous refresh uses a fresh empty-agent Kiro session with a 15-second dead
 prompt. The measured 2.21.2 adapter reports server-provided used credits and, when present, their
 limit. It does not infer a remaining balance or combine supplemental credit buckets. One native
 refresh passes with preserved source settings and joined process/file cleanup. Failed refreshes
-retain the last good/model-only view. `doctor` and `models` do not start usage sessions. Nonempty
-bonus/add-on/enterprise payloads and native Claude status rendering with account data remain
-separate checks; this optional feature does not change development-launch admission.
+retain the last good/model-only view. `doctor` and `models` do not start usage sessions. D103 also
+verifies that the actual Claude status line shows a cold view followed by the reported account
+usage, with no model request and joined cleanup. Independent delayed/failing cache controls verify
+retained values marked stale and cancellation while the UI remains responsive. Nonempty
+bonus/add-on/enterprise payloads remain separate checks; this optional feature does not change
+development-launch admission.
 
 Standard user plugins now also have a read-only seed path into the temporary profile. Full print
 startup checks an owned plugin's MCP initialization/discovery, disable/re-enable behavior and source

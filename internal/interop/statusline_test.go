@@ -57,6 +57,14 @@ func observeClaudeStatusUI(t *testing.T, startup *startupObservation, completion
 }
 
 func observeClaudeStatusCase(t *testing.T, startup *startupObservation, completion bool, existing *existingStatusObservation) {
+	observeClaudeStatusUsageCase(t, startup, completion, existing, nil)
+}
+
+func observeClaudeUsageStatus(t *testing.T, usage *usageStatusObservation) {
+	observeClaudeStatusUsageCase(t, nil, false, nil, usage)
+}
+
+func observeClaudeStatusUsageCase(t *testing.T, startup *startupObservation, completion bool, existing *existingStatusObservation, usage *usageStatusObservation) {
 	t.Helper()
 	clientExecutable := os.Getenv("DAX_INTEROP_CLAUDE_BINARY")
 	if clientExecutable == "" {
@@ -67,6 +75,15 @@ func observeClaudeStatusCase(t *testing.T, startup *startupObservation, completi
 		t.Fatal("cannot create owned UI observation root")
 	}
 	defer os.RemoveAll(root)
+	var usageCache *status.UsageCache
+	if usage != nil {
+		if startup != nil || completion || existing != nil {
+			t.Fatal("usage observation requires its own UI episode")
+		}
+		defer usage.close(t)
+		usage.prepare(t)
+		usageCache = usage.cache
+	}
 	home, project := filepath.Join(root, "home"), filepath.Join(root, "project")
 	for _, dir := range []string{home, project} {
 		if os.Mkdir(dir, 0700) != nil {
@@ -106,7 +123,7 @@ func observeClaudeStatusCase(t *testing.T, startup *startupObservation, completi
 	if completion {
 		modelBackend = completionBackend
 	}
-	handler, err := gateway.New(gateway.Config{Tokens: tokens, Backend: modelBackend, Metrics: queue, LaunchModel: model})
+	handler, err := gateway.New(gateway.Config{Tokens: tokens, Backend: modelBackend, Metrics: queue, LaunchModel: model, Usage: usageCache})
 	if err != nil {
 		t.Fatal("cannot prepare local status gateway")
 	}
@@ -224,7 +241,10 @@ func observeClaudeStatusCase(t *testing.T, startup *startupObservation, completi
 				return ""
 			}
 		}
-		result, answers, err := runObservedStatusTerminal(ctx, terminalOwner, command, observe, nextInput)
+		if usage != nil {
+			nextInput = usage.observe
+		}
+		result, answers, err := runObservedTerminal(ctx, terminalOwner, command, observe, nextInput, usage != nil)
 		finished <- outcome{result, answers, err}
 	}()
 	var got outcome
@@ -255,6 +275,14 @@ func observeClaudeStatusCase(t *testing.T, startup *startupObservation, completi
 		case <-ctx.Done():
 		}
 	}
+	if usage != nil && !ranToExit {
+		select {
+		case <-usage.ready:
+		case got = <-finished:
+			ranToExit = true
+		case <-ctx.Done():
+		}
+	}
 	store, openErr := privatefs.Open(root)
 	var raw []byte
 	if openErr == nil {
@@ -279,6 +307,15 @@ func observeClaudeStatusCase(t *testing.T, startup *startupObservation, completi
 	}
 	runner.Close()
 	terminalOwner.Close()
+	if usage != nil {
+		usage.check(t)
+		if profile.Close() != nil {
+			t.Error("usage UI profile cleanup failed")
+		}
+		if _, err := os.Lstat(profile.Path()); !errors.Is(err, os.ErrNotExist) {
+			t.Error("usage UI profile remains after close")
+		}
+	}
 	limit := time.Now().Add(time.Second)
 	for owned && time.Now().Before(limit) && !errors.Is(syscall.Kill(-group, 0), syscall.ESRCH) {
 		time.Sleep(10 * time.Millisecond)
