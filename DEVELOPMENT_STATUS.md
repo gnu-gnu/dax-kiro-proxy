@@ -6,6 +6,20 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D104 verifies two concurrent native Claude histories in one owned HOME/project through the real
+  gateway/session manager and independent ACP processes. Each of two rounds holds first responses
+  until both distinct client/ACP pairs are live. Initial owners are all joined before either resume
+  starts. Four turns pass with exact own-history marker counts/order, no sibling markers, two native
+  transcripts and four fresh profiles/endpoints/credentials; all eight recorded groups disappear
+  and sources remain unchanged (4.46s test, 5.903s race package). Nineteen independent guard controls
+  pass in 2.060s, covering mixed/reordered/truncated context and invalid overlap witnesses. Native
+  transcript formats are not decoded or edited; bounded authored-marker/secret-presence checks
+  examine only disposable data. This is distinct-session text evidence with fake ACP, not actual
+  Kiro concurrency, same-session writers, interactive selection or long-duration retention.
+  Production, dependencies and D101's artifact remain unchanged; the full goal remains open.
+  Existing native restart/persistence/ephemeral controls pass in 7.669s. The opt-ins-off interop
+  race suite, including the strengthened missing-peer cancellation control, passes in 28.514s.
+  Interop vet, formatting/whitespace and all 141 unchanged D101 artifact checks pass.
 - D103 verifies the production usage cache, gateway, status helper and prepared profile together
   in the installed Claude UI. One actual Kiro refresh shows the cold view followed by the exact
   normalized used/limit values on the current screen (14.94s test, 17.240s race package), with three

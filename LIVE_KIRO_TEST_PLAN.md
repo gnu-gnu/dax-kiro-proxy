@@ -1970,3 +1970,31 @@ status, two local completion notices and the tightened held-cancellation asserti
 d103-interop-race.log passes the opt-ins-off suite in 25.608s; d103-interop-vet.log exits zero.
 Formatting/whitespace and all 141 D101 artifact checks pass. No production or dependency change
 is made by this UI evidence work.
+
+## D104: two concurrent native histories with independent ACP
+
+`TestClaudeConcurrentNativeHistoryThroughGatewayAndACP` opts into the pinned Claude only. Both
+sessions use the same owned HOME/project with hooks/auto-memory disabled and empty tools/MCP.
+The real authenticated gateway, session manager and independent history ACP peer handle four
+local text turns. No Kiro binary, external inference or credit use is admitted by this plan.
+
+Before releasing each round's first response, require distinct native session IDs and four live
+client/ACP group leaders, observed after model requests and ACP events. Both initial owners must
+join before either explicit-ID resume constructs its new profile, endpoint or credential. Require
+the resumed public request's own seed/question, answer and new question once and in order, with
+no sibling seed in system or messages. After both rounds, all eight recorded groups and four
+profiles/listeners must be gone. Inspect only bounded disposable native files for the two known
+transcript names, own/foreign authored markers and absent routing tokens; never decode or edit
+native transcript formats. Preserve original owned source settings and log no raw content.
+
+Eleven history-projection and eight overlap-witness controls pass first in 2.060s, recorded in
+d104-concurrent-history-guards.log. The native two-session/four-turn case passes in 4.46s (5.903s
+race package), recorded in d104-native-concurrent-history.log. Both overlap rounds, retained
+transcripts, fresh routing/profile ownership, source preservation and cleanup pass. This finite
+same-project/distinct-session result leaves same-session writers, tools, media, interactive
+selection, actual Kiro concurrency and long-duration retention as separate requirements.
+
+d104-native-history-regressions.log passes the existing native text restart and four persistence
+controls in 7.669s. d104-interop-race.log passes the opt-ins-off suite, including cancelled waiting
+for a missing peer, in 28.514s. d104-interop-vet.log exits zero; formatting/whitespace and all 141
+unchanged D101 artifact checks pass. No production or dependency modification is introduced.

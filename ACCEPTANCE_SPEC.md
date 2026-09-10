@@ -272,6 +272,15 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
   HOME/project/proxy state, confirmed selected row, restored old answer and a successful new turn.
   Continue/latest, cross-project selection, pending tools, media/checkpoints, concurrent writers and
   retention behavior remain broader gates.
+- Concurrent native histories sharing one HOME/project must retain each distinct session without
+  importing another session's context. Require both native clients and their independent ACP owners
+  live before releasing the first response in each initial/resumed round. Join every initial owner
+  before new resume profiles/endpoints/credentials are created. Each resumed request must contain
+  its own question, answer and new input once and in order; reject foreign markers in system or
+  messages. Verify both native transcripts, unchanged source settings, absent routing secrets and
+  joined resources. D104 covers two distinct text sessions/four turns using actual Claude and fake
+  ACP. Same-session writers, tools, interactive selection, real Kiro and long-duration retention
+  remain separate checks; the proxy still never parses or edits native transcript formats.
 - Simultaneous title and main requests receive separate Kiro sessions.
 - The combined title classifier accepts explicit disabled thinking or omission with all other
   title signals present. Ordinary structured output, loose title mentions, tools and explicit

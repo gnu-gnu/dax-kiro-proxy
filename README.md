@@ -67,6 +67,14 @@ client-supplied history; hidden Kiro context is not restored. Continue/latest, c
 pending-tool recovery, file checkpoints, media sidecars and concurrent history writers remain separate
 checks; these text results do not complete the full alpha resume gate.
 
+D104 adds a finite concurrent-history check with actual Claude and independent ACP processes. Two
+different native sessions share one owned HOME/project, overlap during initial requests and then
+overlap again during explicit-ID resumes. Each resumed request retains only its own prior question
+and answer in order. All initial owners are joined before fresh resume profiles, credentials and
+endpoints are created; four turns and both retained transcripts pass with unchanged source settings.
+This covers distinct-session text histories, not simultaneous writers to one session, actual Kiro
+concurrency, interactive resume selection or long-duration retention.
+
 D90 additionally verifies completed Write/Bash history across two native print launches with actual
 Kiro/Claude. The resumed request retains the original tool ID, decoded input and successful result
 text in order; it completes without a new tool handoff. The owned file effect and both native tool

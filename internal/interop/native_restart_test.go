@@ -44,16 +44,18 @@ func TestKiroLiveNativeRestartThroughGatewayAndACP(t *testing.T) {
 }
 
 type nativeRestartBackend struct {
-	manager        *session.Manager
-	models         *catalog.Catalog
-	stage          int
-	seed, identity string
-	starts         atomic.Int32
-	mu             sync.Mutex
-	text           string
-	ends           int
-	failed         bool
-	observeProcess func() error
+	manager          *session.Manager
+	models           *catalog.Catalog
+	stage            int
+	seed, identity   string
+	foreignSeeds     []string
+	starts           atomic.Int32
+	mu               sync.Mutex
+	text             string
+	ends             int
+	failed           bool
+	observeProcess   func() error
+	beforeFirstEvent func(context.Context) error
 }
 
 func (b *nativeRestartBackend) Models(context.Context) ([]inference.Model, error) {
@@ -63,24 +65,11 @@ func (b *nativeRestartBackend) Start(ctx context.Context, r *anthropic.Request) 
 	if b.starts.Add(1) != 1 || len(r.Tools) != 0 || !nativeHistoryID(r.Identity.Session) || b.stage == 1 && r.Identity.Session != b.identity {
 		return nil, inference.ErrRequest
 	}
-	oldUser, oldAnswer, newUser, seed := 0, 0, 0, 0
-	for _, message := range r.Messages {
-		for _, block := range message.Content {
-			if block.Type != "text" || strings.Contains(block.Text, "NeverSubmitted_99") {
-				return nil, inference.ErrRequest
-			}
-			if message.Role == "user" {
-				oldUser += strings.Count(block.Text, "SeedQuestion_91")
-				newUser += strings.Count(block.Text, "ContinuedQuestion_97")
-				seed += strings.Count(block.Text, b.seed)
-			}
-			if message.Role == "assistant" {
-				oldAnswer += strings.Count(block.Text, "ArchiveReady_91")
-			}
-		}
-	}
-	if oldUser != 1 || seed != 1 || oldAnswer != b.stage || newUser != b.stage {
+	if !nativeRestartHistoryMatches(r, b.stage, b.seed, b.foreignSeeds) {
 		return nil, inference.ErrRequest
+	}
+	if b.stage == 0 {
+		b.identity = r.Identity.Session
 	}
 	turn, err := b.manager.Start(ctx, r)
 	if err != nil {
@@ -106,6 +95,12 @@ func (t *nativeRestartTurn) Next(ctx context.Context) (inference.Event, error) {
 			return inference.Event{}, err
 		}
 		t.observed = true
+		if t.owner.beforeFirstEvent != nil {
+			if err := t.owner.beforeFirstEvent(ctx); err != nil {
+				t.Cancel()
+				return inference.Event{}, err
+			}
+		}
 	}
 	t.owner.mu.Lock()
 	defer t.owner.mu.Unlock()
@@ -129,7 +124,21 @@ func (t *nativeRestartTurn) Next(ctx context.Context) (inference.Event, error) {
 }
 
 func observeNativeRestart(t *testing.T, live bool) {
+	observeNativeRestartPlan(t, live, nil)
+}
+
+func observeNativeRestartPlan(t *testing.T, live bool, plan *concurrentHistoryPlan) {
 	t.Helper()
+	if plan != nil {
+		if live {
+			t.Fatal("concurrent history observation requires independent ACP")
+		}
+		defer func() {
+			if t.Failed() {
+				plan.shared.abort()
+			}
+		}()
+	}
 	client := os.Getenv("DAX_INTEROP_CLAUDE_BINARY")
 	if client == "" {
 		t.Skip("set pinned Claude for native restart observation")
@@ -147,13 +156,17 @@ func observeNativeRestart(t *testing.T, live bool) {
 	}
 	defer runner.Close()
 	home, project := filepath.Join(root, "home"), filepath.Join(root, "project")
-	for _, path := range []string{home, filepath.Join(home, ".claude"), project} {
-		if os.Mkdir(path, 0700) != nil {
-			t.Fatal("restart directory")
+	if plan != nil {
+		home, project = plan.shared.home, plan.shared.project
+	} else {
+		for _, path := range []string{home, filepath.Join(home, ".claude"), project} {
+			if os.Mkdir(path, 0700) != nil {
+				t.Fatal("restart directory")
+			}
 		}
 	}
 	settings, global := filepath.Join(home, ".claude", "settings.json"), filepath.Join(home, ".claude.json")
-	if os.WriteFile(settings, []byte(`{"disableAllHooks":true,"autoMemoryEnabled":false,"permissions":{"deny":["Read","Write","Edit","Bash"]}}`), 0600) != nil || os.WriteFile(global, []byte(`{}`), 0600) != nil {
+	if plan == nil && (os.WriteFile(settings, []byte(`{"disableAllHooks":true,"autoMemoryEnabled":false,"permissions":{"deny":["Read","Write","Edit","Bash"]}}`), 0600) != nil || os.WriteFile(global, []byte(`{}`), 0600) != nil) {
 		t.Fatal("restart sources")
 	}
 	beforeSettings, beforeGlobal := fileFingerprint(t, settings), fileFingerprint(t, global)
@@ -180,6 +193,9 @@ func observeNativeRestart(t *testing.T, live bool) {
 		}
 	}
 	seed := rand.Text()
+	if plan != nil {
+		seed = plan.shared.seeds[plan.lane]
+	}
 	prompts := [2]string{"Remember SeedQuestion_91 " + seed + " for later. Reply only with the concatenation of ArchiveReady and _91 without spaces.", "ContinuedQuestion_97: reply only with the exact token remembered in the earlier question, a space, and the concatenation of ArchiveResumed and _97 without spaces."}
 	var id string
 	var groups [2]int
@@ -241,6 +257,18 @@ func observeNativeRestart(t *testing.T, live bool) {
 		}
 		defer manager.Close()
 		guard := &nativeRestartBackend{manager: manager, models: models, stage: stage, seed: seed, identity: id}
+		clientPIDPath := filepath.Join(stageRoot, "client-pid")
+		if plan != nil {
+			guard.foreignSeeds = []string{plan.shared.seeds[1-plan.lane]}
+			guard.beforeFirstEvent = func(ctx context.Context) error {
+				data, err := readDenialArtifact(stageRoot, "client-pid", 32)
+				pid, parseErr := strconv.Atoi(string(data))
+				if err != nil || parseErr != nil {
+					return errors.New("concurrent native client identity missing")
+				}
+				return plan.shared.rounds[stage].wait(ctx, historyOverlapWitness{lane: plan.lane, identity: guard.identity, client: pid, acp: groups[stage]})
+			}
+		}
 		guard.observeProcess = func() error {
 			pid := 0
 			if live {
@@ -282,6 +310,15 @@ func observeNativeRestart(t *testing.T, live bool) {
 		command := profile.Command()
 		command.Args = append(command.Args, "--print", "--output-format", "json", "--tools", "", "--strict-mcp-config", "--mcp-config", `{"mcpServers":{}}`, "--system-prompt", "Follow the user's text-only instruction. Do not use tools.", prompts[stage])
 		command.Environment = append(command.Environment, "CLAUDE_CODE_DISABLE_THINKING=1", "CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS=1")
+		if plan != nil {
+			wrapper := filepath.Join(stageRoot, "observe-client.sh")
+			body := "#!/bin/sh\nset -eu\numask 077\nprintf '%s' \"$$\" > " + probeShellQuote(clientPIDPath) + "\nexec " + probeShellQuote(client) + " \"$@\"\n"
+			if os.WriteFile(wrapper, []byte(body), 0700) != nil {
+				t.Fatal("concurrent native client observer")
+			}
+			command.Executable = "/bin/sh"
+			command.Args = append([]string{wrapper}, command.Args...)
+		}
 		result, runErr := runner.Run(ctx, command)
 		var response struct {
 			Type, Subtype, Result string
@@ -326,6 +363,14 @@ func observeNativeRestart(t *testing.T, live bool) {
 		}
 		if os.RemoveAll(stageRoot) != nil {
 			t.Fatal("restart stage cleanup")
+		}
+		if plan != nil {
+			plan.shared.record(stage, plan.lane, historyOwnership{identity: id, client: result.PID, acp: groups[stage], profile: profiles[stage], endpoint: endpoints[stage], token: tokens[stage].Model})
+			if stage == 0 {
+				if err := plan.shared.joinInitial(ctx, plan.lane); err != nil {
+					t.Fatal("concurrent initial owners did not join before resume")
+				}
+			}
 		}
 	}
 	if beforeSettings != fileFingerprint(t, settings) || beforeGlobal != fileFingerprint(t, global) || groups[0] == groups[1] || profiles[0] == profiles[1] || endpoints[0] == endpoints[1] || tokens[0].Model == tokens[1].Model {

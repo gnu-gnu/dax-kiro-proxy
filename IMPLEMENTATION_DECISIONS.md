@@ -4807,3 +4807,50 @@ ordering, the default status view, two local completion notices and the tightene
 case; they pass together in 53.720s. The opt-ins-off interop race suite passes in 25.608s. Interop
 vet, formatting/whitespace and all 141 unchanged D101 artifact checks pass with release clearance
 still false. These results do not resolve the separate D102 personal-memory compatibility gaps.
+
+## D104: overlap distinct native histories and resume each through fresh owners
+
+Extend the existing text-restart observer with an optional two-session plan sharing an owned HOME
+and project. Each session keeps its own private profile, gateway token/address, session manager and
+independent ACP process. No actual Kiro binary is accepted by this plan. The existing independently
+authored history peer is reused unchanged; no native transcript fixture or parser is introduced.
+
+Each initial question contains a different generated seed. A first-response barrier records the
+native session ID plus the client and ACP group leaders after a public model request and ACP event
+arrive. An owned shell writes only the client PID and then execs the unmodified client. Both pairs
+must be distinct and alive at release; missing, repeated, stale or cross-paired ownership cannot
+establish overlap. A context cancellation releases its waiting caller, and an episode failure
+releases its sibling's barriers. These are observed concurrent sessions, not an inference from
+starting two test goroutines.
+
+After each initial turn completes, the existing observer joins its listener, client, backend,
+schema owner and profile and removes the stage root. A second barrier requires both initial client
+and ACP groups gone before either session creates resume ownership. Explicit-ID resume then uses
+fresh profiles/endpoints/tokens and fresh ACP processes; its first responses must overlap again.
+Native session IDs stay distinct between sessions and unchanged across each session's restart.
+
+Public normalized request checks require the old question/seed once, followed by the old assistant
+answer and then the new question once. Any sibling seed in system or message text rejects before
+backend dispatch. The generic restart observer now also checks marker ordering. Eleven controls
+cover valid fresh/resumed context, foreign user/answer/system data, wrong seeds, duplicate/truncated/
+reordered histories, invented markers and non-text blocks. Eight overlap controls cover the valid
+case and missing/repeated/reused/dead/aborted ownership. All nineteen pass in 2.060s under race.
+
+The actual Claude 2.1.263 concurrent test passes in 4.46s (5.903s race package): two initial and two
+resumed turns, two established overlap rounds, four distinct profile/address/token sets and eight
+joined recorded client/ACP groups. The shared native data has two matching transcript files among
+four entries/11,970 bytes. Each transcript contains its own seed and resumed answer, no sibling
+seed and no routing token. The observer bounds files to 2 MiB, the tree to 128 entries/8 MiB, and
+checks only known marker/secret presence; native formats are never decoded, merged or edited.
+Source user/global settings are unchanged. Raw requests, transcripts, client output and tokens are
+not logged; fixed classes, counts, timings and booleans provide the evidence.
+
+This is a finite distinct-session text check with actual clients and fake ACP. It does not prove
+same-session concurrent-writer behavior, tool/checkpoint/media retention, interactive selection,
+actual Kiro parallel operation or release soak. Those acceptance items remain open. No product,
+dependency or frozen artifact changes; D100's pending model experiment is not attempted.
+
+Existing native text restart and persistence/reference/ephemeral/suppression controls pass in
+7.669s, including source preservation and cleanup. The opt-ins-off interop race suite passes in
+28.514s, with the missing-peer control additionally exercising cancelled barrier waiting. Interop
+vet, formatting/whitespace and all 141 D101 artifact checks pass; release clearance remains false.
