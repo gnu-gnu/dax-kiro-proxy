@@ -4854,3 +4854,68 @@ Existing native text restart and persistence/reference/ephemeral/suppression con
 7.669s, including source preservation and cleanup. The opt-ins-off interop race suite passes in
 28.514s, with the missing-peer control additionally exercising cancelled barrier waiting. Interop
 vet, formatting/whitespace and all 141 D101 artifact checks pass; release clearance remains false.
+
+## D105: distinguish a shared native transcript from later selected conversation context
+
+The public sessions reference says concurrent resumes without an explicit fork share transcript
+writes. That fact does not define how every retained reply enters the next model request. Consult
+https://code.claude.com/docs/en/sessions#branch-a-session, reviewed 2026-09-10. Do not infer a merge
+algorithm or introduce an implicit fork from this statement.
+
+The bounded public-only Claude CLI consultation is retained at
+.cache/claude-consult/work/public-shared-session-review-tn4632np/answer.md with an assessment in
+review.md. It completes in one turn with 4,464 output bytes and no tool/MCP access. Its useful
+distinction is retention versus selected request context. The suggested raw-request logging is
+rejected: only authored marker counts/order and lifecycle facts are retained. Its private-lineage
+explanation stays an unverified hypothesis and supplies no implementation input. The first matrix
+has one episode per configuration/schedule; it is not a statistical stability claim.
+
+Each episode creates one synthetic native conversation, resumes its same ID twice, and then uses
+a fourth fresh client to inspect the public request's context. Every response is supplied by a
+controlled text backend through the real authenticated gateway, with no ACP or external inference.
+Both configurations use identical routing overlays, tool/MCP suppression and disposable HOME/project.
+The reference removes only the process-level CLAUDE_CONFIG_DIR override so the unmodified CLI reads
+and writes its ordinary owned configuration. The prepared arm keeps the production profile path.
+The ordinary reference is an observation control, not a replacement launcher implementation.
+
+Sequential controls fully finish and join the first writer before starting the second. Concurrent
+controls hold the first reply, confirm the first pending question is retained on disk, and then
+start the second writer. Both public requests must reach held response consumption with distinct
+live client groups. Release the selected reply, join that client/profile/listener, confirm the other
+client is still held, and release it. Only after both are joined does the readback client start.
+No fixed sleep substitutes for request readiness or completion. The transcript observer checks
+known marker/credential presence only, bounded to 64 entries and 2 MiB per file; native JSONL formats
+are never decoded or edited. Each episode has a 60-second lifetime, 20-second client/turn bounds,
+four gateway requests and at most two concurrent clients; captured outputs are bounded at 128 KiB.
+
+Thirteen independent projection controls distinguish complete selected branches from unanswered
+questions and reject missing base context, orphan/reversed pairs, missing readback input, duplicates,
+wrong roles and system-marker contamination. They pass under race in 2.099s. The installed Claude
+2.1.263 matrix passes all eight episodes/32 local turns in 16.02s (17.435s race package). Reference
+and prepared readback marker roles/order match exactly for every schedule:
+
+| Schedule | Later selected context after the common initial turn |
+| --- | --- |
+| Sequential A then B | A question/answer, then B question/answer |
+| Sequential B then A | B question/answer, then A question/answer |
+| Overlap; A completes before B | A question without its answer, then B question/answer |
+| Overlap; B completes before A | A question/answer; B question/answer absent |
+
+Both completed replies remain in the shared transcript in all cases. The table describes this
+controlled start/completion ordering and this version; it does not establish a general last-writer
+selection policy, atomicity or safe merging under other timings. In particular, an omitted reply
+in the next public request is not evidence that its transcript bytes were deleted. The ordinary
+reference changes its disposable global config; prepared runs preserve both source settings files.
+All four recorded client groups/profiles/listeners per episode are joined, and no routing token
+appears in the owned transcript. Raw native requests, outputs, transcripts and credentials are
+not logged. No original user data or settings is used in either arm.
+
+Document the concrete same-ID limitation and retain native behavior. Do not add a hidden transcript
+merger, identity change or serialization based solely on these observations. Distinct native
+sessions remain the verified way to keep parallel conversations independent. This is text/print
+evidence, not interactive UI, tools/checkpoints, actual Kiro, long-duration retention or complete
+release clearance. No production, dependency or artifact change is made; D100 stays pending.
+
+The opt-ins-off interop race suite passes in 28.339s. Interop vet, formatting/whitespace and all
+141 unchanged D101 artifact checks pass, with release clearance false. The new observer is separate
+from existing restart paths; no native transcript interpretation is added to production code.

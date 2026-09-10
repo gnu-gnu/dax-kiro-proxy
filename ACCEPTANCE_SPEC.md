@@ -281,6 +281,14 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
   joined resources. D104 covers two distinct text sessions/four turns using actual Claude and fake
   ACP. Same-session writers, tools, interactive selection, real Kiro and long-duration retention
   remain separate checks; the proxy still never parses or edits native transcript formats.
+- Same-ID native resume observations must separate retained transcript markers from the conversation
+  actually sent in a later public request. Compare sequential controls and both controlled completion
+  orders for overlapping writers against an ordinary-config reference using the same routing setup.
+  Require live pending writers before releasing replies, joined old owners before readback, exact
+  marker roles/order, preserved prepared-profile sources and removed routing/process resources.
+  D105 matches the native reference in eight finite text episodes: both replies remain stored, but
+  overlapping writers need not contribute both completed replies to later context. This is not a
+  successful merge guarantee, same-ID isolation or evidence about tools, interactive UI or actual Kiro.
 - Simultaneous title and main requests receive separate Kiro sessions.
 - The combined title classifier accepts explicit disabled thinking or omission with all other
   title signals present. Ordinary structured output, loose title mentions, tools and explicit

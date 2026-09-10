@@ -75,6 +75,13 @@ endpoints are created; four turns and both retained transcripts pass with unchan
 This covers distinct-session text histories, not simultaneous writers to one session, actual Kiro
 concurrency, interactive resume selection or long-duration retention.
 
+Resuming the same UUID concurrently does not guarantee a combined conversation. D105 compares
+ordinary Claude configuration with the temporary profile using controlled local responses. Both
+paths retain both completed replies on disk, but a later request includes only one completed
+branch in the concurrent cases. Sequential resumes include both replies. Use distinct native
+sessions for parallel conversations; the proxy does not merge transcripts or silently change
+session IDs. These finite text observations do not establish a universal native selection rule.
+
 D90 additionally verifies completed Write/Bash history across two native print launches with actual
 Kiro/Claude. The resumed request retains the original tool ID, decoded input and successful result
 text in order; it completes without a new tool handoff. The owned file effect and both native tool

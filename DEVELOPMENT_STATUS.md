@@ -6,6 +6,20 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D105 distinguishes same-ID transcript retention from resumed model context. Eight native Claude
+  episodes compare ordinary and prepared configuration paths, sequential writes and both completion
+  orders for overlapping writers. All 32 local synthetic turns pass in 16.02s (17.435s race package).
+  Both completed replies remain on disk. Sequential readback contains both; concurrent readback
+  contains only one completed branch in these cases, identically in reference/prepared runs. One
+  schedule also retains the other writer's unanswered question in active context. No automatic
+  merged-conversation guarantee or universal selection rule is inferred. Prepared source settings,
+  all recorded client groups/profiles/listeners and routing-secret absence pass. The disposable
+  reference's global config changes through native behavior; it is not adopted as production policy.
+  Thirteen projection controls pass in 2.099s. A public-only Claude consultation is saved/read/assessed;
+  its full-request logging suggestion and private-lineage hypothesis are not used. Product behavior,
+  dependencies and D101's binary remain unchanged; same-ID limitations are now explicit in the docs.
+  The opt-ins-off interop race suite passes in 28.339s. Interop vet, formatting/whitespace and all
+  141 unchanged D101 artifact checks pass. These checks do not complete the remaining live/release gates.
 - D104 verifies two concurrent native Claude histories in one owned HOME/project through the real
   gateway/session manager and independent ACP processes. Each of two rounds holds first responses
   until both distinct client/ACP pairs are live. Initial owners are all joined before either resume

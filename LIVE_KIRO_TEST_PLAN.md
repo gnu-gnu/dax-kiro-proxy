@@ -1998,3 +1998,35 @@ d104-native-history-regressions.log passes the existing native text restart and 
 controls in 7.669s. d104-interop-race.log passes the opt-ins-off suite, including cancelled waiting
 for a missing peer, in 28.514s. d104-interop-vet.log exits zero; formatting/whitespace and all 141
 unchanged D101 artifact checks pass. No production or dependency modification is introduced.
+
+## D105: same-ID transcript retention and readback context
+
+`TestClaudeSharedSessionConcurrentResumeObservation` uses the pinned Claude with local controlled
+text backends through authenticated gateways. It creates disposable synthetic history only; no
+Kiro binary, actual user conversation, external inference or credit use is part of the matrix.
+The ordinary-config reference and prepared profile use identical routing overlays and prompts.
+Each of four schedules runs once in each configuration: sequential A/B, sequential B/A, overlapping
+writers with A finishing first, and overlapping writers with B finishing first. Each episode has
+one initial turn, two same-ID writer turns and one later readback, with fresh profiles/endpoints/
+tokens and joined owners at the required boundaries.
+
+In overlapping cases, hold A's response and observe its pending question on disk before starting B.
+Require both clients live and both responses held. Release the first designated reply, join its
+client/profile/listener, verify the second remains held and then finish it. Readback starts only
+after both complete. Inspect fixed marker roles/order in public requests and known marker/secret
+presence in bounded native files; never decode native transcript formats or log raw contents.
+
+d105-shared-history-guards.log passes thirteen independent projection controls in 2.099s. The
+native matrix in d105-native-shared-session.log passes in 16.02s (17.435s race package): 32 local
+turns, eight readbacks in four matching reference/prepared pairs and all recorded ownership removed.
+Sequential readback includes both answers. Concurrent readback includes only one completed branch even though
+both replies remain on disk; see D105's exact schedule table. Prepared source settings stay
+unchanged; native reference global-config changes stay within disposable roots. No routing secret
+is retained. This is not an implicit merge/isolation guarantee or a universal selection policy.
+
+The public-only consultation answer and assessment are saved under
+public-shared-session-review-tn4632np. One successful turn returns 4,464 bytes; no repository input
+is sent. No production behavior changes or previously rejected model experiment is introduced.
+
+d105-interop-race.log passes the opt-ins-off suite in 28.339s; d105-interop-vet.log exits zero.
+Formatting/whitespace and all 141 unchanged D101 artifact checks pass, without release clearance.

@@ -180,3 +180,8 @@ The proxy does not parse, copy, merge or edit transcript formats. Source setting
 in the existing isolated configuration path. Without either option, client history stays ephemeral.
 Prepared Kiro sessions still do not load persisted backend state; restart creates a new restricted
 session from client-supplied history and can add provider work or lose hidden backend context.
+
+Concurrent resumes of one native session retain the client's own shared-transcript behavior.
+Stored replies do not guarantee their inclusion in a later model request (D105). The proxy does
+not merge those histories, silently fork the session or promise isolated branches for the same ID.
+Use distinct native sessions for independent parallel conversations.
