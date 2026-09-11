@@ -10,7 +10,8 @@ import (
 
 // Retain native client MCP scopes in a private mutable global file. Server declarations remain
 // opaque to the launcher; the client validates, connects and applies precedence/permissions.
-// Provider sign-in, model defaults, conversation and unrelated mutable state are never copied.
+// The reviewed completed-onboarding flag is carried too (D115). Provider sign-in, model defaults,
+// conversation, the client's theme record and other unrelated mutable state are never copied.
 func clientMCPState(home string) ([]byte, error) {
 	raw, err := readSettings(filepath.Join(home, ".claude.json"))
 	if err != nil {
@@ -89,6 +90,15 @@ func clientMCPFields(fields map[string]json.RawMessage, project bool) (map[strin
 			continue
 		case "hasTrustDialogAccepted":
 			if !project {
+				continue
+			}
+			if string(value) != "true" && string(value) != "false" {
+				return nil, ErrSettings
+			}
+		case "hasCompletedOnboarding":
+			// Reviewed (D115): whether the client's first-run onboarding was completed. Carrying it
+			// keeps the private profile from repeating the theme dialog; it grants nothing.
+			if project {
 				continue
 			}
 			if string(value) != "true" && string(value) != "false" {

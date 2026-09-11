@@ -332,9 +332,14 @@ func platformEnvironment(source []string) (map[string]string, error) {
 	}
 	return out, nil
 }
+
+// Only the Bearer token is set (D115): the client asks for interactive approval of an
+// ANTHROPIC_API_KEY, which would recur on every launch because the token is fresh each time, and
+// the measured 2.1.267 build warns when both variables are present. The gateway accepts the
+// Authorization header.
 func hostEnvironment(endpoint, token string) map[string]string {
 	return map[string]string{
-		"ANTHROPIC_BASE_URL": endpoint, "ANTHROPIC_API_KEY": token, "ANTHROPIC_AUTH_TOKEN": token,
+		"ANTHROPIC_BASE_URL": endpoint, "ANTHROPIC_AUTH_TOKEN": token,
 		"CLAUDE_CODE_PROVIDER_MANAGED_BY_HOST":                 "1",
 		"CLAUDE_CODE_ENABLE_GATEWAY_MODEL_DISCOVERY":           "1",
 		"CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC":             "1",

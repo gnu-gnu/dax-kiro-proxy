@@ -24,9 +24,9 @@ func main() {
 	if len(os.Args) != 5 || os.Args[1] != "--settings" || os.Args[3] != "--model" {
 		os.Exit(40)
 	}
-	endpoint, token := os.Getenv("ANTHROPIC_BASE_URL"), os.Getenv("ANTHROPIC_API_KEY")
+	endpoint, token := os.Getenv("ANTHROPIC_BASE_URL"), os.Getenv("ANTHROPIC_AUTH_TOKEN")
 	u, err := url.Parse(endpoint)
-	if err != nil || u.Scheme != "http" || !net.ParseIP(u.Hostname()).IsLoopback() || len(token) != 43 || os.Getenv("ANTHROPIC_AUTH_TOKEN") != token {
+	if err != nil || u.Scheme != "http" || !net.ParseIP(u.Hostname()).IsLoopback() || len(token) != 43 || os.Getenv("ANTHROPIC_API_KEY") != "" {
 		os.Exit(41)
 	}
 	if os.Getenv("CLAUDE_CODE_PROVIDER_MANAGED_BY_HOST") != "1" || os.Getenv("CLAUDE_CODE_USE_BEDROCK") != "" || os.Getenv("AWS_ACCESS_KEY_ID") != "" {

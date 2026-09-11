@@ -14,7 +14,7 @@ import (
 
 func TestClientMCPStateKeepsNativeScopesWithoutProviderState(t *testing.T) {
 	cfg := profileConfig(t)
-	source := []byte(`{"apiKey":"unrelated-provider-secret","oauthAccount":{"token":"unrelated-oauth-secret"},"mcpServers":{"owned":{"command":"/fixture/mcp","env":{"MCP_ACCESS_TOKEN":"owned-mcp-credential"}}},"disabledMcpServers":["inactive"],"claudeAiMcpEverConnected":["claude.ai Gmail"],"projects":{"/fixture/project":{"mcpServers":{"local":{"type":"http","url":"https://mcp.invalid/endpoint","headers":{"Authorization":"owned-mcp-header"}}},"enabledMcpjsonServers":["approved"],"disabledMcpjsonServers":["refused"],"enabledMcpServers":["owned-opt-in"],"enableAllProjectMcpServers":false,"hasTrustDialogAccepted":true,"lastPrompt":"private-conversation-must-not-copy"}},"model":"unrelated-provider-model"}`)
+	source := []byte(`{"apiKey":"unrelated-provider-secret","hasCompletedOnboarding":true,"theme":"dark","oauthAccount":{"token":"unrelated-oauth-secret"},"mcpServers":{"owned":{"command":"/fixture/mcp","env":{"MCP_ACCESS_TOKEN":"owned-mcp-credential"}}},"disabledMcpServers":["inactive"],"claudeAiMcpEverConnected":["claude.ai Gmail"],"projects":{"/fixture/project":{"theme":"dark","mcpServers":{"local":{"type":"http","url":"https://mcp.invalid/endpoint","headers":{"Authorization":"owned-mcp-header"}}},"enabledMcpjsonServers":["approved"],"disabledMcpjsonServers":["refused"],"enabledMcpServers":["owned-opt-in"],"enableAllProjectMcpServers":false,"hasTrustDialogAccepted":true,"lastPrompt":"private-conversation-must-not-copy"}},"model":"unrelated-provider-model"}`)
 	path := filepath.Join(cfg.Home, ".claude.json")
 	writeSettings(t, path, source)
 	p, err := launcher.PrepareClient(cfg)
@@ -31,15 +31,25 @@ func TestClientMCPStateKeepsNativeScopesWithoutProviderState(t *testing.T) {
 	if json.Unmarshal(data, &actual) != nil || json.Unmarshal(source, &original) != nil {
 		t.Fatal("invalid projected state")
 	}
-	if len(actual) != 3 || !bytes.Equal(actual["mcpServers"], original["mcpServers"]) || !bytes.Equal(actual["disabledMcpServers"], original["disabledMcpServers"]) {
+	if len(actual) != 4 || !bytes.Equal(actual["mcpServers"], original["mcpServers"]) || !bytes.Equal(actual["disabledMcpServers"], original["disabledMcpServers"]) {
 		t.Fatal("user MCP scope was changed or unrelated state copied")
+	}
+	var projects map[string]map[string]json.RawMessage
+	if json.Unmarshal(actual["projects"], &projects) != nil || len(projects) != 1 {
+		t.Fatal("projected project scope changed shape")
+	}
+	if _, leaked := projects["/fixture/project"]["theme"]; leaked {
+		t.Fatal("a per-project theme key was projected; only the reviewed global flag is carried")
+	}
+	if _, copied := actual["theme"]; copied {
+		t.Fatal("the client's theme record was projected; it is not a reviewed key")
 	}
 	for _, forbidden := range [][]byte{[]byte("unrelated-"), []byte("private-conversation")} {
 		if bytes.Contains(data, forbidden) {
 			t.Fatal("provider or conversation state copied")
 		}
 	}
-	for _, required := range [][]byte{[]byte("owned-mcp-credential"), []byte("owned-mcp-header"), []byte(`"hasTrustDialogAccepted":true`), []byte(`"enableAllProjectMcpServers":false`), []byte(`"disabledMcpjsonServers":["refused"]`), []byte(`"enabledMcpServers":["owned-opt-in"]`)} {
+	for _, required := range [][]byte{[]byte("owned-mcp-credential"), []byte("owned-mcp-header"), []byte(`"hasTrustDialogAccepted":true`), []byte(`"hasCompletedOnboarding":true`), []byte(`"enableAllProjectMcpServers":false`), []byte(`"disabledMcpjsonServers":["refused"]`), []byte(`"enabledMcpServers":["owned-opt-in"]`)} {
 		if !bytes.Contains(data, required) {
 			t.Fatal("MCP declaration or existing decision disappeared")
 		}
@@ -57,7 +67,7 @@ func TestClientMCPStateKeepsNativeScopesWithoutProviderState(t *testing.T) {
 }
 
 func TestClientMCPStateRejectsUnsafeOrAmbiguousSource(t *testing.T) {
-	for _, source := range []string{`[]`, `{"mcpServers":[]}`, `{"projects":null}`, `{"projects":{"/fixture":false}}`, `{"disabledMcpServers":true}`, `{"disabledMcpServers":[null]}`, `{"enableAllProjectMcpServers":"true"}`, `{"mcpServers":{},"mcpServers":{}}`, `{"futureMcpPolicy":true}`, strings.Repeat(" ", launcher.MaxSettingsBytes) + `{}`} {
+	for _, source := range []string{`[]`, `{"mcpServers":[]}`, `{"projects":null}`, `{"projects":{"/fixture":false}}`, `{"disabledMcpServers":true}`, `{"disabledMcpServers":[null]}`, `{"enableAllProjectMcpServers":"true"}`, `{"hasCompletedOnboarding":"yes"}`, `{"hasCompletedOnboarding":1}`, `{"mcpServers":{},"mcpServers":{}}`, `{"futureMcpPolicy":true}`, strings.Repeat(" ", launcher.MaxSettingsBytes) + `{}`} {
 		cfg := profileConfig(t)
 		writeSettings(t, filepath.Join(cfg.Home, ".claude.json"), []byte(source))
 		if p, err := launcher.PrepareClient(cfg); !errors.Is(err, launcher.ErrSettings) {

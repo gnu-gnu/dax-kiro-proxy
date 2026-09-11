@@ -72,7 +72,7 @@ func TestClientProfileKeepsPoliciesAtUserScopeAndOwnsRouting(t *testing.T) {
 			t.Fatal("unapproved inherited environment reached client")
 		}
 	}
-	if env["ANTHROPIC_API_KEY"] != cfg.ModelToken || env["ANTHROPIC_AUTH_TOKEN"] != cfg.ModelToken || env["ANTHROPIC_BASE_URL"] != cfg.GatewayURL || env["CLAUDE_CODE_PROVIDER_MANAGED_BY_HOST"] != "1" || env["DISABLE_TELEMETRY"] != "1" || env["CLAUDE_CODE_DISABLE_UNKNOWN_MODEL_WINDOW_ENFORCEMENT"] != "1" {
+	if env["ANTHROPIC_API_KEY"] != "" || env["ANTHROPIC_AUTH_TOKEN"] != cfg.ModelToken || env["ANTHROPIC_BASE_URL"] != cfg.GatewayURL || env["CLAUDE_CODE_PROVIDER_MANAGED_BY_HOST"] != "1" || env["DISABLE_TELEMETRY"] != "1" || env["CLAUDE_CODE_DISABLE_UNKNOWN_MODEL_WINDOW_ENFORCEMENT"] != "1" {
 		t.Fatal("gateway routing is not host owned")
 	}
 	if env["HTTP_PROXY"] != "" || env["HOME"] != cfg.Home || env["TERM"] != "xterm-256color" {
