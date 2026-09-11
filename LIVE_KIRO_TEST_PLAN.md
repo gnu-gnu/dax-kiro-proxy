@@ -1133,6 +1133,10 @@ Fixed facts are saved in `.cache/terminal-review/live-interrupted-followup-stric
 live episodes there are four main and three title admissions. This is deliberate revalidation after
 a discovered observer defect, not an automatic retry of a failed provider call. Marker presence
 does not prove complete native-history byte equivalence; that broader claim is not made here.
+Re-verified once on the measured Kiro 2.21.3 / Claude 2.1.267 pair on 2026-09-11 under the user's
+explicit two-episode authorization: 21.19s, 32 streamed updates before one cancel, one follow-up
+prompt in a previously unobserved group with the old/new fragments and partial marker present, two
+main and one title admission, and joined cleanup (`live-recheck-kiro2213-claude21267.log`).
 
 ## Native model-picker control before a live model change (D85)
 
@@ -1193,6 +1197,10 @@ guard failure, non-success result, emergency cleanup or live retry. Fixed result
 `.cache/model-review/d86-live-model-selection.log`. This verifies the advertised session-setting
 contract for the chosen pair, not provider weights or successful inference for every catalog entry.
 Persisted restart/resume, authentication expiry and remaining alpha/release checks remain separate.
+Re-verified once on the measured Kiro 2.21.3 / Claude 2.1.267 pair on 2026-09-11 under the user's
+explicit two-episode authorization: 25.54s, nineteen labels rendered and focused in 26 actions with
+no bounded reversal, one target acknowledgement, correlated markers, zero non-success results and
+joined cleanup (`.cache/history-review/live-recheck-kiro2213-claude21267.log`).
 
 ## D87: finite native conversation restart through a fresh gateway and backend
 

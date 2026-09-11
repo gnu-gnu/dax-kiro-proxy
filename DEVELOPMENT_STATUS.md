@@ -6,6 +6,16 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- Live re-verification on the measured Kiro 2.21.3 / Claude 2.1.267 pair, authorized by the user for
+  two credit-consuming episodes on 2026-09-11: the actual model-selection episode (D86) passes in
+  25.54s with all 19 catalog labels rendered and focused in 26 actions, no bounded reversal, one
+  target acknowledgement, correlated first/next markers and zero non-success results; the actual
+  interrupted follow-up episode (D84) passes in 21.19s with 32 streamed updates before one cancel,
+  one follow-up prompt in a fresh ACP group, old/new instruction fragments and the partial marker
+  present, and two main plus one title admission. Both keep the same client/proxy/profile/address,
+  exit through the confirmed keyboard path and remove every recorded group, PID, listener, runtime
+  and profile with unchanged sources (47.248s package, `live-recheck-kiro2213-claude21267.log`). The
+  other sixteen live controls remain 2.21.2/2.1.263 evidence.
 - D116 adds the compiled-command control for Ctrl+C during a held tool followed by a new question in
   the same client session, the case D113 deferred. With the unmodified 2.1.267 client the held
   PreToolUse hook is interrupted, no result reaches the relay, the old prompt is retired with one
