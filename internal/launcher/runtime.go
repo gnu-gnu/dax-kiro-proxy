@@ -35,6 +35,8 @@ type ClientRunConfig struct {
 type ClientRunResult struct {
 	ClientPID, ExitCode                               int
 	GatewayTime, ProfileTime, LaunchTime, CleanupTime time.Duration
+	// True when this launch wrote the user's accepted workspace-trust answer back (D118).
+	ProjectTrustPersisted bool
 }
 
 // RunClient owns Backend, Models, Schema and Server.Gateway.Usage from entry, including every failure path.
@@ -85,6 +87,13 @@ func RunClient(ctx context.Context, cfg ClientRunConfig) (result ClientRunResult
 		if client != nil {
 			child, _ := client.Wait()
 			result.ExitCode = child.ExitCode
+			// Keep the user's own answer to the client's workspace-trust dialog as native Claude
+			// Code would; every doubt skips the write (D118).
+			if profile != nil {
+				if written, err := profile.persistProjectTrust(); err == nil && written {
+					result.ProjectTrustPersisted = true
+				}
+			}
 		}
 		// Ephemeral settings and credentials outlive their client, HTTP handlers and backend owners.
 		var profileErr error

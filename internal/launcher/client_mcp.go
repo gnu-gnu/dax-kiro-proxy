@@ -17,6 +17,11 @@ func clientMCPState(home string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	return clientMCPProjection(raw)
+}
+
+// clientMCPProjection projects one already-read global document.
+func clientMCPProjection(raw []byte) ([]byte, error) {
 	fields, err := ndjson.Object(raw)
 	if err != nil {
 		return nil, ErrSettings

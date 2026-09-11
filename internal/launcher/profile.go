@@ -2,6 +2,7 @@
 package launcher
 
 import (
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -102,6 +103,8 @@ type ClientConfig struct {
 type ClientProfile struct {
 	mu             sync.Mutex
 	path, settings string
+	home, project  string
+	source         trustSource
 	rootInfo       os.FileInfo
 	command        childproc.Command
 	closed         bool
@@ -124,10 +127,17 @@ func PrepareClient(cfg ClientConfig) (*ClientProfile, error) {
 	if err != nil {
 		return nil, err
 	}
-	mcpState, err := clientMCPState(cfg.Home)
+	globalPath := filepath.Join(cfg.Home, ".claude.json")
+	globalRaw, err := readSettings(globalPath)
 	if err != nil {
 		return nil, err
 	}
+	mcpState, err := clientMCPProjection(globalRaw)
+	if err != nil {
+		return nil, err
+	}
+	globalInfo, globalErr := os.Lstat(globalPath)
+	source := trustSource{exists: globalErr == nil && globalInfo.Mode().IsRegular(), digest: sha256.Sum256(globalRaw)}
 	pluginSeed, err := clientPluginSeed(cfg.Home)
 	if err != nil {
 		return nil, err
@@ -144,7 +154,7 @@ func PrepareClient(cfg ClientConfig) (*ClientProfile, error) {
 	if err != nil {
 		return nil, ErrRuntime
 	}
-	p := &ClientProfile{path: path}
+	p := &ClientProfile{path: path, home: cfg.Home, project: cfg.Project, source: source}
 	p.rootInfo, err = os.Lstat(path)
 	if err != nil {
 		_ = os.RemoveAll(path)
