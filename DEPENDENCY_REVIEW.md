@@ -843,3 +843,28 @@ All 141 byte checks pass against the candidate with release clearance false. Exi
 reachability, native/build/test attribution, clean-host distribution and owner-rights work remain
 open. Removing the client's onboarding dialogs grants no license or distribution right and does not
 change the reviewed dependency set.
+
+## Workspace-trust artifact snapshot — D118, 2026-09-11
+
+`third_party/inventory/macos-arm64-project-trust.json` records the rebuilt 13659058-byte development
+command, SHA-256 `0b2f416b1a054935729e59f6e4c75eeeb1ccebd6f49aba59f46eaa5eb521e28d`.
+It identifies Go 1.27.1, darwin/arm64, CGO_ENABLED=1 and the clean committed revision
+f522c4df90201de0b56b622d6286ed165e52e358 with vcs.modified=false; the inventory commit follows that
+revision rather than capturing uncommitted inputs.
+
+The 102 repository input records of 93 selected Go files, seven notice/reference files and
+go.mod/go.sum grow to 103 records: the launcher's client_trust.go is added, and client_mcp.go,
+profile.go and runtime.go change for the workspace-trust write-back. The 267 import paths, four
+external module versions/sums/package sets, selected native files, stdlib vendor packages and
+retained notices are unchanged. No dependency is added or upgraded. The D115 onboarding inventory
+is the hashed predecessor; the D115 and D118 executables are retained under the ignored
+history-review directory.
+
+```sh
+python3 tools/verify_dependency_inventory.py --gomodcache .cache/gomod --snapshot project-trust --binary dist/dax-kiro-proxy
+```
+
+All 142 byte checks pass against the candidate with release clearance false. Existing advisory/
+reachability, native/build/test attribution, clean-host distribution and owner-rights work remain
+open. Recording the user's workspace-trust answer grants no license or distribution right and does
+not change the reviewed dependency set.
