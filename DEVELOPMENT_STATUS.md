@@ -6,6 +6,16 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D116 adds the compiled-command control for Ctrl+C during a held tool followed by a new question in
+  the same client session, the case D113 deferred. With the unmodified 2.1.267 client the held
+  PreToolUse hook is interrupted, no result reaches the relay, the old prompt is retired with one
+  ACP cancel, a fresh ACP group answers the new question, and the follow-up projection carries the
+  old tool_use and the fixed interruption text with no tool_result (`tu=1 tr=0 ef=0 ir=1 ct=0
+  ph=0`), a third representation beside the two restart forms. The peer records those fixed counts;
+  the control rejects any manufactured successful result and requires the fixture content to stay
+  off the screen. It passes three consecutive runs of 4.04–4.63s (13.008s package); neighbouring
+  compiled-command controls (37.082s package), the interop race package (28.270s) and vet pass.
+  Test-only change; the D115 artifact remains current.
 - D115 removes the per-launch onboarding dialogs at their causes: the prepared client environment
   carries the ephemeral model token only as `ANTHROPIC_AUTH_TOKEN` (the documented Bearer header,
   which needs no interactive approval and ends the both-variables warning), and the private

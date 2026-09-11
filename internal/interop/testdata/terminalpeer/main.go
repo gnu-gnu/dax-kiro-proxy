@@ -260,16 +260,41 @@ func notePrompt(raw []byte) {
 			followScope.Store(bytes.Contains(raw, []byte("concatenation of ModelSecond and _67")))
 		}
 		record("prompt-attempt", map[string]any{
-			"main_hint":      bytes.Contains(raw, []byte("concatenation of Ready and _47")),
-			"title_hint":     bytes.Contains(lower, []byte("title")),
-			"summary_hint":   bytes.Contains(lower, []byte("summar")),
-			"prompt_bytes":   len(raw),
-			"old_input":      bytes.Contains(raw, []byte("concatenation of Ready and _47")),
-			"partial_marker": bytes.Contains(raw, []byte("Ready_47")),
-			"new_input":      followScope.Load(),
-			"null_marker":    bytes.Contains(raw, []byte("UnsentControl_53")),
+			"main_hint":        bytes.Contains(raw, []byte("concatenation of Ready and _47")),
+			"title_hint":       bytes.Contains(lower, []byte("title")),
+			"summary_hint":     bytes.Contains(lower, []byte("summar")),
+			"prompt_bytes":     len(raw),
+			"old_input":        bytes.Contains(raw, []byte("concatenation of Ready and _47")) || bytes.Contains(raw, []byte("concatenation of HookControl and _47")),
+			"partial_marker":   bytes.Contains(raw, []byte("Ready_47")),
+			"new_input":        followScope.Load(),
+			"null_marker":      bytes.Contains(raw, []byte("UnsentControl_53")),
+			"interrupted_form": interruptedForm(raw),
 		})
 	}
+}
+
+// interruptedForm counts the historical tool blocks a prompt carries. Historical blocks are
+// embedded as escaped JSON strings inside the projected context; only fixed counts leave the peer.
+func interruptedForm(raw []byte) string {
+	var packet struct {
+		Params struct {
+			Prompt []struct{ Type, Text string }
+		}
+	}
+	if json.Unmarshal(raw, &packet) != nil {
+		return ""
+	}
+	var parts []string
+	for _, part := range packet.Params.Prompt {
+		parts = append(parts, part.Text)
+	}
+	text := strings.Join(parts, "\n")
+	uses, results, errorFlags := strings.Count(text, `\"tool_use\"`), strings.Count(text, `\"tool_result\"`), strings.Count(text, `\"is_error\"`)
+	interrupted, continuation, placeholder := strings.Count(text, "[Request interrupted by user for tool use]"), strings.Count(text, "Continue from where you left off."), strings.Count(text, "No response requested.")
+	if uses+results+errorFlags+interrupted+continuation+placeholder == 0 {
+		return ""
+	}
+	return fmt.Sprintf("tu=%d tr=%d ef=%d ir=%d ct=%d ph=%d", uses, results, errorFlags, interrupted, continuation, placeholder)
 }
 
 // The exclusive marker also bounds prompts across replacement ACP observer processes.

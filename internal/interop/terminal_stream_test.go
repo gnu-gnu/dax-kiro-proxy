@@ -68,31 +68,48 @@ func terminalFollowupComplete(r terminalTrace) bool {
 	return r.Clients == 1 && r.Prompts == 1 && r.Cancels > 0 && r.Ends == 0 && r.FollowPrompts == 1 && r.FollowACP > 1 && r.FollowACP != r.ACP && r.FollowTexts > 0 && r.FollowEnds == 1 && r.FollowCancels == 0 && r.FollowCanceled == 0 && r.FollowOldInput && r.FollowNewInput && !r.FollowNull && r.TitlePrompts <= 2 && r.Failures == 0 && r.PromptFailures == 0 && !r.Exited
 }
 
+// After Ctrl+C during a held tool, the old prompt never ends and nothing was cancelled over ACP;
+// the hook was interrupted, no result reached the relay, and the new question completes elsewhere.
+func terminalHeldFollowupComplete(r terminalTrace) bool {
+	return r.Clients == 1 && r.Prompts == 1 && r.Ends == 0 && r.HookHeld == 1 && r.HookInterrupted == 1 && r.HookReleased == 0 && r.HookPost == 0 && r.RelayCalls == 1 && r.RelayResults == 0 && r.FollowPrompts == 1 && r.FollowACP > 1 && r.FollowACP != r.ACP && r.FollowTexts > 0 && r.FollowEnds == 1 && r.FollowCancels == 0 && r.FollowCanceled == 0 && r.FollowOldInput && r.FollowNewInput && !r.FollowNull && r.TitlePrompts <= 2 && r.Failures == 0 && r.PromptFailures == 0 && !r.Exited
+}
+
+// manufacturedToolResult reports a historical tool_result without is_error in the fixed counts.
+func manufacturedToolResult(form string) bool {
+	var uses, results, errorFlags, interrupted, continuation, placeholder int
+	if _, err := fmt.Sscanf(form, "tu=%d tr=%d ef=%d ir=%d ct=%d ph=%d", &uses, &results, &errorFlags, &interrupted, &continuation, &placeholder); err != nil {
+		return false
+	}
+	return results > errorFlags
+}
+
 func terminalExitConfirmation(screen string) bool {
 	plain := strings.ToLower(strings.Join(strings.Fields(screen), " "))
 	return strings.Contains(plain, "ctrl+d again to exit") || strings.Contains(plain, "ctrl-d again to exit")
 }
 
 type terminalReceipt struct {
-	ModelSlot     int    `json:"model_slot"`
-	NullMarker    bool   `json:"null_marker"`
-	FollowScope   bool   `json:"follow_scope"`
-	OldInput      bool   `json:"old_input"`
-	NewInput      bool   `json:"new_input"`
-	PartialMarker bool   `json:"partial_marker"`
-	Kind          string `json:"kind"`
-	PID           int    `json:"pid"`
-	Group         int    `json:"group"`
-	Child         int    `json:"child"`
-	Foreground    int    `json:"foreground"`
-	Profile       string `json:"profile"`
-	Endpoint      string `json:"endpoint"`
-	Code          int    `json:"code"`
-	Restored      bool   `json:"restored"`
-	MainHint      bool   `json:"main_hint"`
-	TitleHint     bool   `json:"title_hint"`
-	SummaryHint   bool   `json:"summary_hint"`
-	TitleScope    bool   `json:"title_scope"`
+	ModelSlot  int  `json:"model_slot"`
+	NullMarker bool `json:"null_marker"`
+	// Fixed counts of the historical tool blocks a follow-up prompt carried (D116).
+	InterruptedForm string `json:"interrupted_form"`
+	FollowScope     bool   `json:"follow_scope"`
+	OldInput        bool   `json:"old_input"`
+	NewInput        bool   `json:"new_input"`
+	PartialMarker   bool   `json:"partial_marker"`
+	Kind            string `json:"kind"`
+	PID             int    `json:"pid"`
+	Group           int    `json:"group"`
+	Child           int    `json:"child"`
+	Foreground      int    `json:"foreground"`
+	Profile         string `json:"profile"`
+	Endpoint        string `json:"endpoint"`
+	Code            int    `json:"code"`
+	Restored        bool   `json:"restored"`
+	MainHint        bool   `json:"main_hint"`
+	TitleHint       bool   `json:"title_hint"`
+	SummaryHint     bool   `json:"summary_hint"`
+	TitleScope      bool   `json:"title_scope"`
 }
 
 type terminalTrace struct {
@@ -104,6 +121,7 @@ type terminalTrace struct {
 	FollowNull                                                                                bool
 	Clients, FollowPrompts, FollowACP, FollowTexts, FollowEnds, FollowCancels, FollowCanceled int
 	FollowOldInput, FollowNewInput, FollowPartial                                             bool
+	FollowForm                                                                                string
 	Hook, HookHeld, HookReleased, HookInterrupted, HookPost                                   int
 	RelayCalls, RelayResults                                                                  int
 	Client, ACP, Agent, Proxy, Supervisor                                                     int
@@ -216,7 +234,7 @@ func readTerminalTrace(root string) (terminalTrace, error) {
 			case "prompt-attempt":
 				if !r.TitleScope && r.FollowScope {
 					trace.FollowOldInput, trace.FollowNewInput, trace.FollowPartial = r.OldInput, r.NewInput, r.PartialMarker
-					trace.FollowNull = r.NullMarker
+					trace.FollowNull, trace.FollowForm = r.NullMarker, r.InterruptedForm
 				}
 				trace.Attempts++
 				if r.MainHint {
@@ -314,6 +332,13 @@ func TestCompiledRunInterruptedFollowupWithFakeACP(t *testing.T) {
 	runCompiledTerminalStream(t, "cancel-followup", "")
 }
 
+// Ctrl+C while the client holds a tool through its PreToolUse hook, then one new question in the
+// same client session (D116). The hook must be interrupted, no tool result delivered, and the new
+// question answered by a fresh ACP process while the original client/proxy stay live.
+func TestCompiledRunHeldHookFollowupWithFakeACP(t *testing.T) {
+	runCompiledTerminalStream(t, "held-hook-followup", "")
+}
+
 func TestCompiledRunModelSelectionWithFakeACP(t *testing.T) {
 	for _, mode := range []string{"model-unchanged", "model-switch", "model-wide-switch"} {
 		if !t.Run(mode, func(t *testing.T) { runCompiledTerminalStream(t, mode, "") }) {
@@ -351,7 +376,8 @@ func runCompiledTerminalStream(t *testing.T, mode, kiro string) {
 func runTerminalScenario(t *testing.T, mode, kiro string, history *terminalHistoryPlan) terminalTrace {
 	t.Helper()
 	heldHook := strings.HasPrefix(mode, "held-hook-")
-	followup := mode == "cancel-followup"
+	heldFollowup := mode == "held-hook-followup"
+	followup := mode == "cancel-followup" || heldFollowup
 	modelCheck := strings.HasPrefix(mode, "model-")
 	modelSlot := 1
 	if strings.HasSuffix(mode, "switch") {
@@ -638,6 +664,10 @@ func runTerminalScenario(t *testing.T, mode, kiro string, history *terminalHisto
 						return ""
 					}
 					heldObserved = true
+					if heldFollowup {
+						stage, keyAt = 3, time.Now()
+						return "\x03"
+					}
 					if mode == "held-hook-release" {
 						if os.WriteFile(filepath.Join(root, "hook-release"), []byte("release-owned-hook"), 0600) != nil {
 							receiptErr = errors.New("cannot release owned hook")
@@ -669,6 +699,27 @@ func runTerminalScenario(t *testing.T, mode, kiro string, history *terminalHisto
 				if trace.Ends == 1 && trace.Texts > beforeKey && trace.Cancels == 0 {
 					stage = 4
 					return "\x15"
+				}
+			} else if heldFollowup {
+				// The completed HTTP tool handoff leaves nothing for the client to cancel; only the
+				// interrupted hook and the returned prompt show the interruption before the new question.
+				if trace.HookInterrupted == 1 && trace.HookReleased == 0 && trace.RelayResults == 0 && strings.Contains(screen, "❯") && time.Since(keyAt) > 500*time.Millisecond {
+					canceledAlive = trace.Client > 1 && trace.Proxy > 1 && syscall.Kill(trace.Client, 0) == nil && syscall.Kill(trace.Proxy, 0) == nil && time.Since(keyAt) < 8*time.Second
+					if !canceledAlive || trace.Client != originalClient || trace.Proxy != originalProxy || trace.Profile != originalProfile || trace.Endpoint != originalEndpoint {
+						receiptErr = errors.New("original foreground owner absent after hook interruption")
+						stop()
+						return ""
+					}
+					if os.WriteFile(filepath.Join(root, "followup-allowed"), []byte("owned-new-question"), 0600) != nil {
+						receiptErr = errors.New("cannot admit owned new question")
+						stop()
+						return ""
+					}
+					for _, group := range trace.Groups {
+						groupsBeforeFollowup[group] = true
+					}
+					stage = 8
+					return terminalFollowupPrompt
 				}
 			} else if trace.Cancels > 0 && trace.ACP > 1 && errors.Is(syscall.Kill(-trace.ACP, 0), syscall.ESRCH) && strings.Contains(screen, "❯") {
 				canceledAlive = trace.Client > 1 && trace.Proxy > 1 && syscall.Kill(trace.Client, 0) == nil && syscall.Kill(trace.Proxy, 0) == nil && time.Since(keyAt) < 8*time.Second
@@ -714,7 +765,11 @@ func runTerminalScenario(t *testing.T, mode, kiro string, history *terminalHisto
 				return "\r"
 			}
 		case 9:
-			if terminalFollowupComplete(trace) && !groupsBeforeFollowup[trace.FollowACP] && strings.Contains(screen, "Follow_49") && trace.Client == originalClient && trace.Proxy == originalProxy && trace.Profile == originalProfile && trace.Endpoint == originalEndpoint && syscall.Kill(originalClient, 0) == nil && syscall.Kill(originalProxy, 0) == nil && errors.Is(syscall.Kill(-trace.ACP, 0), syscall.ESRCH) {
+			complete := terminalFollowupComplete(trace)
+			if heldFollowup {
+				complete = terminalHeldFollowupComplete(trace)
+			}
+			if complete && !groupsBeforeFollowup[trace.FollowACP] && strings.Contains(screen, "Follow_49") && trace.Client == originalClient && trace.Proxy == originalProxy && trace.Profile == originalProfile && trace.Endpoint == originalEndpoint && syscall.Kill(originalClient, 0) == nil && syscall.Kill(originalProxy, 0) == nil && errors.Is(syscall.Kill(-trace.ACP, 0), syscall.ESRCH) {
 				followupObserved = true
 				stage, exitKey = 5, true
 				return "\x04"
@@ -900,6 +955,9 @@ func runTerminalScenario(t *testing.T, mode, kiro string, history *terminalHisto
 		valid = valid && heldObserved && trace.HookReleased == 0 && trace.HookPost == 0 && trace.RelayResults == 0 && trace.Ends == 0 && !strings.Contains(string(result.Stdout), "OwnedHookRead_47") && exitLatency < 8*time.Second && lateReleaseQuiet
 	} else if mode == "held-hook-release" {
 		valid = valid && heldObserved && trace.HookReleased == 1 && trace.HookPost == 1 && trace.RelayResults == 1 && trace.Ends == 1 && trace.Cancels == 0
+	} else if heldFollowup {
+		t.Logf("interrupted_history_form=%q manufactured_tool_result=%v old_prompt_cancels=%d read_delivered=%v", trace.FollowForm, manufacturedToolResult(trace.FollowForm), trace.Cancels, strings.Contains(string(result.Stdout), "OwnedHookRead_47"))
+		valid = valid && heldObserved && canceledAlive && followupObserved && trace.HookInterrupted == 1 && trace.HookReleased == 0 && trace.HookPost == 0 && trace.RelayResults == 0 && trace.Ends == 0 && trace.FollowPrompts == 1 && trace.FollowEnds == 1 && trace.FollowForm != "" && !manufacturedToolResult(trace.FollowForm) && !strings.Contains(string(result.Stdout), "OwnedHookRead_47")
 	} else if followup {
 		valid = valid && canceledAlive && followupObserved && trace.FollowPrompts == 1 && trace.FollowEnds == 1 && trace.FollowCancels == 0 && trace.FollowCanceled == 0 && trace.Ends == 0
 	} else if mode == "cancel" {

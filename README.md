@@ -236,7 +236,10 @@ completes visibly with end_turn while the original Claude/proxy/profile/address 
 The measured projection contains the old/new instruction fragments and the partial-response marker.
 Two main and two title prompts stay within the declared budget; subsequent keyboard exit restores
 the terminal and removes all recorded processes and private artifacts. This does not establish
-complete history equivalence, pending-tool recovery or persisted restart/resume.
+complete history equivalence, pending-tool recovery or persisted restart/resume. D116 extends the
+compiled-command control to Ctrl+C during a held tool: the interrupted hook, no delivered result, a
+fresh ACP group for the new question and the recorded interrupted-history counts of the follow-up
+projection.
 
 D85 verifies the native Claude model picker with two independent fake-ACP models. Both entries are
 visible; unchanged selection and switching both complete the next question on the observed model.

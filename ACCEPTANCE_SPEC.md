@@ -268,7 +268,9 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
   A later build may instead retain the unfinished pair itself with a fixed error result and a fixed
   continuation line before the same placeholder (D113 measured this for 2.1.267 without partial
   text). Both the HTTP witness and the independent ACP peer must classify the same measured
-  representation and reject any other; neither form is a successful result.
+  representation and reject any other; neither form is a successful result. A same-session new
+  question after keyboard interruption of a held tool carries the old tool_use and the fixed
+  interruption text without any tool_result (D116).
   Require a distinct new call and matching success/refusal under current client policy, with
   independent effect/hook witnesses and joined new cleanup. Old history cannot substitute for
   the new result. D98 supplies no-text/partial-text native-client controls with independent ACP
@@ -441,6 +443,11 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
   in the current client screen. Titles and automatic repeats cannot satisfy the new main turn.
   Observe partial-response retention without inventing history. Verify ordinary keyboard exit and
   cleanup afterward; this does not establish tool-result recovery or persisted restart/resume.
+- For the same recovery after keyboard interruption of a held tool, require the interrupted
+  PreToolUse hook with no delivered relay result or PostToolUse hook, the old prompt's ACP group gone
+  after the new question, a fresh follow-up group, the recorded interrupted-history counts with no
+  `tool_result` lacking `is_error`, and the fixture content absent from the screen (D116). The
+  measured 2.1.267 same-session shape carries the old tool_use and the fixed interruption text only.
 - Public startup rejects invalid binaries/settings, failed login, unknown configured models and an
   unverified execution policy before launching a model-facing runtime. There is no CLI/config trust
   override; a Claude Code build sharing the measured major version is admitted but reported as

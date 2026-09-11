@@ -5459,3 +5459,41 @@ security-notes, trust, both-variables or unknown-model text, and exits through C
 surviving proxy or Kiro process; the procedure is retained as `d115-pty-observe.exp` with fixed
 facts only, and no terminal capture is kept.
 
+
+## D116: verify a new question after keyboard interruption of a held tool
+
+D57 verified one new question after a silent permission refusal, whose request carries matching
+`is_error` results before the new text, and D84 verified one new question after streamed Ctrl+C with
+no tool in flight. Ctrl+C while the client holds a tool through its PreToolUse hook, followed by a
+new question in the same client session, had no control; D113 deferred it while measuring the two
+restart-path representations of an interrupted pair. This decision adds that control to the
+compiled-command terminal observer with the independent Kiro fixture and records what the measured
+2.1.267 client sends. It changes no production code; the D115 artifact remains current.
+
+The new `held-hook-followup` mode reuses the held-hook prompt and hook fixtures: once the owned
+PreToolUse hook has held the Read call for 500ms with one relay call and no result, the observer
+sends Ctrl+C. The completed HTTP tool handoff leaves nothing for the client to cancel, so the
+observer waits only for the interrupted hook and the returned prompt, then authorizes and types the
+D84 follow-up question. The independent peer now records fixed counts of the historical tool blocks
+each follow-up prompt carries (`tool_use`, `tool_result`, `is_error`, the fixed interruption text,
+the fixed continuation line and the non-completion placeholder) beside its existing old/new
+instruction facts.
+
+Measured with the unmodified 2.1.267 client: the client interrupts the held hook, no result reaches
+the relay and no PostToolUse hook runs; the follow-up prompt's projection carries the old `tool_use`
+block and the fixed text `[Request interrupted by user for tool use]` with no `tool_result`, no
+continuation line and no placeholder (`tu=1 tr=0 ef=0 ir=1 ct=0 ph=0`), a third representation
+distinct from the two restart forms of D113. The product retires the old prompt with one ACP cancel,
+answers the new question from a fresh ACP group absent from every previously observed group,
+delivers no manufactured tool result, keeps the original client, proxy, profile and gateway address
+in use, never shows the Read fixture content, and joins keyboard exit and cleanup. The control
+requires each of those facts and rejects any historical `tool_result` without `is_error`. It passes
+three consecutive runs of 4.04–4.63s (13.008s package); the neighbouring keyboard, held-hook,
+interrupted-follow-up and native-history compiled-command controls pass unchanged (37.082s package);
+the interop race package (28.270s) and vet pass. Logs under `.cache/history-review/`:
+`d116-held-followup.log` and `d116-compiled-run.log`.
+
+Limits: this observes the fake ACP peer, not actual Kiro; it does not establish tool-result
+recovery, history equivalence or persisted restart/resume, and the same-session representation is
+recorded for 2.1.267 only. An admitted unmeasured client build may represent the interruption
+differently, which the recorded counts would show.
