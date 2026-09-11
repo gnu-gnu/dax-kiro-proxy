@@ -818,3 +818,28 @@ All 141 byte checks pass against the candidate with release clearance false. Exi
 reachability, native/build/test attribution, clean-host distribution and owner-rights work remain
 open. Admitting Kiro builds by major version and moving the measured Kiro pin grant no license or
 distribution right and do not change the reviewed dependency set.
+
+## Onboarding artifact snapshot — D115, 2026-09-11
+
+`third_party/inventory/macos-arm64-onboarding.json` records the rebuilt 13641922-byte development
+command, SHA-256 `720b6f6ec5812f9e5dff4365f7d97f72c6781e44e2ed69e82f544ff0e23f980c`.
+It identifies Go 1.27.1, darwin/arm64, CGO_ENABLED=1 and the clean committed revision
+52b460b9e118dd248f2cc6e92af9d90f588b1221 with vcs.modified=false; the inventory commit follows that
+revision rather than capturing uncommitted inputs.
+
+The 102 repository input records remain 93 selected Go files, seven notice/reference files and
+go.mod/go.sum. Two production files change from D114: the launcher's client_mcp.go, whose
+projection carries the reviewed completed-onboarding flag, and profile.go, whose host environment
+keeps only the Bearer token. The 267 import paths, four external module versions/sums/package sets,
+selected native files, stdlib vendor packages and retained notices are unchanged. No dependency is
+added or upgraded. The D114 measured-Kiro inventory is the hashed predecessor; the D114 and D115
+executables are retained under the ignored history-review directory.
+
+```sh
+python3 tools/verify_dependency_inventory.py --gomodcache .cache/gomod --snapshot onboarding --binary dist/dax-kiro-proxy
+```
+
+All 141 byte checks pass against the candidate with release clearance false. Existing advisory/
+reachability, native/build/test attribution, clean-host distribution and owner-rights work remain
+open. Removing the client's onboarding dialogs grants no license or distribution right and does not
+change the reviewed dependency set.

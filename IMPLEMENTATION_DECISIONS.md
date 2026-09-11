@@ -5452,5 +5452,10 @@ the 2.1.267 client; an admitted unmeasured build could route or approve differen
 terminal measurements), `d115-controls-first.log` (the first control run, whose projection kept the
 flag but not the seeded theme), `d115-plugin-stall.log`, `d115-plugin-after-helper.log`,
 `d115-claude-regression.log`, `d115-all-race.log` and `d115-all-vet.log`. The rebuilt development
-artifact and its `onboarding` inventory are recorded in DEPENDENCY_REVIEW.md.
+artifact and its `onboarding` inventory are recorded in DEPENDENCY_REVIEW.md and installed. An
+expect-driven foreground `run` of the installed artifact from a fresh project directory with the
+user's own HOME shows the client banner and the launch alias with no theme, key-approval,
+security-notes, trust, both-variables or unknown-model text, and exits through Ctrl+D with no
+surviving proxy or Kiro process; the procedure is retained as `d115-pty-observe.exp` with fixed
+facts only, and no terminal capture is kept.
 

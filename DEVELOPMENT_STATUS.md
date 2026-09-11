@@ -19,8 +19,11 @@ does not redefine completion around an intermediate phase.
   answers, no dialog text) verify it (status control 7.13s, projection control 7.77s); the complete
   installed-client batch (68 controls, 580.273s package time, 11 terminal observations with zero
   onboarding answers), launcher/command suites (launcher 28.329s, command 4.008s), race suite
-  (interop 30.144s, launcher 35.328s, session 30.404s) and vet pass. The artifact is rebuilt and
-  frozen as the `onboarding` inventory and installed.
+  (interop 30.144s, launcher 35.328s, session 30.404s) and vet pass. The artifact is rebuilt, frozen
+  as the `onboarding` inventory and installed; an expect-driven foreground `run` from a fresh
+  project directory with the user's own HOME shows the client banner and the launch alias with no
+  theme, key-approval, security-notes, trust, both-variables or unknown-model text, and exits
+  through Ctrl+D with no surviving proxy or Kiro process.
 - D114 admits a Kiro main/helper pair by major version and moves the measured Kiro pin from 2.21.2
   to 2.21.3 after the installed pair updated itself and the exact pin rejected every doctor/run at
   login_check. Preflight requires the same build on both executables and the measured major; startup
