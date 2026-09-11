@@ -20,17 +20,19 @@ all eighteen pass, two earlier that day and sixteen in one package run (877.124s
 `live-recheck-kiro2213-claude21267.log`, `live-recheck-2-kiro2213-claude21267.log`). A nineteenth
 credit-consuming control, D120's twenty-turn live soak of one session, passed later that day
 (59.55s; `d120-live-soak-20.log`). D58's resource observations sent no model prompt. The
-native-effect experiment below is prepared for one fresh 2.21.2 attempt after the read-only
-isolation prerequisites pass, retaining its prompt, bounds and explicit credit opt-in. The user's
-continuing authorization covers completing those prerequisites and this bounded follow-up.
-Production policy stays closed.
+native-effect experiment below was prepared for one fresh 2.21.2 attempt after the read-only
+isolation prerequisites passed, retaining its prompt, bounds and explicit credit opt-in; it passed
+then and again in the 2026-09-11 re-verification. The user's continuing authorization covered those
+prerequisites and that bounded follow-up. Release policy stays closed; development `run` is enabled
+(D62).
 
 
-After that native-effect attempt passes, the existing single-Read client-hook denial test is also
-prepared for one fresh 2.21.2 attempt with Claude 2.1.263. Its prompt, exact refusal guard, client
-settings, 45-second turn and 60-second client bounds below are unchanged; no successful tool effect
-or extra model turn is admitted. This refresh uses the same continuing user authorization and its
-own explicit credit opt-in, without automatic retries.
+After that native-effect attempt passed, the existing single-Read client-hook denial test was also
+prepared for one fresh 2.21.2 attempt with Claude 2.1.263 (passed, and re-verified on the measured
+pair on 2026-09-11). Its prompt, exact refusal guard, client settings, 45-second turn and 60-second
+client bounds below are unchanged; no successful tool effect or extra model turn is admitted. This
+refresh uses the same continuing user authorization and its own explicit credit opt-in, without
+automatic retries.
 
 The D57 bare-refusal controls use actual Claude and independent fake ACP only. One observes silent
 refusal until the unchanged 45-second turn deadline, with a 55-second test terminal lifetime; another
@@ -719,12 +721,13 @@ text has 33 bytes and lacks the required complete marker. The guard rejects its 
 so protocol completion and final display acceptance cannot pass. The text is not persisted; its
 exact formatting or reason for differing from the requested concatenation is not established.
 
-Two prepared launches/cleanups, two recorded relays and two distinct observed groups are established.
-All observed relays/groups/artifacts are gone, close results succeed and the pool is empty. Client
-and native MCP cleanup and source preservation checks pass. The refusal case is not run. This
-supports the actual registry/tool/result/cleanup path but does not pass the full live experiment.
-No further model attempt runs in D72; broader live plugin acceptance remains open. Future work
-must address final-answer evidence explicitly without treating a partial exchange as acceptance.
+Two prepared launches/cleanups, two recorded relays and two distinct observed groups are
+established. All observed relays/groups/artifacts are gone, close results succeed and the pool is
+empty. Client and native MCP cleanup and source preservation checks pass. The refusal case is not
+run. This supports the actual registry/tool/result/cleanup path but does not pass the full live
+experiment. No further model attempt runs in D72; the D119 section below later verifies skill
+content and plugin hooks against the actual backend. Future work must address final-answer evidence
+explicitly without treating a partial exchange as acceptance.
 
 Final opt-ins-off race tests pass ACP in 5.439s and interop in 20.887s
 (plugin-result-final-unit.R8Vjmv). Whole-repository/fixture vet, formatting and whitespace pass.
@@ -743,11 +746,12 @@ hook. The hook ignores its input, records only its PID/group, waits at most thir
 with refusal status on SIGINT, SIGTERM or expiry. It reads no file and spawns no descendant. No user
 assets, repository content or earlier implementation enter either public client.
 
-The existing exact-operation and canary guards run behind an additional one-main-request budget.
-Any further model request rejects before driver dispatch. One ACP process, one relay, four gateway
+The existing exact-operation and canary guards run behind an additional one-main-request budget. Any
+further model request rejects before driver dispatch. One ACP process, one relay, four gateway
 connections and bounded schema workers are admitted; no replacement is possible. Kiro preparation
-uses the shared verified execution policy, after exact-version/account/catalog preflight, with the
-advertised auto model and no fallback. Prepared resources and client settings are private and owned.
+uses the shared verified execution policy, after version-admission/account/catalog preflight (exact
+at the time; same-major since D114), with the advertised auto model and no fallback. Prepared
+resources and client settings are private and owned.
 
 The actual application RunClient function owns gateway, backend, pool, validator, client and profile
 shutdown. A test-only exec wrapper supplies the fixed print arguments and documented experimental/
@@ -826,15 +830,16 @@ owned Read hook would deny and record any accidental client invocation; its mark
 No repository, actual user asset or previous implementation is supplied. The installed client itself
 is unmodified. Experimental/thinking omissions stay scoped to the finite test commands.
 
-The shared restricted Kiro execution preparation follows exact-version/account/catalog preflight and
-uses the advertised auto model without fallback. The test allows one active ACP process and two
-sequential prepared launches, one exact intercepted Read in the first phase, two total main requests,
-four HTTP connections and bounded validators/relay owners. At the validated Read event, before tool
-delivery, record the live owned relay group and SIGKILL only that group. Within five seconds require
-the group/relay gone, policy artifacts removed, cleanup complete, an empty pool and Unstarted driver.
-Then return the real turn's observed error. Transport/closed/internal-cancellation classes are accepted
-only with the caller context still active and the termination/cleanup proof; success, EOF, deadlines
-and caller cancellation are negative controls. The first client must exit with a JSON error result.
+The shared restricted Kiro execution preparation follows version-admission/account/catalog preflight
+(exact at the time; same-major since D114) and uses the advertised auto model without fallback. The
+test allows one active ACP process and two sequential prepared launches, one exact intercepted Read
+in the first phase, two total main requests, four HTTP connections and bounded validators/relay
+owners. At the validated Read event, before tool delivery, record the live owned relay group and
+SIGKILL only that group. Within five seconds require the group/relay gone, policy artifacts removed,
+cleanup complete, an empty pool and Unstarted driver. Then return the real turn's observed error.
+Transport/closed/internal-cancellation classes are accepted only with the caller context still
+active and the termination/cleanup proof; success, EOF, deadlines and caller cancellation are
+negative controls. The first client must exit with a JSON error result.
 
 Only that complete first-phase proof authorizes the second test request. The new process must follow
 joined old cleanup. It may return text and one delivered end_turn, with no tool or additional request.
@@ -1568,9 +1573,9 @@ has matching ownership/history and all next waves admit fresh sessions after cle
 
 Private fixed-class logs: `.cache/history-review/d94-churn-initial.log`, `d94-churn-controls.log`
 and `d94-churn-1024.log`. No raw request/reply, PID, credential or tool output is logged. This four-
-second stress episode does not establish actual Kiro/Claude or relay behavior, native RSS bounds,
-pending-tool/shared-process churn or long-duration release soak. No product/dependency/artifact
-change is made.
+second stress episode does not establish actual Kiro/Claude or relay behavior or shared-process
+churn; native RSS, pending-tool churn and long-duration soak were measured later (D95, D120). No
+product/dependency/artifact change is made.
 
 Applicable opt-ins-off race regressions pass in `d94-core-regressions.log`: ACP 5.183s, pool
 2.435s, gateway 3.502s, session 29.327s and interop 23.569s. Whole-repository/fake-peer vet passes
@@ -1636,9 +1641,10 @@ joined counts exclude them, and final counts include their joined shutdown.
 | GC-retained Go heap bytes | 1,204,528 | 1,351,096 | 942,832 |
 
 Logs in `.cache/history-review/`: `d95-pending-initial.log`, `d95-pending-reaped.log`,
-`d95-pending-observers.log`, `d95-pending-32-waves.log`. This is finite independent one-call-per-session
-evidence, not actual Kiro/Claude, UI/hook approval, multi-call batches, prepared/native policy,
-shared ACP process, native RSS or long-duration release soak. No product/dependency/artifact change.
+`d95-pending-observers.log`, `d95-pending-32-waves.log`. This is finite independent
+one-call-per-session evidence, not actual Kiro/Claude, UI/hook approval, multi-call batches,
+prepared/native policy, shared ACP process; native RSS and long-duration soak were measured later
+(D120). No product/dependency/artifact change.
 
 Final opt-ins-off race regressions pass in `d95-core-regressions.log`: ACP 5.416s, pool 2.554s,
 gateway 3.397s, session 38.741s, relay 10.413s, MCP 5.689s, schema 3.125s and interop 24.826s.
@@ -2181,3 +2187,70 @@ in 18.465s. A stronger final ACP witness separately checks exact first-result by
 call/status/content boundaries. Limits are 30 seconds/128 KiB per client, 25 seconds/1 MiB frames
 per ACP peer and 90 seconds overall. The consultation answer and reviewed corrections are saved
 locally. Actual Kiro image interpretation, other native formats, sidecars and full release remain open.
+
+## D119: plugin skill content and hooks against the actual Kiro backend
+
+Use the unmodified measured pair (Kiro 2.21.3, Claude Code 2.1.267) with the real gateway,
+validator, session manager and relay in front of the actual restricted Kiro process: a private
+KIRO_HOME with default-resource suppression, a relay-only agent, the `auto` model, a 45-second turn
+limit and at most one recreation. Each run generates a fresh 26-character marker that the prompt
+never contains. In the skill mode the owned plugin's skill body instructs the model to reply with
+exactly that marker and the prompt asks it to invoke the skill by name through the Skill tool; in
+the hooks mode the prompt itself asks for the marker and the plugin's SessionStart and Stop hooks
+are the subject. The observing HTTP server validates the client's requests before forwarding them:
+the advertised Skill schema accepts the owned invocation, the first request lists the skill without
+its body, and the second carries exactly one matching result and the client-expanded body as
+separate text. Title requests are answered locally. Budget three model turns; do not retry a failed
+episode.
+
+```sh
+umask 077
+DAX_INTEROP_KIRO_CREDIT_OPT_IN=1 \
+  DAX_INTEROP_KIRO_BINARY=/Users/geunwooshim/.local/bin/kiro-cli \
+  DAX_INTEROP_CLAUDE_BINARY=/Users/geunwooshim/.local/bin/claude \
+  go test -count=1 -timeout 10m \
+  -run '^TestKiroLivePluginSkillContent$|^TestKiroLivePluginHooksAroundTurn$' -v ./internal/interop
+```
+
+Both passed at the first attempt on 2026-09-11. Skill mode (17.99s case, 34.84s test): the model
+calls the advertised Skill tool, the client expands the skill, the second turn's answer contains the
+marker, two backend processes are prepared and cleaned in order, the startup hook's context is
+present in the model's request, and the SessionStart and Stop hooks each run once. Hooks mode (8.34s
+case, 24.87s test): one turn returns the marker with the same hook and cleanup facts. 60.800s
+package, `d119-live-plugin-assets.log`; the fixture-backed plugin controls pass unchanged
+(`d119-plugin-assets-regression.log`). Limits: a local, independently authored marketplace and
+plugin; remote marketplaces on the actual backend, Kiro-side skills and agents, mid-session plugin
+enable/disable and the interactive MCP-panel path remain separate. Test-only; the D118 artifact
+remains current.
+
+## D120: twenty-turn live soak of one session
+
+Use the compiled `run` observer's `soak-turns` mode with the actual Kiro 2.21.3 and Claude Code
+2.1.267 through the real launcher. After the ordinary first turn the observer types twenty numbered
+questions one at a time, each admitted by the parent before the next, and after every completed turn
+samples the owned proxy process (resident size, open descriptors, process-group size) and the
+backend ACP process group (resident size, process count) through finite system commands. Live turns
+are allowed 45 seconds each, the terminal lifetime grows by fifteen seconds per turn, and the
+terminal peer's frame and byte budgets scale with the declared turn count. Validity after a
+three-turn warm-up: proxy resident growth within 32 MiB, descriptors within four, the same owned
+process count, the same backend process count and backend resident growth within a first declared
+256 MiB envelope. Budget 21 model turns.
+
+```sh
+umask 077
+DAX_INTEROP_KIRO_CREDIT_OPT_IN=1 \
+  DAX_INTEROP_KIRO_BINARY=/Users/geunwooshim/.local/bin/kiro-cli \
+  DAX_INTEROP_CLAUDE_BINARY=/Users/geunwooshim/.local/bin/claude \
+  go test -count=1 -timeout 30m \
+  -run '^TestKiroLiveCompiledRunSoakTurns$' -v ./internal/interop
+```
+
+A first attempt on 2026-09-11 stopped at nineteen turns at the peer's fixed 1,024-frame budget,
+having sampled the proxy at 16,288→16,528 KiB and the four-process backend group at 101,856→94,560
+KiB with a 105,760 KiB peak (`d120-live-soak-19-frame-budget.log`). The rerun with scaled budgets
+passes twenty turns in 59.55s (59.863s package): proxy 17,776→18,096 KiB resident (peak 18,384 KiB),
+descriptors 24→22, two owned processes throughout; backend group four processes throughout,
+319,568→106,560 KiB resident (peak 320,080 KiB), a warm-up transient with an unmeasured cause that
+falls to a third by the end (`d120-live-soak-20.log`). Limits: one session of twenty turns; a longer
+live soak and a combined concurrency-plus-soak run remain open. Test-only; the D118 artifact remains
+current.

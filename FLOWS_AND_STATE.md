@@ -19,12 +19,18 @@ execute and return the result.
    refresh without blocking when safe.
 5. Generate independent model and UI tokens.
 6. Bind the gateway to an ephemeral loopback port.
-7. Create a temporary client profile/plugin configuration without changing global or project settings.
+7. Create a temporary client profile/plugin configuration without changing global or project
+   settings; the launcher's only later source-file write is the D118 workspace-trust answer in step
+   10.
 8. Sanitize the client environment, then inject only the local base URL, ephemeral model token, local
    hook/status data, and required profile paths.
 9. Launch the client and wait for initial session readiness.
-10. On shutdown, stop accepting requests, cancel active sessions, close relay children and ACP process
-    groups, remove ephemeral runtime files, and leave persistent caches intact.
+10. On shutdown, stop accepting requests, cancel active sessions, close relay children and ACP
+    process groups, remove ephemeral runtime files, and leave persistent caches intact. After the
+    client exits, and only when this launch's private profile records a yes answer to the client's
+    workspace-trust dialog for the launch project while the user's `~/.claude.json` still matches
+    the launch-time read and lacks that value, splice exactly
+    `projects[<key>].hasTrustDialogAccepted: true` into it (D118); every doubt skips the write.
 
 Optional startup timing reports each phase separately. The login check has its own timeout and cannot
 hang the launcher indefinitely.

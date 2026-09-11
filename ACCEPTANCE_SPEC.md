@@ -535,7 +535,7 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
 
 | Stage | Required evidence |
 | --- | --- |
-| Development run | Applicable independent transport/security/tool/cleanup checks; pinned Kiro restricted inventory and attempted native-effect denial; effective exclusion of inherited configuration; client-approved file/shell effects, client denials and hook vetoes; source settings preserved and owned processes/artifacts removed |
+| Development run | Applicable independent transport/security/tool/cleanup checks; pinned Kiro restricted inventory and attempted native-effect denial; effective exclusion of inherited configuration; client-approved file/shell effects, client denials and hook vetoes; source settings preserved (apart from the D118 trust answer) and owned processes/artifacts removed |
 | Internal alpha | Development evidence plus live cancellation, process-loss recovery, authentication expiry, model selection and safe restart/resume for each enabled path |
 | Release candidate | Full acceptance for the supported product, parallel soak and FD/process/memory checks, dependency/rights review, and clean macOS install/uninstall |
 
@@ -601,6 +601,6 @@ Any of these is an unconditional release blocker:
 - direct-provider fallback is possible;
 - a tool result can cross sessions or be replayed;
 - partial/canceled Kiro state is reused;
-- global/project client settings are modified;
+- global/project client settings are modified outside the reviewed D118 workspace-trust write-back;
 - credentials or raw prompt/tool content appear in default logs;
 - a copied implementation artifact or unresolved incompatible license remains.

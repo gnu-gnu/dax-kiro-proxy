@@ -259,9 +259,9 @@ before exposure, with no claim of backend constrained decoding. Security-affecti
 are never silently ignored. The complete request-field table, live client shapes, media/native web
 and exact enforcement of other provider-specific generation controls remain R14/R16/Phase 6 work.
 
-The current executable has only internal `schema-worker` and `relay --config` commands. It is not a
-finished launcher or an approved live Kiro profile. R06 execution restriction and all live release
-gates remain open. Other Phase 0 proposals remain pending until implemented and tested.
+At this checkpoint the executable had only internal `schema-worker` and `relay --config` commands
+and was not a finished launcher or an approved live Kiro profile. R06 execution restriction and all
+live release gates remain open. Other Phase 0 proposals remain pending until implemented and tested.
 
 ## D14: observed Claude gateway envelope and identity (review R10/R14)
 
@@ -5649,7 +5649,9 @@ context is present in the model's request and the SessionStart and Stop hooks ea
 case, 34.84s test). In the hooks mode one turn returns the marker with the same hook and cleanup
 facts (8.34s case, 24.87s test); 60.800s package, `d119-live-plugin-assets.log`. Both passed at the
 first attempt with no retry. The fixture-backed plugin controls pass unchanged after the observer's
-forwarding was generalized ({REGRESSION}). Three model turns were consumed.
+forwarding was generalized (four controls: hooks and skill sources, git plugin source preservation,
+the redirected-profile counterfactual and the skill through gateway and ACP; 22.890s package,
+`d119-plugin-assets-regression.log`). Three model turns were consumed.
 
 Limits: this measures a local, independently authored marketplace and plugin; remote marketplaces on
 the actual backend, Kiro-side skills and agents (suppressed by the launch configuration),

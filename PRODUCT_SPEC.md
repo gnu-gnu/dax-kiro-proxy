@@ -57,9 +57,12 @@ unavailable. Startup must report elapsed time for binary/settings loading, login
 preparation, gateway startup, model-catalog loading, client-profile preparation, process launch, and
 client session initialization when startup timing output is enabled.
 
-No user or project-level client settings may be modified. The launcher must use a temporary,
-product-owned settings/profile location. It must prevent accidental fallback to a direct Anthropic
-credential by removing incompatible provider and credential variables from the child environment.
+No user or project-level client settings may be modified, with one reviewed exception (D118): after
+the client exits, a yes answer to the client's workspace-trust dialog is spliced into the user's
+`~/.claude.json` as that one value, and every doubt skips the write. The launcher must use a
+temporary, product-owned settings/profile location. It must prevent accidental fallback to a direct
+Anthropic credential by removing incompatible provider and credential variables from the child
+environment.
 
 ### Models
 
@@ -144,23 +147,24 @@ For the pinned client's tool traffic, a changed tool registry or one changed sta
 after a tool result can require a fresh backend session (D63, extended by D70). D73 also supports
 successful tool results followed by client text, such as an expanded skill body, through this path.
 The complete prior history, owner, model, effort, top-level system, metadata and tool-choice policy
-must still match.
-Validate the new registry and delivered results before joined cleanup and a full-history replacement.
-Reconstruction is bounded to sixteen times per logical turn by default and retains its original
-absolute deadline. It loses hidden backend context and may add provider work. An unchanged registry
-and repeated standing instructions keep the same prompt for result-only continuations.
-Regrouped/altered history and broader changed-message sequences remain unsupported.
-Installed-client/fake-ACP tests verify MCP readiness
-followed by allowed or hook-denied plugin execution. Actual Kiro passes one default-tool Read refusal
-and changed-standing-message recreation (D71). D72 observes the actual wait/registry/plugin/result
-path and cleanup, but its final-answer marker check fails and the full live plugin experiment remains
+must still match. Validate the new registry and delivered results before joined cleanup and a
+full-history replacement. Reconstruction is bounded to sixteen times per logical turn by default and
+retains its original absolute deadline. It loses hidden backend context and may add provider work.
+An unchanged registry and repeated standing instructions keep the same prompt for result-only
+continuations. Regrouped/altered history and broader changed-message sequences remain unsupported.
+Installed-client/fake-ACP tests verify MCP readiness followed by allowed or hook-denied plugin
+execution. Actual Kiro passes one default-tool Read refusal and changed-standing-message recreation
+(D71). D72 observes the actual wait/registry/plugin/result path and cleanup, but its final-answer
+marker check fails; D119 later verifies plugin skill content and SessionStart/Stop hooks against the
+actual Kiro backend, leaving remote marketplaces, Kiro-side skills and mid-session plugin changes
 open. Broader recovery remains an alpha gate.
 
 The pinned client's model-selected plugin skill completes through the real gateway/relay with fake
-ACP: one Skill request, its matching success and separate skill text, one joined recreation and final
-client output. This is not actual Kiro skill evidence. The successful-result/text extension preserves
-the original deadline and complete history; the proxy neither executes the skill nor absorbs its
-client instructions into a tool result. Other plugin assets and live skill/lifecycle checks remain.
+ACP: one Skill request, its matching success and separate skill text, one joined recreation and
+final client output. D119 supplies the actual Kiro skill evidence. The successful-result/text
+extension preserves the original deadline and complete history; the proxy neither executes the skill
+nor absorbs its client instructions into a tool result. Remote marketplaces and mid-session plugin
+changes remain.
 
 Public ACP and Anthropic behavior form the stable core. Kiro methods beginning with a private namespace
 are optional, version-sensitive capabilities. Their absence must reduce metadata or effort features,
@@ -168,10 +172,11 @@ not break ordinary text/tool turns. The implementation records the detected Kiro
 version, and capabilities in caches so incompatible cache entries are not reused.
 
 Prefer a temporary overlay for product-owned client integration. Preserve the client's existing
-permissions, hooks and assets without modifying source settings. Optional product hooks/status must
-yield when explicit client settings, safe mode or an existing status command prevent a compatible
-overlay. Mandatory local routing and credential separation must still hold. Replacing the current
-private profile requires independent installed-client precedence and preservation tests first.
+permissions, hooks and assets without modifying source settings, apart from the D118 workspace-trust
+answer. Optional product hooks/status must yield when explicit client settings, safe mode or an
+existing status command prevent a compatible overlay. Mandatory local routing and credential
+separation must still hold. Replacing the current private profile requires independent
+installed-client precedence and preservation tests first.
 
 Native client conversation retention is optional and distinct from the text-free proxy session
 records (D87). `run --client-history` permits Claude to use its ordinary `~/.claude/projects` data

@@ -1,6 +1,6 @@
 # Development status and acceptance evidence
 
-Last updated: 2026-09-10. Overall objective: complete the standalone Go Kiro ACP proxy and launcher
+Last updated: 2026-09-11. Overall objective: complete the standalone Go Kiro ACP proxy and launcher
 contract described in PRODUCT_SPEC.md, including the full acceptance/release gates. This document
 does not redefine completion around an intermediate phase.
 
@@ -79,17 +79,18 @@ does not redefine completion around an intermediate phase.
   (12.563s package)) (three consecutive runs of 9.07–9.26s (27.719s package)); neighbouring
   compiled-command controls (36.580s package), the interop race package (27.858s) and vet pass. No
   account was logged out and no credit was consumed. Test-only change; the D115 artifact remains
-  current. A token expiring inside a running process remains unmeasured. - Live re-verification on
-  the measured Kiro 2.21.3 / Claude 2.1.267 pair, authorized by the user for two credit-consuming
-  episodes on 2026-09-11: the actual model-selection episode (D86) passes in 25.54s with all 19
-  catalog labels rendered and focused in 26 actions, no bounded reversal, one target
-  acknowledgement, correlated first/next markers and zero non-success results; the actual
+  current. A token expiring inside a running process remains unmeasured.
+- Live re-verification on the measured Kiro 2.21.3 / Claude 2.1.267 pair, authorized by the user for
+  two credit-consuming episodes on 2026-09-11: the actual model-selection episode (D86) passes in
+  25.54s with all 19 catalog labels rendered and focused in 26 actions, no bounded reversal, one
+  target acknowledgement, correlated first/next markers and zero non-success results; the actual
   interrupted follow-up episode (D84) passes in 21.19s with 32 streamed updates before one cancel,
   one follow-up prompt in a fresh ACP group, old/new instruction fragments and the partial marker
   present, and two main plus one title admission. Both keep the same client/proxy/profile/address,
   exit through the confirmed keyboard path and remove every recorded group, PID, listener, runtime
   and profile with unchanged sources (47.248s package, `live-recheck-kiro2213-claude21267.log`). The
-  other sixteen live controls remain 2.21.2/2.1.263 evidence.
+  other sixteen live controls were re-verified later the same day (see the live re-verification
+  bullet above).
 - D116 adds the compiled-command control for Ctrl+C during a held tool followed by a new question in
   the same client session, the case D113 deferred. With the unmodified 2.1.267 client the held
   PreToolUse hook is interrupted, no result reaches the relay, the old prompt is retired with one
@@ -151,8 +152,8 @@ does not redefine completion around an intermediate phase.
   2.1.267 in 18ms, but the doctor summary was not observed: the host's Kiro main/helper updated
   themselves to 2.21.3 on 2026-09-11 and D59's exact 2.21.2 pin rejects them at `login_check` for
   the D112 and D113 artifacts alike. Moving the Kiro pin is a separate decision. Live
-  credit-consuming episodes were not rerun; the both-auth warning and per-launch onboarding dialogs
-  remain open.
+  credit-consuming episodes were not rerun at that point (all were re-verified on the measured pair
+  later that day); D115 later closed the both-auth warning and the per-launch onboarding dialogs.
 - D112 opts the prepared client out of a later build's unknown-model context-window enforcement.
   Installed Claude 2.1.267 printed that notice for the launch alias through `run`; the measured
   2.1.263 build never did, and product IDs are absent from every client catalog by design. The
@@ -397,26 +398,28 @@ does not redefine completion around an intermediate phase.
   children/config directories are joined/removed across recovery, next-wave idle eviction and final
   shutdown. With eight idle replacements and the schema pool retained between waves, FD/goroutine
   counts remain 70/108; final counts are 5/2. GC-retained Go heap baseline/peak/final is
-  1,204,528/1,351,096/942,832 bytes. History/ownership counterfactuals pass in 3.098s package. The initial
-  peer delayed child reaping and produced a wave-two cleanup failure; correcting only the peer makes
-  the eight-wave control pass in 10.49s (13.639s package). Product cleanup remains strict. Actual-client,
-  multi-call, prepared/shared-process, native-RSS and long-duration soak remain open.
-  Final opt-ins-off race regressions pass: ACP 5.416s, pool 2.554s, gateway 3.397s, session 38.741s,
-  relay 10.413s, MCP 5.689s, schema 3.125s and interop 24.826s. Whole-repository/fake-peer vet,
-  formatting, whitespace and the unchanged D87 artifact's 139 byte checks pass.
+  1,204,528/1,351,096/942,832 bytes. History/ownership counterfactuals pass in 3.098s package. The
+  initial peer delayed child reaping and produced a wave-two cleanup failure; correcting only the
+  peer makes the eight-wave control pass in 10.49s (13.639s package). Product cleanup remains
+  strict. Actual-client, native-RSS and long-duration soak were measured later by D120; multi-call
+  and prepared/shared-process soak remain open. Final opt-ins-off race regressions pass: ACP 5.416s,
+  pool 2.554s, gateway 3.397s, session 38.741s, relay 10.413s, MCP 5.689s, schema 3.125s and interop
+  24.826s. Whole-repository/fake-peer vet, formatting, whitespace and the unchanged D87 artifact's
+  139 byte checks pass.
 - D94 adds a bounded HTTP/process churn regression using one gateway/manager/pool for 64 waves of
-  eight concurrent client identities. All 1,024 requests succeed through their expected phase:
-  512 buffered completions and 512 same-backend active streams followed by caller cancellation.
-  Each wave joins eight recorded PID/groups and clears handlers/connections/pool ownership before
-  fresh session admission. The 4.48s episode passes under race detection (6.856s package): 512 joined
+  eight concurrent client identities. All 1,024 requests succeed through their expected phase: 512
+  buffered completions and 512 same-backend active streams followed by caller cancellation. Each
+  wave joins eight recorded PID/groups and clears handlers/connections/pool ownership before fresh
+  session admission. The 4.48s episode passes under race detection (6.856s package): 512 joined
   process/group instances, post-warmup FD/goroutine counts fixed at 6/4 and final 5/2; GC-retained
-  Go heap baseline/peak/final 813,696/1,017,664/836,344 bytes. Eight-wave and history/terminal/descriptor
-  counterfactual controls pass too (4.404s package). Initial test-only timeout mismatch fails before
-  requests and is corrected without a production change. Opt-ins-off race regressions pass: ACP
-  5.183s, pool 2.435s, gateway 3.502s, session 29.327s and interop 23.569s. Whole-repository/fake-peer
-  vet, formatting, whitespace and 139 unchanged-artifact byte checks pass. This is short, text-only
-  fixture evidence;
-  real-client/relay, pending-tool, shared-process, native-RSS and long-duration soak remain open.
+  Go heap baseline/peak/final 813,696/1,017,664/836,344 bytes. Eight-wave and
+  history/terminal/descriptor counterfactual controls pass too (4.404s package). Initial test-only
+  timeout mismatch fails before requests and is corrected without a production change. Opt-ins-off
+  race regressions pass: ACP 5.183s, pool 2.435s, gateway 3.502s, session 29.327s and interop
+  23.569s. Whole-repository/fake-peer vet, formatting, whitespace and 139 unchanged-artifact byte
+  checks pass. This is short, text-only fixture evidence; real-client/relay, pending-tool,
+  native-RSS and long-duration soak were measured later (D95, D120); shared-process soak remains
+  open.
 - D93 rejects the public additional-directory memory option as an equivalent personal CLAUDE.md
   adapter. The initial natural-equivalence comparison fails in 1.33s: root text remains, but its
   four relative-import hops disappear and its ordering moves after project instructions. Both

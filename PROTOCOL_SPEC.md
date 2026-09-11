@@ -347,20 +347,22 @@ process changes clear effective state; confirmed supported effort may be reappli
 
 Use `_kiro.dev/commands/execute` with `{sessionId, command: {command: "effort", args: {value}}}`,
 where `value` is the normalized requested level. This private shape is observed with the unmodified
-Kiro 2.21.2 terminal and verified independently through ACP (D99). An empty args object lists
-choices on the measured supported model; it is not a current-value query. Success requires an object with `success` equal to
-true. A missing command, well-formed negative result, or command rejection is nonfatal and recorded as
-the effective sync status. Transport corruption, failed writes, process termination, and ambiguous
-timeouts retain the process-retirement semantics of section 4, even during an optional command.
+Kiro 2.21.2 terminal and verified independently through ACP (D99; the measured pin has since moved
+to 2.21.3, D114). An empty args object lists choices on the measured supported model; it is not a
+current-value query. Success requires an object with `success` equal to true. A missing command,
+well-formed negative result, or command rejection is nonfatal and recorded as the effective sync
+status. Transport corruption, failed writes, process termination, and ambiguous timeouts retain the
+process-retirement semantics of section 4, even during an optional command.
 
 ### Account usage
 
-On the measured Kiro 2.21.2/v2 combination, a separate empty-agent ACP session may execute the
-advertised `tools` and `usage` commands with `{sessionId, command: {command, args: {}}}` (D101).
-The tools result must first confirm an empty list. This path never issues `session/prompt`, borrows
-a model session, enables native tools or copies user Kiro configuration. Missing advertisements,
+On the measured Kiro 2.21.3/v2 combination (2.21.2 when D101 was recorded; a same-major pair
+admitted under D114 runs this path unmeasured), a separate empty-agent ACP session may execute the
+advertised `tools` and `usage` commands with `{sessionId, command: {command, args: {}}}` (D101). The
+tools result must first confirm an empty list. This path never issues `session/prompt`, borrows a
+model session, enables native tools or copies user Kiro configuration. Missing advertisements,
 malformed replies and query failures leave usage unavailable or preserve its last good cache entry;
-they do not fail a model request. Other versions require new evidence.
+they do not fail a model request. Other major versions require new evidence.
 
 A successful result has `success: true` and a `data.usageBreakdowns` array. Only a unique
 `resourceType: "CREDIT"` entry supplies `used_credits` from `used` and, when `hasLimit: true`,

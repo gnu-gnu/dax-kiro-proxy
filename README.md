@@ -26,16 +26,20 @@ Read these documents before implementation:
 11. `IMPLEMENTATION_DECISIONS.md` — adopted wire, lifecycle, and resource policies.
 12. `DEVELOPMENT_STATUS.md` — implementation evidence and remaining acceptance gates.
 13. `LIVE_KIRO_TEST_PLAN.md` — bounded opt-in client-denial/native-effect experiments and their limits.
+14. `HANDOFF_REVIEW_2026-09-11.md` — review brief for D109–D120: decisions needing judgment,
+    production changes, verification state, open items and the commit map.
 
 `AGENTS.md` makes this reading order mandatory for coding agents.
 
 ## Current phase
 
 The user selected Go and authorized implementation through the complete standalone product. The
-specification-only baseline is `7b108dd`. Phase 0 reports retain the historical unmeasured experiment
-design; the explicit language selection supersedes comparative experiments as a selection gate.
-Rights/license and live-release gates remain open. Implementation begins with independent fixtures
-and fake-process transport tests. Consult DEVELOPMENT_STATUS.md for verified progress.
+specification-only baseline is `7b108dd`. Phase 0 reports retain the historical unmeasured
+experiment design; the explicit language selection supersedes comparative experiments as a selection
+gate. Rights/license and live-release gates remain open. Implementation began with independent
+fixtures and fake-process transport tests and now reaches an installed development artifact (D118);
+consult DEVELOPMENT_STATUS.md for verified progress and `HANDOFF_REVIEW_2026-09-11.md` for the
+D109–D120 review brief.
 
 ## Development commands
 
@@ -148,13 +152,12 @@ ACP process has a separate relay-only agent directory. The client continues to d
 permissions and execute tools.
 
 `doctor` succeeding means its checks completed; inspect `launch_available` and `policy` separately.
-`client_version` is the detected build; `client_version_measured` says whether it is the measured
-one.
-For this measured combination, successful login and policy checks report `launch_available: true`
-and `policy: verified`. This means
-the measured development policy is available, not that the client has initialized or all release
-gates have passed. The compiled run command's full terminal/startup/tool/shutdown composition passes
-with independent fake processes. This development build is not a release.
+`client_version` and `kiro_version` are the detected builds; `client_version_measured` and
+`kiro_version_measured` say whether each is the measured one. For this measured combination,
+successful login and policy checks report `launch_available: true` and `policy: verified`. This
+means the measured development policy is available, not that the client has initialized or all
+release gates have passed. The compiled run command's full terminal/startup/tool/shutdown
+composition passes with independent fake processes. This development build is not a release.
 
 For a local per-user installation of the development executable:
 
@@ -177,22 +180,26 @@ be recovered by retrying, while incomplete/changed artifacts require inspection 
 Tests cover an isolated HOME on the current macOS arm64 host, including self reinstall/uninstall;
 clean-host release installation and complete license clearance remain open (D79).
 
+Every live control named in this section was re-verified on the measured Kiro 2.21.3 / Claude Code
+2.1.267 pair on 2026-09-11 (D113, D114); the version names below record the build each was first
+measured on.
+
 The initial-session native-effect challenge and real-client Read-hook refusal both pass freshly on
-Kiro 2.21.2, with unchanged files and joined process cleanup. Six actual Kiro 2.21.2 / Claude 2.1.263
-cases now also verify allowed Read/Write/Bash, denied Write/Bash and Bash hook vetoes, including
-matching results, effects and cleanup. Relay descriptions explicitly associate opaque wire names
-with original client names. Interactive Write/Bash approval and refusal with a comment pass with fake ACP;
-the Write content/permission screen is checked before input. Bare refusal now verifies cleanup at
-the existing deadline and safe recreation for a following question, using actual Claude with fake
-ACP. The shared launcher configuration also passes actual Bash approval and hook refusal. Actual
-Kiro/client runtime cancellation after a delivered Read handoff and held client hook joins all
-observed processes/artifacts (D74). D81 below verifies process-loss recovery, and D82 verifies typed
-Ctrl+C during a streamed response. D86 below verifies idle model selection for a measured pair;
-persisted resume and broader cancellation paths remain alpha work. D117 measures the pinned Kiro
-build's logged-out boundary from a synthetic HOME (one recognized stderr line, exit status 1 at
-initialize) and verifies the client-visible `kiro-cli login` completion after an ordinary question
-and one more answered question in the same session once the login is restored; an actual logout
-during a live session remains a manual check.
+Kiro 2.21.2, with unchanged files and joined process cleanup. Six actual Kiro 2.21.2 / Claude
+2.1.263 cases now also verify allowed Read/Write/Bash, denied Write/Bash and Bash hook vetoes,
+including matching results, effects and cleanup. Relay descriptions explicitly associate opaque wire
+names with original client names. Interactive Write/Bash approval and refusal with a comment pass
+with fake ACP; the Write content/permission screen is checked before input. Bare refusal now
+verifies cleanup at the existing deadline and safe recreation for a following question, using actual
+Claude with fake ACP. The shared launcher configuration also passes actual Bash approval and hook
+refusal. Actual Kiro/client runtime cancellation after a delivered Read handoff and held client hook
+joins all observed processes/artifacts (D74). D81 below verifies process-loss recovery, and D82
+verifies typed Ctrl+C during a streamed response. D86 below verifies idle model selection for a
+measured pair; persisted resume and broader cancellation paths remain alpha work. D117 measures the
+pinned Kiro build's logged-out boundary from a synthetic HOME (one recognized stderr line, exit
+status 1 at initialize) and verifies the client-visible `kiro-cli login` completion after an
+ordinary question and one more answered question in the same session once the login is restored; an
+actual logout during a live session remains a manual check.
 
 On Kiro 2.21.2, seven initial-session file-resource controls pass: active inherited files disappear
 when default-resource inheritance is disabled, including with a separate session workspace. An
@@ -207,12 +214,13 @@ hook-denial round trip through the real gateway/validator/relay with fake ACP. E
 continuations can recreate after a changed standing instruction, validated tool registry (D70), or
 successful tool results followed by client text (D73), with joined cleanup, one original deadline
 and a default limit of sixteen recreations per turn. Unchanged result-only continuations keep their
-prompt. Recreation adds provider work and loses hidden backend
-context. Actual Kiro also passes default-tool Read hook refusal and one joined recreation (D71), with
-all 25 client tools and ordinary thinking/context declarations. D72's actual registry experiment
-reaches the wait, expanded tools, one plugin call and joined cleanup, but fails its final-answer
-marker condition; the full live plugin gate remains open. Other lifecycle paths remain alpha
-checks. No general Messages/API compatibility is implied.
+prompt. Recreation adds provider work and loses hidden backend context. Actual Kiro also passes
+default-tool Read hook refusal and one joined recreation (D71), with all 25 client tools and
+ordinary thinking/context declarations. D72's actual registry experiment reaches the wait, expanded
+tools, one plugin call and joined cleanup, but fails its final-answer marker condition; D119 later
+closes the actual-Kiro plugin skill and hook gate, leaving remote marketplaces and mid-session
+plugin changes open. Other lifecycle paths remain alpha checks. No general Messages/API
+compatibility is implied.
 
 Actual Kiro 2.21.2 and Claude 2.1.263 now also verify process loss before Read delivery, a client-visible
 error, joined old cleanup and a fresh text request in a new process (D81). Two requests produce one
@@ -275,15 +283,15 @@ preservation work; see decision D64 for the measured limits.
 
 D101 connects account usage to `run`. Status reads return immediately from a 60-second cache; an
 asynchronous refresh uses a fresh empty-agent Kiro session with a 15-second deadline and no model
-prompt. The measured 2.21.2 adapter reports server-provided used credits and, when present, their
-limit. It does not infer a remaining balance or combine supplemental credit buckets. One native
-refresh passes with preserved source settings and joined process/file cleanup. Failed refreshes
-retain the last good/model-only view. `doctor` and `models` do not start usage sessions. D103 also
-verifies that the actual Claude status line shows a cold view followed by the reported account
-usage, with no model request and joined cleanup. Independent delayed/failing cache controls verify
-retained values marked stale and cancellation while the UI remains responsive. Nonempty
-bonus/add-on/enterprise payloads remain separate checks; this optional feature does not change
-development-launch admission.
+prompt. The measured 2.21.3 adapter (2.21.2 when D101 was recorded) reports server-provided used
+credits and, when present, their limit. It does not infer a remaining balance or combine
+supplemental credit buckets. One native refresh passes with preserved source settings and joined
+process/file cleanup. Failed refreshes retain the last good/model-only view. `doctor` and `models`
+do not start usage sessions. D103 also verifies that the actual Claude status line shows a cold view
+followed by the reported account usage, with no model request and joined cleanup. Independent
+delayed/failing cache controls verify retained values marked stale and cancellation while the UI
+remains responsive. Nonempty bonus/add-on/enterprise payloads remain separate checks; this optional
+feature does not change development-launch admission.
 
 Standard user plugins now also have a read-only seed path into the temporary profile. Full print
 startup checks an owned plugin's MCP initialization/discovery, disable/re-enable behavior and source
@@ -361,10 +369,11 @@ features, full Anthropic API coverage and release soak tests are not development
 A bounded independent-process concurrency test now covers 1,024 local HTTP requests across 64 waves
 and eight simultaneous sessions. All 512 observed ACP process/group instances are joined, with
 stable settled descriptor/goroutine counts and recorded Go heap bounds (D94). This short fixture
-test does not complete actual-client, pending-tool or long-duration release soak.
-D95 separately covers 256 concurrent single-call denial/recovery episodes and 32 foreign-history
-rejections, with all 512 ACP groups and 512 relay children/config directories cleaned. Its finite
-fixture evidence still leaves actual-client, multi-call/shared-process and long-duration soak open.
+test did not complete actual-client, pending-tool or long-duration soak; D95 and D120 add those
+runs. D95 separately covers 256 concurrent single-call denial/recovery episodes and 32
+foreign-history rejections, with all 512 ACP groups and 512 relay children/config directories
+cleaned. Its finite fixture evidence left actual-client and long-duration soak to D120;
+multi-call/shared-process soak remains open.
 
 D96 removes a fixed one-second idle relay shutdown delay by closing accepted connections
 immediately, while retaining handler/peer joins and cleanup failures. The same 544-request fixture
