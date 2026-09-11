@@ -14,9 +14,11 @@ does not redefine completion around an intermediate phase.
   a retired tool-wait outcome for identical resubmissions, and exposes `--tool-timeout` (15m),
   `--turn-timeout` (30m) and `--first-event-timeout` (90s) with validated ranges. Production change;
   the artifact snapshot is recorded in DEPENDENCY_REVIEW.md. Verified with the measured Claude Code
-  2.1.267 (eleven compiled-command controls, 102.665s) after the host client self-updated to 2.1.268
-  on 2026-09-12, on which twelve tool-result controls and the output-style control fail on `main` as
-  well (60 of 73 pass); measuring 2.1.268 is a separate decision.
+  2.1.267: eleven compiled-command controls (102.665s) and the complete installed-client batch (72
+  of 73, the one load-sensitive failure passing three standalone reruns). The host client
+  self-updated to 2.1.268 on 2026-09-12; on it this branch passes 60 of 73 and the thirteen failing
+  controls (twelve tool-result paths, one output-style) fail identically on `main` (13 of 13);
+  measuring 2.1.268 is a separate decision.
 - D121 completes the dependency inventory for the darwin/arm64 development artifact and, at the
   owner's direction, moves the owner's rights checklist (ownership, provenance, employer policy,
   Kiro/client service terms, distribution, project license) outside this repository's gates; nothing

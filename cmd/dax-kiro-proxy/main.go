@@ -138,9 +138,10 @@ launch/diagnostic options:
 run options:
   --client-history retain native conversation data in ~/.claude/projects
   --resume UUID    resume a native conversation; implies --client-history
-  --tool-timeout D        wait for one client tool result (default 15m; 30s..1h)
-  --turn-timeout D        bound one model turn including tool waits (default 30m; 1m..1h)
-  --first-event-timeout D wait for the first model event (default 90s; 10s..turn-timeout)
+  --tool-timeout D wait for one client tool result (default 15m; 30s..1h, at most --turn-timeout)
+  --turn-timeout D bound one model turn including tool waits (default 30m or the tool wait; 1m..1h)
+  --first-event-timeout D
+                   wait for the first model event (default 90s; 10s..--turn-timeout)
 `
 
 func execute(ctx context.Context, args []string, files childproc.AttachedIO, out, diagnostics io.Writer, services commandServices) int {
@@ -477,7 +478,7 @@ func failure(out io.Writer, err error, client launcher.ClientRunResult) int {
 	case errors.Is(err, launcher.ErrClientVersion):
 		message = "Claude Code installation or version is not supported"
 	case errors.Is(err, launcher.ErrRuntime):
-		message = "cannot prepare the private runtime directory; check --runtime-dir or TMPDIR space and permissions"
+		message = "cannot prepare the private client runtime (directory, profile or backend); check --runtime-dir or TMPDIR space and permissions"
 	case errors.Is(err, gateway.ErrServerBind):
 		message = "cannot bind the loopback gateway; check ephemeral port availability"
 	case errors.Is(err, childproc.ErrStart):

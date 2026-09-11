@@ -470,7 +470,7 @@ func TestSchemaCapacityErrorsAreNotRequestErrors(t *testing.T) {
 	}{
 		{errors.Join(inference.ErrRequest, schemacheck.ErrOverloaded), 429, "overloaded_error"},
 		{errors.Join(inference.ErrRequest, schemacheck.ErrWorker), 502, "api_error"},
-		{errors.Join(inference.ErrRequest, schemacheck.ErrBudget), 502, "api_error"},
+		{errors.Join(inference.ErrRequest, schemacheck.ErrBudget), 400, "time budget"},
 		{errors.Join(inference.ErrRequest, schemacheck.ErrClosed), 502, "api_error"},
 	} {
 		w := request(handler(t, &fakeBackend{err: tc.err}, nil), "POST", "/messages", tokens.Model, message(false))

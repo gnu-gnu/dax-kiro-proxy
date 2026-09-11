@@ -5832,9 +5832,10 @@ not found on PATH or at --kiro/--client"; a present but rejected build is named 
 build names that build), and whose `Unwrap` keeps the component sentinel so every existing
 `errors.Is` check and the doctor rendering are unchanged; malformed version output is never echoed.
 `catalog.ErrModel` now says "requested model is not in the current Kiro catalog; run dax-kiro-proxy
-models" instead of sharing the configuration message; `launcher.ErrRuntime`,
-`gateway.ErrServerBind`, `childproc.ErrStart` and `launcher.ErrGatewayStopped` each get one fixed
-line. No message carries a path, account value or prompt.
+models" instead of sharing the configuration message; `launcher.ErrRuntime` (private client runtime:
+directory, profile or backend), `gateway.ErrServerBind`, `childproc.ErrStart` and
+`launcher.ErrGatewayStopped` each get one fixed line. No message carries a path, account value or
+prompt.
 
 Schema-check queuing and status. The schema-check pool waits a bounded `QueueTimeout` (default two
 seconds, at most thirty) for a worker slot instead of refusing the moment both workers are busy;
@@ -5842,15 +5843,16 @@ checks take milliseconds, so concurrent requests from parallel subagents queue r
 closing the pool releases waiters. The worker's compile cache grows from 16 to 64 entries so a
 client tool set with MCP additions is not recompiled on every request; entries stay bounded by the
 schema byte limit and the worker's memory limit. When the queue still overflows, the gateway maps
-`schemacheck.ErrOverloaded` to HTTP 429 `overloaded_error` and a worker, budget or closed-pool
-failure to 502 `api_error`, checked before the request-error mapping; the driver's error chain is
-unchanged.
+`schemacheck.ErrOverloaded` to HTTP 429 `overloaded_error`, a worker or closed-pool failure to 502
+`api_error`, and a schema that exhausts the worker's per-check budget, a property of the request, to
+a distinct 400; all are checked before the generic request-error mapping, and the driver's error
+chain is unchanged.
 
 Retired outcomes and deadlines. A retired tool-wait outcome now answers every identical resubmission
 (same owner, same result set) with the same terminal error until it expires after five minutes or a
 new turn starts, instead of being consumed by the first read; a foreign batch still rejects, and the
 all-denial recovery path is unchanged. `LaunchOptions` gains `ToolTimeout` (default fifteen minutes,
-30s..1h), `TurnTimeout` (default thirty minutes, 1m..1h, at least the tool wait) and
+30s..1h), `TurnTimeout` (default thirty minutes, or the tool wait when only that is given; 1m..1h, at least the tool wait) and
 `FirstEventTimeout` (default ninety seconds, 10s..turn), exposed as `run --tool-timeout`,
 `--turn-timeout` and `--first-event-timeout`; the launcher passes them to the relay limits, the
 session driver and the gateway, which previously used their package defaults (five minutes, ten
@@ -5866,21 +5868,26 @@ ranges, the version naming for parsed and malformed builds, and every new diagno
 exit code and the phrases it must not contain. The whole-repository opt-ins-off race suite passes
 (27 packages; interop 31.531s, launcher 33.673s, session 30.107s; `d122-all-race.log`) and vet
 passes. The eleven compiled-command controls pass with the independent Kiro fixture and the measured
-Claude Code 2.1.267 (102.665s package, `d122-compiled-run-2.1.267.log`). That build had to be named
-explicitly: the host's client updated itself to 2.1.268 at 00:29 on 2026-09-12, which D110 admits
-unmeasured, and on that build the two held-hook controls fail identically on this branch and on
-`main` (a third ACP prompt starts after a released hook instead of the result resolving;
-`d122-compiled-run.log`, `d122-bisect.log`, `d122-bisect2.log`), so the failure is the client's, not
-this decision's. The complete installed-client batch on 2.1.268 passes 60 of 73 controls; the
-thirteen failures are twelve tool-result paths and the personal output-style control
-(`d122-client-2.1.268-batch.log`). Measuring 2.1.268 and deciding whether it can be admitted for
-tool use is a separate D113-style decision that this record does not make; until then the measured
-pair remains Kiro 2.21.3 / Claude Code 2.1.267, kept at `~/.local/share/claude/versions/2.1.267` on
-this host. The rebuilt development artifact and its `run-diagnostics` inventory are recorded in
-DEPENDENCY_REVIEW.md and installed; its doctor on this host reports login and execution policy
-verified, launch available, Kiro 2.21.3 measured and Claude Code 2.1.268 unmeasured. Three bounded
-observations of the installed command from a pipe, with the user's HOME and no client launched: `run
-</dev/null` completes every preflight phase and exits 2 with "run needs a foreground terminal" after
-removing its runtime directory (runtime_cleanup 3ms); `run --tool-timeout 0s` is a usage error; `run
---model no-such-model-zz` exits 2 with the catalog message naming `dax-kiro-proxy models`
-(`d122-install.log`, `d122-run-nontty.log`).
+Claude Code 2.1.267 (102.665s package, `d122-compiled-run-2.1.267.log`). The complete
+installed-client batch on this branch with 2.1.267 passes 72 of 73 controls (586.576s package,
+`d122-client-2.1.267-batch.log`); the one failure, the interrupted resumed tool-policy control,
+passes three consecutive standalone runs (28.39–29.87s, `d122-interrupted-resume-rerun.log`) and is
+load-sensitive, not a regression. That build had to be named explicitly: the host's client updated
+itself to 2.1.268 at 00:29 on 2026-09-12, which D110 admits unmeasured. On 2.1.268 the two held-hook
+compiled-command controls fail on this branch (a third ACP prompt starts after a released hook
+instead of the result resolving; `d122-compiled-run.log`), reverting each change of this decision
+does not help (`d122-bisect.log`, `d122-bisect2.log`), and the complete batch on this branch passes
+60 of 73 (`d122-client-2.1.268-batch.log`); the thirteen failures, twelve tool-result paths and the
+personal output-style control, fail identically on `main` in a separate worktree with 2.1.268 (13 of
+13, 260.654s, `d122-main-2.1.268-failing.log`), so they are the client's, not this decision's.
+Measuring 2.1.268 and deciding whether it can be admitted for tool use is a separate D113-style
+decision that this record does not make; until then the measured pair remains Kiro 2.21.3 / Claude
+Code 2.1.267, kept at `~/.local/share/claude/versions/2.1.267` on this host. The rebuilt development
+artifact and its `run-diagnostics` inventory are recorded in DEPENDENCY_REVIEW.md and installed; its
+doctor on this host reports login and execution policy verified, launch available, Kiro 2.21.3
+measured and Claude Code 2.1.268 unmeasured. Three bounded observations of the installed command
+from a pipe, with the user's HOME and no client launched: `run </dev/null` completes every preflight
+phase and exits 2 with "run needs a foreground terminal" after removing its runtime directory
+(runtime_cleanup 3ms); `run --tool-timeout 0s` is a usage error; `run --model no-such-model-zz`
+exits 2 with the catalog message naming `dax-kiro-proxy models` (`d122-install.log`,
+`d122-run-nontty.log`).

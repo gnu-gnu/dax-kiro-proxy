@@ -59,14 +59,15 @@ go build -o ./dist/dax-kiro-proxy ./cmd/dax-kiro-proxy
 To retain native Claude conversation data across launches, use `run --client-history`. To resume a
 known native session, use `run --resume <UUID>`; this implies history retention. `run
 --tool-timeout`, `--turn-timeout` and `--first-event-timeout` (D122) bound one client tool result
-(default 15m, 30s..1h), one model turn including its tool waits (default 30m, 1m..1h) and the wait
-for the first model event (default 90s, 10s..turn); an interactive session itself is bounded at
-seven days, after which the client is closed with a diagnostic naming that limit. A closed terminal
-window (SIGHUP) runs the same cleanup as Ctrl+C. These options share `~/.claude/projects` with the
-native client, including its conversation text, auto-memory and other data under that directory.
-Claude controls its formats and retention; ordinary Claude sessions can access that same data.
-Source settings remain separate, and temporary routing credentials are removed on exit. Without
-these options, the client profile and its conversations are ephemeral.
+(default 15m, 30s..1h, at most the turn deadline), one model turn including its tool waits (default
+30m or the tool wait when only that is given, 1m..1h) and the wait for the first model event
+(default 90s, 10s..turn); an interactive session itself is bounded at seven days, after which the
+client is closed with a diagnostic naming that limit. A closed terminal window (SIGHUP) runs the
+same cleanup as Ctrl+C. These options share `~/.claude/projects` with the native client, including
+its conversation text, auto-memory and other data under that directory. Claude controls its formats
+and retention; ordinary Claude sessions can access that same data. Source settings remain separate,
+and temporary routing credentials are removed on exit. Without these options, the client profile and
+its conversations are ephemeral.
 
 D87 verifies explicit-ID text resume with fresh profiles, addresses, tokens and backend processes,
 using both an independent ACP peer and actual Kiro. D88 also verifies ordinary terminal `run`,

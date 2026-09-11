@@ -366,7 +366,9 @@ func normalizeLaunchOptions(opts LaunchOptions) (LaunchOptions, error) {
 		opts.ToolTimeout = DefaultToolTimeout
 	}
 	if opts.TurnTimeout == 0 {
-		opts.TurnTimeout = DefaultTurnTimeout
+		// An explicit tool wait longer than the default turn raises the unset turn deadline to match,
+		// so --tool-timeout alone never fails the coupling check below.
+		opts.TurnTimeout = max(DefaultTurnTimeout, opts.ToolTimeout)
 	}
 	if opts.FirstEventTimeout == 0 {
 		opts.FirstEventTimeout = DefaultFirstEventTimeout

@@ -372,7 +372,7 @@ func TestDiagnosticsNameTheFailureClass(t *testing.T) {
 		{"kiro-version", &launcher.VersionError{Component: "kiro-cli", Found: "3.0.0", Expected: "major version 2", Sentinel: launcher.ErrKiroVersion}, launcher.ClientRunResult{}, 1, "kiro-cli 3.0.0 is not supported; expected major version 2", ""},
 		{"client-version", &launcher.VersionError{Component: "Claude Code", Found: "1.0.0", Expected: "major version 2", Sentinel: launcher.ErrClientVersion}, launcher.ClientRunResult{}, 1, "Claude Code 1.0.0 is not supported", ""},
 		{"kiro-version-unnamed", &launcher.VersionError{Component: "kiro-cli", Sentinel: launcher.ErrKiroVersion}, launcher.ClientRunResult{}, 1, "Kiro installation or version is not supported", "expected"},
-		{"runtime", launcher.ErrRuntime, launcher.ClientRunResult{}, 1, "runtime directory", "startup or client"},
+		{"runtime", launcher.ErrRuntime, launcher.ClientRunResult{}, 1, "private client runtime", "startup or client"},
 		{"bind", gateway.ErrServerBind, launcher.ClientRunResult{}, 1, "loopback gateway", "startup or client"},
 		{"start", childproc.ErrStart, launcher.ClientRunResult{}, 1, "cannot start the Claude Code executable", "startup or client"},
 		{"gateway-stopped", launcher.ErrGatewayStopped, launcher.ClientRunResult{ClientPID: 42, ExitCode: -1}, 1, "gateway stopped", "startup or client"},

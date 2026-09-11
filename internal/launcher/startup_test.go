@@ -328,6 +328,11 @@ func TestLaunchOptionTimeoutsDefaultAndValidate(t *testing.T) {
 			t.Fatal("out-of-range timeout accepted", err)
 		}
 	}
+	tool := startupOptions(t)
+	tool.ToolTimeout = 45 * time.Minute
+	if normalized, err := normalizeLaunchOptions(tool); err != nil || normalized.TurnTimeout != 45*time.Minute {
+		t.Fatal("explicit tool wait did not raise the unset turn deadline", err)
+	}
 	good := startupOptions(t)
 	good.ToolTimeout, good.TurnTimeout, good.FirstEventTimeout = time.Hour, time.Hour, time.Hour
 	if _, err := normalizeLaunchOptions(good); err != nil {
