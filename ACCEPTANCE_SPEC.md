@@ -413,21 +413,25 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
   terminal ownership/settings and existing signal handling are restored after success, failure,
   cancellation and failed exec without closing the caller's descriptors.
 - Pool limits and idle/session TTLs hold under concurrency and do not evict active or pending-tool state.
-- Exercise repeated concurrent HTTP completion, same-session streaming, cancellation and fresh-session
-  admission through independent ACP processes. Require live response readiness before cancellation,
-  exact continuation ownership/deltas, joined recorded groups and zero remaining handlers/connections
-  before each next wave. Observe OS descriptors and post-GC Go heap/goroutines with a declared finite
-  budget, and reject observer controls with retained descriptors, wrong history or terminal output
-  substituted for cancellation. D94 covers 64 waves/1,024 requests with eight concurrent sessions;
-  its short text-only fixture run does not complete actual-client, pending-tool or long-duration soak.
+- Exercise repeated concurrent HTTP completion, same-session streaming, cancellation and
+  fresh-session admission through independent ACP processes. Require live response readiness before
+  cancellation, exact continuation ownership/deltas, joined recorded groups and zero remaining
+  handlers/connections before each next wave. Observe OS descriptors and post-GC Go heap/goroutines
+  with a declared finite budget, and reject observer controls with retained descriptors, wrong
+  history or terminal output substituted for cancellation. D94 covers 64 waves/1,024 requests with
+  eight concurrent sessions; its short text-only fixture run does not complete actual-client,
+  pending-tool or long-duration soak; D120 runs it at 64 waves and adds a many-turn actual-client
+  soak that samples the proxy's resident size, descriptors and process-group size after every turn
+  with a declared warm-up envelope.
 - Also exercise concurrent delivered tool batches after their HTTP responses finish. A syntactically
   valid request pairing another session's call ID must reject while all original pending owners
-  remain available. Matching denials plus new questions must join old ACP/relay ownership and preserve
-  exact original history in fresh responses without another handoff. Bound idle eviction and final
-  cleanup across repeated waves; observe relay PID/group membership and config/directory removal
-  independently of pool counters. D95 covers eight single-call sessions for 32 waves, including
-  steady descriptor/Go-goroutine counts and a declared heap envelope. Multi-call batches, real clients,
-  prepared policy, shared ACP processes, native RSS and long-duration soak remain separate checks.
+  remain available. Matching denials plus new questions must join old ACP/relay ownership and
+  preserve exact original history in fresh responses without another handoff. Bound idle eviction
+  and final cleanup across repeated waves; observe relay PID/group membership and config/directory
+  removal independently of pool counters. D95 covers eight single-call sessions for 32 waves,
+  including steady descriptor/Go-goroutine counts and a declared heap envelope. Multi-call batches,
+  prepared policy, shared ACP processes and native RSS remain separate checks; D120 records the
+  32-wave run and the actual-client many-turn soak.
 - Prepared policy cleanup occurs once after ACP/router shutdown and before releasing capacity.
   Repeated idle release joins the same cleanup result. A retired cleanup failure remains visible to
   pool shutdown and prevents admission of further launch artifacts.

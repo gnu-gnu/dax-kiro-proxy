@@ -5655,3 +5655,44 @@ Limits: this measures a local, independently authored marketplace and plugin; re
 the actual backend, Kiro-side skills and agents (suppressed by the launch configuration),
 mid-session plugin enable/disable and the interactive MCP-panel path remain separate work, as D70
 records. Test-only change; the D118 artifact remains current.
+
+## D120: long fixture soak and a many-turn actual-client soak with resource sampling
+
+The release-candidate stage requires parallel soak and FD/process/memory checks. D94 and D95 bound
+eight concurrent sessions over waves with declared descriptor, goroutine and heap envelopes, but
+their defaults are short, and no control had driven the real client through many turns of one
+session while watching the proxy process itself. This decision records both, with the independent
+Kiro fixture and no credits.
+
+The existing churn controls ran at their maximum declared wave counts. Sixty-four waves of eight
+concurrent text sessions, 1,024 requests and 512 joined process groups, end with five descriptors,
+two goroutines and a post-GC heap below one MiB against a six-descriptor, four-goroutine baseline
+(4.48s). Thirty-two waves of eight concurrent pending-tool denials, 512 joined groups and 512 joined
+relays, end at the same floor from a 70-descriptor, 108-goroutine baseline (9.61s). Both keep their
+declared envelopes throughout (`d120-churn-64.log`, `d120-pending-churn-32.log`).
+
+The compiled-command terminal observer gains a `soak-turns` mode. After the ordinary first turn the
+observer types numbered questions one at a time, each admitted by a parent counter that the
+independent Kiro fixture checks before answering with the echoed marker, and after every completed
+turn it samples the owned proxy process through finite system commands: resident size (`ps`), open
+descriptors (`lsof`) and the size of its process group (`pgrep`). Titles are admitted freely within
+the declared turn budget because the client may retitle a long session. The control requires every
+turn admitted, answered and visible, one first-turn end, no cancellation or guard failure, and,
+after a three-turn warm-up, a last sample within 32 MiB of resident growth, four descriptors and the
+same owned process count. Twenty turns pass in 14.59s with the proxy at 16,464 KiB resident, 22
+descriptors and two owned processes after warm-up and 18,240 KiB, 22 and two at the end
+(`d120-soak-20.log`); 100 turns pass in 27.52s with 17,776 KiB, 22 descriptors and two processes
+after warm-up and 20,736 KiB, 22 and two at the end (`d120-soak-100.log`). Two first 100-turn
+attempts stopped near 64 turns at the observer's own bounds, the fixture's 64 KiB per-process
+receipt file and the 256 KiB of retained raw terminal output, both filled by fixed-shape records and
+redraws; the soak mode now raises the receipt, capture and lifetime bounds in proportion to its
+declared budget while every other mode keeps them, and `DAX_INTEROP_SOAK_TURNS` accepts 5..200 for
+longer runs.
+
+Limits: the fixture answers instantly, so this is a lifecycle and resource soak of the proxy, client
+and relay path, not a throughput or provider measurement; the proxy's resident size is sampled by
+the observer, not by the product; native Kiro resident size and a credit-consuming live soak remain
+separate; concurrency and many-turn soak are measured separately, not combined. Every
+compiled-command control passes after the observer's bounds became per-mode parameters (106.791s
+package, `d120-compiled-run.log`); the interop race package (29.972s) and vet pass. No production
+change; the D118 artifact remains current.

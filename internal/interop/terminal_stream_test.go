@@ -8,8 +8,10 @@ import (
 	"net"
 	"net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"syscall"
 	"testing"
@@ -96,6 +98,7 @@ type terminalReceipt struct {
 	InterruptedForm string `json:"interrupted_form"`
 	FollowScope     bool   `json:"follow_scope"`
 	RecoveryScope   bool   `json:"recovery_scope"`
+	SoakScope       int    `json:"soak_scope"`
 	OldInput        bool   `json:"old_input"`
 	NewInput        bool   `json:"new_input"`
 	PartialMarker   bool   `json:"partial_marker"`
@@ -127,6 +130,7 @@ type terminalTrace struct {
 	Hook, HookHeld, HookReleased, HookInterrupted, HookPost                                   int
 	AuthExits                                                                                 int
 	RecoveryPrompts, RecoveryTexts, RecoveryEnds, RecoveryACP                                 int
+	SoakPrompts, SoakTexts, SoakEnds                                                          int
 	RelayCalls, RelayResults                                                                  int
 	Client, ACP, Agent, Proxy, Supervisor                                                     int
 	Foreground                                                                                int
@@ -140,6 +144,12 @@ type terminalTrace struct {
 }
 
 func readTerminalTrace(root string) (terminalTrace, error) {
+	return readTerminalTraceBounded(root, 64<<10, 512<<10)
+}
+
+// readTerminalTraceBounded reads the owned receipts within explicit per-file and total byte bounds;
+// the soak mode raises them in proportion to its declared turn budget.
+func readTerminalTraceBounded(root string, fileLimit, totalLimit int64) (terminalTrace, error) {
 	var trace terminalTrace
 	entries, err := os.ReadDir(filepath.Join(root, "events"))
 	if err != nil || len(entries) > 32 {
@@ -149,12 +159,12 @@ func readTerminalTrace(root string) (terminalTrace, error) {
 	groups, pids := map[int]bool{}, map[int]bool{}
 	for _, entry := range entries {
 		info, err := entry.Info()
-		if err != nil || !info.Mode().IsRegular() || info.Size() > 64<<10 {
+		if err != nil || !info.Mode().IsRegular() || info.Size() > fileLimit {
 			return trace, errors.New("terminal receipt file")
 		}
 		data, err := os.ReadFile(filepath.Join(root, "events", entry.Name()))
 		total += len(data)
-		if err != nil || total > 512<<10 {
+		if err != nil || int64(total) > totalLimit {
 			return trace, errors.New("terminal receipt bytes")
 		}
 		lines := strings.Split(string(data), "\n")
@@ -230,6 +240,8 @@ func readTerminalTrace(root string) (terminalTrace, error) {
 			case "prompt":
 				if r.TitleScope {
 					trace.TitlePrompts++
+				} else if r.SoakScope > 0 {
+					trace.SoakPrompts++
 				} else if r.RecoveryScope {
 					trace.RecoveryPrompts++
 					trace.RecoveryACP = r.Group
@@ -256,7 +268,9 @@ func readTerminalTrace(root string) (terminalTrace, error) {
 					trace.SummaryHints++
 				}
 			case "text":
-				if !r.TitleScope && r.RecoveryScope {
+				if !r.TitleScope && r.SoakScope > 0 {
+					trace.SoakTexts++
+				} else if !r.TitleScope && r.RecoveryScope {
 					trace.RecoveryTexts++
 				} else if !r.TitleScope && r.FollowScope {
 					trace.FollowTexts++
@@ -272,6 +286,8 @@ func readTerminalTrace(root string) (terminalTrace, error) {
 			case "end":
 				if r.TitleScope {
 					trace.TitleEnds++
+				} else if r.SoakScope > 0 {
+					trace.SoakEnds++
 				} else if r.RecoveryScope {
 					trace.RecoveryEnds++
 				} else if r.FollowScope {
@@ -348,6 +364,37 @@ func TestCompiledRunInterruptedFollowupWithFakeACP(t *testing.T) {
 // One ordinary question completes, then the independent peer reproduces the measured logged-out
 // boundary on the next question (D117). The client must show the gateway's login instruction as a
 // normal completion, not an API error, while the original client and proxy stay live until exit.
+// Many ordinary turns in one client session with the independent Kiro fixture (D120): the proxy's
+// resident size, open descriptors and owned process count are sampled after every turn and must
+// stay bounded after a short warm-up, with every turn admitted, answered and cleaned up.
+func TestCompiledRunSoakTurnsWithFakeACP(t *testing.T) {
+	runCompiledTerminalStream(t, "soak-turns", "")
+}
+
+type ownedProcessSample struct{ rssKB, fds, procs int }
+
+// sampleOwnedProcess reads the owned proxy's resident size, open descriptor count and process-group
+// size through finite system commands; a failed sample reads as zero and is visible in the log.
+func sampleOwnedProcess(pid int) ownedProcessSample {
+	var s ownedProcessSample
+	run := func(name string, args ...string) string {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		out, _ := exec.CommandContext(ctx, name, args...).Output()
+		return string(out)
+	}
+	s.rssKB, _ = strconv.Atoi(strings.TrimSpace(run("/bin/ps", "-o", "rss=", "-p", strconv.Itoa(pid))))
+	s.fds = max(0, strings.Count(run("/usr/sbin/lsof", "-p", strconv.Itoa(pid)), "\n")-1)
+	if group, err := syscall.Getpgid(pid); err == nil {
+		s.procs = len(strings.Fields(run("/usr/bin/pgrep", "-g", strconv.Itoa(group))))
+	}
+	return s
+}
+
+func soakPrompt(i int) string {
+	return fmt.Sprintf("Reply with the concatenation of Soak and _%d without spaces, and no other text.", i)
+}
+
 func TestCompiledRunAuthExpiryFollowupWithFakeACP(t *testing.T) {
 	runCompiledTerminalStream(t, "auth-expiry-followup", "")
 }
@@ -408,6 +455,18 @@ func runTerminalScenario(t *testing.T, mode, kiro string, history *terminalHisto
 	authExpiry := mode == "auth-expiry-followup"
 	heldAuth := mode == "held-hook-auth-expiry"
 	trustMode := mode == "trust-dialog"
+	soakMode := mode == "soak-turns"
+	soakTurns := 0
+	if soakMode {
+		soakTurns = 20
+		if raw := os.Getenv("DAX_INTEROP_SOAK_TURNS"); raw != "" {
+			n, err := strconv.Atoi(raw)
+			if err != nil || n < 5 || n > 200 {
+				t.Fatal("DAX_INTEROP_SOAK_TURNS must be between 5 and 200")
+			}
+			soakTurns = n
+		}
+	}
 	var trustPlan *terminalHistoryPlan
 	if history != nil && history.Trust {
 		trustPlan, history = history, nil
@@ -440,6 +499,16 @@ func runTerminalScenario(t *testing.T, mode, kiro string, history *terminalHisto
 		t.Fatal("cannot prepare terminal root")
 	}
 	t.Cleanup(func() { os.RemoveAll(root) })
+	traceFileLimit, traceTotalLimit := int64(64<<10), int64(512<<10)
+	captureLimit, terminalLifetime, scenarioLifetime := 256<<10, 70*time.Second, 2*time.Minute
+	if soakMode {
+		// Every turn redraws the screen and writes fixed-shape receipts; bound both in proportion.
+		traceFileLimit, traceTotalLimit = 2<<20, 8<<20
+		captureLimit += soakTurns * 16 << 10
+		terminalLifetime += time.Duration(soakTurns) * time.Second
+		scenarioLifetime += time.Duration(soakTurns) * time.Second
+	}
+	readTrace := func() (terminalTrace, error) { return readTerminalTraceBounded(root, traceFileLimit, traceTotalLimit) }
 	home, project, bin, artifacts := filepath.Join(root, "home"), filepath.Join(root, "project"), filepath.Join(root, "bin"), filepath.Join(root, "runtime")
 	if history != nil {
 		home, project = history.Home, history.Project
@@ -499,7 +568,7 @@ func runTerminalScenario(t *testing.T, mode, kiro string, history *terminalHisto
 		}
 	}
 	beforeSettings, beforeGlobal := fileFingerprint(t, settings), fileFingerprint(t, filepath.Join(home, ".claude.json"))
-	ctx, stop := context.WithTimeout(t.Context(), 2*time.Minute)
+	ctx, stop := context.WithTimeout(t.Context(), scenarioLifetime)
 	defer stop()
 	runner, err := childproc.New(childproc.Config{Timeout: 45 * time.Second, MaxOutputBytes: 16 << 10})
 	if err != nil {
@@ -568,14 +637,14 @@ func runTerminalScenario(t *testing.T, mode, kiro string, history *terminalHisto
 			args = append(args, "--resume", history.ID)
 		}
 	}
-	config, _ := json.Marshal(map[string]any{"Root": root, "Proxy": proxy, "Client": client, "Kiro": kiro, "AccountHome": os.Getenv("HOME"), "Project": project, "Args": args, "HeldHook": heldHook, "AuthExpiry": authExpiry || heldAuth, "AuthCut": heldAuth, "AllowFollowup": followup || authExpiry || modelCheck, "ModelCheck": modelCheck, "ModelIDs": modelIDs, "ModelEntries": modelEntries, "HistoryStage": historyStage, "HistorySeed": historySeed, "HistoryID": historyID, "HistoryName": historyName})
+	config, _ := json.Marshal(map[string]any{"Root": root, "Proxy": proxy, "Client": client, "Kiro": kiro, "AccountHome": os.Getenv("HOME"), "Project": project, "Args": args, "HeldHook": heldHook, "AuthExpiry": authExpiry || heldAuth, "AuthCut": heldAuth, "SoakTurns": soakTurns, "AllowFollowup": followup || authExpiry || modelCheck, "ModelCheck": modelCheck, "ModelIDs": modelIDs, "ModelEntries": modelEntries, "HistoryStage": historyStage, "HistorySeed": historySeed, "HistoryID": historyID, "HistoryName": historyName})
 	if os.WriteFile(filepath.Join(bin, "terminal.json"), config, 0600) != nil {
 		t.Fatal("cannot write terminal role configuration")
 	}
 	var trace terminalTrace
 	observedGroups := make(map[int]bool)
 	defer func() {
-		if final, err := readTerminalTrace(root); err == nil {
+		if final, err := readTrace(); err == nil {
 			for _, group := range final.Groups {
 				observedGroups[group] = true
 			}
@@ -605,7 +674,7 @@ func runTerminalScenario(t *testing.T, mode, kiro string, history *terminalHisto
 			t.Error("owned terminal group remained after emergency cleanup deadline")
 		}
 	}()
-	owner, err := childproc.NewAttached(childproc.AttachedConfig{Lifetime: 70 * time.Second})
+	owner, err := childproc.NewAttached(childproc.AttachedConfig{Lifetime: terminalLifetime})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -623,6 +692,9 @@ func runTerminalScenario(t *testing.T, mode, kiro string, history *terminalHisto
 	loginMessages, recoveryAttempts := 0, 0
 	var trustDialogSeen, trustAnswered bool
 	var trustKeyAt time.Time
+	soakIndex := 0
+	var soakAt time.Time
+	var soakSamples []ownedProcessSample
 	var historyLoaded, historyAnswered bool
 	var historyPickerSeen, historyPicked bool
 	var historyPickerAt time.Time
@@ -648,9 +720,9 @@ func runTerminalScenario(t *testing.T, mode, kiro string, history *terminalHisto
 	var receiptErr error
 	var canceledAlive, foregroundObserved, exitKey bool
 	var screenHints uint32
-	result, setup, runErr := runObservedTerminal(ctx, owner, command, nil, func(screen string) string {
+	result, setup, runErr := runObservedTerminalLimited(ctx, owner, command, nil, func(screen string) string {
 		var err error
-		trace, err = readTerminalTrace(root)
+		trace, err = readTrace()
 		if err != nil {
 			receiptErr = err
 			return ""
@@ -770,6 +842,18 @@ func runTerminalScenario(t *testing.T, mode, kiro string, history *terminalHisto
 					stage, followupAt = 8, time.Now()
 					return terminalFollowupPrompt
 				}
+			} else if soakMode {
+				if trace.Ends == 1 {
+					soakSamples = append(soakSamples, sampleOwnedProcess(trace.Proxy))
+					soakIndex = 1
+					if os.WriteFile(filepath.Join(root, "soak-allowed"), []byte("1"), 0600) != nil {
+						receiptErr = errors.New("cannot admit owned soak question")
+						stop()
+						return ""
+					}
+					stage, soakAt = 50, time.Now()
+					return soakPrompt(soakIndex)
+				}
 			} else if mode == "natural-completion" || trustMode {
 				if trace.Ends == 1 {
 					stage = 5
@@ -888,6 +972,32 @@ func runTerminalScenario(t *testing.T, mode, kiro string, history *terminalHisto
 				followupObserved = true
 				stage, exitKey = 5, true
 				return "\x04"
+			}
+		case 50:
+			if strings.Contains(strings.Join(strings.Fields(screen), " "), soakPrompt(soakIndex)) {
+				stage = 51
+				return "\r"
+			}
+		case 51:
+			if time.Since(soakAt) > 20*time.Second {
+				receiptErr = fmt.Errorf("soak turn %d not completed", soakIndex)
+				stop()
+				return ""
+			}
+			if trace.SoakEnds >= soakIndex && trace.SoakPrompts >= soakIndex && strings.Contains(screen, "Soak_"+strconv.Itoa(soakIndex)) && syscall.Kill(trace.Client, 0) == nil && syscall.Kill(trace.Proxy, 0) == nil {
+				soakSamples = append(soakSamples, sampleOwnedProcess(trace.Proxy))
+				if soakIndex >= soakTurns {
+					stage, exitKey = 5, true
+					return "\x04"
+				}
+				soakIndex++
+				if os.WriteFile(filepath.Join(root, "soak-allowed"), []byte(strconv.Itoa(soakIndex)), 0600) != nil {
+					receiptErr = errors.New("cannot admit owned soak question")
+					stop()
+					return ""
+				}
+				stage, soakAt = 50, time.Now()
+				return soakPrompt(soakIndex)
 			}
 		case 40:
 			if time.Since(keyAt) > 10*time.Second {
@@ -1043,8 +1153,8 @@ func runTerminalScenario(t *testing.T, mode, kiro string, history *terminalHisto
 			}
 		}
 		return ""
-	}, true)
-	trace, err = readTerminalTrace(root)
+	}, true, captureLimit)
+	trace, err = readTrace()
 	exitLatency := time.Duration(0)
 	if !keyAt.IsZero() {
 		exitLatency = time.Since(keyAt)
@@ -1107,7 +1217,7 @@ func runTerminalScenario(t *testing.T, mode, kiro string, history *terminalHisto
 			t.Fatal("independent model expectation")
 		}
 		expected, _ := models.ClientID(modelIDs[modelSlot-1])
-		after, afterErr := readTerminalTrace(root)
+		after, afterErr := readTrace()
 		modelRestored = inspectErr == nil && json.Unmarshal(inspection.Stdout, &report) == nil && report.SelectedModel == expected && afterErr == nil && after.Clients == before.Clients && after.ACPs == before.ACPs && len(after.PIDs) == len(before.PIDs) && len(after.Groups) == len(before.Groups) && after.Attempts == before.Attempts
 		sources = sources && beforeSettings == fileFingerprint(t, settings) && beforeGlobal == fileFingerprint(t, filepath.Join(home, ".claude.json"))
 	}
@@ -1120,7 +1230,7 @@ func runTerminalScenario(t *testing.T, mode, kiro string, history *terminalHisto
 				lateReleaseQuiet = false
 			}
 			time.Sleep(300 * time.Millisecond)
-			after, err := readTerminalTrace(root)
+			after, err := readTrace()
 			lateReleaseQuiet = lateReleaseQuiet && err == nil && after.HookReleased == 0 && after.HookPost == 0 && after.RelayResults == 0 && after.Prompts == trace.Prompts && after.TitlePrompts == trace.TitlePrompts && after.Ends == 0 && after.Failures == 0 && after.PromptFailures == 0
 		}
 		t.Logf("held_observed=%v hook_held=%d hook_released=%d hook_interrupted=%d hook_post=%d hook_alive_at_exit_confirmation=%v relay_calls=%d relay_results=%d late_release_quiet=%v exit_ms=%d", heldObserved, trace.HookHeld, trace.HookReleased, trace.HookInterrupted, trace.HookPost, hookAtConfirmation, trace.RelayCalls, trace.RelayResults, lateReleaseQuiet, exitLatency.Milliseconds())
@@ -1146,6 +1256,9 @@ func runTerminalScenario(t *testing.T, mode, kiro string, history *terminalHisto
 	if authExpiry || heldAuth {
 		titleLimit = 3
 	}
+	if soakMode {
+		titleLimit = soakTurns + 2
+	}
 	valid := runErr == nil && result.ExitCode == 0 && receiptErr == nil && err == nil && foregroundObserved && exitKey && trace.Exited && trace.ExitCode == 0 && trace.Restored && groupsGone && pidsGone && listenerGone && artifactErr == nil && len(entries) == 0 && os.IsNotExist(profileErr) && sources && trace.Prompts == 1 && trace.TitlePrompts <= titleLimit && trace.Failures == 0 && trace.PromptFailures == 0
 	if history != nil {
 		t.Logf("native_history_stage=%d previous_answer_visible_before_input=%v active_answer_observed=%v history_inputs=%d history_answers=%d", history.Stage, historyLoaded, historyAnswered, trace.HistoryInputs, trace.HistoryAnswers)
@@ -1161,6 +1274,22 @@ func runTerminalScenario(t *testing.T, mode, kiro string, history *terminalHisto
 		valid = valid && heldObserved && trace.HookReleased == 0 && trace.HookPost == 0 && trace.RelayResults == 0 && trace.Ends == 0 && !strings.Contains(string(result.Stdout), "OwnedHookRead_47") && exitLatency < 8*time.Second && lateReleaseQuiet
 	} else if mode == "held-hook-release" {
 		valid = valid && heldObserved && trace.HookReleased == 1 && trace.HookPost == 1 && trace.RelayResults == 1 && trace.Ends == 1 && trace.Cancels == 0
+	} else if soakMode {
+		// Bounded resource facts after a three-turn warm-up: the last sample must stay within 32 MiB
+		// of resident growth, four descriptors and the same owned process count.
+		bounded := len(soakSamples) == soakTurns+1
+		var warm, last, peak ownedProcessSample
+		if len(soakSamples) >= 4 {
+			warm, last = soakSamples[3], soakSamples[len(soakSamples)-1]
+			for _, sample := range soakSamples {
+				peak.rssKB, peak.fds, peak.procs = max(peak.rssKB, sample.rssKB), max(peak.fds, sample.fds), max(peak.procs, sample.procs)
+			}
+			bounded = bounded && warm.rssKB > 0 && warm.fds > 0 && warm.procs > 0 && last.rssKB-warm.rssKB <= 32<<10 && last.fds <= warm.fds+4 && last.procs <= warm.procs
+		} else {
+			bounded = false
+		}
+		t.Logf("soak_turns=%d samples=%d soak_prompts=%d soak_ends=%d soak_texts=%d warm=%+v last=%+v peak=%+v bounded=%v title_prompts=%d", soakTurns, len(soakSamples), trace.SoakPrompts, trace.SoakEnds, trace.SoakTexts, warm, last, peak, bounded, trace.TitlePrompts)
+		valid = valid && bounded && trace.SoakPrompts == soakTurns && trace.SoakEnds == soakTurns && trace.Ends == 1 && trace.Cancels == 0 && trace.Failures == 0
 	} else if trustMode {
 		if trustPlan.Stage == 1 {
 			valid = valid && trustDialogSeen && trustAnswered && trustWritten && trace.Cancels == 0 && trace.Ends == 1

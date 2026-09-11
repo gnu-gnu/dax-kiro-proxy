@@ -404,6 +404,12 @@ func runObservedStatusTerminal(ctx context.Context, owner *childproc.Attached, c
 // Permission tests use only the current reconstructed screen. Historical text must not authorize
 // input after a menu has been erased or replaced. The original status observer retains its contract.
 func runObservedTerminal(ctx context.Context, owner *childproc.Attached, command childproc.Command, observe func(string), nextInput func(string) string, currentScreen bool) (childproc.Result, int, error) {
+	return runObservedTerminalLimited(ctx, owner, command, observe, nextInput, currentScreen, 256<<10)
+}
+
+// runObservedTerminalLimited is runObservedTerminal with an explicit bound on the retained raw
+// terminal output; the many-turn soak declares a bound proportional to its turn budget.
+func runObservedTerminalLimited(ctx context.Context, owner *childproc.Attached, command childproc.Command, observe func(string), nextInput func(string) string, currentScreen bool, captureLimit int) (childproc.Result, int, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	in, input, err := os.Pipe()
@@ -446,7 +452,7 @@ func runObservedTerminal(ctx context.Context, owner *childproc.Attached, command
 				}
 			}
 			n, readErr := output.Read(buffer)
-			if len(raw)+n > 256<<10 {
+			if len(raw)+n > captureLimit {
 				captureErr = childproc.ErrOutputLimit
 				cancel()
 				return

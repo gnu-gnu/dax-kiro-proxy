@@ -6,6 +6,16 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D120 records the long fixture soak and a many-turn actual-client soak. The churn controls at their
+  maximum waves (64 waves/1,024 requests of eight concurrent sessions; 32 waves/512 joined groups
+  and relays of concurrent pending-tool denials) end at the descriptor/goroutine/heap floor within
+  their envelopes. The new `soak-turns` compiled-command control drives the unmodified 2.1.267
+  client through numbered turns of one session with the independent Kiro fixture, sampling the
+  proxy's resident size, descriptors and process-group size after every turn: 20 turns in 14.59s
+  (16,464→18,240 KiB, 22→22 descriptors, 2→2 processes after warm-up) and 100 turns pass in 27.52s
+  with 17,776 KiB, 22 descriptors and two processes after warm-up and 20,736 KiB, 22 and two at the
+  end. Native Kiro resident size and a live soak remain separate. Test-only; the D118 artifact
+  remains current.
 - D119 verifies plugin acceptance against the actual restricted Kiro process through the real
   gateway: the model calls the owned plugin's advertised Skill tool, the client expands the skill,
   and a fresh marker that only the skill's own instruction supplies appears in the final answer

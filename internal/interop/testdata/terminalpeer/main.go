@@ -14,6 +14,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -37,7 +38,10 @@ type config struct {
 	AuthExpiry bool
 	// Reproduce the same boundary while a relayed tool call is still waiting (D117): the process
 	// exits with the login line once the parent writes the auth-cut marker.
-	AuthCut                                         bool
+	AuthCut bool
+	// Answer this many numbered soak questions after the first turn, each with its echoed marker,
+	// so the parent can sample the proxy's resources across many turns in one session (D120).
+	SoakTurns                                       int
 	Root, Proxy, Client, Kiro, AccountHome, Project string
 	Args                                            []string
 }
@@ -48,6 +52,9 @@ var eventBytes int
 var titleScope atomic.Bool
 var followScope atomic.Bool
 var recoveryScope atomic.Bool
+var soakScope atomic.Int32
+var soakTitles atomic.Int32
+var soakPattern = regexp.MustCompile(`concatenation of Soak and _([0-9]{1,3})`)
 
 func record(kind string, values map[string]any) {
 	events.Lock()
@@ -59,9 +66,14 @@ func record(kind string, values map[string]any) {
 	values["title_scope"] = titleScope.Load()
 	values["follow_scope"] = followScope.Load()
 	values["recovery_scope"] = recoveryScope.Load()
+	values["soak_scope"] = soakScope.Load()
 	data, _ := json.Marshal(values)
 	eventBytes += len(data) + 1
-	if eventBytes > 64<<10 {
+	limit := 64 << 10
+	if cfg.SoakTurns > 0 {
+		limit = 2 << 20 // many numbered turns write proportionally more fixed-shape receipts
+	}
+	if eventBytes > limit {
 		os.Exit(72)
 	}
 	f, err := os.OpenFile(filepath.Join(cfg.Root, "events", strconv.Itoa(os.Getpid())+".jsonl"), os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0600)
@@ -244,6 +256,11 @@ func notePrompt(raw []byte) {
 		titleScope.Store(bytes.Contains(lower, []byte("title")))
 		followScope.Store(bytes.Contains(raw, []byte("concatenation of Follow and _49")))
 		recoveryScope.Store(bytes.Contains(raw, []byte("concatenation of Recovered and _53")))
+		soakScope.Store(0)
+		if m := soakPattern.FindSubmatch(raw); m != nil {
+			n, _ := strconv.Atoi(string(m[1]))
+			soakScope.Store(int32(n))
+		}
 		if cfg.ModelCheck {
 			followScope.Store(bytes.Contains(raw, []byte("concatenation of ModelSecond and _67")))
 		}
@@ -305,6 +322,21 @@ func admitObservedPrompt(title, follow bool) error {
 		data, err := os.ReadFile(filepath.Join(cfg.Root, "recovery-allowed"))
 		return cfg.AuthExpiry && err == nil && string(data) == "owned-recovery-question"
 	}
+	if cfg.SoakTurns > 0 {
+		// Soak questions are admitted one at a time by the parent's counter; titles are unbounded
+		// within the declared turn budget because the client may retitle a long session.
+		if title {
+			return admitNamed("prompt-admission-title-" + strconv.Itoa(int(soakTitles.Add(1))))
+		}
+		if n := soakScope.Load(); n > 0 {
+			data, err := os.ReadFile(filepath.Join(cfg.Root, "soak-allowed"))
+			allowed, convErr := strconv.Atoi(strings.TrimSpace(string(data)))
+			if err != nil || convErr != nil || int(n) > allowed || int(n) > cfg.SoakTurns {
+				return errFrame
+			}
+			return admitNamed("prompt-admission-soak-" + strconv.Itoa(int(n)))
+		}
+	}
 	if !title && recoveryScope.Load() {
 		if !recoveryIntent() {
 			return errFrame
@@ -358,6 +390,9 @@ func bridge(target string, env []string) int {
 	if cfg.AllowFollowup {
 		g.maxPrompts = 2
 	}
+	if cfg.SoakTurns > 0 {
+		g.maxPrompts = cfg.SoakTurns + 1
+	}
 	go func() {
 		if err := forward(os.Stdin, stdin, "client", &g); err != nil && !errors.Is(err, io.EOF) {
 			record("guard-failed", nil)
@@ -380,6 +415,9 @@ func fakeACP() {
 	var g frameGuard
 	if cfg.AllowFollowup {
 		g.maxPrompts = 2
+	}
+	if cfg.SoakTurns > 0 {
+		g.maxPrompts = cfg.SoakTurns + 1
 	}
 	var output sync.Mutex
 	send := func(value any) {
@@ -471,6 +509,11 @@ func fakeACP() {
 					text = "ModelSecond_67"
 				}
 				send(map[string]any{"jsonrpc": "2.0", "method": "session/update", "params": map[string]any{"sessionId": "owned-stream", "update": map[string]any{"sessionUpdate": "agent_message_chunk", "content": map[string]string{"type": "text", "text": text}}}})
+				reply(r.ID, map[string]string{"stopReason": "end_turn"})
+				continue
+			}
+			if n := soakScope.Load(); n > 0 && cfg.SoakTurns > 0 {
+				send(map[string]any{"jsonrpc": "2.0", "method": "session/update", "params": map[string]any{"sessionId": "owned-stream", "update": map[string]any{"sessionUpdate": "agent_message_chunk", "content": map[string]string{"type": "text", "text": "Soak_" + strconv.Itoa(int(n))}}}})
 				reply(r.ID, map[string]string{"stopReason": "end_turn"})
 				continue
 			}

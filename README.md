@@ -366,11 +366,14 @@ D95 separately covers 256 concurrent single-call denial/recovery episodes and 32
 rejections, with all 512 ACP groups and 512 relay children/config directories cleaned. Its finite
 fixture evidence still leaves actual-client, multi-call/shared-process and long-duration soak open.
 
-D96 removes a fixed one-second idle relay shutdown delay by closing accepted connections immediately,
-while retaining handler/peer joins and cleanup failures. The same 544-request fixture episode drops
-from 41.61s to 10.67s with all recorded ownership removed. Whole-repository race tests, native-client
-allow/deny/hook controls and actual Kiro/Claude allowed-tool resume pass. These finite measurements
-do not establish general throughput or complete the remaining soak gates.
+D96 removes a fixed one-second idle relay shutdown delay by closing accepted connections
+immediately, while retaining handler/peer joins and cleanup failures. The same 544-request fixture
+episode drops from 41.61s to 10.67s with all recorded ownership removed. Whole-repository race
+tests, native-client allow/deny/hook controls and actual Kiro/Claude allowed-tool resume pass. These
+finite measurements do not establish general throughput. D120 runs the churn controls at their
+maximum waves and adds a many-turn actual-client soak (20 and 100 turns of one session with the
+independent fixture) that samples the proxy's resident size, descriptors and process-group size
+after every turn; native Kiro resident size and a live soak remain separate.
 
 Phase 7 has frozen dependency inventories and retained scoped notices. For the D118 workspace-trust
 development artifact, run `python3 tools/verify_dependency_inventory.py --gomodcache .cache/gomod
