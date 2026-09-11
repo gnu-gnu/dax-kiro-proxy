@@ -107,6 +107,10 @@ func TestClaudeClientMCPSources(t *testing.T) {
 			t.Fatal("invalid owned global fixture")
 		}
 		global["claudeAiMcpEverConnected"] = []string{"dax-owned-connector"}
+		// D115: the reviewed completed-onboarding flag must travel with the projection; a seeded
+		// global theme record is measured as dropped by the natural client and is not projected.
+		global["hasCompletedOnboarding"] = true
+		global["theme"] = "dark"
 		data, err := json.Marshal(global)
 		if err != nil || os.WriteFile(globalPath, data, 0600) != nil {
 			t.Fatal("cannot seed reviewed connector breadcrumb")
@@ -297,8 +301,11 @@ func TestClaudeClientMCPSources(t *testing.T) {
 	}
 	_, breadcrumb := projected["claudeAiMcpEverConnected"]
 	_, declarations := projected["mcpServers"]
-	t.Logf("projection_excludes_breadcrumb=%v, projection_keeps_declarations=%v", !breadcrumb, declarations)
-	if breadcrumb || !declarations {
+	onboarding := string(projected["hasCompletedOnboarding"]) == "true"
+	_, sourceTheme := sourceKeys["theme"]
+	_, projectedTheme := projected["theme"]
+	t.Logf("projection_excludes_breadcrumb=%v, projection_keeps_declarations=%v, projection_keeps_onboarding=%v, natural_client_kept_seeded_theme=%v, projection_copies_theme=%v", !breadcrumb, declarations, onboarding, sourceTheme, projectedTheme)
+	if breadcrumb || !declarations || !onboarding || projectedTheme {
 		t.Error("private projection did not apply the reviewed exclusion while keeping declarations")
 	}
 	if fresh.Close() != nil {

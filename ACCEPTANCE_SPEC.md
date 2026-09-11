@@ -46,6 +46,11 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
   the key at the source, keeps every native scope connecting in fresh prepared profiles, leaves
   source bytes unchanged and shows the projected private file without the key. Every other
   unrecognized MCP-related key must still reject.
+- The projection also carries the reviewed global flag `hasCompletedOnboarding`, and the client
+  environment carries the model token only as the documented Bearer token, so a launch shows no
+  theme, security-notes or API-key dialog (D115). Require the projection control to carry the flag
+  and not the client's theme or key-approval records, the terminal control to observe zero
+  onboarding answers and no dialog or both-variables text, and a malformed flag to reject.
 - Plugin source preservation requires an active full-client startup control and disabled/re-enabled
   counterparts, with source tree entries/content/modes unchanged and observed peer cleanup. Finite
   CLI listings and successful peer initialization do not prove later model-visible tool availability

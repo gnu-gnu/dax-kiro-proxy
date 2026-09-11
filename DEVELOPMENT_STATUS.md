@@ -6,6 +6,21 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D115 removes the per-launch onboarding dialogs at their causes: the prepared client environment
+  carries the ephemeral model token only as `ANTHROPIC_AUTH_TOKEN` (the documented Bearer header,
+  which needs no interactive approval and ends the both-variables warning), and the private
+  `.claude.json` projection carries the reviewed global flag `hasCompletedOnboarding` from the
+  user's file (the theme lives in user settings, which the D24 overlay already carries; a stale
+  global theme record is measured as dropped by the client). Bounded terminal measurements of the
+  unmodified 2.1.267 client showed `hasCompletedOnboarding` alone suppresses the theme picker and
+  security notes and the Bearer token alone suppresses the API-key approval; only the documented
+  folder-trust dialog remains, already projected per project. Launcher unit tests, the client
+  fixture, the D64/D111 projection control and the status-line terminal control (zero onboarding
+  answers, no dialog text) verify it (status control 7.13s, projection control 7.77s); the complete
+  installed-client batch (68 controls, 580.273s package time, 11 terminal observations with zero
+  onboarding answers), launcher/command suites (launcher 28.329s, command 4.008s), race suite
+  (interop 30.144s, launcher 35.328s, session 30.404s) and vet pass. The artifact is rebuilt and
+  frozen as the `onboarding` inventory and installed.
 - D114 admits a Kiro main/helper pair by major version and moves the measured Kiro pin from 2.21.2
   to 2.21.3 after the installed pair updated itself and the exact pin rejected every doctor/run at
   login_check. Preflight requires the same build on both executables and the measured major; startup

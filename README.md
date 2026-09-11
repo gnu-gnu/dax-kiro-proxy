@@ -139,8 +139,10 @@ pairs, other Claude Code major versions and unverified execution platforms are r
 trust override. A same-major Kiro pair or Claude Code build launches without new measurement and
 `doctor` marks it unmeasured (D114, D110). The prepared client environment also keeps the measured
 build's handling of product model IDs: a later build's unknown-model context-window notice is opted
-out (D112). Each launch owns a temporary Kiro configuration with default-resource suppression, and
-each ACP process has a separate relay-only agent directory. The client continues to decide tool
+out (D112). The client receives the ephemeral model token only as a Bearer token, and the private
+profile carries the user's completed-onboarding state, so a launch shows no theme or API-key dialog
+(D115). Each launch owns a temporary Kiro configuration with default-resource suppression, and each
+ACP process has a separate relay-only agent directory. The client continues to decide tool
 permissions and execute tools.
 
 `doctor` succeeding means its checks completed; inspect `launch_available` and `policy` separately.

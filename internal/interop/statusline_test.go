@@ -184,18 +184,18 @@ func observeClaudeStatusUsageCase(t *testing.T, startup *startupObservation, com
 	}
 	before := fileFingerprint(t, settings)
 	proxy := filepath.Join(filepath.Dir(buildRelayObserver(t)), "owned-relay")
+	// https://code.claude.com/docs/en/permissions#project-allow-rules-and-workspace-trust
+	// The owned global file carries documented trust for this empty project and the completed
+	// onboarding state that the projection carries (D115); no imported user config is involved.
+	trusted, encodeErr := json.Marshal(map[string]any{"hasCompletedOnboarding": true, "projects": map[string]any{project: map[string]bool{"hasTrustDialogAccepted": true}}})
+	if encodeErr != nil || os.WriteFile(filepath.Join(home, ".claude.json"), trusted, 0600) != nil {
+		t.Fatal("cannot prepare documented trust and onboarding state for the owned empty project")
+	}
 	profile, err := launcher.PrepareClient(launcher.ClientConfig{RuntimeParent: root, Home: home, Project: project, UserSettings: settings, Executable: clientExecutable, Version: launcher.SupportedClientVersion, Model: model, GatewayURL: server.URL, ModelToken: tokens.Model, UIToken: tokens.UI, StatusExecutable: proxy, Environment: []string{"PATH=/usr/bin:/bin:/usr/sbin:/sbin", "TERM=xterm-256color", "COLUMNS=160", "LINES=40"}})
 	if err != nil {
 		t.Fatal("cannot prepare isolated status client")
 	}
 	defer profile.Close()
-	// https://code.claude.com/docs/en/permissions#project-allow-rules-and-workspace-trust
-	// This is independently authored state for this empty project, with no imported user config.
-	clientState, err := privatefs.Open(filepath.Join(profile.Path(), "client"))
-	trusted, encodeErr := json.Marshal(map[string]any{"projects": map[string]any{project: map[string]bool{"hasTrustDialogAccepted": true}}})
-	if err != nil || encodeErr != nil || clientState.Write(".claude.json", trusted) != nil {
-		t.Fatal("cannot prepare documented trust for the owned empty project")
-	}
 	command := profile.Command()
 	command.Args = append(command.Args, "--tools", "", "--strict-mcp-config", "--mcp-config", emptyMCP)
 	command.Environment = append(command.Environment, "CLAUDE_CODE_SKIP_PROMPT_HISTORY=1")
@@ -330,7 +330,7 @@ func observeClaudeStatusUsageCase(t *testing.T, startup *startupObservation, com
 	noticeVisible := strings.Contains(normalized, "kiro launch status-fixture.")
 	metricsVisible := strings.Contains(normalized, "kiro turn#1 status-fixture") && strings.Contains(normalized, "kiro turn#2 status-fixture")
 	markers := map[string]bool{}
-	for _, marker := range []string{"welcome", "theme", "log in", "login", "trust", "security notes", "claude can make mistakes", "enter to continue", "custom api", "terminal", "continue", "model", "error"} {
+	for _, marker := range []string{"welcome", "theme", "log in", "login", "trust", "security notes", "claude can make mistakes", "enter to continue", "custom api", "both anthropic_auth_token", "terminal", "continue", "model", "error"} {
 		markers[marker] = strings.Contains(normalized, marker)
 	}
 	markers["owned_directory"] = statusProjectVisible(normalized, project)
@@ -365,7 +365,7 @@ func observeClaudeStatusUsageCase(t *testing.T, startup *startupObservation, com
 	if existing != nil && existing.scope == "project_event_only" {
 		minimumCalls = 1
 	}
-	if count < minimumCalls || count > 10 || elapsed == 0 || !visible || messageRequests.Load() != wantModels || backend.starts.Load() != wantModels || metricRequests.Load() != wantMetrics || !groupGone || runner.Active() != 0 || terminalOwner.Active() != 0 || errors.Is(got.err, childproc.ErrCleanup) || errors.Is(got.err, childproc.ErrIO) || errors.Is(got.err, childproc.ErrOutputLimit) || fileFingerprint(t, settings) != before {
+	if got.setupAnswers != 0 || markers["theme"] || markers["custom api"] || markers["both anthropic_auth_token"] || count < minimumCalls || count > 10 || elapsed == 0 || !visible || messageRequests.Load() != wantModels || backend.starts.Load() != wantModels || metricRequests.Load() != wantMetrics || !groupGone || runner.Active() != 0 || terminalOwner.Active() != 0 || errors.Is(got.err, childproc.ErrCleanup) || errors.Is(got.err, childproc.ErrIO) || errors.Is(got.err, childproc.ErrOutputLimit) || fileFingerprint(t, settings) != before {
 		t.Fatal("installed client status refresh or terminal cleanup was not established")
 	}
 	if startup != nil {
@@ -505,6 +505,10 @@ func statusSetupInput(stage int, plain string) (string, int) {
 		if strings.Contains(plain, "custom api key") && strings.Contains(plain, "do you want to use") && strings.Contains(compact, "yes❯no(recommended)") && strings.Contains(compact, "entertoconfirm") {
 			return "\x1b[A", 2
 		}
+		// A Bearer-only environment (D115) shows no key approval; the notes follow the theme directly.
+		if strings.Contains(plain, "security notes") && strings.Contains(plain, "claude can make mistakes") && strings.Contains(plain, "trust") && strings.Contains(plain, "enter to continue") {
+			return "\r", 4
+		}
 	case 2:
 		// A separate render must confirm that the arrow moved to Yes before Enter is sent.
 		if strings.Contains(compact, "❯yes") {
@@ -536,6 +540,8 @@ func TestStatusUISetupInputRequiresRecognizedScreens(t *testing.T) {
 		{0, "welcome theme dark light", "\r", 1},
 		{1, "custom api key do you want to use yes ❯ no (recommended) enter to confirm", "\x1b[A", 2},
 		{2, "❯ yes no (recommended)", "\r", 3},
+		{1, "security notes claude can make mistakes trust enter to continue", "\r", 4},
+		{0, "security notes claude can make mistakes trust enter to continue", "", 0},
 		{0, "theme dark light", "", 0},
 		{1, "❯ yes", "", 1},
 		{2, "❯ no (recommended)", "", 2},

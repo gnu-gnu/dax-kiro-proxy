@@ -551,9 +551,10 @@ user/project hook preservation. No safe/restricted/empty-settings-source/strict-
 
 The initial environment permits only named OS/terminal/tool-socket variables, with HOME, TMPDIR and
 CLAUDE_CONFIG_DIR supplied explicitly. The host sets the literal loopback HTTP URL, one ephemeral
-model token in both supported auth variables, provider-host guard, discovery and no automatic retry
-or nonstreaming fallback. HTTP proxy variables are cleared; loopback bypass, telemetry opt-out and
-automatic-update opt-out are explicit. D112 later adds the client's unknown-model window opt-out. No remote endpoint, URL credential or unknown model alias is
+model token in both supported auth variables (D115 later keeps only the Bearer token), provider-host
+guard, discovery and no automatic retry or nonstreaming fallback. HTTP proxy variables are cleared;
+loopback bypass, telemetry opt-out and automatic-update opt-out are explicit. D112 later adds the
+client's unknown-model window opt-out. No remote endpoint, URL credential or unknown model alias is
 accepted by this initial adapter. A separate UI credential is not part of the model connection.
 
 The public [settings precedence](https://code.claude.com/docs/en/settings) and
@@ -5397,3 +5398,59 @@ migration with fresh finite checks remains the way to do that. No dependency cha
 in DEPENDENCY_REVIEW.md and installed; its doctor on this host reports login and execution policy
 verified, launch available, and Kiro 2.21.3 and Claude Code 2.1.267 both measured (login_check
 2187ms, model_catalog 2157ms), which closes the D113 note about the unobserved doctor summary.
+
+## D115: launch without the client's per-launch onboarding dialogs
+
+Every interactive `run` showed the client's first-run dialogs: the theme picker, then the approval
+prompt for the ephemeral API key with "No (recommended)" selected, then the security notes. The
+private profile is fresh on every launch and the model token is fresh on every launch, so the client
+never saw completed onboarding or an approved key; the user's own global file records four rejected
+keys from earlier launches and no approved one. The measured 2.1.267 build also warned that both
+`ANTHROPIC_AUTH_TOKEN` and `ANTHROPIC_API_KEY` were set (D113). This decision removes the dialogs at
+their causes rather than answering them.
+
+The public environment reference (checked 2026-09-11) documents `ANTHROPIC_API_KEY` as the
+`X-Api-Key` value that, in interactive mode, is approved once before it overrides a subscription,
+and `ANTHROPIC_AUTH_TOKEN` as the `Authorization: Bearer` value with no approval step. D24 set both
+"supported auth variables"; the gateway accepts either header and requires them to agree when both
+are present. The prepared client environment now sets only the Bearer token, which the client's own
+warning names as the way to use it. Public client documentation describes `~/.claude.json` as app
+state holding theme, per-project trust and UI toggles; it does not name onboarding keys. Bounded
+terminal observations of the unmodified client with synthetic tokens and a synthetic HOME measured
+them: with `hasCompletedOnboarding: true` in the config file the theme picker and security notes do
+not appear, `theme` alone does not suppress them, and with the Bearer token alone the approval
+prompt does not appear; only the documented folder-trust dialog remained, which the projection
+already carries per project (D64). The projection therefore adds one reviewed global key, the
+Boolean `hasCompletedOnboarding`, still rejects a malformed value and drops a per-project
+occurrence. A `theme` record seeded in the global file was measured as removed by the natural
+client's next write; the public settings reference places the theme in user settings, which the D24
+overlay already carries, so the global `theme` record and the client's key-approval record are not
+copied.
+
+Witnesses, all with the unmodified 2.1.267 client and no Kiro model request: the launcher unit tests
+require the Bearer token without an API key in the prepared environment and the projected onboarding
+flag beside the native MCP scopes, with a malformed flag rejected and a global or per-project theme
+record not copied; the independent client fixture requires the same environment. The
+installed-client MCP scope control (D64/D111) seeds the flag and a theme record at the source and
+requires the fresh projection to carry the flag while excluding the breadcrumb and the theme. The
+status-line terminal control now supplies trust and completed onboarding through the owned global
+file instead of overwriting the private file, and requires zero onboarding answers, no theme or
+API-key screen text and no both-variables warning before the status line is visible (status control
+7.13s, projection control 7.77s). The shared onboarding helper of the terminal controls now proceeds
+from the theme screen to the security notes when no key approval appears, so controls that seed only
+project trust still complete; five plugin controls stalled at that step before the change. The
+complete installed-client batch passes (68 controls, 580.273s package time, 11 terminal observations
+with zero onboarding answers); launcher and command suites (launcher 28.329s, command 4.008s), the
+whole-repository opt-ins-off race suite (interop 30.144s, launcher 35.328s, session 30.404s) and vet
+pass.
+
+Risk and limits: a launch from a HOME whose global file lacks `hasCompletedOnboarding` still shows
+the theme picker once per launch, and the client may still show its documented trust dialog for an
+untrusted project; neither is answered by the product. The Bearer-only environment is measured on
+the 2.1.267 client; an admitted unmeasured build could route or approve differently. Logs under
+`.cache/history-review/`: `d115-onboarding-arms.log` and `d115-onboarding-keys.log` (the bounded
+terminal measurements), `d115-controls-first.log` (the first control run, whose projection kept the
+flag but not the seeded theme), `d115-plugin-stall.log`, `d115-plugin-after-helper.log`,
+`d115-claude-regression.log`, `d115-all-race.log` and `d115-all-vet.log`. The rebuilt development
+artifact and its `onboarding` inventory are recorded in DEPENDENCY_REVIEW.md.
+
