@@ -11,8 +11,8 @@
     },
     {
       "path": "cmd/dax-kiro-proxy/main.go",
-      "bytes": 18562,
-      "sha256": "ca893452cdbb42c2219b262fc7be7d8a7dc5147dac15558d7c1ccedba78c8e7d"
+      "bytes": 18639,
+      "sha256": "3d141643151db0148046aa8232b7eb386aad54e5ce2d7e1dccf13f7708d88ca1"
     },
     {
       "path": "go.mod",
@@ -91,8 +91,8 @@
     },
     {
       "path": "internal/childproc/attached.go",
-      "bytes": 5977,
-      "sha256": "8f2877bb863de1cbadb66f3e11db50b7c5fe0631b84f2956e537ecf1547586df"
+      "bytes": 6019,
+      "sha256": "cbab5a24c9edfd7d4f5d852f5439a270a9b329c51b9c92d2d005d2db714889af"
     },
     {
       "path": "internal/childproc/process_unix.go",
@@ -121,8 +121,8 @@
     },
     {
       "path": "internal/gateway/http.go",
-      "bytes": 18656,
-      "sha256": "c96f731d8c4666758164ffdc50c5db9d166ea3c3e9b3da0aac1dbea607e589ea"
+      "bytes": 18854,
+      "sha256": "e7c500b9483d6030df5668f2102d5c51515997a4dbefd87c9bb631d5323a31bd"
     },
     {
       "path": "internal/gateway/server.go",
@@ -271,8 +271,8 @@
     },
     {
       "path": "internal/launcher/startup.go",
-      "bytes": 18148,
-      "sha256": "b3eb5fd0089fff5ddb6ba943b4bd3fa835f5b33a372fb7fd4c1273919f5378ef"
+      "bytes": 18335,
+      "sha256": "cb996d13c6a1e344d7a19fa9c383750fe4178d01bc8da6a1fb2a462407e62234"
     },
     {
       "path": "internal/ndjson/frame.go",
@@ -685,11 +685,11 @@
   "binary": {
     "path": "dist/dax-kiro-proxy",
     "bytes": 13676354,
-    "sha256": "1744e7235390d2c19a653078280c803530bfdbc63c5f4d1f4bd44191e678ecb3",
+    "sha256": "59e8eb4b7369102cba08187d5b6aaf55733fb69c5e7923aea10ee5643a579a5e",
     "build_path": "dax-kiro-proxy/cmd/dax-kiro-proxy",
     "main": {
       "Path": "dax-kiro-proxy",
-      "Version": "v0.0.0-20260911162423-35628bebde85"
+      "Version": "v0.0.0-20260911170634-eab2bc4a37e9"
     },
     "settings": [
       {
@@ -734,11 +734,11 @@
       },
       {
         "Key": "vcs.revision",
-        "Value": "35628bebde85ae39ba83857af2a41c491f420b44"
+        "Value": "eab2bc4a37e9fb7ae9b6a8cc642c89dce86f4385"
       },
       {
         "Key": "vcs.time",
-        "Value": "2026-09-11T16:24:23Z"
+        "Value": "2026-09-11T17:06:34Z"
       },
       {
         "Key": "vcs.modified",

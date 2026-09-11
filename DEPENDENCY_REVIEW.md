@@ -931,10 +931,10 @@ installed binary continue to pass.
 ## Run-diagnostics artifact snapshot — D122, 2026-09-12
 
 `third_party/inventory/macos-arm64-run-diagnostics.json` records the rebuilt 13,676,354-byte
-development command, SHA-256 `1744e7235390d2c19a653078280c803530bfdbc63c5f4d1f4bd44191e678ecb3`. It
-identifies Go 1.27.1, darwin/arm64, CGO_ENABLED=1 and the clean committed revision 35628bebde85 with
-vcs.modified=false; the inventory commit follows that revision rather than capturing uncommitted
-inputs.
+development command, SHA-256 `59e8eb4b7369102cba08187d5b6aaf55733fb69c5e7923aea10ee5643a579a5e`. It
+identifies Go 1.27.1, darwin/arm64, CGO_ENABLED=1 and the clean committed revision eab2bc4a37e9 (the
+D122 code commit plus its review fixes) with vcs.modified=false; the inventory commit follows that
+revision rather than capturing uncommitted inputs.
 
 The 103 repository input records are unchanged in number: ten production files change from D118 (the
 command's signal handling, options and diagnostics; the launcher's kiro.go, profile.go and

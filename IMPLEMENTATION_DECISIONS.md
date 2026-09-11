@@ -5852,13 +5852,13 @@ Retired outcomes and deadlines. A retired tool-wait outcome now answers every id
 (same owner, same result set) with the same terminal error until it expires after five minutes or a
 new turn starts, instead of being consumed by the first read; a foreign batch still rejects, and the
 all-denial recovery path is unchanged. `LaunchOptions` gains `ToolTimeout` (default fifteen minutes,
-30s..1h), `TurnTimeout` (default thirty minutes, or the tool wait when only that is given; 1m..1h, at least the tool wait) and
-`FirstEventTimeout` (default ninety seconds, 10s..turn), exposed as `run --tool-timeout`,
-`--turn-timeout` and `--first-event-timeout`; the launcher passes them to the relay limits, the
-session driver and the gateway, which previously used their package defaults (five minutes, ten
-minutes, ninety seconds). The defaults trade responsiveness for patience with a permission prompt
-answered late; the first-event wait still counts only visible text (D123 is planned to count every
-session update as liveness).
+30s..1h), `TurnTimeout` (default thirty minutes, or the tool wait when only that is given; 1m..1h,
+at least the tool wait) and `FirstEventTimeout` (default ninety seconds, 10s..turn), exposed as `run
+--tool-timeout`, `--turn-timeout` and `--first-event-timeout`; the launcher passes them to the relay
+limits, the session driver and the gateway, which previously used their package defaults (five
+minutes, ten minutes, ninety seconds). The defaults trade responsiveness for patience with a
+permission prompt answered late; the first-event wait still counts only visible text (D123 is
+planned to count every session update as liveness).
 
 Witnesses: unit tests cover lifetime classification against a caller deadline, the
 acquisition-versus-restore terminal sentinels, queued admission of eight concurrent checks through
