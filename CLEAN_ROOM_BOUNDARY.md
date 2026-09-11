@@ -61,7 +61,10 @@ permissive license:
 - whether distribution is internal only or external.
 
 If ownership or employer rights are unclear, obtain legal review. Do not assume that sole Git
-authorship is sufficient.
+authorship is sufficient. Scope note (D121, 2026-09-11): the repository owner handles the ownership,
+provenance, policy, service-terms and distribution items outside this repository; the implementation
+records only the dependency-license item in DEPENDENCY_REVIEW.md and asserts nothing about the
+others.
 
 ## License decision
 

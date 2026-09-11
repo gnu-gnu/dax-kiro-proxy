@@ -537,7 +537,7 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
 | --- | --- |
 | Development run | Applicable independent transport/security/tool/cleanup checks; pinned Kiro restricted inventory and attempted native-effect denial; effective exclusion of inherited configuration; client-approved file/shell effects, client denials and hook vetoes; source settings preserved (apart from the D118 trust answer) and owned processes/artifacts removed |
 | Internal alpha | Development evidence plus live cancellation, process-loss recovery, authentication expiry, model selection and safe restart/resume for each enabled path |
-| Release candidate | Full acceptance for the supported product, parallel soak and FD/process/memory checks, dependency/rights review, and clean macOS install/uninstall |
+| Release candidate | Full acceptance for the supported product, parallel soak and FD/process/memory checks, dependency review (the D121 component record and advisory scan; the owner's rights checklist is outside the repository), and clean macOS install/uninstall |
 
 An inactive inheritance positive control cannot establish effective exclusion. A client-hook denial
 alone does not establish native-tool restrictions or approved execution. Bind evidence to the tested

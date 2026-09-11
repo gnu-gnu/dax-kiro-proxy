@@ -1,0 +1,610 @@
+{
+ "format": 1,
+ "date": "2026-09-11",
+ "decision": "D121",
+ "release_clearance": false,
+ "scope": "Component records for every module, generated-data, embedded-resource, toolchain, native, test-utility and external-executable input of the darwin/arm64 development artifact. The repository owner's rights, employment, specification-provenance, Kiro/client service-terms, distribution and project-license determinations are handled by the owner outside this repository and are neither recorded nor confirmed here.",
+ "linked_modules": [
+  {
+   "path": "github.com/santhosh-tekuri/jsonschema/v6",
+   "version": "v6.0.3",
+   "sum": "h1:1EYB5IzjZawrrnELUi78f9fPu57HuXjmddZPjrls/28=",
+   "origin": "proxy.golang.org archive, checksum-database verified at adoption (2026-09-08); go.sum retains the hash",
+   "purpose": "Draft 2020-12 tool-argument schema compilation and validation with an in-memory-only loader",
+   "scope": "compiled application and test package graph; present in the installed command binary build metadata",
+   "packages": [
+    "github.com/santhosh-tekuri/jsonschema/v6",
+    "github.com/santhosh-tekuri/jsonschema/v6/kind"
+   ],
+   "spdx": "Apache-2.0",
+   "license_file": {
+    "path": "LICENSE",
+    "bytes": 10141,
+    "sha256": "c8858a5a76440bbca484e134cf7df46385d090dd18b2c58e650f939258802e5b"
+   },
+   "retained_notice": "third_party/notices/runtime/jsonschema-apache-2.0.txt",
+   "chosen_branch": null,
+   "reviewed": {
+    "date": "2026-09-11",
+    "by": "implementation assistant session (D121); the repository owner directed the scope"
+   },
+   "status": "approved for development and local installation under the recorded notice obligations"
+  },
+  {
+   "path": "golang.org/x/image",
+   "version": "v0.45.0",
+   "sum": "h1:FMb1nTbH5H9vF55SriQHgFw5GnNL9Jg6L25BwXKzhB0=",
+   "origin": "proxy.golang.org archive, checksum-database verified at adoption (2026-09-08); go.sum retains the hash",
+   "purpose": "WebP header decoding for media validation (riff/vp8/vp8l/webp packages)",
+   "scope": "compiled application and test package graph; present in the installed command binary build metadata",
+   "packages": [
+    "golang.org/x/image/riff",
+    "golang.org/x/image/vp8",
+    "golang.org/x/image/vp8l",
+    "golang.org/x/image/webp"
+   ],
+   "spdx": "BSD-3-Clause",
+   "license_file": {
+    "path": "LICENSE",
+    "bytes": 1453,
+    "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
+   },
+   "retained_notice": "third_party/notices/runtime/go-bsd.txt",
+   "chosen_branch": null,
+   "reviewed": {
+    "date": "2026-09-11",
+    "by": "implementation assistant session (D121); the repository owner directed the scope"
+   },
+   "status": "approved for development and local installation under the recorded notice obligations",
+   "patents_file": {
+    "path": "PATENTS",
+    "bytes": 1303,
+    "sha256": "96f408bfae65bf137fc2525d3ecb030271c50c1e90799f87abf8846d8dd505cc"
+   },
+   "retained_patents_notice": "third_party/notices/runtime/go-patents.txt"
+  },
+  {
+   "path": "golang.org/x/sys",
+   "version": "v0.47.0",
+   "sum": "h1:o7XGOvZQCADBQQ4Y7VNq2dRWQR7JmOUW8Kxx4ZsNgWs=",
+   "origin": "proxy.golang.org archive, checksum-database verified at adoption (2026-09-08); go.sum retains the hash",
+   "purpose": "Unix descriptor duplication and terminal ioctls in the launcher adapter",
+   "scope": "compiled application and test package graph; present in the installed command binary build metadata",
+   "packages": [
+    "golang.org/x/sys/unix"
+   ],
+   "spdx": "BSD-3-Clause",
+   "license_file": {
+    "path": "LICENSE",
+    "bytes": 1453,
+    "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
+   },
+   "retained_notice": "third_party/notices/runtime/go-bsd.txt",
+   "chosen_branch": null,
+   "reviewed": {
+    "date": "2026-09-11",
+    "by": "implementation assistant session (D121); the repository owner directed the scope"
+   },
+   "status": "approved for development and local installation under the recorded notice obligations",
+   "patents_file": {
+    "path": "PATENTS",
+    "bytes": 1303,
+    "sha256": "96f408bfae65bf137fc2525d3ecb030271c50c1e90799f87abf8846d8dd505cc"
+   },
+   "retained_patents_notice": "third_party/notices/runtime/go-patents.txt"
+  },
+  {
+   "path": "golang.org/x/text",
+   "version": "v0.41.0",
+   "sum": "h1:vz/seA0lnX87Othu2f/0L24RcgrXD9/YFTSuGjj3rH8=",
+   "origin": "proxy.golang.org archive, checksum-database verified at adoption (2026-09-08); go.sum retains the hash",
+   "purpose": "Runtime dependency of the validator (message/language/plural packages); test-only width package",
+   "scope": "compiled application and test package graph; present in the installed command binary build metadata",
+   "packages": [
+    "golang.org/x/text/feature/plural",
+    "golang.org/x/text/internal",
+    "golang.org/x/text/internal/catmsg",
+    "golang.org/x/text/internal/format",
+    "golang.org/x/text/internal/language",
+    "golang.org/x/text/internal/language/compact",
+    "golang.org/x/text/internal/number",
+    "golang.org/x/text/internal/stringset",
+    "golang.org/x/text/internal/tag",
+    "golang.org/x/text/language",
+    "golang.org/x/text/message",
+    "golang.org/x/text/message/catalog"
+   ],
+   "spdx": "BSD-3-Clause",
+   "license_file": {
+    "path": "LICENSE",
+    "bytes": 1453,
+    "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
+   },
+   "retained_notice": "third_party/notices/runtime/go-bsd.txt",
+   "chosen_branch": null,
+   "reviewed": {
+    "date": "2026-09-11",
+    "by": "implementation assistant session (D121); the repository owner directed the scope"
+   },
+   "status": "approved for development and local installation under the recorded notice obligations",
+   "patents_file": {
+    "path": "PATENTS",
+    "bytes": 1303,
+    "sha256": "96f408bfae65bf137fc2525d3ecb030271c50c1e90799f87abf8846d8dd505cc"
+   },
+   "retained_patents_notice": "third_party/notices/runtime/go-patents.txt"
+  }
+ ],
+ "resolved_only_modules": [
+  {
+   "path": "github.com/dlclark/regexp2",
+   "version": "v1.11.0",
+   "sum": "h1:G/nrcoOa7ZXlpoa/91N3X7mM3r8eIlMBBJZvsz/mxKI=",
+   "spdx": "MIT",
+   "license_file": {
+    "path": "LICENSE",
+    "bytes": 1072,
+    "sha256": "9be5d04bb4d706914d5bf943710da4afeb42048f7c529902fb57c82762a991a9"
+   },
+   "in_compiled_graph": false,
+   "in_test_graph": false,
+   "status": "resolved through the validator manifest as its upstream test dependency; not compiled, not linked, not retained as a notice"
+  },
+  {
+   "path": "golang.org/x/mod",
+   "version": "v0.38.0",
+   "in_compiled_graph": false,
+   "in_test_graph": false,
+   "archive_in_cache": false,
+   "status": "resolved-graph only through the x/text manifest; archive never downloaded; no component review needed for any built artifact"
+  },
+  {
+   "path": "golang.org/x/sync",
+   "version": "v0.22.0",
+   "in_compiled_graph": false,
+   "in_test_graph": false,
+   "archive_in_cache": false,
+   "status": "resolved-graph only; public BSD-3-Clause LICENSE read on 2026-09-09; archive never downloaded"
+  },
+  {
+   "path": "golang.org/x/tools",
+   "version": "v0.48.0",
+   "in_compiled_graph": false,
+   "in_test_graph": false,
+   "archive_in_cache": false,
+   "status": "resolved-graph only through the x/text manifest; archive never downloaded; no component review needed for any built artifact"
+  }
+ ],
+ "toolchain": {
+  "module": "golang.org/toolchain",
+  "version": "v0.0.1-go1.27.1.darwin-arm64",
+  "go": "go1.27.1",
+  "ziphash": "h1:51Yfd9AJPm34szJ1qdVX7+kqAGDd3vI9FzVuY7UqLfA=",
+  "cache_directory": "golang.org/toolchain@v0.0.1-go1.27.1.darwin-arm64",
+  "spdx": "BSD-3-Clause",
+  "license_file": {
+   "path": "LICENSE",
+   "bytes": 1453,
+   "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
+  },
+  "patents_file": {
+   "path": "PATENTS",
+   "bytes": 1303,
+   "sha256": "96f408bfae65bf137fc2525d3ecb030271c50c1e90799f87abf8846d8dd505cc"
+  },
+  "retained_notices": [
+   "third_party/notices/runtime/go-bsd.txt",
+   "third_party/notices/runtime/go-patents.txt"
+  ],
+  "role": "build and test toolchain; standard library and runtime compiled into the binary; not bundled",
+  "stdlib_vendor_packages_reached": [
+   "vendor/golang.org/x/crypto/cryptobyte/asn1",
+   "vendor/golang.org/x/crypto/cryptobyte",
+   "vendor/golang.org/x/crypto/internal/alias",
+   "vendor/golang.org/x/crypto/chacha20",
+   "vendor/golang.org/x/crypto/internal/poly1305",
+   "vendor/golang.org/x/crypto/chacha20poly1305",
+   "vendor/golang.org/x/net/dns/dnsmessage",
+   "vendor/golang.org/x/text/transform",
+   "vendor/golang.org/x/text/unicode/bidi",
+   "vendor/golang.org/x/text/secure/bidirule",
+   "vendor/golang.org/x/text/unicode/norm",
+   "vendor/golang.org/x/net/idna",
+   "vendor/golang.org/x/net/http/httpguts",
+   "vendor/golang.org/x/net/http/httpproxy",
+   "vendor/golang.org/x/net/http2/hpack"
+  ],
+  "stdlib_vendor_module_versions": {
+   "golang.org/x/crypto": "v0.52.1-0.20260526024921-9beb694f9766",
+   "golang.org/x/net": "v0.55.1-0.20260731170536-c1d18010be90",
+   "golang.org/x/sys": "v0.45.0",
+   "golang.org/x/text": "v0.37.0"
+  },
+  "unicode_17_notices": [
+   "third_party/notices/runtime/unicode-17-attribution.txt",
+   "third_party/notices/runtime/unicode-v3.txt"
+  ],
+  "reviewed": {
+   "date": "2026-09-11",
+   "by": "implementation assistant session (D121); the repository owner directed the scope"
+  }
+ },
+ "generated_data": [
+  {
+   "component": "CLDR 32 tables generated into golang.org/x/text v0.41.0",
+   "spdx": "Unicode-DFS-2016",
+   "retained_notice": "third_party/notices/runtime/unicode-cldr-32.txt",
+   "source_archive": {
+    "url": "https://www.unicode.org/Public/cldr/32/core.zip",
+    "bytes": 20248715,
+    "sha256": "e561d24a93fac8ece726c3124e8ea5162b47da9b3caea58e0f78a896d33f5d1e"
+   },
+   "status": "notice retained and installed with the executable"
+  },
+  {
+   "component": "Unicode 17.0.0 tables in the Go standard library and vendored x/text",
+   "spdx": "Unicode-3.0",
+   "retained_notices": [
+    "third_party/notices/runtime/unicode-17-attribution.txt",
+    "third_party/notices/runtime/unicode-v3.txt"
+   ],
+   "status": "release README attribution and current license text retained and installed"
+  }
+ ],
+ "embedded_resources": [
+  {
+   "component": "nineteen JSON Schema metaschemas embedded by jsonschema v6.0.3 (drafts 04, 06, 07, 2019-09, 2020-12)",
+   "inventory": {
+    "path": "third_party/inventory/metaschemas.json",
+    "bytes": 37674,
+    "sha256": "510d57eb80a965afe770eef554a4d28c454a3a3317d771d09caf4ecdf9184139"
+   },
+   "resource_count": 19,
+   "specification_license_offer": "BSD-3-Clause OR AFL-3.0 (json-schema-spec repository README and LICENSE)",
+   "chosen_branch": "BSD-3-Clause",
+   "retained_reference": "third_party/notices/reference/json-schema-spec-current.txt",
+   "matched_to_specification_sources": 16,
+   "unmatched_resources": [
+    "metaschemas/draft-04/schema",
+    "metaschemas/draft/2019-09/meta/applicator",
+    "metaschemas/draft/2019-09/meta/core"
+   ],
+   "draft_04_tag_probe": {
+    "date": "2026-09-11",
+    "tag": "draft-zyp-json-schema-04",
+    "README.md": 404,
+    "LICENSE": 404,
+    "LICENSE.md": 404
+   },
+   "status": "chosen branch recorded for matched resources; historical applicability of the unmatched resources stays open and is not asserted"
+  }
+ ],
+ "test_only_runtime": [
+  {
+   "component": "runtime/race/race_darwin_arm64.syso (LLVM compiler-rt ThreadSanitizer with a Go platform patch)",
+   "path": "golang.org/toolchain@v0.0.1-go1.27.1.darwin-arm64/src/runtime/race/race_darwin_arm64.syso",
+   "bytes": 502032,
+   "sha256": "6ca6a32e8b650ac03b6a11b40c7a0cdd938d00046bd1c942f7c530e0fdaf23b2",
+   "spdx": "Apache-2.0 WITH LLVM-exception (with separately licensed components per the retained text)",
+   "retained_notice": "third_party/notices/test/llvm-compiler-rt.txt",
+   "in_ordinary_binary": false,
+   "installed": false,
+   "status": "selected only by race-enabled test builds; not part of the installed executable"
+  }
+ ],
+ "native_linked_libraries": [
+  {
+   "path": "/usr/lib/libSystem.B.dylib",
+   "provider": "Apple macOS",
+   "linkage": "dynamic (otool -L)",
+   "distributed_with_product": false
+  },
+  {
+   "path": "/usr/lib/libresolv.9.dylib",
+   "provider": "Apple macOS",
+   "linkage": "dynamic (otool -L)",
+   "distributed_with_product": false
+  },
+  {
+   "path": "/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation",
+   "provider": "Apple macOS",
+   "linkage": "dynamic (otool -L)",
+   "distributed_with_product": false
+  },
+  {
+   "path": "/System/Library/Frameworks/Security.framework/Versions/A/Security",
+   "provider": "Apple macOS",
+   "linkage": "dynamic (otool -L)",
+   "distributed_with_product": false
+  }
+ ],
+ "build_environment": {
+  "host": "macOS 15.4 (24E248), arm64",
+  "command_line_tools": "/Library/Developer/CommandLineTools",
+  "sdk": "MacOSX 15.5",
+  "cgo": true,
+  "c_compiler": "Apple clang 17.0.0 (clang-1700.0.13.5)",
+  "binary_signature": "ad hoc, linker-signed (codesign -dv); no Team identifier, no Info.plist",
+  "binary_settings": [
+   {
+    "Key": "-buildmode",
+    "Value": "exe"
+   },
+   {
+    "Key": "-compiler",
+    "Value": "gc"
+   },
+   {
+    "Key": "CGO_ENABLED",
+    "Value": "1"
+   },
+   {
+    "Key": "CGO_CFLAGS"
+   },
+   {
+    "Key": "CGO_CPPFLAGS"
+   },
+   {
+    "Key": "CGO_CXXFLAGS"
+   },
+   {
+    "Key": "CGO_LDFLAGS"
+   },
+   {
+    "Key": "GOARCH",
+    "Value": "arm64"
+   },
+   {
+    "Key": "GOOS",
+    "Value": "darwin"
+   },
+   {
+    "Key": "GOARM64",
+    "Value": "v8.0"
+   },
+   {
+    "Key": "vcs",
+    "Value": "git"
+   },
+   {
+    "Key": "vcs.revision",
+    "Value": "f522c4df90201de0b56b622d6286ed165e52e358"
+   },
+   {
+    "Key": "vcs.time",
+    "Value": "2026-09-11T08:44:36Z"
+   },
+   {
+    "Key": "vcs.modified",
+    "Value": "false"
+   }
+  ],
+  "terms": "Apple SDK, Command Line Tools and signing terms are outside this dependency review; nothing from the SDK is bundled"
+ },
+ "test_utilities": [
+  {
+   "name": "python3",
+   "path": "/Users/geunwooshim/.asdf/shims/python3",
+   "version": "3.11.14",
+   "role": "freeze/verification scripts and generated fixtures",
+   "bundled": false
+  },
+  {
+   "name": "python3 (system)",
+   "path": "/usr/bin/python3",
+   "version": "3.9.6",
+   "role": "available; not selected",
+   "bundled": false
+  },
+  {
+   "name": "expect",
+   "path": "/usr/bin/expect",
+   "version": "5.45",
+   "role": "expect-driven terminal observations (retained .exp procedures)",
+   "bundled": false
+  },
+  {
+   "name": "script",
+   "path": "/usr/bin/script",
+   "version": "macOS",
+   "role": "pseudo-terminal wrapper in terminal controls",
+   "bundled": false
+  },
+  {
+   "name": "ps",
+   "path": "/bin/ps",
+   "version": "macOS",
+   "role": "resident-size sampling in the soak observer",
+   "bundled": false
+  },
+  {
+   "name": "lsof",
+   "path": "/usr/sbin/lsof",
+   "version": "macOS",
+   "role": "descriptor sampling in the soak observer",
+   "bundled": false
+  },
+  {
+   "name": "pgrep",
+   "path": "/usr/bin/pgrep",
+   "version": "macOS",
+   "role": "process-group sampling in the soak observer",
+   "bundled": false
+  },
+  {
+   "name": "git",
+   "path": "/usr/bin/git",
+   "version": "2.39.5 (Apple Git-154)",
+   "role": "plugin-source fixture control (D68); GPLv2 upstream, Apple-distributed",
+   "bundled": false
+  }
+ ],
+ "external_executables": [
+  {
+   "name": "kiro-cli",
+   "path": "/Users/geunwooshim/.local/bin/kiro-cli",
+   "version": "2.21.3 (measured pin, D114)",
+   "role": "separately installed black-box backend",
+   "bundled": false,
+   "terms": "account/service terms are the owner's external matter (D121 scope)"
+  },
+  {
+   "name": "claude",
+   "path": "/Users/geunwooshim/.local/bin/claude",
+   "version": "2.1.267 (measured pin, D113)",
+   "role": "separately installed black-box client",
+   "bundled": false,
+   "terms": "account/service terms are the owner's external matter (D121 scope)"
+  }
+ ],
+ "advisory_scan": {
+  "scanner": "govulncheck",
+  "module": "golang.org/x/vuln",
+  "version": "v1.8.0",
+  "scanner_spdx": "BSD-3-Clause",
+  "scanner_license_sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad",
+  "scanner_modules": [
+   {
+    "path": "golang.org/x/vuln",
+    "version": "v1.8.0",
+    "sum": "h1:clG4qBU6zH5VKjti8n5j8BBuYzoSha392xXMkXS351U="
+   },
+   {
+    "path": "golang.org/x/mod",
+    "version": "v0.41.0",
+    "sum": "h1:qJmnOUb4YB+FsEuM3HcWucdZASCPGhsX6uljO6pog0c="
+   },
+   {
+    "path": "golang.org/x/sync",
+    "version": "v0.23.0",
+    "sum": "h1:KameEIfc1IkluZyXWLn39Wd4tURc6GbCiISGiZm2bQk="
+   },
+   {
+    "path": "golang.org/x/telemetry",
+    "version": "v0.0.0-20260908163034-4bcc4b2ee518",
+    "sum": "h1:F5BWKvW126NXR74uxkxuc1jQHhm/rwm/J3rSiFyuRs4="
+   },
+   {
+    "path": "golang.org/x/tools",
+    "version": "v0.50.0",
+    "sum": "h1:c2ifzfcuY7L90lZ2aKd8S4K2NpASF08SZx9ZuJkHmSU="
+   }
+  ],
+  "installed_in": "session scratch GOPATH with its own module cache; not a repository dependency and not committed",
+  "database": "https://vuln.go.dev",
+  "database_updated": "2026-09-10T14:48:42Z",
+  "go": "go1.27.1",
+  "date": "2026-09-11",
+  "runs": [
+   {
+    "mode": "source",
+    "command": "govulncheck ./...",
+    "result": "No vulnerabilities found.",
+    "log": "d121-govulncheck-source.log"
+   },
+   {
+    "mode": "source with test packages",
+    "command": "govulncheck -test ./...",
+    "result": "No vulnerabilities found.",
+    "log": "d121-govulncheck-source-test.log"
+   },
+   {
+    "mode": "binary",
+    "command": "govulncheck -mode=binary <installed D118 executable>",
+    "binary_sha256": "0b2f416b1a054935729e59f6e4c75eeeb1ccebd6f49aba59f46eaa5eb521e28d",
+    "result": "No vulnerabilities found.",
+    "log": "d121-govulncheck-binary.log"
+   }
+  ],
+  "limits": "curated reports in the Go vulnerability database as of the database date; symbol-level reachability for Go code only; no claim about unknown vulnerabilities, native libraries or the separately installed executables"
+ },
+ "retained_notices": [
+  {
+   "path": "third_party/notices/reference/json-schema-spec-current.txt",
+   "bytes": 11739,
+   "sha256": "909b25a80d4945b21d3adb2fb17f90bf592e0274bdf117c069c088a8e44dc7b6"
+  },
+  {
+   "path": "third_party/notices/runtime/go-bsd.txt",
+   "bytes": 1453,
+   "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
+  },
+  {
+   "path": "third_party/notices/runtime/go-patents.txt",
+   "bytes": 1303,
+   "sha256": "96f408bfae65bf137fc2525d3ecb030271c50c1e90799f87abf8846d8dd505cc"
+  },
+  {
+   "path": "third_party/notices/runtime/jsonschema-apache-2.0.txt",
+   "bytes": 10141,
+   "sha256": "c8858a5a76440bbca484e134cf7df46385d090dd18b2c58e650f939258802e5b"
+  },
+  {
+   "path": "third_party/notices/runtime/unicode-17-attribution.txt",
+   "bytes": 740,
+   "sha256": "9fe1a90bd32659d7953616283dc2bffaa165518aae9ace026040c42c559ba606"
+  },
+  {
+   "path": "third_party/notices/runtime/unicode-cldr-32.txt",
+   "bytes": 2849,
+   "sha256": "6a6976a5da6ac21a6a001c685c057f4a6e619be11f5465371088ecd80c7fbe06"
+  },
+  {
+   "path": "third_party/notices/runtime/unicode-v3.txt",
+   "bytes": 1995,
+   "sha256": "e7a93b009565cfce55919a381437ac4db883e9da2126fa28b91d12732bc53d96"
+  },
+  {
+   "path": "third_party/notices/test/llvm-compiler-rt.txt",
+   "bytes": 16708,
+   "sha256": "1a8f1058753f1ba890de984e48f0242a3a5c29a6a8f2ed9fd813f36985387e8d"
+  }
+ ],
+ "installed_generation": {
+  "date_observed": "2026-09-11",
+  "layout": "HOME/.local/bin/dax-kiro-proxy -> .dax-kiro-proxy-install/current/dax-kiro-proxy; format.json, lock, one generation directory with the executable, manifest.json and notices/{runtime,reference}",
+  "generation_files": [
+   {
+    "path": "dax-kiro-proxy",
+    "bytes": 13659058,
+    "sha256": "0b2f416b1a054935729e59f6e4c75eeeb1ccebd6f49aba59f46eaa5eb521e28d"
+   },
+   {
+    "path": "notices/reference/json-schema-spec-current.txt",
+    "bytes": 11739,
+    "sha256": "909b25a80d4945b21d3adb2fb17f90bf592e0274bdf117c069c088a8e44dc7b6"
+   },
+   {
+    "path": "notices/runtime/go-bsd.txt",
+    "bytes": 1453,
+    "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
+   },
+   {
+    "path": "notices/runtime/go-patents.txt",
+    "bytes": 1303,
+    "sha256": "96f408bfae65bf137fc2525d3ecb030271c50c1e90799f87abf8846d8dd505cc"
+   },
+   {
+    "path": "notices/runtime/jsonschema-apache-2.0.txt",
+    "bytes": 10141,
+    "sha256": "c8858a5a76440bbca484e134cf7df46385d090dd18b2c58e650f939258802e5b"
+   },
+   {
+    "path": "notices/runtime/unicode-17-attribution.txt",
+    "bytes": 740,
+    "sha256": "9fe1a90bd32659d7953616283dc2bffaa165518aae9ace026040c42c559ba606"
+   },
+   {
+    "path": "notices/runtime/unicode-cldr-32.txt",
+    "bytes": 2849,
+    "sha256": "6a6976a5da6ac21a6a001c685c057f4a6e619be11f5465371088ecd80c7fbe06"
+   },
+   {
+    "path": "notices/runtime/unicode-v3.txt",
+    "bytes": 1995,
+    "sha256": "e7a93b009565cfce55919a381437ac4db883e9da2126fa28b91d12732bc53d96"
+   }
+  ],
+  "note": "no archive or package form exists; the per-user generation directory is the distribution unit (D79); test-only notices are not installed"
+ }
+}

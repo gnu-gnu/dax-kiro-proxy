@@ -6,6 +6,18 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D121 completes the dependency inventory for the darwin/arm64 development artifact and, at the
+  owner's direction, moves the owner's rights checklist (ownership, provenance, employer policy,
+  Kiro/client service terms, distribution, project license) outside this repository's gates; nothing
+  is asserted about those items here. `third_party/inventory/components.json` records every linked,
+  resolved-only, toolchain, generated-data, embedded, native, test-utility and external-executable
+  input with digests, SPDX and status; the verifier's `--components` mode checks 18 file records
+  offline and rejects two negative controls. govulncheck v1.8.0 (scratch install, database
+  2026-09-10T14:48:42Z) reports no vulnerabilities in source, source-with-tests and binary modes
+  over the installed D118 executable. BSD-3-Clause is recorded as the chosen branch for the sixteen
+  matched metaschemas; the draft-04 root and the 2019-09 applicator/core resources stay unattributed
+  (draft-04 tag probe 404 again). The installed generation's seven notices match the repository byte
+  for byte. No production change; the D118 artifact and its 142 byte checks remain current.
 - D120 records the long fixture soak and a many-turn actual-client soak. The churn controls at their
   maximum waves (64 waves/1,024 requests of eight concurrent sessions; 32 waves/512 joined groups
   and relays of concurrent pending-tool denials) end at the descriptor/goroutine/heap floor within
@@ -1281,11 +1293,12 @@ byte-for-byte against the downloaded sources. DEPENDENCY_REVIEW.md records their
 SHA-256 digests and remaining subcomponent/artifact limitations. The CLDR archive remains ignored;
 no upstream tool implementation, locale corpus or fixture is incorporated into this project.
 
-The official JSON Schema source README clarifies an AFL-or-BSD alternative, including at the
-2020-12 release tag. Matching that authority and its copyright notice to all nineteen embedded
-metaschemas remains open. Unicode 17 notices, full artifact/toolchain attribution, advisory review,
-owner rights and project-license selection are also unfinished. Retaining two dependency notices
-does not clear release or change any runtime dependency.
+The official JSON Schema source README clarifies an AFL-or-BSD alternative, including at the 2020-12
+release tag. Matching that authority and its copyright notice to all nineteen embedded metaschemas
+remains open. Unicode 17 notices, full artifact/toolchain attribution, advisory review, owner rights
+and project-license selection were also unfinished at that point (D121 later completes the
+attribution and advisory items and moves owner rights and license selection outside the repository).
+Retaining two dependency notices does not clear release or change any runtime dependency.
 
 The final ordinary interop race suite passed in 1.323s with installed-client opt-ins unset;
 go vet ./... and git diff --check passed. The separate installed initialize-only race result above
@@ -2411,6 +2424,7 @@ the exact scope: interactive UI and actual-client tool continuation remain unver
 | 6 | Media/web capabilities, cached usage/metrics, isolated launcher/profile and client interoperability | Pending |
 | 7 | Full acceptance, fuzz/race/load, license inventory, macOS packaging/install/uninstall and opt-in live gates | Pending |
 
-Owner rights, Kiro/private-extension usage permission, distribution intent, and project license remain
-unconfirmed. Do not publish a release or declare legal clearance from the user's language selection.
-Live tests that consume credits remain separately marked and opt-in under ACCEPTANCE_SPEC.md.
+Owner rights, Kiro/private-extension usage permission, distribution intent and project license are
+the owner's external items (D121) and are not confirmed by this repository. Do not publish a release
+or declare legal clearance from anything recorded here. Live tests that consume credits remain
+separately marked and opt-in under ACCEPTANCE_SPEC.md.

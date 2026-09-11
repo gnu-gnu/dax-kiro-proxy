@@ -22,7 +22,8 @@ Read these documents before implementation:
 7. `LANGUAGE_DECISION.md` — criteria for selecting Go or Rust before implementation.
 8. `PHASE_0_REVIEW.md` — specification findings, proposed resolutions, and remaining gates.
 9. `LANGUAGE_DECISION_RECORD.md` — confirmed Go selection and the historical Go/Rust experiment design.
-10. `DEPENDENCY_REVIEW.md` — candidate licenses, provenance checklist, and outstanding review work.
+10. `DEPENDENCY_REVIEW.md` — component and license inventory, retained notices, advisory scan, and
+    the owner's external rights items.
 11. `IMPLEMENTATION_DECISIONS.md` — adopted wire, lifecycle, and resource policies.
 12. `DEVELOPMENT_STATUS.md` — implementation evidence and remaining acceptance gates.
 13. `LIVE_KIRO_TEST_PLAN.md` — bounded opt-in client-denial/native-effect experiments and their limits.
@@ -36,10 +37,11 @@ Read these documents before implementation:
 The user selected Go and authorized implementation through the complete standalone product. The
 specification-only baseline is `7b108dd`. Phase 0 reports retain the historical unmeasured
 experiment design; the explicit language selection supersedes comparative experiments as a selection
-gate. Rights/license and live-release gates remain open. Implementation began with independent
-fixtures and fake-process transport tests and now reaches an installed development artifact (D118);
-consult DEVELOPMENT_STATUS.md for verified progress and `HANDOFF_REVIEW_2026-09-11.md` for the
-D109–D120 review brief.
+gate. The dependency inventory is complete for the darwin/arm64 development artifact (D121); the
+owner's rights and project-license decisions are outside this repository, and live-release gates
+remain open. Implementation began with independent fixtures and fake-process transport tests and now
+reaches an installed development artifact (D118); consult DEVELOPMENT_STATUS.md for verified
+progress and `HANDOFF_REVIEW_2026-09-11.md` for the D109–D120 review brief.
 
 ## Development commands
 
@@ -171,14 +173,15 @@ For a local per-user installation of the development executable:
 `install` copies its own executable and seven retained notice/reference files into a private
 generation under `~/.local/bin`. `--bin-dir /absolute/directory` selects another owned directory;
 use that same option for later reinstall or uninstall. The command creates the public executable
-link but does not change PATH, shell profiles, client settings, credentials or product state.
-Stop installed proxy/helper processes before replacing or removing the installation. `--force`
-only replaces a fully validated idle installation; changed or unknown files are preserved and
-reported. Repeated uninstall succeeds when the managed installation is already absent. An interrupted
+link but does not change PATH, shell profiles, client settings, credentials or product state. Stop
+installed proxy/helper processes before replacing or removing the installation. `--force` only
+replaces a fully validated idle installation; changed or unknown files are preserved and reported.
+Repeated uninstall succeeds when the managed installation is already absent. An interrupted
 publication can leave the new generation active; the error says so. Valid retained generations can
 be recovered by retrying, while incomplete/changed artifacts require inspection and are preserved.
 Tests cover an isolated HOME on the current macOS arm64 host, including self reinstall/uninstall;
-clean-host release installation and complete license clearance remain open (D79).
+clean-host release installation remains open (D79); the dependency inventory is complete (D121) and
+release clearance is the owner's external decision.
 
 Every live control named in this section was re-verified on the measured Kiro 2.21.3 / Claude Code
 2.1.267 pair on 2026-09-11 (D113, D114); the version names below record the build each was first
@@ -387,14 +390,14 @@ group's resident size under a first declared envelope.
 
 Phase 7 has frozen dependency inventories and retained scoped notices. For the D118 workspace-trust
 development artifact, run `python3 tools/verify_dependency_inventory.py --gomodcache .cache/gomod
---snapshot project-trust --binary dist/dax-kiro-proxy`.
-The default `development` snapshot identifies D78's earlier D77 binary, `installation` identifies
-D79, `native-history` identifies D87 and `relay-close` identifies D96; `effort` identifies D99,
-`usage` identifies D101, `output-styles` identifies D108, `tool-images` identifies D109,
-`client-version` identifies D110–D112, `measured-client` identifies D113, `measured-kiro` identifies
-D114 and `onboarding` identifies D115. Those historical snapshots do not match this rebuild and its
-changed production source. These offline byte checks do not grant release license clearance; see
-DEPENDENCY_REVIEW.md for resource differences and remaining packaging/rights work.
+--snapshot project-trust --binary dist/dax-kiro-proxy`. The default `development` snapshot
+identifies D78's earlier D77 binary, `installation` identifies D79, `native-history` identifies D87
+and `relay-close` identifies D96; `effort` identifies D99, `usage` identifies D101, `output-styles`
+identifies D108, `tool-images` identifies D109, `client-version` identifies D110–D112,
+`measured-client` identifies D113, `measured-kiro` identifies D114 and `onboarding` identifies D115.
+Those historical snapshots do not match this rebuild and its changed production source. These
+offline byte checks do not grant release clearance; see DEPENDENCY_REVIEW.md for the D121 component
+record, the three unattributed metaschema resources and the owner's external rights items.
 
 ## Naming
 

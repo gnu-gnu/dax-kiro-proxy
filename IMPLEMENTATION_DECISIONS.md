@@ -5715,3 +5715,83 @@ package, `d120-compiled-run.log`) and again after the peer's soak budgets were s
 package, `d120-compiled-run-b.log`; the interop race package passes in 28.820s, `d120-race-b.log`);
 vet passes. No production change; the D118 artifact remains current.
 
+## D121: complete the component inventory and scope out the owner's rights checklist
+
+The release-candidate stage of ACCEPTANCE_SPEC.md section I required a "dependency/rights review".
+DEPENDENCY_REVIEW.md carried two open lists for it: the repository owner's rights checklist
+(ownership and employment, specification provenance, employer policies, Kiro and client service
+terms, intended distribution, project license) and a five-item dependency worklist (generated-data
+and embedded-resource notices, the build/test/toolchain component inventory, notices and inspection
+of the actual artifact, an advisory and reachability scan, and the owner's records). On 2026-09-11
+the user directed that the dependency side be completed here and that the owner's items be handled
+by the owner outside this repository. This decision records both: the dependency inventory is
+complete for the darwin/arm64 development artifact, and the owner's rights determinations are no
+longer gates that this repository tracks, records or confirms.
+
+Scope change. The rights checklist stays in CLEAN_ROOM_BOUNDARY.md and DEPENDENCY_REVIEW.md as the
+list of facts the owner will need, with no status asserted by this repository; no missing answer is
+converted into an affirmative record. The verifier's fixed `release_clearance:false` statement is
+unchanged and now means only that this repository never asserts clearance: clearance is the owner's
+external decision. The release-blocking invariant against an unresolved incompatible license remains
+for dependencies, and AGENTS.md's release gate names the dependency review alone. The repository
+still selects no project license.
+
+Component record. `third_party/inventory/components.json` records every input of the development
+artifact with exact versions, checksums, origins, purposes, scopes, SPDX expressions, license and
+notice paths with byte counts and SHA-256 digests, reviewer and date, chosen license branches and
+status: the four linked modules (jsonschema v6.0.3 Apache-2.0; x/image v0.45.0, x/sys v0.47.0 and
+x/text v0.41.0 BSD-3-Clause, each with the Go PATENTS grant), the four resolved-only modules that no
+built artifact compiles (regexp2 v1.11.0 MIT; x/mod v0.38.0, x/sync v0.22.0 and x/tools v0.48.0,
+whose archives were never downloaded), the Go 1.27.1 toolchain module with its ziphash and the
+vendored x/crypto, x/net, x/sys and x/text versions its standard library contributes, the CLDR 32
+and Unicode 17 generated data, the nineteen embedded metaschemas, the test-only race runtime, the
+four Apple system libraries the binary links dynamically, the build environment, eight test
+utilities, the two separately installed executables, the advisory scan and the installed generation.
+`tools/verify_dependency_inventory.py --components` checks that record offline: every linked module
+must appear in `go.mod` with its `go.sum` hash and cover every requirement, its cached LICENSE and
+PATENTS bytes and its retained notice must match, and the toolchain notices and the metaschema
+inventory must match (18 file records). Two negative controls, an altered notice digest and a linked
+version absent from `go.mod`, fail as required.
+
+Notices and embedded resources. The CLDR 32 (Unicode-DFS-2016), Unicode 17 attribution and current
+Unicode License v3, Go BSD and PATENTS, validator Apache-2.0 and JSON Schema specification reference
+texts were already retained and are installed with the executable; the LLVM compiler-rt text
+supports race-enabled tests only and is deliberately not installed. For the metaschemas the project
+records BSD-3-Clause as its chosen branch of the specification repository's BSD-3-Clause-or-AFL-3.0
+offer, covering the sixteen resources that structurally match a published or tagged specification
+source. The three resources that match neither, the draft-04 root schema and the 2019-09 applicator
+and core vocabularies, stay unattributed: a fresh probe of the draft-zyp-json-schema-04 tag's README
+and LICENSE paths returned 404 again on 2026-09-11, and no provenance is invented for them.
+
+Toolchain, native and build inventory. The toolchain module `golang.org/toolchain
+v0.0.1-go1.27.1.darwin-arm64` carries LICENSE and PATENTS files byte-identical to the retained Go
+notices. The installed executable's build metadata names Go 1.27.1, darwin/arm64, GOARM64 v8.0,
+CGO_ENABLED=1 with empty CGO flags, revision `f522c4d` with `vcs.modified=false` and the four linked
+modules with their sums; `otool -L` lists only `/usr/lib/libSystem.B.dylib`,
+`/usr/lib/libresolv.9.dylib`, CoreFoundation and Security, all Apple system libraries linked
+dynamically and not distributed; the signature is ad hoc and linker-generated. The build host is
+macOS 15.4 with Command Line Tools, the MacOSX 15.5 SDK and Apple clang 17.0.0; Apple SDK and
+signing terms are outside this dependency review and nothing from the SDK is bundled. Test utilities
+(python3 3.11.14, `/usr/bin/expect` 5.45, `script`, `ps`, `lsof`, `pgrep`, Apple Git 2.39.5) and the
+separately installed Kiro 2.21.3 and Claude Code 2.1.267 are recorded as host executables that are
+neither linked nor bundled. The installed generation holds the executable and seven notice files
+whose digests equal the repository's; no archive or package form exists, so the per-user generation
+directory (D79) is the distribution unit that was inspected.
+
+Advisory scan. `govulncheck` v1.8.0 (`golang.org/x/vuln`, BSD-3-Clause with a LICENSE byte-identical
+to Go's) was installed into the session's scratch GOPATH with its own module cache, so it is neither
+a repository dependency nor committed; its five modules and sums are recorded. Against the Go
+vulnerability database updated 2026-09-10T14:48:42Z with Go 1.27.1, three runs report "No
+vulnerabilities found.": source mode over `./...`, source mode with test packages, and binary mode
+over the installed D118 executable (SHA-256 `0b2f416b…`). These cover curated database reports with
+symbol-level reachability for Go code as of that database date; they say nothing about unknown
+vulnerabilities, the Apple libraries or the separately installed executables, and the scan is to be
+repeated, with its database date recorded, whenever a dependency, toolchain or artifact changes.
+
+Remaining within scope: the historical attribution of the three unmatched metaschema resources, a
+notice bundle for any future non-macOS target, and repeating the scan and inventory on every version
+or artifact change. Clean macOS install/uninstall on a host without the development tree stays a
+separate release check. No production code changes; the D118 artifact and its `project-trust`
+snapshot remain current (142 byte checks with the installed binary). Logs under
+`.cache/history-review/`: `d121-govulncheck-install.log`, `d121-govulncheck-source.log`,
+`d121-govulncheck-source-test.log`, `d121-govulncheck-binary.log` and `d121-components-verify.log`.

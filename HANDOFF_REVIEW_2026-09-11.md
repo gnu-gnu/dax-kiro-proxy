@@ -182,7 +182,10 @@ first declared value, not a derived one.
 ## 8. Open items and known limits
 
 - Clean macOS install/uninstall on a host without the development tree (phase 7).
-- Dependency rights, advisory/reachability and owner-rights review; `release_clearance` stays false.
+- Dependency inventory and advisory scan: completed after this brief by D121 (component record,
+  verifier `--components`, govulncheck clean in three modes); the owner's rights checklist was moved
+  outside the repository's scope at the owner's direction; `release_clearance` stays false by
+  construction.
 - Admitted unmeasured builds (section 3, item 1) run the measured execution policy without new
   measurement until a D113/D114-style migration.
 - D118 was never observed against the user's own global file, and a symlinked launch path was not

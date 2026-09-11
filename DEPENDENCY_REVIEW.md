@@ -1,6 +1,9 @@
 # Phase 0 dependency, license, and provenance review
 
-Review date: 2026-09-08. Status: candidate assessment, not distribution clearance.
+Review date: 2026-09-08. Status: candidate assessment, not distribution clearance. D121 (2026-09-11)
+completes the component inventory for the darwin/arm64 development artifact in the final section and
+moves the owner's rights checklist outside this repository's scope; earlier sections record their
+own checkpoints.
 
 ## Phase 4 adoption review
 
@@ -53,17 +56,21 @@ establish the licenses of all transitive, generated, vendored, target-specific, 
 ## Repository owner's rights checklist
 
 The checklist comes from [CLEAN_ROOM_BOUNDARY.md](CLEAN_ROOM_BOUNDARY.md). It was raised during this
-review; the user supplied language-familiarity information, not rights/distribution attestations.
-Do not convert missing answers into affirmative records.
+review; the user supplied language-familiarity information, not rights/distribution attestations. Do
+not convert missing answers into affirmative records. On 2026-09-11 (D121) the owner moved the
+ownership, provenance, policy, service-terms and distribution items outside this repository's scope:
+the owner answers them separately, the table is retained only as the list of facts the owner will
+need, and this repository asserts no status for them. The dependency-license item is complete for
+the compiled application/test graph.
 
 | Required fact | Status | Evidence needed to close |
 | --- | --- | --- |
-| Ownership of the original contribution, including employment duties | Unconfirmed | Owner's recorded ownership/assignment facts; Git authorship alone is insufficient |
-| Co-authored or upstream expression in the behavioral specification | Unconfirmed | Specification author's provenance statement; resolve uncertain expression without showing the earlier source to this implementation agent |
-| Employer invention/assignment/open-source policies | Unconfirmed | Owner's applicable policy/assignment determination, including an explicit not-applicable statement if true |
-| Permission to use Kiro CLI and private extensions in the intended environment | Unconfirmed | Applicable account/service/employer terms and permitted use; technical accessibility does not establish permission |
-| Licenses of every implementation and test dependency | Partial | Candidate review below, then exact resolved graph, component license texts, notices, and intended-use review |
-| Internal versus external distribution | Unconfirmed | Owner's distribution plan, including whether Kiro/client/toolchains will be bundled |
+| Ownership of the original contribution, including employment duties | Owner's external item (D121; not tracked here) | Owner's recorded ownership/assignment facts; Git authorship alone is insufficient |
+| Co-authored or upstream expression in the behavioral specification | Owner's external item (D121; not tracked here) | Specification author's provenance statement; resolve uncertain expression without showing the earlier source to this implementation agent |
+| Employer invention/assignment/open-source policies | Owner's external item (D121; not tracked here) | Owner's applicable policy/assignment determination, including an explicit not-applicable statement if true |
+| Permission to use Kiro CLI and private extensions in the intended environment | Owner's external item (D121; not tracked here) | Applicable account/service/employer terms and permitted use; technical accessibility does not establish permission |
+| Licenses of every implementation and test dependency | Complete for the compiled application/test graph (D121) | Candidate review below, then exact resolved graph, component license texts, notices, and intended-use review |
+| Internal versus external distribution | Owner's external item (D121; not tracked here) | Owner's distribution plan, including whether Kiro/client/toolchains will be bundled |
 
 Independent implementation is the provenance method, not a legal finding of non-derivation. Copyright
 guidance distinguishes underlying methods from their original expression; it does not settle this
@@ -173,7 +180,7 @@ record authorizes neither bundling nor a general distribution clearance.
 | Apache-2.0 | Include the license, retain applicable notices/attributions, preserve relevant upstream NOTICE material if supplied, and mark modified upstream files; consider its patent grant/termination terms |
 | MIT OR Apache-2.0 | Record the chosen allowed license branch and preserve its obligations; an OR declaration is not an obligation to license the proxy under both |
 | Unapproved copyleft or unknown/nonstandard terms | Leave the component unapproved until reviewed for its exact use and distribution; a development tool, linked runtime, fixture corpus, and bundled executable have different roles |
-| Provenance/ownership | An independent rewrite and permissive dependencies do not establish employer rights or remove copied-expression risk; close the owner checklist |
+| Provenance/ownership | An independent rewrite and permissive dependencies do not establish employer rights or remove copied-expression risk; the owner's checklist is handled outside this repository (D121) |
 | Runtime supply chain | Dependency access, schema retrieval, generated code, build scripts, optional features and target-specific code may enlarge the reviewed surface |
 
 License summaries derive from the linked component license texts and
@@ -195,9 +202,10 @@ resolved; it would be incorrect to report a copyleft-free release or a complete 
    and approval or unresolved issue. Review generated/vendor subcomponents and security advisories.
 4. Retain approved notice texts with the artifact and inspect the release contents. Avoid copying
    dependency examples or fixtures merely because the library itself is approved.
-5. Repeat the graph/notice review when versions/features change and for release artifacts. Complete
-   the owner's rights/distribution checklist before choosing a permissive or proprietary project
-   license. Satisfy acceptance I's no-unapproved-copyleft gate for the intended distribution.
+5. Repeat the graph/notice review when versions/features change and for release artifacts. The
+   owner's rights/distribution checklist and the project-license choice are handled outside this
+   repository (D121). Satisfy acceptance I's no-unapproved-copyleft gate for the intended
+   distribution.
 
 No LICENSE file, copyright ownership claim, or statement that the earlier project's licensing risk
 has been eliminated is introduced by this review.
@@ -359,7 +367,9 @@ The [Go vulnerability documentation](https://go.dev/doc/security/vuln/) distingu
 from function-reachability analysis; review and pin any scanner before adoption, then retain its
 database date, target, toolchain, command and findings.
 
-Before release, the concrete remaining dependency work is to:
+Before release, the concrete remaining dependency work was, at this checkpoint (D121 later completes
+the first four items for the darwin/arm64 development artifact, except the three unmatched
+metaschema resources, and moves the fifth outside the repository):
 
 - resolve the generated Unicode/CLDR, embedded metaschema and exact race-runtime notices above;
 - finish the appropriate build/test/toolchain component inventory, including target-specific native
@@ -554,11 +564,12 @@ An initial invocation through the automatic toolchain selector stops because tha
 checksum-database verification; it is not evidence of corrupt modules. No online authenticity or
 advisory scan is implied by the successful cache-integrity check.
 
-Public-only local Claude advice was saved, read in full and assessed. Its useful distinction
-between content identity and rights does not make its assumptions evidence. In particular, a
-present-day match cannot prove historical acquisition or absence of modifications. Full component
-attribution, current advisory/reachability scanning, final archive contents, clean macOS installation/
-uninstall, owner rights, intended distribution and project license remain release work. Local
+Public-only local Claude advice was saved, read in full and assessed. Its useful distinction between
+content identity and rights does not make its assumptions evidence. In particular, a present-day
+match cannot prove historical acquisition or absence of modifications. D121 later completes
+component attribution, the advisory scan and the artifact inspection for the darwin/arm64
+development artifact; clean macOS installation/uninstall remains release work; owner rights,
+intended distribution and project license are outside this repository's scope. Local
 packaging/installer implementation can continue without claiming that distribution is cleared.
 
 ## Installation artifact snapshot — D79, 2026-09-09
@@ -868,3 +879,51 @@ All 142 byte checks pass against the candidate with release clearance false. Exi
 reachability, native/build/test attribution, clean-host distribution and owner-rights work remain
 open. Recording the user's workspace-trust answer grants no license or distribution right and does
 not change the reviewed dependency set.
+
+## Component inventory completion and scope change — D121, 2026-09-11
+
+The tracked [component record](third_party/inventory/components.json) consolidates every input of
+the darwin/arm64 development artifact with exact versions, checksums, origins, purposes, scopes,
+SPDX expressions, license/notice paths and digests, reviewer and date, chosen branches and status.
+`python3 tools/verify_dependency_inventory.py --gomodcache .cache/gomod --components` checks its 18
+file records offline against `go.mod`, `go.sum`, the module cache, the retained notices and the
+metaschema inventory; two negative controls reject an altered notice digest and a linked version
+absent from `go.mod` (`d121-components-verify.log`). At the owner's direction the ownership,
+provenance, policy, service-terms and distribution items of the rights checklist are handled outside
+this repository from this date; the repository asserts no status for them and still selects no
+project license.
+
+| Component | Exact identity | Scope | License evidence | Status |
+| --- | --- | --- | --- | --- |
+| github.com/santhosh-tekuri/jsonschema/v6 | v6.0.3, `h1:1EYB5Izj…` | linked; command and test graphs | Apache-2.0, cached LICENSE `c8858a5a…` = retained `jsonschema-apache-2.0.txt` | approved for development and local installation |
+| golang.org/x/image | v0.45.0, `h1:FMb1nTbH…` | linked (riff, vp8, vp8l, webp) | BSD-3-Clause + PATENTS, cached files = retained `go-bsd.txt`/`go-patents.txt` | approved |
+| golang.org/x/sys | v0.47.0, `h1:o7XGOvZQ…` | linked (unix) | BSD-3-Clause + PATENTS, same retained texts | approved |
+| golang.org/x/text | v0.41.0, `h1:vz/seA0l…` | linked (message, language, plural and internals; width in tests) | BSD-3-Clause + PATENTS, same retained texts; CLDR 32 data under `unicode-cldr-32.txt` | approved |
+| github.com/dlclark/regexp2 | v1.11.0 | resolved graph only, never compiled | MIT, cached LICENSE `9be5d04b…` | not a dependency of any built artifact |
+| golang.org/x/mod, x/sync, x/tools | v0.38.0, v0.22.0, v0.48.0 | resolved graph only; archives never downloaded | x/sync public LICENSE read; others not reviewed | not a dependency of any built artifact |
+| golang.org/toolchain | v0.0.1-go1.27.1.darwin-arm64, ziphash `h1:51Yfd9AJ…` | build/test toolchain, standard library and runtime | LICENSE/PATENTS byte-identical to the retained Go notices; vendored x/crypto, x/net, x/sys v0.45.0, x/text v0.37.0; Unicode 17 notices retained | not bundled |
+| runtime/race/race_darwin_arm64.syso | 502,032 bytes, `6ca6a32e…` | race-enabled tests only | Apache-2.0 WITH LLVM-exception text retained under `notices/test` | not in the ordinary or installed executable |
+| Embedded metaschemas | 19 resources of jsonschema v6.0.3 | compiled into the validator | specification offer BSD-3-Clause OR AFL-3.0; chosen branch BSD-3-Clause; reference text retained | 16 matched to specification sources; draft-04 root, 2019-09 applicator and core unattributed |
+| Apple system libraries | libSystem.B, libresolv.9, CoreFoundation, Security | dynamic links of the installed binary (`otool -L`) | Apple macOS; SDK and signing terms outside this review | not distributed |
+| Build environment | macOS 15.4, Command Line Tools, MacOSX 15.5 SDK, Apple clang 17.0.0, CGO_ENABLED=1, ad hoc linker signature | build host | outside this review | nothing from the SDK is bundled |
+| Test utilities | python3 3.11.14, expect 5.45, script, ps, lsof, pgrep, Apple Git 2.39.5 | test host executables | host-provided | neither linked nor bundled |
+| External executables | kiro-cli 2.21.3, Claude Code 2.1.267 | black-box backend and client | service terms are the owner's external item | neither linked nor bundled |
+| Advisory scanner | govulncheck v1.8.0 (`golang.org/x/vuln`, `h1:clG4qBU6…`) with x/mod v0.41.0, x/sync v0.23.0, x/telemetry 20260908, x/tools v0.50.0 | session scratch GOPATH only | BSD-3-Clause, LICENSE byte-identical to Go's | not a repository dependency |
+
+Advisory results (database `https://vuln.go.dev` updated 2026-09-10T14:48:42Z, Go 1.27.1): source
+mode over `./...`, source mode with test packages, and binary mode over the installed D118
+executable (SHA-256 `0b2f416b1a054935729e59f6e4c75eeeb1ccebd6f49aba59f46eaa5eb521e28d`) each report
+"No vulnerabilities found." (`d121-govulncheck-install.log`, `d121-govulncheck-source.log`,
+`d121-govulncheck-source-test.log`, `d121-govulncheck-binary.log`). This covers curated reports with
+symbol-level reachability for Go code as of that database date and makes no statement about unknown
+vulnerabilities, the Apple libraries or the separately installed executables. Repeat the scan and
+record its database date whenever a dependency, toolchain or artifact changes.
+
+Artifact inspection: the installed generation's manifest lists the executable and seven notice files
+whose digests equal the repository's `third_party/notices/runtime` and `reference` texts; the
+test-only LLVM text is not installed by design. The binary's build metadata reports revision
+`f522c4d`, `vcs.modified=false`, GOARM64 v8.0 and empty CGO flags. No archive or package form
+exists; the per-user generation directory is the inspected distribution unit. Remaining within
+scope: the three unattributed metaschema resources, a notice bundle for any future non-macOS target,
+and repeating this inventory on change. The `project-trust` snapshot's 142 byte checks against the
+installed binary continue to pass.
