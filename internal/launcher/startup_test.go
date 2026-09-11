@@ -24,6 +24,7 @@ type startupRunnerFixture struct {
 	cancelAt      string
 	root          string
 	cancelOnClose context.CancelFunc
+	kiroVersion   string
 }
 
 func (r *startupRunnerFixture) Close() {
@@ -51,9 +52,9 @@ func (r *startupRunnerFixture) Run(ctx context.Context, c childproc.Command) (ch
 	case "claude --version":
 		raw = "2.1.263 (Claude Code)\n"
 	case "kiro-cli --version":
-		raw = "kiro-cli 2.21.2\n"
+		raw = "kiro-cli " + r.kiroBuild() + "\n"
 	case "kiro-cli-chat --version":
-		raw = "kiro-cli-chat 2.21.2\n"
+		raw = "kiro-cli-chat " + r.kiroBuild() + "\n"
 	case "kiro-cli whoami --format json":
 		raw = `{"accountType":"synthetic","email":"own-fixture@example.invalid"}`
 	case "kiro-cli chat --list-models --format json":
@@ -62,6 +63,12 @@ func (r *startupRunnerFixture) Run(ctx context.Context, c childproc.Command) (ch
 		return childproc.Result{}, errors.New("unexpected independent command")
 	}
 	return childproc.Result{ExitCode: 0, Stdout: []byte(raw)}, nil
+}
+func (r *startupRunnerFixture) kiroBuild() string {
+	if r.kiroVersion == "" {
+		return SupportedKiroVersion
+	}
+	return r.kiroVersion
 }
 func startupOptions(t *testing.T) LaunchOptions {
 	t.Helper()
@@ -89,6 +96,24 @@ func assertStartupClean(t *testing.T, opts LaunchOptions, r *startupRunnerFixtur
 	entries, err := os.ReadDir(opts.RuntimeParent)
 	if err != nil || len(entries) != 0 {
 		t.Fatal("ephemeral runtime retained", err, len(entries))
+	}
+}
+
+func TestStartupAdmitsSameMajorKiroBuildsAsUnmeasured(t *testing.T) {
+	for _, tc := range []struct {
+		version            string
+		admitted, measured bool
+	}{{SupportedKiroVersion, true, true}, {"2.21.9", true, false}, {"2.99.0", true, false}, {"3.0.0", false, false}, {"1.21.3", false, false}} {
+		opts := startupOptions(t)
+		r := &startupRunnerFixture{kiroVersion: tc.version}
+		got, err := start(context.Background(), opts, childproc.AttachedIO{}, true, startupServicesFor(r))
+		if tc.admitted && (err != nil || got.Startup.KiroVersion != tc.version || got.Startup.KiroVersionMeasured != tc.measured || got.Startup.Login != "verified") {
+			t.Fatalf("same-major Kiro build was not admitted or reported: %v %+v", err, got.Startup)
+		}
+		if !tc.admitted && (!errors.Is(err, ErrKiroVersion) || got.Startup.Login == "verified" || got.Startup.KiroVersion != "") {
+			t.Fatalf("other-major Kiro build reached login lookup: %v %+v", err, got.Startup)
+		}
+		assertStartupClean(t, opts, r)
 	}
 }
 

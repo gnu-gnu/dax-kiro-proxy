@@ -317,8 +317,12 @@ func execute(ctx context.Context, args []string, files childproc.AttachedIO, out
 			policy = report.Policy
 		}
 		data = []byte(fmt.Sprintf("Login: %s\nExecution policy: %s\nLaunch: %s\nClient initialization: unverified\n", login, policy, available))
-		if report.KiroVersion == launcher.SupportedKiroVersion {
-			data = append(data, "Kiro: "+launcher.SupportedKiroVersion+"\n"...)
+		if launcher.CompatibleKiroVersion(report.KiroVersion) {
+			line := "Kiro: " + report.KiroVersion
+			if !report.KiroVersionMeasured {
+				line += " (unmeasured; measured " + launcher.SupportedKiroVersion + ")"
+			}
+			data = append(data, line+"\n"...)
 		}
 		if launcher.CompatibleClientVersion(report.ClientVersion) {
 			line := "Claude Code: " + report.ClientVersion

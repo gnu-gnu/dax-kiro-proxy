@@ -36,8 +36,10 @@ type PhaseTiming struct {
 	Milliseconds int64  `json:"milliseconds"`
 }
 type StartupReport struct {
-	KiroVersion   string `json:"kiro_version,omitempty"`
-	ClientVersion string `json:"client_version,omitempty"`
+	KiroVersion string `json:"kiro_version,omitempty"`
+	// True only for the exact measured Kiro build; a same-major build is admitted unmeasured (D114).
+	KiroVersionMeasured bool   `json:"kiro_version_measured"`
+	ClientVersion       string `json:"client_version,omitempty"`
 	// ClientVersionMeasured is true only for the exact build behind the recorded evidence;
 	// another admitted build of the same major version reports false (D110).
 	ClientVersionMeasured bool              `json:"client_version_measured"`
@@ -247,7 +249,7 @@ func start(ctx context.Context, opts LaunchOptions, files childproc.AttachedIO, 
 		if err != nil {
 			return err
 		}
-		result.Startup.KiroVersion = info.Version
+		result.Startup.KiroVersion, result.Startup.KiroVersionMeasured = info.Version, info.Version == SupportedKiroVersion
 		result.Startup.Login = "verified"
 		return nil
 	}); err != nil {

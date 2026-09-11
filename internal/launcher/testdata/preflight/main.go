@@ -25,10 +25,10 @@ func main() {
 	switch {
 	case name == "kiro-cli" && args == "--version":
 		label = "kiro-version"
-		output = "kiro-cli 2.21.2"
+		output = "kiro-cli 2.21.3"
 	case name == "kiro-cli-chat" && args == "--version":
 		label = "helper-version"
-		output = "kiro-cli-chat 2.21.2"
+		output = "kiro-cli-chat 2.21.3"
 	case name == "kiro-cli" && args == "whoami --format json":
 		label = "identity"
 		output = `{"accountType":"synthetic","email":"startup-fixture@example.invalid"}`

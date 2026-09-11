@@ -22,7 +22,7 @@ func fixtureOptions() launcher.LaunchOptions {
 }
 
 func fixtureReport() launcher.StartupReport {
-	return launcher.StartupReport{KiroVersion: launcher.SupportedKiroVersion, ClientVersion: launcher.SupportedClientVersion, ClientVersionMeasured: true, Login: "verified", Policy: "unverified", SelectedModel: "claude-dax-fixture-0000000000000000", ClientInitialization: "unverified", Models: []inference.Model{{ID: "claude-dax-fixture-0000000000000000", Object: "model", Name: "Independent model"}}, Phases: []launcher.PhaseTiming{{Name: "login_check", Milliseconds: 7}}}
+	return launcher.StartupReport{KiroVersion: launcher.SupportedKiroVersion, KiroVersionMeasured: true, ClientVersion: launcher.SupportedClientVersion, ClientVersionMeasured: true, Login: "verified", Policy: "unverified", SelectedModel: "claude-dax-fixture-0000000000000000", ClientInitialization: "unverified", Models: []inference.Model{{ID: "claude-dax-fixture-0000000000000000", Object: "model", Name: "Independent model"}}, Phases: []launcher.PhaseTiming{{Name: "login_check", Milliseconds: 7}}}
 }
 
 func fixtureServices() commandServices {
@@ -124,6 +124,23 @@ func TestDoctorReportsUnmeasuredClientBuild(t *testing.T) {
 	code, out, diagnostics = invoke(t, t.Context(), []string{"doctor", "--json"}, services)
 	if code != 0 || diagnostics != "" || !strings.Contains(out, `"client_version":"2.9.1"`) || !strings.Contains(out, `"client_version_measured":false`) {
 		t.Fatal("doctor JSON omitted measurement state", code, out, diagnostics)
+	}
+}
+
+func TestDoctorReportsUnmeasuredKiroBuild(t *testing.T) {
+	services := fixtureServices()
+	services.inspect = func(context.Context, launcher.LaunchOptions) (launcher.StartupReport, error) {
+		report := fixtureReport()
+		report.KiroVersion, report.KiroVersionMeasured = "2.30.1", false
+		return report, nil
+	}
+	code, out, diagnostics := invoke(t, t.Context(), []string{"doctor"}, services)
+	if code != 0 || diagnostics != "" || !strings.Contains(out, "Kiro: 2.30.1 (unmeasured; measured "+launcher.SupportedKiroVersion+")") {
+		t.Fatal("doctor concealed an unmeasured Kiro build", code, out, diagnostics)
+	}
+	code, out, diagnostics = invoke(t, t.Context(), []string{"doctor", "--json"}, services)
+	if code != 0 || diagnostics != "" || !strings.Contains(out, `"kiro_version":"2.30.1"`) || !strings.Contains(out, `"kiro_version_measured":false`) {
+		t.Fatal("doctor JSON omitted Kiro measurement state", code, out, diagnostics)
 	}
 }
 

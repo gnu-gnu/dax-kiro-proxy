@@ -58,11 +58,17 @@ func CompatibleClientOutput(output []byte) bool {
 // major component is compared against SupportedClientVersion, so minor and
 // patch updates of the measured client stay usable without repinning.
 func CompatibleClientVersion(version string) bool {
+	return compatibleMajor(version, SupportedClientVersion)
+}
+
+// compatibleMajor admits a bounded dotted decimal build whose major component equals the
+// measured build's. The client (D110) and Kiro (D114) admission rules share it.
+func compatibleMajor(version, measured string) bool {
 	major, ok := clientVersionMajor(version)
 	if !ok {
 		return false
 	}
-	supported, ok := clientVersionMajor(SupportedClientVersion)
+	supported, ok := clientVersionMajor(measured)
 	return ok && major == supported
 }
 

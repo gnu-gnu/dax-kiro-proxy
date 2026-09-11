@@ -29,7 +29,7 @@ func emit(v any) {
 func main() {
 	if len(os.Args) == 2 && os.Args[1] == "--version" {
 		record("version")
-		fmt.Println(filepath.Base(os.Args[0]) + " 2.21.2")
+		fmt.Println(filepath.Base(os.Args[0]) + " 2.21.3")
 		return
 	}
 	if strings.Join(os.Args[1:], " ") == "whoami --format json" {

@@ -118,7 +118,17 @@ func TestPreparedKiroExecutionOwnsConfigurationAndExactRelay(t *testing.T) {
 }
 
 func TestPreparedKiroExecutionRejectsUnknownPolicyWithoutArtifacts(t *testing.T) {
-	for _, version := range []string{"", "2.21.1", "2.21.3"} {
+	for _, version := range []string{"2.21.1", "2.21.9"} {
+		opts := startupOptions(t)
+		info := identityFixture()
+		info.Executable, info.Helper, info.Version = filepath.Join(filepath.Dir(opts.ProxyExecutable), "kiro-cli"), filepath.Join(filepath.Dir(opts.ProxyExecutable), "kiro-cli-chat"), version
+		if runtime.GOOS == "darwin" && runtime.GOARCH == "arm64" {
+			if _, err := PrepareKiroExecution(t.Context(), KiroExecutionConfig{Installation: info, Home: opts.Home, Project: opts.Project, RuntimeDirectory: opts.RuntimeParent}); err != nil {
+				t.Fatal("same-major Kiro build did not receive the measured development policy", version, err)
+			}
+		}
+	}
+	for _, version := range []string{"", "1.21.3", "3.0.0", "2.21.3-beta"} {
 		opts := startupOptions(t)
 		info := identityFixture()
 		info.Version = version

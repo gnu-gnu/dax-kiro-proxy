@@ -30,7 +30,7 @@ func (f *preflightFixture) Run(ctx context.Context, c childproc.Command) (childp
 		}
 		version := f.version
 		if version == "" {
-			version = "2.21.2"
+			version = "2.21.3"
 		}
 		if name == "kiro-cli-chat" && f.helperVersion != "" {
 			version = f.helperVersion
@@ -46,7 +46,7 @@ func TestKiroPreflightPinsExecutablesAndKeepsAccountDataOutOfResults(t *testing.
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(f.calls) != 3 || info.Version != "2.21.2" || info.Executable != cfg.Executable || info.Helper != "/fixture/bin/kiro-cli-chat" || len(info.ProfileScope) != 64 || !info.HadPostamble {
+	if len(f.calls) != 3 || info.Version != "2.21.3" || info.Executable != cfg.Executable || info.Helper != "/fixture/bin/kiro-cli-chat" || len(info.ProfileScope) != 64 || !info.HadPostamble {
 		t.Fatal("incorrect preflight sequence or scope")
 	}
 	for _, c := range f.calls {
@@ -73,6 +73,34 @@ func TestKiroPreflightPinsExecutablesAndKeepsAccountDataOutOfResults(t *testing.
 		t.Fatal("different login identity shared a cache scope")
 	}
 }
+func TestKiroPreflightAdmitsSameMajorBuildsAndReportsThem(t *testing.T) {
+	cfg := launcher.KiroConfig{Executable: "/fixture/bin/kiro-cli", Home: t.TempDir(), Directory: t.TempDir(), ScopeKey: [32]byte{41}}
+	for _, version := range []string{"2.21.1", "2.21.9", "2.99.0", "2.21"} {
+		f := &preflightFixture{version: version, identity: `{"email":"x@example.invalid","accountType":"z"}`}
+		info, err := launcher.CheckKiro(t.Context(), f, cfg)
+		if err != nil || info.Version != version || len(f.calls) != 3 {
+			t.Fatal("same-major Kiro build was rejected or misreported", version, err)
+		}
+	}
+	for _, c := range []struct {
+		name, output, version string
+		ok                    bool
+	}{
+		{"kiro-cli", "kiro-cli 2.21.3\n", "2.21.3", true},
+		{"kiro-cli-chat", "kiro-cli-chat 2.21.9", "2.21.9", true},
+		{"kiro-cli", "kiro-cli-chat 2.21.3", "", false},
+		{"kiro-cli", "kiro-cli 3.0.0", "", false},
+		{"kiro-cli", "kiro-cli 2.21.3-beta", "", false},
+		{"kiro-cli", "kiro-cli  2.21.3", "", false},
+		{"kiro-cli", "kiro-cli 2.21.3 extra", "", false},
+		{"kiro-cli", "kiro-cli " + strings.Repeat("2", 300), "", false},
+	} {
+		version, ok := launcher.KiroVersionFromOutput(c.name, []byte(c.output))
+		if ok != c.ok || version != c.version || launcher.CompatibleKiroOutput(c.name, []byte(c.output)) != c.ok {
+			t.Fatal("Kiro version admission differs", c.output)
+		}
+	}
+}
 func TestKiroPreflightNeverConfusesInvalidOutputOrTimeoutWithKnownLogin(t *testing.T) {
 	cfg := launcher.KiroConfig{Executable: "/fixture/bin/kiro-cli", Home: t.TempDir(), Directory: t.TempDir(), ScopeKey: [32]byte{41}}
 	for _, raw := range []string{`{}`, `null`, `"not an identity"`, `{"email":"x","email":"y","accountType":"z"}`, `{"email":"x","accountType":false}`, `{"email":"x","accountType":"z"}` + "\n{}", `{"email":"x","accountType":"z"}` + "\n{incomplete", strings.Repeat(" ", 64<<10) + `{}`} {
@@ -85,13 +113,13 @@ func TestKiroPreflightNeverConfusesInvalidOutputOrTimeoutWithKnownLogin(t *testi
 	if _, err := launcher.CheckKiro(t.Context(), f, cfg); !errors.Is(err, launcher.ErrLoginCheck) {
 		t.Fatal("timeout was treated as identity evidence")
 	}
-	for _, version := range []string{"2.21.1", "2.21.3", "3.0.0"} {
+	for _, version := range []string{"3.0.0", "1.21.3", "2.21.3-beta", "v2.21.3", "2.21.3 extra"} {
 		f = &preflightFixture{version: version}
 		if _, err := launcher.CheckKiro(t.Context(), f, cfg); !errors.Is(err, launcher.ErrKiroVersion) || len(f.calls) != 1 {
 			t.Fatal("unsupported Kiro version reached login lookup")
 		}
 	}
-	for _, version := range []string{"2.21.1", "2.21.3"} {
+	for _, version := range []string{"2.21.1", "2.21.9", "3.0.0"} {
 		f = &preflightFixture{helperVersion: version}
 		if _, err := launcher.CheckKiro(t.Context(), f, cfg); !errors.Is(err, launcher.ErrKiroVersion) || len(f.calls) != 2 {
 			t.Fatal("mismatched main/helper versions reached login lookup")

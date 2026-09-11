@@ -55,7 +55,7 @@ func productionUsageServices() usageServices {
 }
 
 func newKiroUsageCache(cfg KiroUsageConfig, services usageServices) (*status.UsageCache, error) {
-	if cfg.Installation.Version != kiroDevelopmentVersion || cfg.Installation.ProfileScope == "" || len(cfg.Installation.ProfileScope) > 64 || cfg.ScopeKey == ([32]byte{}) || services.runner == nil || services.start == nil {
+	if !compatibleMajor(cfg.Installation.Version, kiroDevelopmentVersion) || cfg.Installation.ProfileScope == "" || len(cfg.Installation.ProfileScope) > 64 || cfg.ScopeKey == ([32]byte{}) || services.runner == nil || services.start == nil {
 		return nil, ErrConfig
 	}
 	for _, path := range []string{cfg.Home, cfg.RuntimeParent} {

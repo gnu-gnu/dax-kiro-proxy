@@ -18,9 +18,10 @@ type KiroExecutionConfig struct {
 	Home, Project, RuntimeDirectory string
 }
 
-// Changing the preflight pin alone must not admit an unmeasured execution policy.
-const kiroDevelopmentVersion = "2.21.2"
-const kiroDevelopmentPolicy = "dax-kiro-initial-v2:2.21.2:darwin-arm64:relay-metadata-v2:owned-default-resources-off"
+// The development policy is measured on this Kiro build; a same-major build runs it unmeasured
+// (D114). Changing the preflight pin alone must not admit a different execution policy.
+const kiroDevelopmentVersion = "2.21.3"
+const kiroDevelopmentPolicy = "dax-kiro-initial-v2:2.21.3:darwin-arm64:relay-metadata-v2:owned-default-resources-off"
 
 type KiroExecution struct {
 	Process acp.Config
@@ -35,7 +36,7 @@ func PrepareKiroExecution(ctx context.Context, cfg KiroExecutionConfig) (KiroExe
 		return KiroExecution{}, ctx.Err()
 	}
 	info := cfg.Installation
-	if runtime.GOOS != "darwin" || runtime.GOARCH != "arm64" || info.Version != kiroDevelopmentVersion {
+	if runtime.GOOS != "darwin" || runtime.GOARCH != "arm64" || !compatibleMajor(info.Version, kiroDevelopmentVersion) {
 		return KiroExecution{}, ErrPolicyUnverified
 	}
 	if info.Helper != filepath.Join(filepath.Dir(info.Executable), "kiro-cli-chat") {

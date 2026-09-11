@@ -20,7 +20,36 @@ import (
 var ErrKiroVersion = errors.New("Kiro installation or version is not supported")
 var ErrLoginCheck = errors.New("Kiro login could not be verified; run kiro-cli login and retry")
 
-const SupportedKiroVersion = "2.21.2"
+// SupportedKiroVersion is the measured Kiro main/helper build behind the recorded evidence. D59
+// moved it to 2.21.2 and D114 to 2.21.3 after fresh finite account/catalog checks. D114 admits any
+// main/helper pair reporting the same build with this major version; startup reports whether the
+// detected build is the measured one rather than treating it as verified.
+const SupportedKiroVersion = "2.21.3"
+
+// KiroVersionFromOutput parses "<name> <version>" from a bounded --version output and reports
+// whether that build is admitted.
+func KiroVersionFromOutput(name string, output []byte) (string, bool) {
+	if len(output) > 256 {
+		return "", false
+	}
+	version, named := strings.CutPrefix(strings.TrimSpace(string(output)), name+" ")
+	if !named || !CompatibleKiroVersion(version) {
+		return "", false
+	}
+	return version, true
+}
+
+// CompatibleKiroOutput is KiroVersionFromOutput's admission result alone.
+func CompatibleKiroOutput(name string, output []byte) bool {
+	_, ok := KiroVersionFromOutput(name, output)
+	return ok
+}
+
+// CompatibleKiroVersion reports whether a Kiro build may be used: only the major component is
+// compared against SupportedKiroVersion (D114). The main/helper pair must still match exactly.
+func CompatibleKiroVersion(version string) bool {
+	return compatibleMajor(version, SupportedKiroVersion)
+}
 
 type CommandRunner interface {
 	Run(context.Context, childproc.Command) (childproc.Result, error)
@@ -73,7 +102,7 @@ func checkedKiroCommand(ctx context.Context, runner CommandRunner, cfg KiroConfi
 			return KiroInfo{}, childproc.Command{}, ErrConfig
 		}
 	}
-	info := KiroInfo{Executable: cfg.Executable, Helper: filepath.Join(filepath.Dir(cfg.Executable), "kiro-cli-chat"), Version: SupportedKiroVersion}
+	info := KiroInfo{Executable: cfg.Executable, Helper: filepath.Join(filepath.Dir(cfg.Executable), "kiro-cli-chat")}
 	env := []string{"HOME=" + cfg.Home, "PATH=" + filepath.Dir(cfg.Executable) + ":/usr/bin:/bin:/usr/sbin:/sbin", "TMPDIR=" + cfg.Directory, "TERM=dumb", "LANG=en_US.UTF-8"}
 	command := childproc.Command{Executable: cfg.Executable, Directory: cfg.Directory, Environment: env, Args: []string{"--version"}}
 	for i, executable := range []string{info.Executable, info.Helper} {
@@ -89,9 +118,11 @@ func checkedKiroCommand(ctx context.Context, runner CommandRunner, cfg KiroConfi
 		if i == 1 {
 			name = "kiro-cli-chat"
 		}
-		if err != nil || result.ExitCode != 0 || len(result.Stdout) > 256 || strings.TrimSpace(string(result.Stdout)) != name+" "+SupportedKiroVersion {
+		version, ok := KiroVersionFromOutput(name, result.Stdout)
+		if err != nil || result.ExitCode != 0 || !ok || i == 1 && version != info.Version {
 			return KiroInfo{}, childproc.Command{}, ErrKiroVersion
 		}
+		info.Version = version
 	}
 	command.Executable = cfg.Executable
 	return info, command, nil

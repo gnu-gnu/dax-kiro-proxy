@@ -16,7 +16,7 @@ import (
 var ErrUsageUnavailable = errors.New("Kiro account usage is unavailable")
 
 // AccountUsage contains only reported CREDIT amounts. Supplemental buckets, labels and inferred
-// balances are deliberately absent. The private command mapping is measured for Kiro 2.21.2/v2.
+// balances are deliberately absent. The private command mapping is measured for Kiro 2.21.3/v2 (D114; first measured on 2.21.2).
 type AccountUsage struct{ Used, Limit *float64 }
 
 type UsagePeer interface {

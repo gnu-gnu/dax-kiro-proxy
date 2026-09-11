@@ -69,7 +69,7 @@ func (r *usageLifecycleRunner) Run(_ context.Context, c childproc.Command) (chil
 		return childproc.Result{}, childproc.ErrCleanup
 	}
 	if c.Args[0] == "--version" {
-		return childproc.Result{Stdout: []byte(filepath.Base(c.Executable) + " 2.21.2\n")}, nil
+		return childproc.Result{Stdout: []byte(filepath.Base(c.Executable) + " 2.21.3\n")}, nil
 	}
 	email := "usage@example.invalid"
 	if r.mismatch {
