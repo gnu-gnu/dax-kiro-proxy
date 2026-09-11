@@ -14,7 +14,10 @@ fails owned fixtures for a reason unrelated to the client.
 The installed Kiro main/helper now report 2.21.3; D114 moved the measured pin there on 2026-09-11
 after fresh finite checks and admits a same-major pair unmeasured, recording its observed version.
 D59 had moved production preflight to exact 2.21.2 after fresh finite account/catalog checks. The
-2.21.1 and 2.21.2 live results below remain historical evidence for those versions. D58's resource
+2.21.1 and 2.21.2 live results below remain historical evidence for those versions. On 2026-09-11
+the user authorized re-running every credit-consuming control on the measured 2.21.3 / 2.1.267 pair:
+all eighteen pass, two earlier that day and sixteen in one package run (877.124s package;
+`live-recheck-kiro2213-claude21267.log`, `live-recheck-2-kiro2213-claude21267.log`). D58's resource
 observations sent no model prompt. The native-effect experiment below is prepared for one fresh
 2.21.2 attempt after the read-only isolation prerequisites pass, retaining its prompt, bounds and
 explicit credit opt-in. The user's continuing authorization covers completing those prerequisites

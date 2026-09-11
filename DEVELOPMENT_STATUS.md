@@ -6,6 +6,17 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- Live re-verification completed on the measured Kiro 2.21.3 / Claude 2.1.267 pair: with the user's
+  authorization the sixteen remaining credit-consuming controls ran once in one package invocation
+  (877.124s package): launcher cancellation 24.39s, default-client denial recreation 31.69s,
+  one-prompt client denial 23.65s, resumed tool policy 140.08s, interrupted resumed tool policy
+  50.62s, client tool effects 171.32s, plugin registry replacement 77.63s, restricted native effects
+  22.62s, native restart through gateway and ACP 38.44s, pending tool native resume 42.94s, process
+  loss and fresh request 28.48s, native history picker 44.77s, native history 44.45s, keyboard
+  cancellation 23.43s, held-hook keyboard exit 24.47s and completed tool native resume 87.20s, all
+  passing with their recorded facts and joined cleanup. Together with the two episodes re-verified
+  earlier the same day, every live control now has evidence on the measured pair; the 2.21.2/2.1.263
+  records remain historical (`live-recheck-2-kiro2213-claude21267.log`).
 - D102 re-check on 2026-09-11 with the measured 2.1.267 client and the current public memory and
   settings references: personal rules and the user CLAUDE.md remain bound to the configuration
   directory, `claudeMdExcludes` still matches either the alias or its target, and the only native
