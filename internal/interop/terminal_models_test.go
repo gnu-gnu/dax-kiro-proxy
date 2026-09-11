@@ -51,11 +51,16 @@ func terminalModelPlan(c *catalog.Catalog) ([2]string, []string, string, error) 
 	return ids, labels, target, nil
 }
 
+// The client paints a picker frame across several terminal writes, and a partially painted row
+// shows the selection glyph before its label. The observer acts only on a frame that has stayed
+// unchanged for at least one idle observation (the reconstructed-screen observer ticks every 100ms).
+const terminalMenuSettle = 100 * time.Millisecond
+
 type terminalModelMenu struct {
 	labels                             []string
-	target, last, direction            string
+	target, last, direction, frame     string
 	seen, focused                      map[string]bool
-	at                                 time.Time
+	at, frameAt                        time.Time
 	moves, reversals                   int
 	unadvertisedRows                   int
 	lastHeader, lastFooter             bool
@@ -93,6 +98,13 @@ func (p *terminalModelMenu) next(screen string, now time.Time) string {
 		}
 	}
 	p.lastGlyphs, p.lastKnown = glyphs, known
+	if lower != p.frame {
+		p.frame, p.frameAt = lower, now
+		return ""
+	}
+	if now.Sub(p.frameAt) < terminalMenuSettle {
+		return ""
+	}
 	if p.moves >= 3*len(p.labels)+4 || header < 0 || glyphs != 1 || known > 1 {
 		return ""
 	}
@@ -172,18 +184,23 @@ func TestTerminalModelPlanRequiresDistinctExactAdvertisedModels(t *testing.T) {
 func TestModelMenuTracksLabelsAcrossScrollingAndBoundsStalledKeys(t *testing.T) {
 	p := terminalModelMenu{labels: []string{"first (kiro)", "middle (kiro)", "last (kiro)"}, target: "first (kiro)"}
 	at := time.Unix(10, 0)
+	// Each frame is observed twice: as it arrives and again one settle interval later. A changed
+	// frame yields no key until it settles; an unchanged frame is bounded by the hold and reversals.
 	for _, tc := range []struct {
-		screen, key string
-		after       time.Duration
+		screen, arrived, settled string
+		after                    time.Duration
 	}{
-		{"Select model\n middle (Kiro)\n❯ last (Kiro)", "\x1b[B", 0},
-		{"Select model\n middle (Kiro)\n❯ last (Kiro)", "", 100 * time.Millisecond},
-		{"Select model\n middle (Kiro)\n❯ last (Kiro)", "\x1b[A", time.Second},
-		{"Select model\n first (Kiro)\n❯ middle (Kiro)", "\x1b[A", 2 * time.Second},
-		{"Select model\n❯ first (Kiro)\n middle (Kiro)", "\r", 3 * time.Second},
+		{"Select model\n middle (Kiro)\n❯ last (Kiro)", "", "\x1b[B", 0},
+		{"Select model\n middle (Kiro)\n❯ last (Kiro)", "", "", 300 * time.Millisecond},
+		{"Select model\n middle (Kiro)\n❯ last (Kiro)", "\x1b[A", "", time.Second},
+		{"Select model\n first (Kiro)\n❯ middle (Kiro)", "", "\x1b[A", 2 * time.Second},
+		{"Select model\n❯ first (Kiro)\n middle (Kiro)", "", "\r", 3 * time.Second},
 	} {
-		if key := p.next(tc.screen, at.Add(tc.after)); key != tc.key {
-			t.Fatal("scrolling or unchanged-frame control differs")
+		if key := p.next(tc.screen, at.Add(tc.after)); key != tc.arrived {
+			t.Fatal("unsettled or unchanged-frame control differs")
+		}
+		if key := p.next(tc.screen, at.Add(tc.after+terminalMenuSettle)); key != tc.settled {
+			t.Fatal("scrolling or settled-frame control differs")
 		}
 	}
 	if len(p.seen) != 3 || p.moves != 4 || p.reversals != 1 {
@@ -191,7 +208,7 @@ func TestModelMenuTracksLabelsAcrossScrollingAndBoundsStalledKeys(t *testing.T) 
 	}
 	for _, screen := range []string{"❯ first (Kiro)", "Select model\n first (Kiro)", "Select model\n❯ first (Kiro)\n❯ middle (Kiro)"} {
 		q := terminalModelMenu{labels: p.labels, target: p.target}
-		if q.next(screen, at) != "" || len(q.seen) != 0 {
+		if q.next(screen, at) != "" || q.next(screen, at.Add(terminalMenuSettle)) != "" || len(q.seen) != 0 {
 			t.Fatal("ambiguous screen counted as model menu")
 		}
 	}
@@ -203,10 +220,10 @@ func TestModelMenuTracksLabelsAcrossScrollingAndBoundsStalledKeys(t *testing.T) 
 		t.Fatal("stalled menu escaped finite guard")
 	}
 	q = terminalModelMenu{labels: p.labels, target: p.target}
-	if q.next("❯ /model\nSelect model\n❯ first (Kiro)\n middle (Kiro)", at) != "\x1b[B" || len(q.focused) != 1 {
+	if q.next("❯ /model\nSelect model\n❯ first (Kiro)\n middle (Kiro)", at) != "" || q.next("❯ /model\nSelect model\n❯ first (Kiro)\n middle (Kiro)", at.Add(terminalMenuSettle)) != "\x1b[B" || len(q.focused) != 1 {
 		t.Fatal("input prompt outside menu was treated as a selected model row")
 	}
-	if q.next("❯ middle (Kiro)\nEsc to cancel", at) != "" {
+	if q.next("❯ middle (Kiro)\nEsc to cancel", at.Add(time.Second)) != "" || q.next("❯ middle (Kiro)\nEsc to cancel", at.Add(time.Second+terminalMenuSettle)) != "" {
 		t.Fatal("menu inferred from footer")
 	}
 }
@@ -214,13 +231,19 @@ func TestModelMenuTracksLabelsAcrossScrollingAndBoundsStalledKeys(t *testing.T) 
 func TestModelMenuNavigatesUnadvertisedRowsWithoutAttributingAModel(t *testing.T) {
 	q := terminalModelMenu{labels: []string{"first (kiro)", "second (kiro)"}, target: "second (kiro)"}
 	at := time.Unix(10, 0)
-	if q.next("Select model\n❯ Navigation row\n first (Kiro)\n second (Kiro)", at) != "\x1b[B" || len(q.focused) != 0 {
+	settled := func(screen string, at time.Time) string {
+		if q.next(screen, at) != "" {
+			t.Fatal("acted on a frame that had not settled")
+		}
+		return q.next(screen, at.Add(terminalMenuSettle))
+	}
+	if settled("Select model\n❯ Navigation row\n first (Kiro)\n second (Kiro)", at) != "\x1b[B" || len(q.focused) != 0 {
 		t.Fatal("unadvertised row was selected or counted as catalog coverage")
 	}
-	if q.next("Select model\n❯ first (Kiro)\n second (Kiro)", at.Add(time.Second)) != "\x1b[B" {
+	if settled("Select model\n❯ first (Kiro)\n second (Kiro)", at.Add(time.Second)) != "\x1b[B" {
 		t.Fatal("advertised first row")
 	}
-	if q.next("Select model\n first (Kiro)\n❯ second (Kiro)", at.Add(2*time.Second)) != "\r" || !q.covered() || q.unadvertisedRows != 1 {
+	if settled("Select model\n first (Kiro)\n❯ second (Kiro)", at.Add(2*time.Second)) != "\r" || !q.covered() || q.unadvertisedRows != 1 {
 		t.Fatal("target selection did not follow complete advertised focus coverage")
 	}
 }

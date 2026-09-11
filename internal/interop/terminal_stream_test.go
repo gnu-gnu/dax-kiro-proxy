@@ -549,6 +549,18 @@ func runTerminalScenario(t *testing.T, mode, kiro string, history *terminalHisto
 	var modelObserved, modelPickerObserved bool
 	modelMenu := terminalModelMenu{labels: modelLabels, target: modelLabel}
 	var modelLastMove time.Time
+	var modelStage14At time.Time
+	menuScreenDumped, confirmScreenDumped := false, false
+	boundedScreen := func(screen string) string {
+		var kept []string
+		for _, line := range strings.Split(screen, "\n") {
+			if line = strings.TrimRight(line, " "); line != "" {
+				kept = append(kept, line)
+			}
+		}
+		joined := strings.Join(kept, "\n")
+		return joined[:min(len(joined), 2500)]
+	}
 	var modelMenuFacts string
 	var modelScreenHints uint32
 	groupsBeforeFollowup := make(map[int]bool)
@@ -719,6 +731,11 @@ func runTerminalScenario(t *testing.T, mode, kiro string, history *terminalHisto
 				t.Log("model_menu " + facts)
 				modelMenuFacts = facts
 			}
+			// Bounded excerpt of the synthetic picker screen when its selection glyph is missing.
+			if !menuScreenDumped && modelMenu.lastHeader && modelMenu.lastGlyphs == 0 {
+				menuScreenDumped = true
+				t.Logf("model_menu_screen=%q", boundedScreen(screen))
+			}
 			if key != "" || modelLastMove.IsZero() {
 				modelLastMove = time.Now()
 			}
@@ -729,10 +746,24 @@ func runTerminalScenario(t *testing.T, mode, kiro string, history *terminalHisto
 			}
 			modelPickerObserved = modelMenu.covered()
 			if key == "\r" {
-				stage = 14
+				stage, modelStage14At = 14, time.Now()
 			}
 			return key
 		case 14:
+			if !confirmScreenDumped && time.Since(modelStage14At) > 3*time.Second {
+				confirmScreenDumped = true
+				t.Logf("model_confirmation_screen=%q", boundedScreen(screen))
+			}
+			if time.Since(modelStage14At) > 15*time.Second {
+				receiptErr = errors.New("model selection confirmation not observed")
+				stop()
+				return ""
+			}
+			if strings.Contains(lower, "set model to") && !strings.Contains(lower, modelLabel) {
+				receiptErr = errors.New("model picker confirmed a different row")
+				stop()
+				return ""
+			}
 			if strings.Contains(lower, "set model to") && strings.Contains(lower, modelLabel) {
 				if os.WriteFile(filepath.Join(root, "followup-allowed"), []byte("owned-new-question"), 0600) != nil {
 					receiptErr = errors.New("cannot admit post-selection question")

@@ -31,7 +31,8 @@ func statusTerminalScreen(raw []byte) string {
 			}
 			kind := raw[i]
 			i++
-			if kind == ']' {
+			// OSC, DCS, APC, PM and SOS strings end at BEL or ST and contribute no text.
+			if kind == ']' || kind == 'P' || kind == '_' || kind == '^' || kind == 'X' {
 				for i < len(raw) && raw[i] != 7 && !(raw[i] == 0x1b && i+1 < len(raw) && raw[i+1] == '\\') {
 					i++
 				}
@@ -127,6 +128,17 @@ func statusTerminalScreen(raw []byte) string {
 				}
 				continue
 			}
+			// Charset designations and other intermediate-byte escapes (ESC ( B, ESC # 8, ESC % G)
+			// carry one final byte after their intermediates; it is not text.
+			if kind >= 0x20 && kind <= 0x2f {
+				for i < len(raw) && raw[i] >= 0x20 && raw[i] <= 0x2f {
+					i++
+				}
+				if i < len(raw) && raw[i] >= 0x30 && raw[i] <= 0x7e {
+					i++
+				}
+				continue
+			}
 			switch kind {
 			case '7':
 				savedX, savedY = x, y
@@ -194,6 +206,8 @@ func TestStatusScreenReconstructsCursorEditsWithoutInventingText(t *testing.T) {
 		{"\x1b]0;Kiro last status-fixture\x07Body", "Body", "Kiro last"},
 		{"\x1b[31mKiro\x1b[0m last status-fixture", "Kiro last status-fixture", "31m"},
 		{"한글Kiro lost status-fixture\r\x1b[10Ca", "Kiro last status-fixture", "Kiro lost"},
+		{"❯ Kiro last status-fixture\r\x1b(B\x0f\x1b[?1000h", "❯ Kiro last status-fixture", "B Kiro"},
+		{"\x1bPq#0;2;0;0;0\x1b\\Body \x1b#8Kiro last status-fixture", "Body Kiro last status-fixture", "Pq"},
 	} {
 		out := statusTerminalScreen([]byte(c.input))
 		if !strings.Contains(out, c.want) || strings.Contains(out, c.absent) || len(out) > 4*40*160+40 {
