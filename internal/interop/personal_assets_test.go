@@ -550,6 +550,10 @@ func observePersonalCustomizationSources(t *testing.T, options personalSourceOpt
 				complete := err == nil && result.ExitCode == 0 && json.Unmarshal(result.Stdout, &completion) == nil && !completion.IsError && completion.Result == answer
 				groupGone := result.PID > 1 && errors.Is(syscall.Kill(-result.PID, 0), syscall.ESRCH)
 				t.Logf("observed=%+v, complete=%v, client_exit=%d, group_gone=%v", seen, complete, result.ExitCode, groupGone)
+				if !complete {
+					// Bounded diagnostic for a load-sensitive miss: shape facts only, never the output text.
+					t.Logf("incomplete_completion: run_error=%v, stdout_bytes=%d, json_decoded=%v, is_error=%v, result_matches=%v", err != nil, len(result.Stdout), json.Unmarshal(result.Stdout, &completion) == nil, completion.IsError, completion.Result == answer)
+				}
 				wantPersonal := mode != "stripped"
 				if seen.DuplicateInstructions {
 					t.Error("instruction content was duplicated")

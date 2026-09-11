@@ -257,6 +257,26 @@ func observeClaudeStatusUsageCase(t *testing.T, startup *startupObservation, com
 		ranToExit = true
 	case <-ctx.Done():
 	}
+	// Under load the client's startup hook can reach the gateway after the refresh interval was
+	// measured; give it a bounded window before the owned client is closed.
+	if startup != nil && !ranToExit {
+		noticeDeadline := time.NewTimer(5 * time.Second)
+		for noticeRequests.Load() == 0 && !ranToExit {
+			select {
+			case got = <-finished:
+				ranToExit = true
+			case <-noticeDeadline.C:
+				noticeDeadline = nil
+			case <-time.After(100 * time.Millisecond):
+			}
+			if noticeDeadline == nil {
+				break
+			}
+		}
+		if noticeDeadline != nil {
+			noticeDeadline.Stop()
+		}
+	}
 	if existing != nil && existing.scope == "project_event_only" && !ranToExit {
 		quiet := time.NewTimer(7 * time.Second)
 		select {

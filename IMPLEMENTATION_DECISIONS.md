@@ -4762,6 +4762,16 @@ and all 141 D101 artifact checks pass. The shared helper now places a supplied t
 its requested native settings scope, rather than only moving original-target exclusions. No
 production setting merge, exclusion interpretation or artifact is changed by these tests.
 
+Re-checked on 2026-09-11 against the current public memory and settings references with the measured
+2.1.267 client: personal rules and the user CLAUDE.md still live only under the configuration
+directory, `autoMemoryDirectory` relocates auto memory alone, and `claudeMdExcludes` still matches
+either a rule's path under `.claude/rules/` or its link target (since v2.1.239), so a pattern
+matching only the private alias still excludes a rule that natural startup loads.
+`CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD=1` with `--add-dir` would load `~/.claude/rules` from
+its native path, but only by granting the client file access to the whole home directory as a
+working directory and loading the rules with additional-directory rather than user semantics; it is
+not adopted. No product change; the gap stays recorded here, in ACCEPTANCE_SPEC.md and in README.md.
+
 ## D103: verify account usage in the native status line without a model turn
 
 Extend the owned-terminal status observer with an optional usage cache. Existing startup, completion

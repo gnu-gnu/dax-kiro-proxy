@@ -6,6 +6,12 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D102 re-check on 2026-09-11 with the measured 2.1.267 client and the current public memory and
+  settings references: personal rules and the user CLAUDE.md remain bound to the configuration
+  directory, `claudeMdExcludes` still matches either the alias or its target, and the only native
+  way to load `~/.claude/rules` from its own path (`CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD`
+  with `--add-dir`) would widen the client's file access to the home directory, so it is not
+  adopted. The alias-only exclusion gap stays open; no product change.
 - D118 keeps the user's yes answer to the client's workspace-trust dialog as native Claude Code
   does: after the client exits, the launcher splices exactly `projects[<the client's
   key>].hasTrustDialogAccepted = true` into the user's `~/.claude.json`, only when this launch's

@@ -325,22 +325,24 @@ Personal CLAUDE.md and rule-exclusion issues below are still open.
 
 Personal `~/.claude/rules` now remains available at its native scope through a validated source
 reference (D77). Installed-client checks cover relative imports, original-path exclusions,
-conditional activation after Read and the full four-hop import limit. The source reference is
-not an immutable snapshot; preparation validates the shared asset bounds and cleanup removes only
-the private link. D102 identifies a remaining exclusion gap: a pattern matching only the private
-rules alias can suppress a rule and its imports that natural startup includes. This is reproduced
-in user, project and local settings; the original-path exclusion controls still pass. Full personal
-rules preservation remains incomplete. Personal `~/.claude/CLAUDE.md` is also not loaded by the temporary profile.
-Tested adapters either bypass its original exclusion, lose one import hop or omit a root body
-with path frontmatter. None is enabled. This remains a client-environment compatibility gap.
-D93 also rejects using the public additional-directory memory option as a substitute: the measured
-candidate loses the root's relative imports and moves its text after project instructions.
-D97 also rejects using absence from local context inspection as an exclusion decision: empty and
-comment-only roots disappear without an exclusion. A pattern matching only the temporary root path
-can hide otherwise active personal instructions, so adding alias exclusions alone is insufficient.
-Further controls (D80) reject redirecting the settings-stage configuration path to the original
-HOME: history suppression helps finite print runs, but interactive startup still changes original
-settings and plugin uninstall changes the original registration. The private profile stays in use.
+conditional activation after Read and the full four-hop import limit. The source reference is not an
+immutable snapshot; preparation validates the shared asset bounds and cleanup removes only the
+private link. D102 identifies a remaining exclusion gap: a pattern matching only the private rules
+alias can suppress a rule and its imports that natural startup includes. This is reproduced in user,
+project and local settings; the original-path exclusion controls still pass, and a 2026-09-11
+re-check of the public references with the measured 2.1.267 client found no relocation interface, so
+the gap remains. Full personal rules preservation remains incomplete. Personal `~/.claude/CLAUDE.md`
+is also not loaded by the temporary profile. Tested adapters either bypass its original exclusion,
+lose one import hop or omit a root body with path frontmatter. None is enabled. This remains a
+client-environment compatibility gap. D93 also rejects using the public additional-directory memory
+option as a substitute: the measured candidate loses the root's relative imports and moves its text
+after project instructions. D97 also rejects using absence from local context inspection as an
+exclusion decision: empty and comment-only roots disappear without an exclusion. A pattern matching
+only the temporary root path can hide otherwise active personal instructions, so adding alias
+exclusions alone is insufficient. Further controls (D80) reject redirecting the settings-stage
+configuration path to the original HOME: history suppression helps finite print runs, but
+interactive startup still changes original settings and plugin uninstall changes the original
+registration. The private profile stays in use.
 
 The product status display now yields to existing user/project/local status choices, including
 commands without a refresh interval. It supplies a bounded user-scope default only when no such
