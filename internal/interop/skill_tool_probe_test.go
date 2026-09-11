@@ -15,6 +15,10 @@ const (
 	pluginAssetsOnly pluginAssetMode = iota
 	pluginModelSkill
 	pluginGatewaySkill
+	// The real gateway in front of the actual restricted Kiro process: the plugin skill's own
+	// instruction must reach the model, and plugin hooks must surround a real turn (D119).
+	pluginLiveSkill
+	pluginLiveHooks
 )
 
 func TestClaudeModelSelectedPluginSkill(t *testing.T) {

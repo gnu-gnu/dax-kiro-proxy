@@ -6,6 +6,17 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D119 verifies plugin acceptance against the actual restricted Kiro process through the real
+  gateway: the model calls the owned plugin's advertised Skill tool, the client expands the skill,
+  and a fresh marker that only the skill's own instruction supplies appears in the final answer
+  (17.99s case); plugin SessionStart and Stop hooks each run once around a real turn with the
+  startup context in the model's request (8.34s case). Both pass at the first attempt with joined
+  process, relay and source cleanup (60.800s package); the fixture-backed plugin controls pass
+  unchanged (hooks/skill sources 9.91s, Git source 4.18s, redirected-profile counterfactual 3.54s
+  and gateway skill 4.95s in a 22.890s package, plus the model-selected skill in 4.08s;
+  `d119-plugin-assets-regression.log`, `d119-model-selected-skill.log`). Remote marketplaces on the
+  actual backend, Kiro-side skills and mid-session plugin changes remain open. Test-only; the D118
+  artifact remains current.
 - Live re-verification completed on the measured Kiro 2.21.3 / Claude 2.1.267 pair: with the user's
   authorization the sixteen remaining credit-consuming controls ran once in one package invocation
   (877.124s package): launcher cancellation 24.39s, default-client denial recreation 31.69s,

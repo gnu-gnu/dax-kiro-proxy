@@ -32,6 +32,30 @@ func TestKiroLivePluginRegistryReplacement(t *testing.T) {
 	}
 }
 
+// The plugin skill's own instruction must reach the actual model: a fresh marker that only the
+// expanded skill supplies has to appear in the client's final answer (D119).
+func TestKiroLivePluginSkillContent(t *testing.T) {
+	if os.Getenv("DAX_INTEROP_KIRO_CREDIT_OPT_IN") != "1" {
+		t.Skip("live plugin skill content requires explicit credit opt-in")
+	}
+	if os.Getenv("DAX_INTEROP_KIRO_BINARY") == "" || os.Getenv("DAX_INTEROP_CLAUDE_BINARY") == "" {
+		t.Fatal("both pinned executables are required")
+	}
+	observePluginAssetProfile(t, false, pluginLiveSkill, false)
+}
+
+// Plugin SessionStart and Stop hooks must surround one actual Kiro turn, with the startup context
+// in the request the model receives (D119).
+func TestKiroLivePluginHooksAroundTurn(t *testing.T) {
+	if os.Getenv("DAX_INTEROP_KIRO_CREDIT_OPT_IN") != "1" {
+		t.Skip("live plugin hooks require explicit credit opt-in")
+	}
+	if os.Getenv("DAX_INTEROP_KIRO_BINARY") == "" || os.Getenv("DAX_INTEROP_CLAUDE_BINARY") == "" {
+		t.Fatal("both pinned executables are required")
+	}
+	observePluginAssetProfile(t, false, pluginLiveHooks, false)
+}
+
 // The two observed groups and prepared policies must be retired in order. This helper owns only
 // new fixture roots; Kiro's original account HOME remains under Kiro's own authentication handling.
 func prepareLivePluginDriver(t *testing.T, ctx context.Context, runner *childproc.Runner, root, backend string, validator *schemacheck.Pool) (*session.Driver, *catalog.Catalog, func(int) error, func()) {

@@ -3,6 +3,7 @@ package interop_test
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
 	"encoding/json"
 	"errors"
 	"io"
@@ -57,7 +58,15 @@ func observePluginAssetMode(t *testing.T, gitSource bool, mode pluginAssetMode) 
 
 func observePluginAssetProfile(t *testing.T, gitSource bool, mode pluginAssetMode, redirectProfile bool) {
 	t.Helper()
-	modelSelected, gatewayMode := mode != pluginAssetsOnly, mode == pluginGatewaySkill
+	liveMode := mode == pluginLiveSkill || mode == pluginLiveHooks
+	modelSelected, gatewayMode := mode != pluginAssetsOnly && mode != pluginLiveHooks, mode == pluginGatewaySkill || liveMode
+	if liveMode && (os.Getenv("DAX_INTEROP_KIRO_CREDIT_OPT_IN") != "1" || os.Getenv("DAX_INTEROP_KIRO_BINARY") == "") {
+		t.Fatal("live plugin asset mode requires explicit Kiro opt-in")
+	}
+	expectedStarts := int32(2)
+	if mode == pluginLiveHooks {
+		expectedStarts = 1
+	}
 	executable := os.Getenv("DAX_INTEROP_CLAUDE_BINARY")
 	if executable == "" {
 		t.Skip("set DAX_INTEROP_CLAUDE_BINARY for owned plugin hook/skill controls")
@@ -93,11 +102,19 @@ func observePluginAssetProfile(t *testing.T, gitSource bool, mode pluginAssetMod
 	write(global, []byte(`{}`))
 	tokens, _ := gateway.NewTokens()
 	model := "claude-dax-plugin-assets"
-	const answer = "independent plugin assets complete"
+	answer, liveMarker := "independent plugin assets complete", ""
+	if liveMode {
+		// A fresh marker that only the plugin skill's instruction (or the prompt itself in the
+		// hooks mode) can supply proves the content reached the actual model.
+		liveMarker = "PluginLive" + rand.Text()
+		answer = liveMarker
+	}
+	liveCtx, liveCancel := context.WithTimeout(t.Context(), 3*time.Minute)
+	defer liveCancel()
 	var proxyBackend *defaultClientBackend
 	var proxyHandler http.Handler
 	var validator *schemacheck.Pool
-	if modelSelected {
+	if modelSelected || liveMode {
 		workerDir := filepath.Join(root, "worker")
 		if os.Mkdir(workerDir, 0700) != nil {
 			t.Fatal("cannot create owned skill schema worker")
@@ -108,7 +125,11 @@ func observePluginAssetProfile(t *testing.T, gitSource bool, mode pluginAssetMod
 			t.Fatal(err)
 		}
 		defer validator.Close()
-		if gatewayMode {
+		if liveMode {
+			var finish func()
+			proxyBackend, proxyHandler, model, finish = prepareLiveSkillGateway(t, liveCtx, root, tokens, validator, expectedStarts)
+			defer finish()
+		} else if gatewayMode {
 			var finish func()
 			proxyBackend, proxyHandler, model, finish = prepareSkillGateway(t, root, proxy, tokens, validator)
 			defer finish()
@@ -236,12 +257,12 @@ func observePluginAssetProfile(t *testing.T, gitSource bool, mode pluginAssetMod
 						return
 					}
 				}
-				if gatewayMode {
-					r.Body = io.NopCloser(bytes.NewReader(body))
-					proxyHandler.ServeHTTP(w, r)
-					seen.proxyComplete = proxyBackend.starts.Load() == 2 && !proxyBackend.failed.Load() && proxyBackend.State() == session.Idle
-					return
-				}
+			}
+			if gatewayMode {
+				r.Body = io.NopCloser(bytes.NewReader(body))
+				proxyHandler.ServeHTTP(w, r)
+				seen.proxyComplete = proxyBackend.starts.Load() == expectedStarts && !proxyBackend.failed.Load() && proxyBackend.State() == session.Idle
+				return
 			}
 			writeObservedMessage(w, request.Stream, model, []map[string]any{{"type": "text", "text": answer}}, "end_turn")
 		default:
@@ -253,6 +274,9 @@ func observePluginAssetProfile(t *testing.T, gitSource bool, mode pluginAssetMod
 	if gatewayMode {
 		server.Config.WriteTimeout = 20 * time.Second
 	}
+	if liveMode {
+		server.Config.WriteTimeout, server.Config.IdleTimeout = 60*time.Second, 60*time.Second
+	}
 	server.Start()
 	defer server.Close()
 	runner, err := childproc.New(childproc.Config{Timeout: 20 * time.Second, MaxOutputBytes: 128 << 10})
@@ -261,6 +285,9 @@ func observePluginAssetProfile(t *testing.T, gitSource bool, mode pluginAssetMod
 	}
 	defer runner.Close()
 	ctx, cancel := context.WithTimeout(t.Context(), 2*time.Minute)
+	if liveMode {
+		ctx, cancel = liveCtx, func() {}
+	}
 	defer cancel()
 	cfg := launcher.ClientConfig{RuntimeParent: root, Home: home, Project: project, UserSettings: settings, Executable: executable, Version: launcher.SupportedClientVersion, Model: model, GatewayURL: server.URL, ModelToken: tokens.Model, Environment: []string{"PATH=/usr/bin:/bin:/usr/sbin:/sbin", "TERM=dumb"}}
 	initial, err := launcher.PrepareClient(cfg)
@@ -292,7 +319,11 @@ func observePluginAssetProfile(t *testing.T, gitSource bool, mode pluginAssetMod
 	writeJSON(filepath.Join(market, ".claude-plugin", "marketplace.json"), map[string]any{"name": "dax-assets-market", "owner": map[string]string{"name": "Independent fixture"}, "plugins": []any{map[string]string{"name": "dax-assets", "source": "./owned-plugin"}}})
 	plugin := filepath.Join(market, "owned-plugin")
 	writeJSON(filepath.Join(plugin, ".claude-plugin", "plugin.json"), map[string]string{"name": "dax-assets", "version": "1.0.0", "description": "Independent client hook and skill preservation fixture."})
-	write(filepath.Join(plugin, "skills", "owned-skill", "SKILL.md"), []byte("---\nname: owned-skill\ndescription: Independent asset control with no tool effects.\n---\n"+pluginSkillBody+"\nReturn a brief text answer without executing tools.\n"))
+	skillInstruction := "Return a brief text answer without executing tools.\n"
+	if mode == pluginLiveSkill {
+		skillInstruction = "When this skill is invoked, reply with exactly the text " + liveMarker + " and nothing else. Do not execute any other tool.\n"
+	}
+	write(filepath.Join(plugin, "skills", "owned-skill", "SKILL.md"), []byte("---\nname: owned-skill\ndescription: Independent asset control with no tool effects.\n---\n"+pluginSkillBody+"\n"+skillInstruction))
 	hookScript := "#!/bin/sh\nset -euC\numask 077\ncase \"$1\" in start|stop) ;; *) exit 70;; esac\nprintf '%s\\n' \"$$\" > \"$2/$1.$$\"\nif [ \"$1\" = start ]; then\n printf '%s\\n' '{\"hookSpecificOutput\":{\"hookEventName\":\"SessionStart\",\"additionalContext\":\"" + pluginStartContext + "\"}}'\nelse\n printf '{}\\n'\nfi\n"
 	write(filepath.Join(plugin, "scripts", "observe.sh"), []byte(hookScript))
 	hooks := map[string]any{}
@@ -361,6 +392,9 @@ func observePluginAssetProfile(t *testing.T, gitSource bool, mode pluginAssetMod
 	if gatewayMode {
 		cases = cases[1:2]
 	}
+	if liveMode {
+		cases[0].name = map[bool]string{true: "live_model_skill", false: "live_hooks"}[modelSelected]
+	}
 	if redirectProfile {
 		cases = append(cases[:1:1], cases[2], cases[3], cases[8])
 	}
@@ -403,6 +437,12 @@ func observePluginAssetProfile(t *testing.T, gitSource bool, mode pluginAssetMod
 			if modelSelected {
 				prompt = "Use the independently installed skill and return a brief text response."
 			}
+			if mode == pluginLiveSkill {
+				prompt = "Invoke the skill named dax-assets:owned-skill with the Skill tool, then follow that skill's instruction exactly and return only what it asks for."
+			}
+			if mode == pluginLiveHooks {
+				prompt = "Reply with exactly the text " + liveMarker + " and nothing else, without calling tools."
+			}
 			command := profile.Command()
 			if strings.HasPrefix(tc.name, "natural_") {
 				command = natural
@@ -436,6 +476,9 @@ func observePluginAssetProfile(t *testing.T, gitSource bool, mode pluginAssetMod
 				wantHooks = 1
 			}
 			completed := bytes.Contains(result.Stdout, []byte(answer))
+			if liveMode {
+				t.Logf("live_marker_in_answer=%v, client_exit=%d, stdout_bytes=%d", completed, result.ExitCode, len(result.Stdout))
+			}
 			if interactive {
 				completed = !t.Failed()
 			} // The shared UI observer asserts rendered text.

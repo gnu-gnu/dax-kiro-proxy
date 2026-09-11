@@ -299,11 +299,13 @@ The private profile now also snapshots the two bounded native plugin registratio
 the first session load installed plugin skills and hooks while retaining the read-only content seed.
 Installed-client checks cover namespaced skill invocation, SessionStart/Stop hooks, disable/re-enable,
 hook suppression and source preservation. Private uninstall leaves the original source intact; a Git
-seed rejects marketplace update/removal even when a real local revision is available. A model-selected
-owned skill now also completes through the real gateway/relay with fake ACP (D73), preserving its
-successful result and separate client-expanded instructions through one joined recreation. Other
-plugin assets, custom roots and actual Kiro skills remain unverified; full actual Kiro plugin
-acceptance remains open after D72's partial observation.
+seed rejects marketplace update/removal even when a real local revision is available. A
+model-selected owned skill now also completes through the real gateway/relay with fake ACP (D73),
+preserving its successful result and separate client-expanded instructions through one joined
+recreation. D119 verifies with the actual restricted Kiro that a plugin skill's own instruction
+reaches the model, with a fresh marker that only the expanded skill supplies appearing in the
+answer, and that plugin SessionStart/Stop hooks surround a real turn; remote marketplaces on the
+actual backend, Kiro-side skills and mid-session plugin changes remain unverified.
 
 Personal skills, legacy commands and agent definitions now retain their native user scope in the
 temporary profile (D76). Installed-client controls verify explicit skill/command expansion and

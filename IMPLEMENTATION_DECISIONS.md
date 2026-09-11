@@ -5621,3 +5621,37 @@ no observation was made against the user's own global file, which would have lef
 project entry in it. The client's own key form on a symlinked launch path is accepted by resolved
 comparison but was measured only with a plain path. The dialog's default and wording remain the
 client's.
+
+## D119: verify plugin skill content and hooks against the actual Kiro backend
+
+D72 observed one plugin tool call through the actual restricted Kiro process, and D65–D73 verified
+plugin sources, hooks, skill expansion and a model-selected skill with the independent fixture
+backend. Whether a plugin skill's own instruction reaches the actual model, and whether plugin hooks
+surround a real turn, remained unverified, recorded as the open actual-Kiro plugin acceptance. The
+user authorized the credit-consuming episodes on 2026-09-11.
+
+The plugin-assets control gains two live modes that put the real gateway in front of the actual
+restricted Kiro process with the same launch configuration as the live plugin control: a private
+KIRO_HOME with default-resource suppression, a relay-only agent, the `auto` model, a 45-second turn
+limit and at most one recreation. Each run generates a fresh 26-character marker that the prompt
+never contains. In the skill mode the owned plugin's skill body carries the instruction to reply
+with exactly that marker, and the prompt asks the model to invoke the skill by name through the
+Skill tool; in the hooks mode the prompt itself asks for the marker and the plugin's SessionStart
+and Stop hooks are the subject. The observing HTTP server still validates the client's requests
+before forwarding them: the advertised Skill schema accepts the owned invocation, the first request
+lists the skill without its body, and the second carries exactly one matching result and the
+client-expanded body as separate text. Title requests are answered locally.
+
+Measured with the unmodified 2.1.267 client and the measured Kiro 2.21.3: in the skill mode the
+model calls the advertised Skill tool, the client expands the skill, the second turn's answer
+contains the marker, two backend processes are prepared and cleaned in order, the startup hook's
+context is present in the model's request and the SessionStart and Stop hooks each run once (17.99s
+case, 34.84s test). In the hooks mode one turn returns the marker with the same hook and cleanup
+facts (8.34s case, 24.87s test); 60.800s package, `d119-live-plugin-assets.log`. Both passed at the
+first attempt with no retry. The fixture-backed plugin controls pass unchanged after the observer's
+forwarding was generalized ({REGRESSION}). Three model turns were consumed.
+
+Limits: this measures a local, independently authored marketplace and plugin; remote marketplaces on
+the actual backend, Kiro-side skills and agents (suppressed by the launch configuration),
+mid-session plugin enable/disable and the interactive MCP-panel path remain separate work, as D70
+records. Test-only change; the D118 artifact remains current.

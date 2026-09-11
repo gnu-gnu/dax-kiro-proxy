@@ -79,6 +79,12 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
   Skill schema, observe exactly one matching successful result and the expanded body as separate
   client text, and complete through the real gateway/relay with fake ACP. Require preserved sources,
   native hook enable/disable behavior and joined old/replacement process cleanup (D73).
+- Actual-backend plugin acceptance puts the real gateway in front of the restricted Kiro process:
+  the model must call the advertised Skill tool, the client must expand the skill body, and a fresh
+  marker that only the skill's own instruction supplies must appear in the final answer; plugin
+  SessionStart/Stop hooks must each run once around a real turn with the startup context in the
+  model's request; both with joined process, relay and source cleanup (D119). Mid-session plugin
+  changes and Kiro-side skills remain separate.
 - Personal skills, legacy commands and agent definitions must retain their native user scope in
   the private profile. Compare active natural/prepared runs and a stripped-profile counterfactual;
   verify direct skill/command expansion, personal-over-project skill selection and project-over-
