@@ -294,3 +294,31 @@ func TestToolContinuationAcceptsOnlyTheRepeatedLatestSystemSequence(t *testing.T
 		t.Fatal("replayed result plus repeated system was accepted")
 	}
 }
+
+func TestToolWaitExpiryOutcomeIsStableAcrossRetries(t *testing.T) {
+	d := toolDriver(t, "chat-tools", 70*time.Millisecond)
+	r := toolRequest(t)
+	turn, err := d.Start(context.Background(), r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	prefix, uses := toolHandoff(t, turn)
+	turn.Finish()
+	until := time.Now().Add(2 * time.Second)
+	for d.State() != session.Unstarted && time.Now().Before(until) {
+		time.Sleep(time.Millisecond)
+	}
+	if d.State() != session.Unstarted {
+		t.Fatal("orphaned tool wait was not cleaned up")
+	}
+	late := followup(t, r, prefix, uses)
+	_, first := d.Start(context.Background(), late)
+	_, second := d.Start(context.Background(), late)
+	if first == nil || second == nil || errors.Is(first, inference.ErrRequest) || errors.Is(second, inference.ErrRequest) || first.Error() != second.Error() {
+		t.Fatal("identical resubmissions of an expired batch got different outcomes", first, second)
+	}
+	foreign := followup(t, r, prefix, []anthropic.ToolUse{{ID: "toolu_unrelated", Name: uses[0].Name, Input: uses[0].Input}})
+	if _, err := d.Start(context.Background(), foreign); !errors.Is(err, inference.ErrRequest) {
+		t.Fatal("retained outcome answered a foreign batch", err)
+	}
+}

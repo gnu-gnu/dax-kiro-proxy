@@ -18,6 +18,7 @@ import (
 
 	"dax-kiro-proxy/internal/catalog"
 	"dax-kiro-proxy/internal/childproc"
+	"dax-kiro-proxy/internal/gateway"
 	"dax-kiro-proxy/internal/inference"
 	"dax-kiro-proxy/internal/installation"
 	"dax-kiro-proxy/internal/launcher"
@@ -55,7 +56,10 @@ func main() {
 		}
 		return
 	}
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	// SIGHUP is the only terminal-originated signal this process receives: the client owns the
+	// foreground group, so Ctrl+C never reaches the launcher, but a closed window hangs up its shell
+	// jobs. Treat it like SIGTERM so owned processes and runtime files are cleaned up.
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM, syscall.SIGHUP)
 	// A UI helper owns no child process or durable state. Its whole-process deadline also
 	// bounds a stalled inherited stdout or filesystem call, which context alone cannot interrupt.
 	var displayDeadline *time.Timer
@@ -134,6 +138,10 @@ launch/diagnostic options:
 run options:
   --client-history retain native conversation data in ~/.claude/projects
   --resume UUID    resume a native conversation; implies --client-history
+  --tool-timeout D wait for one client tool result (default 15m; 30s..1h, at most --turn-timeout)
+  --turn-timeout D bound one model turn including tool waits (default 30m or the tool wait; 1m..1h)
+  --first-event-timeout D
+                   wait for the first model event (default 90s; 10s..--turn-timeout)
 `
 
 func execute(ctx context.Context, args []string, files childproc.AttachedIO, out, diagnostics io.Writer, services commandServices) int {
@@ -209,6 +217,9 @@ func execute(ctx context.Context, args []string, files childproc.AttachedIO, out
 	} else {
 		flags.BoolVar(&options.KeepHistory, "client-history", false, "")
 		flags.StringVar(&options.ResumeSession, "resume", "", "")
+		flags.DurationVar(&options.ToolTimeout, "tool-timeout", 0, "")
+		flags.DurationVar(&options.TurnTimeout, "turn-timeout", 0, "")
+		flags.DurationVar(&options.FirstEventTimeout, "first-event-timeout", 0, "")
 	}
 	if err := flags.Parse(args[1:]); errors.Is(err, flag.ErrHelp) {
 		return writeResult(out, diagnostics, []byte(helpText))
@@ -217,7 +228,7 @@ func execute(ctx context.Context, args []string, files childproc.AttachedIO, out
 	}
 	emptyOption := false
 	flags.Visit(func(option *flag.Flag) {
-		if option.Value.String() == "" {
+		if option.Value.String() == "" || option.Value.String() == "0s" {
 			emptyOption = true
 		}
 		if option.Name == "client-history" && !options.KeepHistory && options.ResumeSession != "" {
@@ -440,19 +451,40 @@ func failure(out io.Writer, err error, client launcher.ClientRunResult) int {
 	}
 	code, message := 1, "startup or client execution failed"
 	cleanupFailed := errors.Is(err, launcher.ErrRunCleanup) || errors.Is(err, childproc.ErrCleanup) || errors.Is(err, childproc.ErrTerminal)
+	var version *launcher.VersionError
 	switch {
 	case errors.Is(err, context.Canceled):
 		code, message = 130, "canceled"
+	case errors.Is(err, childproc.ErrTerminalUnavailable):
+		code, message = 2, "run needs a foreground terminal: stdin must be this process's controlling tty (not a pipe, a background job or an ssh session without a pty)"
+	case errors.Is(err, childproc.ErrLifetime):
+		message = "client session reached the launcher lifetime limit (" + launcher.ClientLifetime.String() + ") and was closed"
 	case errors.Is(err, launcher.ErrPolicyUnverified):
 		code, message = 3, "launch unavailable: Kiro execution restrictions have not been verified"
-	case errors.Is(err, launcher.ErrConfig), errors.Is(err, launcher.ErrSettings), errors.Is(err, catalog.ErrModel), errors.Is(err, childproc.ErrParameters):
+	case errors.Is(err, catalog.ErrModel):
+		code, message = 2, "requested model is not in the current Kiro catalog; run dax-kiro-proxy models"
+	case errors.Is(err, launcher.ErrConfig), errors.Is(err, launcher.ErrSettings), errors.Is(err, childproc.ErrParameters):
 		code, message = 2, "invalid or unsupported launch configuration"
 	case errors.Is(err, launcher.ErrLoginCheck):
 		message = "Kiro login could not be verified; run kiro-cli login and retry"
+	case errors.Is(err, launcher.ErrExecutableNotFound) && errors.Is(err, launcher.ErrKiroVersion):
+		message = "kiro-cli was not found on PATH or at --kiro"
+	case errors.Is(err, launcher.ErrExecutableNotFound) && errors.Is(err, launcher.ErrClientVersion):
+		message = "claude was not found on PATH or at --client"
+	case errors.As(err, &version) && version.Found != "":
+		message = version.Component + " " + version.Found + " is not supported; expected " + version.Expected
 	case errors.Is(err, launcher.ErrKiroVersion):
 		message = "Kiro installation or version is not supported"
 	case errors.Is(err, launcher.ErrClientVersion):
 		message = "Claude Code installation or version is not supported"
+	case errors.Is(err, launcher.ErrRuntime):
+		message = "cannot prepare the private client runtime (directory, profile or backend); check --runtime-dir or TMPDIR space and permissions"
+	case errors.Is(err, gateway.ErrServerBind):
+		message = "cannot bind the loopback gateway; check ephemeral port availability"
+	case errors.Is(err, childproc.ErrStart):
+		message = "cannot start the Claude Code executable"
+	case errors.Is(err, launcher.ErrGatewayStopped):
+		message = "local gateway stopped before the client exited"
 	case errors.Is(err, launcher.ErrModels), errors.Is(err, catalog.ErrCatalog):
 		message = "model catalog preparation failed; retry dax-kiro-proxy doctor --timing to inspect startup stages"
 	case errors.Is(err, launcher.ErrState):

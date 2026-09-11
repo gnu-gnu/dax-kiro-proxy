@@ -14,12 +14,31 @@ import (
 	"dax-kiro-proxy/internal/gateway"
 	"dax-kiro-proxy/internal/inference"
 	"dax-kiro-proxy/internal/kirofeature"
+	"dax-kiro-proxy/internal/relay"
 	"dax-kiro-proxy/internal/schemacheck"
 	"dax-kiro-proxy/internal/session"
 	"dax-kiro-proxy/internal/status"
 )
 
 var ErrClientVersion = errors.New("Claude Code installation or version is not supported")
+
+// ErrExecutableNotFound accompanies ErrClientVersion or ErrKiroVersion when the executable itself
+// is absent from PATH or the given path, as opposed to present but rejected.
+var ErrExecutableNotFound = errors.New("required executable was not found")
+
+// ClientLifetime bounds one interactive client session. It is the attached-process ceiling rather
+// than a working-day figure: an interactive session left open overnight must not be cut off.
+const ClientLifetime = 7 * 24 * time.Hour
+
+// Default deadlines for one model turn. The tool wait covers a permission prompt the user answers
+// late; the turn deadline spans every tool handoff of one prompt; the first-event wait bounds a
+// silent backend. Each is a launch option so a user can trade responsiveness for patience.
+const (
+	DefaultToolTimeout       = 15 * time.Minute
+	DefaultTurnTimeout       = 30 * time.Minute
+	DefaultFirstEventTimeout = 90 * time.Second
+)
+
 var ErrPolicyUnverified = errors.New("launch is unavailable: execution restrictions for this Kiro version have not been verified")
 
 type LaunchOptions struct {
@@ -30,6 +49,8 @@ type LaunchOptions struct {
 	Interactive                                                bool
 	KeepHistory                                                bool
 	ResumeSession                                              string
+	// Zero selects the Default* deadlines; see normalizeLaunchOptions for the accepted ranges.
+	ToolTimeout, TurnTimeout, FirstEventTimeout time.Duration
 }
 type PhaseTiming struct {
 	Name         string `json:"name"`
@@ -233,9 +254,12 @@ func start(ctx context.Context, opts LaunchOptions, files childproc.AttachedIO, 
 		if setup.Err() != nil {
 			return setup.Err()
 		}
-		version, ok := ClientVersionFromOutput(output.Stdout)
-		if e != nil || output.ExitCode != 0 || !ok {
+		version, named := parseClientVersion(output.Stdout)
+		if e != nil || output.ExitCode != 0 || !named {
 			return ErrClientVersion
+		}
+		if !CompatibleClientVersion(version) {
+			return &VersionError{Component: "Claude Code", Found: version, Expected: "major version " + majorOf(SupportedClientVersion), Sentinel: ErrClientVersion}
 		}
 		result.Startup.ClientVersion, result.Startup.ClientVersionMeasured = version, version == SupportedClientVersion
 		return nil
@@ -314,7 +338,7 @@ func start(ctx context.Context, opts LaunchOptions, files childproc.AttachedIO, 
 			return ErrRuntime
 		}
 		metrics = status.NewTurnQueue()
-		backend, err = session.NewManager(session.ManagerConfig{ProfileScope: identity.ProfileDigest, BackendVersion: info.Version, Metrics: metrics, Session: session.Config{Process: policy.process, InitialModel: opts.InitialModel, InitialEffort: opts.InitialEffort, Validator: schema, RelayExecutable: opts.ProxyExecutable, HistoryKey: key, PrepareLaunch: policy.prepare}})
+		backend, err = session.NewManager(session.ManagerConfig{ProfileScope: identity.ProfileDigest, BackendVersion: info.Version, Metrics: metrics, Session: session.Config{Process: policy.process, InitialModel: opts.InitialModel, InitialEffort: opts.InitialEffort, Validator: schema, RelayExecutable: opts.ProxyExecutable, HistoryKey: key, PrepareLaunch: policy.prepare, TurnTimeout: opts.TurnTimeout, RelayLimits: relay.Limits{ToolTimeout: opts.ToolTimeout}}})
 		if err != nil {
 			return ErrRuntime
 		}
@@ -332,12 +356,26 @@ func start(ctx context.Context, opts LaunchOptions, files childproc.AttachedIO, 
 	cancel()
 	// RunClient takes ownership even when it rejects its configuration or parent is now canceled.
 	transferred = true
-	result.Client, err = services.client(ctx, ClientRunConfig{Backend: backend, Models: models, Schema: schema, Client: ClientConfig{RuntimeParent: runtime, Home: opts.Home, Project: opts.Project, UserSettings: opts.UserSettings, Executable: opts.ClientExecutable, StatusExecutable: opts.ProxyExecutable, Version: result.Startup.ClientVersion, Environment: opts.Environment, KeepHistory: opts.KeepHistory, ResumeSession: opts.ResumeSession}, IO: files, Server: gateway.ServerConfig{Gateway: gateway.Config{Metrics: metrics, Usage: usage}}})
+	result.Client, err = services.client(ctx, ClientRunConfig{Backend: backend, Models: models, Schema: schema, Client: ClientConfig{RuntimeParent: runtime, Home: opts.Home, Project: opts.Project, UserSettings: opts.UserSettings, Executable: opts.ClientExecutable, StatusExecutable: opts.ProxyExecutable, Version: result.Startup.ClientVersion, Environment: opts.Environment, KeepHistory: opts.KeepHistory, ResumeSession: opts.ResumeSession}, IO: files, Server: gateway.ServerConfig{Gateway: gateway.Config{Metrics: metrics, Usage: usage, FirstEventTimeout: opts.FirstEventTimeout, TurnTimeout: opts.TurnTimeout}}, Attached: childproc.AttachedConfig{Lifetime: ClientLifetime}})
 	result.Startup.Phases = append(result.Startup.Phases, PhaseTiming{"gateway_startup", result.Client.GatewayTime.Milliseconds()}, PhaseTiming{"client_profile", result.Client.ProfileTime.Milliseconds()}, PhaseTiming{"process_launch", result.Client.LaunchTime.Milliseconds()}, PhaseTiming{"runtime_cleanup", result.Client.CleanupTime.Milliseconds()})
 	return result, err
 }
 
 func normalizeLaunchOptions(opts LaunchOptions) (LaunchOptions, error) {
+	if opts.ToolTimeout == 0 {
+		opts.ToolTimeout = DefaultToolTimeout
+	}
+	if opts.TurnTimeout == 0 {
+		// An explicit tool wait longer than the default turn raises the unset turn deadline to match,
+		// so --tool-timeout alone never fails the coupling check below.
+		opts.TurnTimeout = max(DefaultTurnTimeout, opts.ToolTimeout)
+	}
+	if opts.FirstEventTimeout == 0 {
+		opts.FirstEventTimeout = DefaultFirstEventTimeout
+	}
+	if opts.ToolTimeout < 30*time.Second || opts.ToolTimeout > time.Hour || opts.TurnTimeout < time.Minute || opts.TurnTimeout > time.Hour || opts.ToolTimeout > opts.TurnTimeout || opts.FirstEventTimeout < 10*time.Second || opts.FirstEventTimeout > opts.TurnTimeout {
+		return LaunchOptions{}, ErrConfig
+	}
 	if opts.ResumeSession != "" {
 		if !validNativeSessionID(opts.ResumeSession) {
 			return LaunchOptions{}, ErrConfig
@@ -373,11 +411,11 @@ func normalizeLaunchOptions(opts LaunchOptions) (LaunchOptions, error) {
 	opts.Environment = append([]string{}, opts.Environment...)
 	opts.ClientExecutable, err = resolveLaunchExecutable(opts.ClientExecutable, "claude", env["PATH"])
 	if err != nil {
-		return LaunchOptions{}, ErrClientVersion
+		return LaunchOptions{}, errors.Join(ErrClientVersion, ErrExecutableNotFound)
 	}
 	opts.KiroExecutable, err = resolveLaunchExecutable(opts.KiroExecutable, "kiro-cli", env["PATH"])
 	if err != nil {
-		return LaunchOptions{}, ErrKiroVersion
+		return LaunchOptions{}, errors.Join(ErrKiroVersion, ErrExecutableNotFound)
 	}
 	if _, err = resolveLaunchExecutable(opts.ProxyExecutable, "", ""); err != nil {
 		return LaunchOptions{}, ErrConfig

@@ -29,15 +29,39 @@ const SupportedKiroVersion = "2.21.3"
 // KiroVersionFromOutput parses "<name> <version>" from a bounded --version output and reports
 // whether that build is admitted.
 func KiroVersionFromOutput(name string, output []byte) (string, bool) {
-	if len(output) > 256 {
-		return "", false
-	}
-	version, named := strings.CutPrefix(strings.TrimSpace(string(output)), name+" ")
+	version, named := parseKiroVersion(name, output)
 	if !named || !CompatibleKiroVersion(version) {
 		return "", false
 	}
 	return version, true
 }
+
+// parseKiroVersion extracts the bounded dotted build from "<name> <version>" output without
+// judging admission, so a rejected build can still be named in diagnostics.
+func parseKiroVersion(name string, output []byte) (string, bool) {
+	if len(output) > 256 {
+		return "", false
+	}
+	version, named := strings.CutPrefix(strings.TrimSpace(string(output)), name+" ")
+	if !named {
+		return "", false
+	}
+	if _, ok := clientVersionMajor(version); !ok {
+		return "", false
+	}
+	return version, true
+}
+
+// VersionError names a present but rejected executable build. Found and Expected are bounded
+// dotted versions or fixed phrases, safe to print; Error and Unwrap keep the component sentinel so
+// existing errors.Is checks and fixed diagnostics are unchanged.
+type VersionError struct {
+	Component, Found, Expected string
+	Sentinel                   error
+}
+
+func (e *VersionError) Error() string { return e.Sentinel.Error() }
+func (e *VersionError) Unwrap() error { return e.Sentinel }
 
 // CompatibleKiroOutput is KiroVersionFromOutput's admission result alone.
 func CompatibleKiroOutput(name string, output []byte) bool {
@@ -118,9 +142,15 @@ func checkedKiroCommand(ctx context.Context, runner CommandRunner, cfg KiroConfi
 		if i == 1 {
 			name = "kiro-cli-chat"
 		}
-		version, ok := KiroVersionFromOutput(name, result.Stdout)
-		if err != nil || result.ExitCode != 0 || !ok || i == 1 && version != info.Version {
+		version, named := parseKiroVersion(name, result.Stdout)
+		if err != nil || result.ExitCode != 0 || !named {
 			return KiroInfo{}, childproc.Command{}, ErrKiroVersion
+		}
+		if !CompatibleKiroVersion(version) {
+			return KiroInfo{}, childproc.Command{}, &VersionError{Component: name, Found: version, Expected: "major version " + majorOf(SupportedKiroVersion), Sentinel: ErrKiroVersion}
+		}
+		if i == 1 && version != info.Version {
+			return KiroInfo{}, childproc.Command{}, &VersionError{Component: name, Found: version, Expected: "the kiro-cli build " + info.Version, Sentinel: ErrKiroVersion}
 		}
 		info.Version = version
 	}

@@ -164,7 +164,7 @@ func TestAttachedTerminalHarness(t *testing.T) {
 func TestAttachedForegroundRejectsNonTerminal(t *testing.T) {
 	a, files := attached(t), attachedFiles(t)
 	files.Foreground = true
-	if _, err := a.Start(t.Context(), command(t, "version"), files); !errors.Is(err, childproc.ErrTerminal) {
+	if _, err := a.Start(t.Context(), command(t, "version"), files); !errors.Is(err, childproc.ErrTerminalUnavailable) || errors.Is(err, childproc.ErrTerminal) {
 		t.Fatal("nonterminal was treated as foreground tty")
 	}
 	files.Foreground = false

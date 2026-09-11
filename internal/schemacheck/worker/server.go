@@ -27,6 +27,10 @@ type cached struct {
 }
 type compiler struct{ cache []cached }
 
+// compileCacheEntries covers a client tool set with its MCP additions so repeated checks of the
+// same schemas do not recompile on every request; entries are bounded by the schema byte limit.
+const compileCacheEntries = 64
+
 func (c *compiler) compile(raw []byte) (*jsonschema.Schema, error) {
 	document, err := schemawire.Schema(raw)
 	if err != nil {
@@ -52,9 +56,9 @@ func (c *compiler) compile(raw []byte) (*jsonschema.Schema, error) {
 		return nil, err
 	}
 	c.cache = append([]cached{{key, schema}}, c.cache...)
-	if len(c.cache) > 16 {
-		c.cache[16] = cached{}
-		c.cache = c.cache[:16]
+	if len(c.cache) > compileCacheEntries {
+		c.cache[compileCacheEntries] = cached{}
+		c.cache = c.cache[:compileCacheEntries]
 	}
 	return schema, nil
 }

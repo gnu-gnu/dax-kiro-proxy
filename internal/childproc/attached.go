@@ -11,6 +11,17 @@ import (
 
 var ErrTerminal = errors.New("cannot acquire or restore the foreground terminal")
 
+// ErrTerminalUnavailable reports an acquisition-time condition: the caller asked for a foreground
+// client but its stdin is not this process's controlling terminal in the foreground process group
+// (a pipe, a background job or a session without a pty). No client was started, so the caller's
+// ordinary cleanup of what it prepared suffices, unlike ErrTerminal, which reports a failed restore
+// after a client ran.
+var ErrTerminalUnavailable = errors.New("run needs a foreground controlling terminal")
+
+// ErrLifetime reports that the attached client reached the configured Lifetime and was closed by
+// the launcher rather than by the user, the parent context or a failure.
+var ErrLifetime = errors.New("client reached the launcher session lifetime limit")
+
 const terminalReclaimCommand = "internal-terminal-reclaim"
 
 // IsTerminalReclaimer identifies an effect-free helper invocation. An executable using Foreground
@@ -146,6 +157,9 @@ func (a *Attached) Start(ctx context.Context, command Command, files AttachedIO)
 		select {
 		case <-owned.Done():
 			p.err = owned.Err()
+			if ctx.Err() == nil && errors.Is(p.err, context.DeadlineExceeded) {
+				p.err = errors.Join(ErrLifetime, p.err)
+			}
 		case <-exited:
 			if waitErr != nil {
 				p.err = ErrExit

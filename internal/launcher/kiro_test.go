@@ -115,14 +115,23 @@ func TestKiroPreflightNeverConfusesInvalidOutputOrTimeoutWithKnownLogin(t *testi
 	}
 	for _, version := range []string{"3.0.0", "1.21.3", "2.21.3-beta", "v2.21.3", "2.21.3 extra"} {
 		f = &preflightFixture{version: version}
-		if _, err := launcher.CheckKiro(t.Context(), f, cfg); !errors.Is(err, launcher.ErrKiroVersion) || len(f.calls) != 1 {
+		_, err := launcher.CheckKiro(t.Context(), f, cfg)
+		if !errors.Is(err, launcher.ErrKiroVersion) || len(f.calls) != 1 {
 			t.Fatal("unsupported Kiro version reached login lookup")
+		}
+		// Only a well-formed dotted build is named back in diagnostics; malformed output is not echoed.
+		var named *launcher.VersionError
+		parsed := version == "3.0.0" || version == "1.21.3"
+		if errors.As(err, &named) != parsed || parsed && (named.Found != version || named.Component != "kiro-cli" || named.Expected != "major version 2") {
+			t.Fatal("rejected build was not named safely", version, err)
 		}
 	}
 	for _, version := range []string{"2.21.1", "2.21.9", "3.0.0"} {
 		f = &preflightFixture{helperVersion: version}
-		if _, err := launcher.CheckKiro(t.Context(), f, cfg); !errors.Is(err, launcher.ErrKiroVersion) || len(f.calls) != 2 {
-			t.Fatal("mismatched main/helper versions reached login lookup")
+		_, err := launcher.CheckKiro(t.Context(), f, cfg)
+		var named *launcher.VersionError
+		if !errors.Is(err, launcher.ErrKiroVersion) || len(f.calls) != 2 || !errors.As(err, &named) || named.Found != version || named.Component != "kiro-cli-chat" {
+			t.Fatal("mismatched main/helper versions reached login lookup or were not named", version, err)
 		}
 	}
 	cfg.ScopeKey = [32]byte{}

@@ -143,8 +143,10 @@ func TestRegistryReplacementRetainsOriginalDeadline(t *testing.T) {
 	if _, err := d.Start(t.Context(), last); !errors.Is(err, context.DeadlineExceeded) && !errors.Is(err, acp.ErrTimeout) {
 		t.Fatal("matching history lost its timeout", err)
 	}
-	if _, err := d.Start(t.Context(), last); !errors.Is(err, inference.ErrRequest) {
-		t.Fatal("terminal outcome replayed", err)
+	// An identical resubmission (the client's own retry) sees the same terminal outcome rather than a
+	// request error until the outcome expires or a new turn starts.
+	if _, err := d.Start(t.Context(), last); !errors.Is(err, context.DeadlineExceeded) && !errors.Is(err, acp.ErrTimeout) {
+		t.Fatal("identical resubmission changed the terminal outcome", err)
 	}
 }
 

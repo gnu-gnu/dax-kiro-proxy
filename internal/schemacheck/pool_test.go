@@ -100,6 +100,7 @@ func TestWorkerDeadlineAdmissionAndRepeatedClose(t *testing.T) {
 		c.Args = []string{"schema-hang"}
 		c.MaxWorkers = 1
 		c.Timeout = 80 * time.Millisecond
+		c.QueueTimeout = 10 * time.Millisecond
 	})
 	done := make(chan error, 1)
 	go func() { done <- p.Check(context.Background(), []byte(`{"type":"object"}`)) }()
@@ -125,5 +126,31 @@ func TestWorkerDeadlineAdmissionAndRepeatedClose(t *testing.T) {
 	closes.Wait()
 	if p.Stats().Active != 0 || p.Stats().Idle != 0 {
 		t.Fatal("schema worker retained after cleanup")
+	}
+}
+
+func TestQueuedAdmissionServesConcurrentChecks(t *testing.T) {
+	p := pool(t, func(c *schemacheck.Config) { c.MaxWorkers = 1 })
+	var wg sync.WaitGroup
+	results := make(chan error, 8)
+	for range 8 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			results <- p.Check(context.Background(), []byte(`{"type":"object","properties":{"n":{"type":"integer"}}}`))
+		}()
+	}
+	wg.Wait()
+	close(results)
+	for err := range results {
+		if err != nil {
+			t.Fatal("queued check was refused instead of waiting for the worker", err)
+		}
+	}
+	if p.Stats().Active != 0 {
+		t.Fatal("worker slot not released after queued checks")
+	}
+	if _, err := schemacheck.New(schemacheck.Config{Executable: workerBinary, Directory: t.TempDir(), QueueTimeout: time.Minute}); !errors.Is(err, schemacheck.ErrWorker) {
+		t.Fatal("unbounded queue wait accepted")
 	}
 }

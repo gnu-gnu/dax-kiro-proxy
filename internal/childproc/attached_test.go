@@ -198,3 +198,34 @@ func TestAttachedRejectsInvalidInputsAndRecoversFromStartFailure(t *testing.T) {
 		}
 	}
 }
+
+func TestAttachedLifetimeExpiryIsClassified(t *testing.T) {
+	a, err := childproc.NewAttached(childproc.AttachedConfig{Lifetime: 150 * time.Millisecond, GracePeriod: 30 * time.Millisecond, TermPeriod: 30 * time.Millisecond, KillPeriod: time.Second})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(a.Close)
+	io := attachedFiles(t)
+	reader, writer, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { reader.Close(); writer.Close() })
+	io.Stdin = reader
+	p, err := a.Start(t.Context(), command(t, "read-input"), io)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = p.Wait(); !errors.Is(err, childproc.ErrLifetime) || !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatal("lifetime expiry was not classified", err)
+	}
+	// A caller deadline belongs to the caller and must never read as the lifetime limit.
+	ctx, cancel := context.WithTimeout(t.Context(), 100*time.Millisecond)
+	defer cancel()
+	if p, err = a.Start(ctx, command(t, "read-input"), io); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = p.Wait(); errors.Is(err, childproc.ErrLifetime) || !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatal("caller deadline misclassified as the lifetime limit", err)
+	}
+}
