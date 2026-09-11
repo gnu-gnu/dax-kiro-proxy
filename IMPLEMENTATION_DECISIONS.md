@@ -5876,4 +5876,11 @@ thirteen failures are twelve tool-result paths and the personal output-style con
 (`d122-client-2.1.268-batch.log`). Measuring 2.1.268 and deciding whether it can be admitted for
 tool use is a separate D113-style decision that this record does not make; until then the measured
 pair remains Kiro 2.21.3 / Claude Code 2.1.267, kept at `~/.local/share/claude/versions/2.1.267` on
-this host.
+this host. The rebuilt development artifact and its `run-diagnostics` inventory are recorded in
+DEPENDENCY_REVIEW.md and installed; its doctor on this host reports login and execution policy
+verified, launch available, Kiro 2.21.3 measured and Claude Code 2.1.268 unmeasured. Three bounded
+observations of the installed command from a pipe, with the user's HOME and no client launched: `run
+</dev/null` completes every preflight phase and exits 2 with "run needs a foreground terminal" after
+removing its runtime directory (runtime_cleanup 3ms); `run --tool-timeout 0s` is a usage error; `run
+--model no-such-model-zz` exits 2 with the catalog message naming `dax-kiro-proxy models`
+(`d122-install.log`, `d122-run-nontty.log`).

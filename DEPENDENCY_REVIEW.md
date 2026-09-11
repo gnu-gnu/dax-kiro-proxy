@@ -927,3 +927,32 @@ exists; the per-user generation directory is the inspected distribution unit. Re
 scope: the three unattributed metaschema resources, a notice bundle for any future non-macOS target,
 and repeating this inventory on change. The `project-trust` snapshot's 142 byte checks against the
 installed binary continue to pass.
+
+## Run-diagnostics artifact snapshot — D122, 2026-09-12
+
+`third_party/inventory/macos-arm64-run-diagnostics.json` records the rebuilt 13,676,354-byte
+development command, SHA-256 `1744e7235390d2c19a653078280c803530bfdbc63c5f4d1f4bd44191e678ecb3`. It
+identifies Go 1.27.1, darwin/arm64, CGO_ENABLED=1 and the clean committed revision 35628bebde85 with
+vcs.modified=false; the inventory commit follows that revision rather than capturing uncommitted
+inputs.
+
+The 103 repository input records are unchanged in number: ten production files change from D118 (the
+command's signal handling, options and diagnostics; the launcher's kiro.go, profile.go and
+startup.go; childproc's attached.go and terminal_unix.go; the gateway's error mapping; the schema
+pool and its worker; the session continuation). The 267 import paths form the same set as D118; the
+gateway now imports the schema-check package directly, which reorders the dependency listing
+(`import_path_order_changed_since_D118`). The four external module versions/sums/package sets,
+selected native files, stdlib vendor packages and retained notices are unchanged. No dependency is
+added or upgraded. The D118 project-trust inventory is the hashed predecessor; the D118 and D122
+executables are retained under the ignored history-review directory. The D121 component record needs
+no change.
+
+```sh
+python3 tools/verify_dependency_inventory.py --gomodcache .cache/gomod --snapshot run-diagnostics --binary dist/dax-kiro-proxy
+```
+
+All 142 byte checks pass against the candidate with release clearance false. Existing
+advisory/reachability, native/build/test attribution and clean-host distribution work remain open;
+the owner's rights items are outside this repository (D121). Bounding the session lifetime, handling
+SIGHUP, naming failures and queuing schema checks grant no license or distribution right and do not
+change the reviewed dependency set.
