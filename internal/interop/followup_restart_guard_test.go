@@ -20,9 +20,13 @@ func resumedOperationPair(r *anthropic.Request, prior completedToolPair, issued 
 	})
 }
 
-func resumedInterruptedOperationPair(r *anthropic.Request, prior completedToolPair, issued anthropic.ToolUse, expect *toolEffectExpectation, oldQuestion, question string, resultExpected bool) (completedToolPair, error) {
+func resumedInterruptedOperationPair(r *anthropic.Request, prior completedToolPair, issued anthropic.ToolUse, expect *toolEffectExpectation, oldQuestion, question string, resultExpected bool, form *string) (completedToolPair, error) {
 	return resumedPairAfterHistory(r, prior, issued, expect, question, resultExpected, func(prefix *anthropic.Request) bool {
-		return abandonedNativeToolHistoryQuestion(prefix, oldQuestion, prior.use.ID, prior.text, question)
+		measured := nativeInterruptedHistoryForm(prefix, oldQuestion, prior.use.ID, prior.text, question)
+		if form != nil {
+			*form = measured
+		}
+		return measured != ""
 	})
 }
 

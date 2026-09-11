@@ -279,44 +279,90 @@ func TestInterruptedNativeToolPairRejectsClaimedSuccess(t *testing.T) {
 	}
 }
 
-// The pinned native client can omit an unfinished call and supply this non-completion placeholder.
-// This is not a successful tool result or an explicit cancellation notice. Old runtime/effect
-// assertions remain separate prerequisites for accepting the new, explicitly non-executing turn.
+// Measured native representations of an interrupted client tool after explicit-ID resume. The
+// 2.1.263 build omits the unfinished pair and stands in a placeholder or the partial text
+// ("abandoned"). The 2.1.267 build retains the pair with a fixed error result and a fixed
+// continuation line in the same user message, before the same placeholder ("retained"). Neither
+// is a successful result or a proxy-visible cancellation; old runtime/effect assertions remain
+// separate prerequisites for accepting the new, explicitly non-executing turn.
+const (
+	retainedInterruptionResult       = "[Request interrupted by user for tool use]"
+	retainedInterruptionContinuation = "Continue from where you left off."
+)
+
 func abandonedNativeToolHistory(r *anthropic.Request, question, callID, preface string) bool {
-	return abandonedNativeToolHistoryQuestion(r, question, callID, preface, pendingRestartQuestion)
+	return nativeInterruptedHistoryForm(r, question, callID, preface, pendingRestartQuestion) != ""
 }
 
 func abandonedNativeToolHistoryQuestion(r *anthropic.Request, question, callID, preface, nextQuestion string) bool {
+	return nativeInterruptedHistoryForm(r, question, callID, preface, nextQuestion) != ""
+}
+
+func nativeInterruptedHistoryForm(r *anthropic.Request, question, callID, preface, nextQuestion string) string {
 	if r == nil || question == "" || callID == "" || nextQuestion == "" || len(r.Messages) > 16 || !r.ClientContent() {
-		return false
+		return ""
 	}
 	old, placeholder, next := 0, 0, 0
+	uses, results, continuation, resultIndex := 0, 0, 0, -1
 	for index, message := range r.Messages {
 		for _, block := range message.Content {
-			if block.Type != "text" || len(block.Text) > 64<<10 || strings.Contains(block.Text, callID) || strings.Contains(block.Text, "ToolArchiveReady_131") || strings.Contains(block.Text, "UnsentEffect_139") {
-				return false
-			}
-			if strings.Contains(block.Text, "EffectQuestion_131") {
-				if message.Role != "user" || placeholder != 0 || next != 0 || strings.Count(block.Text, question) != 1 {
-					return false
+			switch block.Type {
+			case "tool_use":
+				var use anthropic.ToolUse
+				if message.Role != "assistant" || old != 1 || uses != 0 || placeholder != 0 || next != 0 || json.Unmarshal(block.Raw, &use) != nil || use.ID != callID {
+					return ""
 				}
-				old += strings.Count(block.Text, "EffectQuestion_131")
-			}
-			if message.Role == "assistant" {
-				if old != 1 || next != 0 || (block.Text != "No response requested." && (preface == "" || block.Text != preface)) {
-					return false
+				uses++
+			case "tool_result":
+				value, err := anthropic.DecodeToolResult(block.Raw)
+				if message.Role != "user" || uses != 1 || results != 0 || placeholder != 0 || next != 0 || err != nil || value.ID != callID || !value.IsError || len(value.Content) != 1 || value.Content[0].Type != "text" || value.Content[0].Text != retainedInterruptionResult {
+					return ""
 				}
-				placeholder++
-			}
-			if strings.Contains(block.Text, "EffectFollow_137") {
-				if message.Role != "user" || old != 1 || placeholder != 1 || index != r.LatestUserIndex() || block.Text != nextQuestion {
-					return false
+				results, resultIndex = 1, index
+			case "text":
+				if len(block.Text) > 64<<10 || strings.Contains(block.Text, callID) || strings.Contains(block.Text, "ToolArchiveReady_131") || strings.Contains(block.Text, "UnsentEffect_139") {
+					return ""
 				}
-				next++
+				if message.Role == "user" && block.Text == retainedInterruptionContinuation {
+					if results != 1 || index != resultIndex || continuation != 0 || placeholder != 0 {
+						return ""
+					}
+					continuation++
+					continue
+				}
+				if strings.Contains(block.Text, "EffectQuestion_131") {
+					if message.Role != "user" || placeholder != 0 || next != 0 || uses != 0 || strings.Count(block.Text, question) != 1 {
+						return ""
+					}
+					old += strings.Count(block.Text, "EffectQuestion_131")
+				}
+				if message.Role == "assistant" {
+					if old != 1 || next != 0 || uses != results || (uses == 1 && continuation != 1) || (block.Text != "No response requested." && (preface == "" || block.Text != preface)) {
+						return ""
+					}
+					placeholder++
+				}
+				if strings.Contains(block.Text, "EffectFollow_137") {
+					if message.Role != "user" || old != 1 || placeholder != 1 || index != r.LatestUserIndex() || block.Text != nextQuestion {
+						return ""
+					}
+					next++
+				}
+			default:
+				return ""
 			}
 		}
 	}
-	return old == 1 && placeholder == 1 && next == 1
+	if old != 1 || placeholder != 1 || next != 1 {
+		return ""
+	}
+	if uses == 0 && results == 0 && continuation == 0 {
+		return "abandoned"
+	}
+	if uses == 1 && results == 1 && continuation == 1 {
+		return "retained"
+	}
+	return ""
 }
 
 const pendingRestartQuestion = "EffectFollow_137: The earlier operation was interrupted before execution. Do not execute it or any new tool. Continue from this conversation and reply only with the concatenation of ToolArchiveResumed and _137 without spaces."
@@ -351,6 +397,52 @@ func TestAbandonedNativeToolHistoryDoesNotInventResults(t *testing.T) {
 		mutate(&copy)
 		if abandonedNativeToolHistory(&copy, question, "owned-pending", "") {
 			t.Fatal("changed or falsely completed native history accepted")
+		}
+	}
+	retained := &anthropic.Request{Messages: []anthropic.Message{
+		{Role: "user", Content: []anthropic.Block{{Type: "text", Text: question}}},
+		{Role: "assistant", Content: []anthropic.Block{{Type: "tool_use", Raw: json.RawMessage(`{"type":"tool_use","id":"owned-pending","name":"Bash","input":{"command":"printf owned"}}`)}}},
+		{Role: "user", Content: []anthropic.Block{{Type: "tool_result", Raw: json.RawMessage(`{"type":"tool_result","tool_use_id":"owned-pending","is_error":true,"content":[{"type":"text","text":"[Request interrupted by user for tool use]"}]}`)}, {Type: "text", Text: "Continue from where you left off."}}},
+		{Role: "assistant", Content: []anthropic.Block{{Type: "text", Text: "No response requested."}}},
+		{Role: "user", Content: []anthropic.Block{{Type: "text", Text: pendingRestartQuestion}}},
+	}}
+	if nativeInterruptedHistoryForm(retained, question, "owned-pending", "", pendingRestartQuestion) != "retained" || nativeInterruptedHistoryForm(r, question, "owned-pending", "", pendingRestartQuestion) != "abandoned" {
+		t.Fatal("measured native interrupted representations were not distinguished")
+	}
+	for name, mutate := range map[string]func(*anthropic.Request){
+		"successful result": func(r *anthropic.Request) {
+			r.Messages[2].Content[0].Raw = json.RawMessage(`{"type":"tool_result","tool_use_id":"owned-pending","content":[{"type":"text","text":"[Request interrupted by user for tool use]"}]}`)
+		},
+		"foreign result id": func(r *anthropic.Request) {
+			r.Messages[2].Content[0].Raw = json.RawMessage(`{"type":"tool_result","tool_use_id":"other","is_error":true,"content":[{"type":"text","text":"[Request interrupted by user for tool use]"}]}`)
+		},
+		"foreign call id": func(r *anthropic.Request) {
+			r.Messages[1].Content[0].Raw = json.RawMessage(`{"type":"tool_use","id":"other","name":"Bash","input":{}}`)
+		},
+		"other notice": func(r *anthropic.Request) {
+			r.Messages[2].Content[0].Raw = json.RawMessage(`{"type":"tool_result","tool_use_id":"owned-pending","is_error":true,"content":[{"type":"text","text":"[Request interrupted by user]"}]}`)
+		},
+		"no continuation": func(r *anthropic.Request) { r.Messages[2].Content = r.Messages[2].Content[:1] },
+		"moved continuation": func(r *anthropic.Request) {
+			r.Messages[2].Content = r.Messages[2].Content[:1]
+			r.Messages = append(r.Messages[:3], append([]anthropic.Message{{Role: "user", Content: []anthropic.Block{{Type: "text", Text: "Continue from where you left off."}}}}, r.Messages[3:]...)...)
+		},
+		"no placeholder": func(r *anthropic.Request) { r.Messages = append(r.Messages[:3], r.Messages[4:]...) },
+		"repeated call": func(r *anthropic.Request) {
+			r.Messages = append(r.Messages[:2], append([]anthropic.Message{r.Messages[1]}, r.Messages[2:]...)...)
+		},
+		"two result parts": func(r *anthropic.Request) {
+			r.Messages[2].Content[0].Raw = json.RawMessage(`{"type":"tool_result","tool_use_id":"owned-pending","is_error":true,"content":[{"type":"text","text":"[Request interrupted by user for tool use]"},{"type":"text","text":"extra"}]}`)
+		},
+	} {
+		copy := *retained
+		copy.Messages = append([]anthropic.Message{}, retained.Messages...)
+		for index := range copy.Messages {
+			copy.Messages[index].Content = append([]anthropic.Block{}, retained.Messages[index].Content...)
+		}
+		mutate(&copy)
+		if form := nativeInterruptedHistoryForm(&copy, question, "owned-pending", "", pendingRestartQuestion); form != "" {
+			t.Fatalf("%s: mutated retained history accepted as %q", name, form)
 		}
 	}
 	r.Messages[1].Content[0].Text = "Independent partial assistant text"

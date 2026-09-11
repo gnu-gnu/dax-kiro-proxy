@@ -29,8 +29,15 @@ func nativeToolHistory() {
 	if readErr != nil || expectationCloseErr != nil || len(expectationData) > 64<<10 || json.Unmarshal(expectationData, &expectation) != nil {
 		os.Exit(103)
 	}
+	// observedForm names which measured interrupted-history representation the projected prompt
+	// carried, so the HTTP-side witness can require agreement. It is a fixed label, never content.
+	observedForm := ""
 	mark := func(stage int) {
-		if os.WriteFile(filepath.Join(filepath.Dir(os.Args[3]), "peer-stage-"+os.Args[2]), []byte(fmt.Sprintf("%d %d", os.Getpid(), stage)), 0600) != nil {
+		record := fmt.Sprintf("%d %d", os.Getpid(), stage)
+		if observedForm != "" {
+			record += " " + observedForm
+		}
+		if os.WriteFile(filepath.Join(filepath.Dir(os.Args[3]), "peer-stage-"+os.Args[2]), []byte(record), 0600) != nil {
 			os.Exit(112)
 		}
 	}
@@ -116,12 +123,28 @@ func nativeToolHistory() {
 				}
 				toolContext := strings.Contains(text, "tool_use") && strings.Contains(text, "tool_result")
 				if expectation.Interrupted {
+					// Two measured native representations: the 2.1.263 build omits the unfinished pair
+					// ("abandoned"); the 2.1.267 build keeps it with a fixed error result and a fixed
+					// continuation line before the placeholder ("retained"). Anything else is unmeasured.
 					placeholder, prefix := strings.Count(text, "No response requested."), strings.Count(text, "OwnedPendingPrefix_149")
-					toolContext = !strings.Contains(text, "tool_use") && !strings.Contains(text, "tool_result") && (placeholder == 1 && prefix == 0 || expectation.Preface && prefix == 1 && placeholder == 0)
+					// Historical blocks are embedded as escaped JSON strings inside the projected context.
+					uses, results := strings.Count(text, `\"tool_use\"`), strings.Count(text, `\"tool_result\"`)
+					errorFlags := strings.Count(text, `\"is_error\"`)
+					interrupted, continuation := strings.Count(text, "[Request interrupted by user for tool use]"), strings.Count(text, "Continue from where you left off.")
+					switch {
+					case uses == 0 && results == 0 && interrupted == 0 && continuation == 0 && (placeholder == 1 && prefix == 0 || expectation.Preface && prefix == 1 && placeholder == 0):
+						observedForm, toolContext = "abandoned", true
+					case uses == 1 && results == 1 && errorFlags == 1 && interrupted == 1 && continuation == 1 && placeholder == 1 && prefix == 0:
+						observedForm, toolContext = "retained", true
+					default:
+						observedForm, toolContext = fmt.Sprintf("unmeasured tu=%d tr=%d ef=%d ph=%d px=%d ir=%d ct=%d", uses, results, errorFlags, placeholder, prefix, interrupted, continuation), false
+					}
 				}
 				if strings.Count(text, "EffectFollow_137") != 1 || strings.Count(text, answer) != oldAnswers || !toolContext {
+					mark(9)
 					os.Exit(109)
 				}
+				mark(4)
 				answer = "ToolArchiveResumed_137"
 				if expectation.FollowupEffect {
 					relay.effect(os.Args[3])

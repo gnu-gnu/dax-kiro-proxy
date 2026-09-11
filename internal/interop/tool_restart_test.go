@@ -363,6 +363,24 @@ func observeToolHistory(t *testing.T, live bool, kind, holdMode, followPolicy st
 		}
 		gone = gone && dialErr != nil
 		effectOnce := toolRestartEffectsOnce(effect)
+		if !effectOnce {
+			// Owned fixture receipts only: fixed test-authored strings, never client or user content.
+			pre, _ := readDenialArtifact(filepath.Dir(effect.pre), filepath.Base(effect.pre), 64)
+			post, _ := readDenialArtifact(filepath.Dir(effect.post), filepath.Base(effect.post), 64)
+			target, _ := readDenialArtifact(filepath.Dir(effect.path), filepath.Base(effect.path), 128)
+			guard.mu.Lock()
+			resultText := string(guard.pair.result)
+			guard.mu.Unlock()
+			// The result is the owned printf command's output: fixed-class diagnostic, not user content.
+			t.Logf("effect_witness pre=%q post=%q target=%q result_failed=%v result=%q", pre, post, target, guard.pair.failed, resultText[:min(len(resultText), 200)])
+			info, statErr := os.Lstat(effect.path)
+			exists, size := statErr == nil, int64(-1)
+			if exists {
+				size = info.Size()
+			}
+			// Our own requested command (test-authored), bounded.
+			t.Logf("effect_target exists=%v size=%d requested_input=%q", exists, size, string(guard.issued.Input)[:min(len(guard.issued.Input), 200)])
+		}
 		if held != nil {
 			gone = gone && held.hookGone()
 			if interrupted {
@@ -375,6 +393,7 @@ func observeToolHistory(t *testing.T, live bool, kind, holdMode, followPolicy st
 				effectOnce = held.lateRelease(ctx, effect)
 			}
 			t.Logf("held_mode=%s held_hook_observed=%v delivered_handoffs=%d old_hook_gone=%v initial_join_ms=%d", holdMode, held.ready, guard.handoffs, held.hookGone(), held.join.Milliseconds())
+			t.Logf("interrupted_history_form=%q", guard.historyForm)
 			t.Logf("abandoned_native_history=%v retained_tool_pairs=%d original_partial_text_bytes=%d resumed_assistant_text_bytes=%d native_noncompletion_placeholder=%v late_release_checked=%v", guard.abandoned, guard.results, len(guard.previous.text), guard.placeholder.AssistantBytes, guard.placeholder.NoResponseRequested, held.lateChecked)
 		}
 		if followEffect != nil {
@@ -397,13 +416,24 @@ func observeToolHistory(t *testing.T, live bool, kind, holdMode, followPolicy st
 			}
 		}
 		if !live {
-			data, readErr := readDenialArtifact(filepath.Dir(currentEffect.manifest), "peer-stage-"+strconv.Itoa(stage), 64)
+			data, readErr := readDenialArtifact(filepath.Dir(currentEffect.manifest), "peer-stage-"+strconv.Itoa(stage), 256)
 			fields := strings.Fields(string(data))
-			step := -1
-			if readErr == nil && len(fields) == 2 {
+			step, peerForm, peerNote := -1, "", ""
+			if readErr == nil && len(fields) >= 2 {
 				step, _ = strconv.Atoi(fields[1])
+				if len(fields) >= 3 {
+					peerForm = fields[2]
+				}
+				if len(fields) > 3 {
+					peerNote = strings.Join(fields[3:min(len(fields), 12)], " ")
+				}
 			}
-			t.Logf("independent_peer_stage=%d", step)
+			t.Logf("independent_peer_stage=%d independent_peer_form=%q peer_note=%q", step, peerForm, peerNote)
+			// Both witnesses must have seen the same measured representation of the interrupted history.
+			if interrupted && stage == 1 && passed && peerForm != guard.historyForm {
+				passed = false
+				t.Logf("interrupted history form disagreement: http=%q acp=%q", guard.historyForm, peerForm)
+			}
 		}
 		t.Logf("live=%v tool=%s stage=%d expected_outcome=%v requests=%d tool_handoffs=%d matched_pairs=%d end_turns=%d expected_effect_and_hooks=%v cleanup=%v processes_profile_listener_gone=%v sources_unchanged=%v guard_failed=%v prepared=%d relay_records=%d group_observed=%v client_exit=%d", live, effect.expect.Tool, stage+1, passed, guard.starts, guard.uses, guard.results, guard.ends, effectOnce, clean, gone, sources, guard.failed, prepared.Load(), len(records), groups[stage] > 1, result.ExitCode)
 		if !passed || !effectOnce || !clean || !gone || !sources {

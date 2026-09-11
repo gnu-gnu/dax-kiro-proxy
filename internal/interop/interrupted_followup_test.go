@@ -65,7 +65,7 @@ func TestInterruptedFollowupRejectsInventedHistoryAndChangedWork(t *testing.T) {
 		return r
 	}
 	check := func(r *anthropic.Request, result bool) bool {
-		_, err := resumedInterruptedOperationPair(r, prior, issued, expect, oldQuestion, question, result)
+		_, err := resumedInterruptedOperationPair(r, prior, issued, expect, oldQuestion, question, result, nil)
 		return err == nil
 	}
 	if !check(decode(base), false) || !check(decode(withResult), true) || check(decode(base), true) || check(decode(withResult), false) {

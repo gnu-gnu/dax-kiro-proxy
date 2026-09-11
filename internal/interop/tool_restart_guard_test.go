@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -128,6 +129,7 @@ type toolRestartBackend struct {
 	historyChecks  int
 	question       string
 	abandoned      bool
+	historyForm    string
 	placeholder    struct {
 		AssistantBytes                                              int
 		NoResponseRequested, NoContent, Aborted, Cancelled, Stopped bool
@@ -136,10 +138,13 @@ type toolRestartBackend struct {
 	nativeInterruption struct {
 		UserNotices, AssistantNotices, OtherNotices int
 		PlainNotice, ToolNotice                     bool
+		// NoticeText retains the client's own interruption wording (bounded), never user content.
+		NoticeText string
 	}
 	interruptionShape struct {
 		Uses, Results, ErrorResults, ResultTextBytes                  int
 		HasErrorFlag, UseMatches, ResultMatches, MentionsInterruption bool
+		ResultText                                                    string
 	}
 	interrupted bool
 	handoffs    int
@@ -183,7 +188,11 @@ func (b *toolRestartBackend) Start(ctx context.Context, r *anthropic.Request) (i
 			for _, block := range message.Content {
 				if b.interrupted && b.stage == 1 {
 					if len(b.blockKinds) < 24 && len(message.Role) <= 16 && len(block.Type) <= 48 {
-						b.blockKinds = append(b.blockKinds, message.Role+"/"+block.Type)
+						kind := message.Role + "/" + block.Type + "#" + strconv.Itoa(len(block.Text))
+						if block.Type == "text" && !strings.Contains(block.Text, "Effect") && !strings.Contains(block.Text, "ToolArchive") {
+							kind += "=" + strconv.Quote(block.Text[:min(len(block.Text), 60)])
+						}
+						b.blockKinds = append(b.blockKinds, kind)
 					}
 					switch block.Type {
 					case "text":
@@ -197,6 +206,9 @@ func (b *toolRestartBackend) Start(ctx context.Context, r *anthropic.Request) (i
 							b.placeholder.Stopped = b.placeholder.Stopped || strings.Contains(lower, "stop")
 						}
 						if strings.Contains(strings.ToLower(block.Text), "interrupt") {
+							if b.nativeInterruption.NoticeText == "" && len(block.Text) <= 96 {
+								b.nativeInterruption.NoticeText = block.Text
+							}
 							switch message.Role {
 							case "user":
 								b.nativeInterruption.UserNotices++
@@ -211,8 +223,9 @@ func (b *toolRestartBackend) Start(ctx context.Context, r *anthropic.Request) (i
 					case "tool_use":
 						b.interruptionShape.Uses++
 						var use anthropic.ToolUse
-						if json.Unmarshal(block.Raw, &use) == nil {
-							b.interruptionShape.UseMatches = use.ID == b.previous.use.ID && use.Name == b.previous.use.Name && bytes.Equal(canonicalToolObject(use.Input), b.previous.input)
+						// Identity is keyed on the old delivered call so a later new pair cannot overwrite it.
+						if json.Unmarshal(block.Raw, &use) == nil && use.ID == b.previous.use.ID {
+							b.interruptionShape.UseMatches = use.Name == b.previous.use.Name && bytes.Equal(canonicalToolObject(use.Input), b.previous.input)
 						}
 					case "tool_result":
 						b.interruptionShape.Results++
@@ -220,11 +233,14 @@ func (b *toolRestartBackend) Start(ctx context.Context, r *anthropic.Request) (i
 						_, b.interruptionShape.HasErrorFlag = fields["is_error"]
 						value, err := anthropic.DecodeToolResult(block.Raw)
 						if err == nil {
-							b.interruptionShape.ResultMatches = value.ID == b.previous.use.ID
+							b.interruptionShape.ResultMatches = b.interruptionShape.ResultMatches || value.ID == b.previous.use.ID
 							if value.IsError {
 								b.interruptionShape.ErrorResults++
 							}
 							for _, part := range value.Content {
+								if b.interruptionShape.ResultText == "" && len(part.Text) <= 96 && strings.Contains(strings.ToLower(part.Text), "interrupt") {
+									b.interruptionShape.ResultText = part.Text
+								}
 								b.interruptionShape.ResultTextBytes += len(part.Text)
 								b.interruptionShape.MentionsInterruption = b.interruptionShape.MentionsInterruption || strings.Contains(strings.ToLower(part.Text), "interrupt") || strings.Contains(strings.ToLower(part.Text), "cancel")
 							}
@@ -266,10 +282,15 @@ func (b *toolRestartBackend) Start(ctx context.Context, r *anthropic.Request) (i
 		valid = valid && count == 1
 	} else if valid && b.followup {
 		pair, err := resumedOperationPair(r, b.previous, b.issued, b.expect, b.followQuestion, n == 2)
+		form := ""
 		if b.interrupted {
-			pair, err = resumedInterruptedOperationPair(r, b.previous, b.issued, b.expect, b.question, b.followQuestion, n == 2)
+			pair, err = resumedInterruptedOperationPair(r, b.previous, b.issued, b.expect, b.question, b.followQuestion, n == 2, &form)
 		}
 		valid = err == nil && (n == 1 || b.uses == 1 && b.handoffs == 1)
+		if valid && b.interrupted {
+			b.historyForm = form
+			valid = form == "abandoned" || (form == "retained" && b.interruptionShape.UseMatches && b.interruptionShape.ResultMatches)
+		}
 		if valid {
 			b.abandoned = b.interrupted
 			b.historyChecks++
@@ -278,8 +299,11 @@ func (b *toolRestartBackend) Start(ctx context.Context, r *anthropic.Request) (i
 				b.results++
 			}
 		}
-	} else if valid && b.interrupted && abandonedNativeToolHistory(r, b.question, b.previous.use.ID, b.previous.text) {
-		b.abandoned = true
+	} else if valid && b.interrupted && nativeInterruptedHistoryForm(r, b.question, b.previous.use.ID, b.previous.text, pendingRestartQuestion) != "" {
+		b.historyForm = nativeInterruptedHistoryForm(r, b.question, b.previous.use.ID, b.previous.text, pendingRestartQuestion)
+		// The retained form must also carry the exact delivered call and its own result identity.
+		b.abandoned = b.historyForm == "abandoned" || (b.historyForm == "retained" && b.interruptionShape.UseMatches && b.interruptionShape.ResultMatches)
+		valid = b.abandoned
 	} else if valid {
 		pair, err := recordedToolPair(r, b.stage == 1, b.interrupted)
 		valid = err == nil && b.expect.matches(pair.use)
