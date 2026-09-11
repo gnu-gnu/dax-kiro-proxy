@@ -5394,4 +5394,6 @@ must be recorded with its observed version and does not make that build measured
 migration with fresh finite checks remains the way to do that. No dependency changes. Logs under
 `.cache/history-review/`: `d114-kiro-finite.log`, `d114-compiled-run.log`, `d114-all-race.log` and
 `d114-all-vet.log`. The rebuilt development artifact and its `measured-kiro` inventory are recorded
-in DEPENDENCY_REVIEW.md.
+in DEPENDENCY_REVIEW.md and installed; its doctor on this host reports login and execution policy
+verified, launch available, and Kiro 2.21.3 and Claude Code 2.1.267 both measured (login_check
+2187ms, model_catalog 2157ms), which closes the D113 note about the unobserved doctor summary.

@@ -357,13 +357,14 @@ from 41.61s to 10.67s with all recorded ownership removed. Whole-repository race
 allow/deny/hook controls and actual Kiro/Claude allowed-tool resume pass. These finite measurements
 do not establish general throughput or complete the remaining soak gates.
 
-Phase 7 has frozen dependency inventories and retained scoped notices. For the D113
-measured-client development artifact, run `python3 tools/verify_dependency_inventory.py --gomodcache .cache/gomod
---snapshot measured-client --binary dist/dax-kiro-proxy`. The default `development` snapshot identifies
+Phase 7 has frozen dependency inventories and retained scoped notices. For the D114
+measured-Kiro development artifact, run `python3 tools/verify_dependency_inventory.py --gomodcache .cache/gomod
+--snapshot measured-kiro --binary dist/dax-kiro-proxy`. The default `development` snapshot identifies
 D78's earlier D77 binary, `installation` identifies D79, `native-history` identifies D87 and
 `relay-close` identifies D96; `effort` identifies D99, `usage` identifies D101, `output-styles`
-identifies D108, `tool-images` identifies D109 and `client-version` identifies D110–D112. Those
-historical snapshots do not match this rebuild and its changed production source. These offline byte checks do not grant release license
+identifies D108, `tool-images` identifies D109, `client-version` identifies D110–D112 and
+`measured-client` identifies D113. Those historical snapshots do not match this rebuild and its
+changed production source. These offline byte checks do not grant release license
 clearance; see DEPENDENCY_REVIEW.md for resource differences and remaining packaging/rights work.
 
 ## Naming
