@@ -39,14 +39,35 @@ const SupportedClientVersion = "2.1.267"
 // ClientVersionFromOutput parses the client's --version output and reports whether that
 // build is admitted. The output must be the bare version followed by the client's name.
 func ClientVersionFromOutput(output []byte) (string, bool) {
-	if len(output) > 256 {
-		return "", false
-	}
-	version, named := strings.CutSuffix(strings.TrimSpace(string(output)), " (Claude Code)")
+	version, named := parseClientVersion(output)
 	if !named || !CompatibleClientVersion(version) {
 		return "", false
 	}
 	return version, true
+}
+
+// parseClientVersion extracts the bounded dotted build from --version output without judging
+// admission, so a rejected build can still be named in diagnostics.
+func parseClientVersion(output []byte) (string, bool) {
+	if len(output) > 256 {
+		return "", false
+	}
+	version, named := strings.CutSuffix(strings.TrimSpace(string(output)), " (Claude Code)")
+	if !named {
+		return "", false
+	}
+	if _, ok := clientVersionMajor(version); !ok {
+		return "", false
+	}
+	return version, true
+}
+
+// majorOf returns the major component of a bounded dotted version, or the version itself.
+func majorOf(version string) string {
+	if major, ok := clientVersionMajor(version); ok {
+		return major
+	}
+	return version
 }
 
 // CompatibleClientOutput is ClientVersionFromOutput's admission result alone.

@@ -49,10 +49,10 @@ func (d *Driver) resume(ctx context.Context, r *anthropic.Request, registry *too
 		d.outcome = nil
 	}
 	if d.state != WaitingTools || d.current == nil {
+		// The retired outcome answers every identical resubmission the same way until it expires or a
+		// new turn starts; consuming it on first read turned a client retry into a request error.
 		if d.outcome != nil && d.outcome.compat == stamp && sameResultIDs(d.outcome.ids, results) {
-			err := d.outcome.err
-			d.outcome = nil
-			return nil, err
+			return nil, d.outcome.err
 		}
 		return nil, inference.ErrRequest
 	}

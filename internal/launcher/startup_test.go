@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"dax-kiro-proxy/internal/acp"
 	"dax-kiro-proxy/internal/catalog"
@@ -304,5 +305,42 @@ func TestStartupCancellationDuringFinalCleanupRemainsVisible(t *testing.T) {
 			}
 			assertStartupClean(t, opts, r)
 		})
+	}
+}
+
+func TestLaunchOptionTimeoutsDefaultAndValidate(t *testing.T) {
+	opts, err := normalizeLaunchOptions(startupOptions(t))
+	if err != nil || opts.ToolTimeout != DefaultToolTimeout || opts.TurnTimeout != DefaultTurnTimeout || opts.FirstEventTimeout != DefaultFirstEventTimeout {
+		t.Fatal("timeout defaults not applied", err, opts.ToolTimeout, opts.TurnTimeout, opts.FirstEventTimeout)
+	}
+	for _, change := range []func(*LaunchOptions){
+		func(o *LaunchOptions) { o.ToolTimeout = 10 * time.Second },
+		func(o *LaunchOptions) { o.ToolTimeout = 2 * time.Hour },
+		func(o *LaunchOptions) { o.TurnTimeout = 30 * time.Second },
+		func(o *LaunchOptions) { o.TurnTimeout = 2 * time.Hour },
+		func(o *LaunchOptions) { o.ToolTimeout, o.TurnTimeout = 20*time.Minute, 10*time.Minute },
+		func(o *LaunchOptions) { o.FirstEventTimeout = 5 * time.Second },
+		func(o *LaunchOptions) { o.FirstEventTimeout, o.TurnTimeout = 20*time.Minute, 10*time.Minute },
+	} {
+		bad := startupOptions(t)
+		change(&bad)
+		if _, err := normalizeLaunchOptions(bad); !errors.Is(err, ErrConfig) {
+			t.Fatal("out-of-range timeout accepted", err)
+		}
+	}
+	good := startupOptions(t)
+	good.ToolTimeout, good.TurnTimeout, good.FirstEventTimeout = time.Hour, time.Hour, time.Hour
+	if _, err := normalizeLaunchOptions(good); err != nil {
+		t.Fatal("boundary timeouts rejected", err)
+	}
+	missing := startupOptions(t)
+	missing.KiroExecutable = filepath.Join(missing.RuntimeParent, "absent-kiro")
+	if _, err := normalizeLaunchOptions(missing); !errors.Is(err, ErrKiroVersion) || !errors.Is(err, ErrExecutableNotFound) {
+		t.Fatal("absent Kiro executable not reported as missing", err)
+	}
+	missing = startupOptions(t)
+	missing.Environment = []string{"PATH=" + missing.RuntimeParent}
+	if _, err := normalizeLaunchOptions(missing); !errors.Is(err, ErrClientVersion) || !errors.Is(err, ErrExecutableNotFound) {
+		t.Fatal("absent client executable not reported as missing", err)
 	}
 }

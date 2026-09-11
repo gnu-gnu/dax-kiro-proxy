@@ -25,7 +25,7 @@ func prepareAttached(cmd *exec.Cmd, files AttachedIO) (func() error, error) {
 	owned, err := duplicateTerminal(files.Stdin)
 	if err != nil {
 		terminalOwner.Unlock()
-		return nil, ErrTerminal
+		return nil, ErrTerminalUnavailable
 	}
 	fd := int(owned.Fd())
 	group, err := unix.IoctlGetInt(fd, unix.TIOCGPGRP)
@@ -33,7 +33,7 @@ func prepareAttached(cmd *exec.Cmd, files AttachedIO) (func() error, error) {
 	if err != nil || stateErr != nil || group != syscall.Getpgrp() {
 		owned.Close()
 		terminalOwner.Unlock()
-		return nil, ErrTerminal
+		return nil, ErrTerminalUnavailable
 	}
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true, Foreground: true, Ctty: fd}
 	return func() error {

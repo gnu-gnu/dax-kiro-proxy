@@ -10,9 +10,11 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"dax-kiro-proxy/internal/catalog"
 	"dax-kiro-proxy/internal/childproc"
+	"dax-kiro-proxy/internal/gateway"
 	"dax-kiro-proxy/internal/inference"
 	"dax-kiro-proxy/internal/launcher"
 )
@@ -155,6 +157,7 @@ func TestLaunchFlagsAndDescriptorOwnership(t *testing.T) {
 	want.KiroExecutable, want.ClientExecutable = "/configured/kiro", "/configured/client"
 	want.StateDirectory, want.RuntimeParent, want.UserSettings = "/configured/state", "/configured/runtime", "/configured/settings"
 	want.InitialModel, want.InitialEffort, want.Interactive = "exact-model", "high", true
+	want.ToolTimeout, want.TurnTimeout, want.FirstEventTimeout = 20*time.Minute, 40*time.Minute, 2*time.Minute
 	services := fixtureServices()
 	called := false
 	services.run = func(_ context.Context, got launcher.LaunchOptions, descriptors childproc.AttachedIO) (launcher.LaunchResult, error) {
@@ -164,7 +167,7 @@ func TestLaunchFlagsAndDescriptorOwnership(t *testing.T) {
 		}
 		return launcher.LaunchResult{Client: launcher.ClientRunResult{ClientPID: 42, ExitCode: 23}}, childproc.ErrExit
 	}
-	args := []string{"run", "--kiro", want.KiroExecutable, "--client", want.ClientExecutable, "--state-dir", want.StateDirectory, "--runtime-dir", want.RuntimeParent, "--settings", want.UserSettings, "--model", want.InitialModel, "--effort", want.InitialEffort}
+	args := []string{"run", "--kiro", want.KiroExecutable, "--client", want.ClientExecutable, "--state-dir", want.StateDirectory, "--runtime-dir", want.RuntimeParent, "--settings", want.UserSettings, "--model", want.InitialModel, "--effort", want.InitialEffort, "--tool-timeout", "20m", "--turn-timeout", "40m", "--first-event-timeout", "2m"}
 	var out, diagnostics bytes.Buffer
 	if code := execute(t.Context(), args, files, &out, &diagnostics, services); code != 23 || !called || out.Len() != 0 {
 		t.Fatal("client exit not preserved", code, called)
@@ -349,6 +352,71 @@ func TestOutputFailureIsUnsuccessful(t *testing.T) {
 		var diagnostics bytes.Buffer
 		if code := execute(t.Context(), args, childproc.AttachedIO{}, failingWriter{}, &diagnostics, fixtureServices()); code == 0 {
 			t.Fatal("output failure reported success", args)
+		}
+	}
+}
+
+func TestDiagnosticsNameTheFailureClass(t *testing.T) {
+	cases := []struct {
+		name         string
+		err          error
+		result       launcher.ClientRunResult
+		code         int
+		want, reject string
+	}{
+		{"terminal", childproc.ErrTerminalUnavailable, launcher.ClientRunResult{}, 2, "foreground terminal", "cleanup"},
+		{"lifetime", errors.Join(childproc.ErrLifetime, context.DeadlineExceeded), launcher.ClientRunResult{ClientPID: 42, ExitCode: -1}, 1, "lifetime limit", "startup or client"},
+		{"model", catalog.ErrModel, launcher.ClientRunResult{}, 2, "dax-kiro-proxy models", "configuration"},
+		{"kiro-missing", errors.Join(launcher.ErrKiroVersion, launcher.ErrExecutableNotFound), launcher.ClientRunResult{}, 1, "kiro-cli was not found", "not supported"},
+		{"client-missing", errors.Join(launcher.ErrClientVersion, launcher.ErrExecutableNotFound), launcher.ClientRunResult{}, 1, "claude was not found", "not supported"},
+		{"kiro-version", &launcher.VersionError{Component: "kiro-cli", Found: "3.0.0", Expected: "major version 2", Sentinel: launcher.ErrKiroVersion}, launcher.ClientRunResult{}, 1, "kiro-cli 3.0.0 is not supported; expected major version 2", ""},
+		{"client-version", &launcher.VersionError{Component: "Claude Code", Found: "1.0.0", Expected: "major version 2", Sentinel: launcher.ErrClientVersion}, launcher.ClientRunResult{}, 1, "Claude Code 1.0.0 is not supported", ""},
+		{"kiro-version-unnamed", &launcher.VersionError{Component: "kiro-cli", Sentinel: launcher.ErrKiroVersion}, launcher.ClientRunResult{}, 1, "Kiro installation or version is not supported", "expected"},
+		{"runtime", launcher.ErrRuntime, launcher.ClientRunResult{}, 1, "runtime directory", "startup or client"},
+		{"bind", gateway.ErrServerBind, launcher.ClientRunResult{}, 1, "loopback gateway", "startup or client"},
+		{"start", childproc.ErrStart, launcher.ClientRunResult{}, 1, "cannot start the Claude Code executable", "startup or client"},
+		{"gateway-stopped", launcher.ErrGatewayStopped, launcher.ClientRunResult{ClientPID: 42, ExitCode: -1}, 1, "gateway stopped", "startup or client"},
+		{"restore", childproc.ErrTerminal, launcher.ClientRunResult{ClientPID: 42, ExitCode: 0}, 1, "cleanup", "foreground terminal"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			services := fixtureServices()
+			services.run = func(context.Context, launcher.LaunchOptions, childproc.AttachedIO) (launcher.LaunchResult, error) {
+				return launcher.LaunchResult{Client: tc.result}, tc.err
+			}
+			code, out, diagnostics := invoke(t, t.Context(), []string{"run"}, services)
+			if code != tc.code || out != "" || !strings.Contains(diagnostics, tc.want) || tc.reject != "" && strings.Contains(diagnostics, tc.reject) {
+				t.Fatal("diagnostic did not name the failure class", code, diagnostics)
+			}
+		})
+	}
+}
+
+func TestTimeoutFlagsStayOnRunAndRejectInvalidValues(t *testing.T) {
+	for _, args := range [][]string{{"doctor", "--tool-timeout", "1m"}, {"models", "--turn-timeout", "1m"}, {"run", "--tool-timeout", "0s"}, {"run", "--first-event-timeout", "soon"}, {"run", "--turn-timeout", ""}, {"run", "--tool-timeout"}} {
+		services := fixtureServices()
+		services.defaults = func() (launcher.LaunchOptions, error) {
+			t.Fatal("invalid timeout arguments reached startup")
+			return launcher.LaunchOptions{}, nil
+		}
+		var out, diagnostics bytes.Buffer
+		if execute(t.Context(), args, childproc.AttachedIO{}, &out, &diagnostics, services) == 0 {
+			t.Fatal("invalid timeout option accepted", args)
+		}
+	}
+	for _, args := range [][]string{{"run", "--tool-timeout", "45s"}, {"run", "--turn-timeout", "1h"}, {"run", "--first-event-timeout", "10s"}} {
+		services := fixtureServices()
+		called := false
+		services.run = func(_ context.Context, got launcher.LaunchOptions, _ childproc.AttachedIO) (launcher.LaunchResult, error) {
+			called = true
+			if got.ToolTimeout+got.TurnTimeout+got.FirstEventTimeout == 0 {
+				t.Fatal("timeout option lost")
+			}
+			return launcher.LaunchResult{}, nil
+		}
+		var out, diagnostics bytes.Buffer
+		if execute(t.Context(), args, childproc.AttachedIO{}, &out, &diagnostics, services) != 0 || !called {
+			t.Fatal("valid timeout option rejected", args)
 		}
 	}
 }

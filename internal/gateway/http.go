@@ -19,6 +19,7 @@ import (
 	"dax-kiro-proxy/internal/acp"
 	"dax-kiro-proxy/internal/anthropic"
 	"dax-kiro-proxy/internal/inference"
+	"dax-kiro-proxy/internal/schemacheck"
 	"dax-kiro-proxy/internal/status"
 )
 
@@ -253,6 +254,11 @@ func (h *Handler) messages(ctx context.Context, w http.ResponseWriter, r *http.R
 		var control *anthropic.UnsupportedControlError
 		if errors.As(err, &control) {
 			writeError(w, 400, "invalid_request_error", control.Error())
+		} else if errors.Is(err, schemacheck.ErrOverloaded) {
+			// Tool-schema validation capacity is transient and unrelated to the request's content.
+			writeError(w, 429, "overloaded_error", "Tool schema validation capacity reached; retry")
+		} else if errors.Is(err, schemacheck.ErrWorker) || errors.Is(err, schemacheck.ErrBudget) || errors.Is(err, schemacheck.ErrClosed) {
+			writeError(w, 502, "api_error", "Tool schema validation failed; retry")
 		} else if errors.Is(err, inference.ErrRequest) || errors.Is(err, anthropic.ErrRequest) {
 			writeError(w, 400, "invalid_request_error", "Requested model or content is incompatible with the current Kiro catalog")
 		} else if errors.Is(err, inference.ErrBusy) {

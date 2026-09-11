@@ -258,10 +258,12 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
 - A new user question following all matching client error results may abandon the old prompt only
   with an exact compatible owner, proven history extension, results preceding text, and unchanged
   repeated standing instructions. Join old process/relay cleanup before a fresh full-history prompt;
-  never resolve those results into the abandoned prompt, replay a tool or reuse canceled state.
-  The same proof may use the bounded five-minute retired outcome. Missing, duplicate, partial,
-  successful, cross-owner or divergent results reject on this all-denial/retired-outcome path without
-  consuming recovery ownership; active D73 continuations follow the separate rule above.
+  never resolve those results into the abandoned prompt, replay a tool or reuse canceled state. The
+  same proof may use the bounded five-minute retired outcome, which answers identical resubmissions
+  of the retired batch with the same terminal error until it expires or a new turn starts (D122).
+  Missing, duplicate, partial, successful, cross-owner or divergent results reject on this
+  all-denial/retired-outcome path without consuming recovery ownership; active D73 continuations
+  follow the separate rule above.
 - Cancellation and timeout resolve all suspended relay calls and remove owner-only socket/config data.
 - MCP starts only after authenticated supervisor/child PID checks and verified ACP group membership.
   A peer cannot supply its own PID/group, forge a join, replay an attachment or replace a valid child.

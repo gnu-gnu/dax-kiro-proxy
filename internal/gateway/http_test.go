@@ -17,6 +17,7 @@ import (
 	"dax-kiro-proxy/internal/anthropic"
 	"dax-kiro-proxy/internal/gateway"
 	"dax-kiro-proxy/internal/inference"
+	"dax-kiro-proxy/internal/schemacheck"
 )
 
 var tokens = gateway.Tokens{Model: strings.Repeat("m", 43), UI: strings.Repeat("u", 43)}
@@ -457,6 +458,24 @@ func TestResponseWriteFailureCancels(t *testing.T) {
 		h.ServeHTTP(&failingWriter{header: make(http.Header)}, r)
 		if turn.canceled.Load() != 1 || turn.finished.Load() != 0 {
 			t.Fatal("failed delivery committed backend state")
+		}
+	}
+}
+
+func TestSchemaCapacityErrorsAreNotRequestErrors(t *testing.T) {
+	for _, tc := range []struct {
+		err  error
+		code int
+		kind string
+	}{
+		{errors.Join(inference.ErrRequest, schemacheck.ErrOverloaded), 429, "overloaded_error"},
+		{errors.Join(inference.ErrRequest, schemacheck.ErrWorker), 502, "api_error"},
+		{errors.Join(inference.ErrRequest, schemacheck.ErrBudget), 502, "api_error"},
+		{errors.Join(inference.ErrRequest, schemacheck.ErrClosed), 502, "api_error"},
+	} {
+		w := request(handler(t, &fakeBackend{err: tc.err}, nil), "POST", "/messages", tokens.Model, message(false))
+		if w.Code != tc.code || !strings.Contains(w.Body.String(), tc.kind) || strings.Contains(w.Body.String(), "incompatible") {
+			t.Fatalf("schema capacity mapped to %d %s", w.Code, w.Body.String())
 		}
 	}
 }

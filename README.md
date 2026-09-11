@@ -57,11 +57,16 @@ go build -o ./dist/dax-kiro-proxy ./cmd/dax-kiro-proxy
 ```
 
 To retain native Claude conversation data across launches, use `run --client-history`. To resume a
-known native session, use `run --resume <UUID>`; this implies history retention. These options share
-`~/.claude/projects` with the native client, including its conversation text, auto-memory and other
-data under that directory. Claude controls its formats and retention; ordinary Claude sessions can
-access that same data. Source settings remain separate, and temporary routing credentials are
-removed on exit. Without these options, the client profile and its conversations are ephemeral.
+known native session, use `run --resume <UUID>`; this implies history retention. `run
+--tool-timeout`, `--turn-timeout` and `--first-event-timeout` (D122) bound one client tool result
+(default 15m, 30s..1h), one model turn including its tool waits (default 30m, 1m..1h) and the wait
+for the first model event (default 90s, 10s..turn); an interactive session itself is bounded at
+seven days, after which the client is closed with a diagnostic naming that limit. A closed terminal
+window (SIGHUP) runs the same cleanup as Ctrl+C. These options share `~/.claude/projects` with the
+native client, including its conversation text, auto-memory and other data under that directory.
+Claude controls its formats and retention; ordinary Claude sessions can access that same data.
+Source settings remain separate, and temporary routing credentials are removed on exit. Without
+these options, the client profile and its conversations are ephemeral.
 
 D87 verifies explicit-ID text resume with fresh profiles, addresses, tokens and backend processes,
 using both an independent ACP peer and actual Kiro. D88 also verifies ordinary terminal `run`,
@@ -142,16 +147,17 @@ recorded in `~/.claude.json` for that project exactly as native Claude Code reco
 question is asked once per project (D118).
 
 Development `run` is enabled on macOS arm64 for the measured Kiro 2.21.3/v2 and Claude Code 2.1.267
-combination. Run it from a foreground terminal. Other Kiro major versions, mismatched main/helper
-pairs, other Claude Code major versions and unverified execution platforms are rejected; there is no
-trust override. A same-major Kiro pair or Claude Code build launches without new measurement and
-`doctor` marks it unmeasured (D114, D110). The prepared client environment also keeps the measured
-build's handling of product model IDs: a later build's unknown-model context-window notice is opted
-out (D112). The client receives the ephemeral model token only as a Bearer token, and the private
-profile carries the user's completed-onboarding state, so a launch shows no theme or API-key dialog
-(D115). Each launch owns a temporary Kiro configuration with default-resource suppression, and each
-ACP process has a separate relay-only agent directory. The client continues to decide tool
-permissions and execute tools.
+combination. Run it from a foreground terminal: a pipe, a background job or an ssh session without a
+pty is refused with "run needs a foreground terminal" before any client starts (D122). Other Kiro
+major versions, mismatched main/helper pairs, other Claude Code major versions and unverified
+execution platforms are rejected; there is no trust override. A same-major Kiro pair or Claude Code
+build launches without new measurement and `doctor` marks it unmeasured (D114, D110). The prepared
+client environment also keeps the measured build's handling of product model IDs: a later build's
+unknown-model context-window notice is opted out (D112). The client receives the ephemeral model
+token only as a Bearer token, and the private profile carries the user's completed-onboarding state,
+so a launch shows no theme or API-key dialog (D115). Each launch owns a temporary Kiro configuration
+with default-resource suppression, and each ACP process has a separate relay-only agent directory.
+The client continues to decide tool permissions and execute tools.
 
 `doctor` succeeding means its checks completed; inspect `launch_available` and `policy` separately.
 `client_version` and `kiro_version` are the detected builds; `client_version_measured` and

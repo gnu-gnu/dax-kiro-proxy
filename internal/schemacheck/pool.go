@@ -25,6 +25,9 @@ type Config struct {
 	Args                             []string
 	MaxWorkers                       int
 	Timeout, StartupTimeout, IdleTTL time.Duration
+	// QueueTimeout bounds how long a caller waits for a worker slot when every worker is busy;
+	// only after it elapses is the call refused with ErrOverloaded.
+	QueueTimeout time.Duration
 }
 type idleWorker struct {
 	client *acp.Client
@@ -36,6 +39,7 @@ type Stats struct {
 }
 type Pool struct {
 	cfg       Config
+	slots     chan struct{}
 	mu        sync.Mutex
 	idle      []idleWorker
 	active    int
@@ -60,6 +64,12 @@ func New(cfg Config) (*Pool, error) {
 	if cfg.IdleTTL == 0 {
 		cfg.IdleTTL = 5 * time.Minute
 	}
+	if cfg.QueueTimeout == 0 {
+		cfg.QueueTimeout = 2 * time.Second
+	}
+	if cfg.QueueTimeout <= 0 || cfg.QueueTimeout > 30*time.Second {
+		return nil, ErrWorker
+	}
 	if !filepath.IsAbs(cfg.Executable) || !filepath.IsAbs(cfg.Directory) || cfg.MaxWorkers < 1 || cfg.MaxWorkers > 8 || cfg.Timeout <= 0 || cfg.Timeout > 5*time.Second || cfg.StartupTimeout <= 0 || cfg.StartupTimeout > 10*time.Second || cfg.IdleTTL <= 0 || cfg.IdleTTL > time.Hour {
 		return nil, ErrWorker
 	}
@@ -69,7 +79,7 @@ func New(cfg Config) (*Pool, error) {
 		cfg.Args = append([]string{}, cfg.Args...)
 	}
 	ctx, cancel := context.WithCancel(context.Background())
-	return &Pool{cfg: cfg, ctx: ctx, cancel: cancel}, nil
+	return &Pool{cfg: cfg, slots: make(chan struct{}, cfg.MaxWorkers), ctx: ctx, cancel: cancel}, nil
 }
 func (p *Pool) Stats() Stats {
 	p.mu.Lock()
@@ -94,14 +104,24 @@ func (p *Pool) run(ctx context.Context, method string, schema, args []byte) erro
 			return ErrArguments
 		}
 	}
+	// Wait a bounded time for a worker slot: checks take milliseconds, so concurrent requests queue
+	// instead of failing the moment both workers are busy. Closing the pool releases waiters.
+	queue := time.NewTimer(p.cfg.QueueTimeout)
+	defer queue.Stop()
+	select {
+	case p.slots <- struct{}{}:
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-p.ctx.Done():
+		return ErrClosed
+	case <-queue.C:
+		return ErrOverloaded
+	}
 	p.mu.Lock()
 	if p.closed {
 		p.mu.Unlock()
+		<-p.slots
 		return ErrClosed
-	}
-	if p.active >= p.cfg.MaxWorkers {
-		p.mu.Unlock()
-		return ErrOverloaded
 	}
 	p.active++
 	p.jobs.Add(1)
@@ -121,6 +141,7 @@ func (p *Pool) run(ctx context.Context, method string, schema, args []byte) erro
 		}
 		p.mu.Lock()
 		p.active--
+		<-p.slots
 		if client != nil && !p.closed {
 			p.idle = append(p.idle, idleWorker{client, time.Now()})
 			client = nil
