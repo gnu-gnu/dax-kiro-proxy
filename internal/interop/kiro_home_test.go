@@ -144,6 +144,9 @@ func (r kiroHomeIdentityRunner) Run(ctx context.Context, command childproc.Comma
 // documents KIRO_HOME as relocating global agents and other configuration:
 // https://kiro.dev/changelog/cli/2-3/
 // It does not establish authentication continuity, agent activation, or execution restrictions.
+// On the measured 2.21.3 build the main entry point cannot list agents from a synthetic HOME because
+// login is kept under the account HOME (D114); this probe records that diagnostic and still verifies
+// search-root selection through the helper. The account-HOME variant verifies both entry points.
 func TestKiroOwnedHomeAgentSelection(t *testing.T) {
 	observeKiroHomeAgentSelection(t, false)
 }
@@ -234,10 +237,10 @@ func observeKiroHomeAgentSelection(t *testing.T, accountHome bool) {
 		"LANG=en_US.UTF-8",
 	}
 	binaries := []struct {
-		label, path, version string
+		label, path, name string
 	}{
-		{"main", executable, "kiro-cli " + launcher.SupportedKiroVersion},
-		{"helper", filepath.Join(filepath.Dir(executable), "kiro-cli-chat"), "kiro-cli-chat " + launcher.SupportedKiroVersion},
+		{"main", executable, "kiro-cli"},
+		{"helper", filepath.Join(filepath.Dir(executable), "kiro-cli-chat"), "kiro-cli-chat"},
 	}
 	run := func(command childproc.Command) (childproc.Result, error) {
 		t.Helper()
@@ -257,7 +260,7 @@ func observeKiroHomeAgentSelection(t *testing.T, accountHome bool) {
 		result, runErr := run(childproc.Command{
 			Executable: binary.path, Directory: cwd, Environment: environment, Args: []string{"--version"},
 		})
-		verified := runErr == nil && result.ExitCode == 0 && strings.TrimSpace(string(result.Stdout)) == binary.version
+		verified := runErr == nil && result.ExitCode == 0 && launcher.CompatibleKiroOutput(binary.name, result.Stdout)
 		t.Logf("binary=%s, pinned_version_verified=%v, exit=%d, output_bytes=%d, failure=%s", binary.label, verified, result.ExitCode, len(result.Stdout), kiroHomeProbeFailure(runErr))
 		if !verified {
 			t.Fatal("owned HOME probe requires both pinned public binaries")
@@ -299,6 +302,12 @@ func observeKiroHomeAgentSelection(t *testing.T, accountHome bool) {
 				selectedOnly = selectedOnly && (i == index || !present[i])
 			}
 			t.Logf("binary=%s, scope=%s, exit=%d, output_bytes=%d, fallback_present=%v, first_present=%v, second_present=%v, selected_only=%v, authentication_marker=%v, failure=%s, cleanup_joined=true", binary.label, selected.label, result.ExitCode, len(result.Stdout), present[0], present[1], present[2], selectedOnly, authenticationMarker, kiroHomeProbeFailure(runErr))
+			if !accountHome && binary.label == "main" {
+				if result.ExitCode == 0 || !authenticationMarker || present[0] || present[1] || present[2] {
+					t.Fatal("synthetic HOME main agent listing differed from the measured login-bound diagnostic")
+				}
+				continue
+			}
 			if runErr != nil || result.ExitCode != 0 || authenticationMarker {
 				t.Fatal("owned HOME agent listing did not complete without authentication diagnostics; search-root selection remains unverified")
 			}
@@ -310,7 +319,7 @@ func observeKiroHomeAgentSelection(t *testing.T, accountHome bool) {
 	if accountHome {
 		t.Log("owned_marker_search_root_distinction_verified=true, exclusive_inventory_verified=false, authentication_continuity_verified=false, mcp_restriction_verified=false, agent_activation_verified=false, execution_restriction_verified=false, session_created=false, prompt_sent=false")
 	} else {
-		t.Log("global_agent_search_root_verified=true, authentication_continuity_verified=false, execution_restriction_verified=false, session_created=false, prompt_sent=false")
+		t.Log("global_agent_search_root_verified=true, helper_only=true, main_login_bound_home=true, authentication_continuity_verified=false, execution_restriction_verified=false, session_created=false, prompt_sent=false")
 	}
 }
 

@@ -92,12 +92,12 @@ func observeOwnedMCPWriter(t *testing.T, disabled, agentScoped bool) {
 		}
 		return result, runErr
 	}
-	for _, binary := range []struct{ label, path, version string }{
-		{"main-version", executable, "kiro-cli " + launcher.SupportedKiroVersion},
-		{"helper-version", filepath.Join(filepath.Dir(executable), "kiro-cli-chat"), "kiro-cli-chat " + launcher.SupportedKiroVersion},
+	for _, binary := range []struct{ label, path, name string }{
+		{"main-version", executable, "kiro-cli"},
+		{"helper-version", filepath.Join(filepath.Dir(executable), "kiro-cli-chat"), "kiro-cli-chat"},
 	} {
 		result, runErr := run(binary.label, binary.path, []string{"--version"}, 5*time.Second)
-		if runErr != nil || strings.TrimSpace(string(result.Stdout)) != binary.version {
+		if runErr != nil || !launcher.CompatibleKiroOutput(binary.name, result.Stdout) {
 			t.Fatal("MCP writer observation requires both pinned binaries")
 		}
 	}
@@ -284,12 +284,12 @@ func TestKiroOwnedMCPFileInventoryObservation(t *testing.T) {
 		}
 		return result
 	}
-	for _, binary := range []struct{ label, path, version string }{
-		{"main-version", executable, "kiro-cli " + launcher.SupportedKiroVersion},
-		{"helper-version", filepath.Join(filepath.Dir(executable), "kiro-cli-chat"), "kiro-cli-chat " + launcher.SupportedKiroVersion},
+	for _, binary := range []struct{ label, path, name string }{
+		{"main-version", executable, "kiro-cli"},
+		{"helper-version", filepath.Join(filepath.Dir(executable), "kiro-cli-chat"), "kiro-cli-chat"},
 	} {
 		result := run(binary.label, binary.path, first, []string{"--version"}, false)
-		if strings.TrimSpace(string(result.Stdout)) != binary.version {
+		if !launcher.CompatibleKiroOutput(binary.name, result.Stdout) {
 			t.Fatal("MCP inventory requires both pinned public binaries")
 		}
 	}

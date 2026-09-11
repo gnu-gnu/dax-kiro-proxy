@@ -5334,3 +5334,64 @@ credit-consuming live Kiro episodes, does not observe what the client persists i
 profile after Enter in the picker, and does not remove the both-auth-variables warning or the
 per-launch onboarding dialogs, which remain open. A later 2.x build is still admitted unmeasured under
 D110 until it is measured the same way.
+
+## D114: admit Kiro builds by major version and measure 2.21.3
+
+The installed Kiro main and helper updated themselves from the measured 2.21.2 to 2.21.3 on
+2026-09-11 (application bundle timestamp 03:17), and D59's exact pin then rejected every `doctor`
+and `run` at `login_check`, for the D112 and D113 artifacts alike. The user directed the same policy
+D110 applies to the client: admit a Kiro installation whose major version equals the measured pin's,
+and move the measured pin to the installed build. This decision records that deviation from
+ACCEPTANCE_SPEC.md section I, its bounds and its risk, rather than treating an admitted build as
+verified.
+
+Preflight parses each `--version` output as `<name> <dotted decimal>` with the client's bounded
+parser and admits the pair only when both report the same build and that build's major component
+equals `SupportedKiroVersion`'s. `KiroInfo.Version` carries the detected build, the startup report
+adds `kiro_version_measured`, and `doctor` prints `Kiro: <version> (unmeasured; measured 2.21.3)`
+for an admitted build that is not the measured one. The development execution policy and the private
+usage command mapping (D59–D61, D101) accept the same-major build and run unchanged; their digest
+string names the measured 2.21.3 build, and the catalog cache identity still carries the detected
+version, so builds never share cached state. Mismatched main/helper pairs, other majors, prerelease
+suffixes and malformed output reject before identity lookup, as before.
+
+The measured pin moves from 2.21.2 to 2.21.3 in the D59 manner. With the installed 2.21.3 pair and
+the Kiro credit opt-in off, the finite read-only controls pass: 39 controls with 18 live controls
+skipped, 307.128s package time. They cover the preflight surface, login and catalog adapters, agent
+validation, ACP initialization without a prompt, owned-HOME identity and settings discovery, MCP
+writer and file inventories, agent-directory selection, the pinned read-only tool inventory with
+context, resource and skill variants, and the effort command queries. The live credit-consuming
+episodes recorded for 2.21.2 were not rerun and remain historical evidence for that build. The
+compiled-command controls with the independent Kiro fixture, which now reports 2.21.3, pass: six
+controls, 58.483s package time. The launcher and command suites gain same-major admission,
+mismatched-pair rejection, unmeasured startup reporting and unmeasured doctor rendering cases
+(launcher 34.559s, command 4.407s); the whole-repository opt-ins-off race suite (interop 29.939s,
+launcher 33.494s, session 29.155s) and vet pass.
+
+The finite checks measured one behavioral difference from 2.21.2: 2.21.3 keeps login under the
+account HOME (`Library/Application Support/kiro-cli/data.sqlite3`). From a synthetic HOME, `whoami
+--format json` prints `{"account":null}` and exits 1, the main entry point's `agent list` prints a
+login diagnostic, and `settings` reads and writes fail with a missing-file diagnostic even though
+the owned `KIRO_HOME/settings/cli.json` is created; the helper still lists owned agents with the
+selected search root. The product's execution configuration, the account HOME with a private
+KIRO_HOME, keeps working: whoami, agent listing (global root = the private KIRO_HOME) and settings
+set/get succeed, and the account-HOME controls pass unchanged. The five synthetic-HOME controls now
+require the measured login-bound diagnostics instead of the 2.21.2 continuity, and D26's choice of
+HOME as the account scope is confirmed rather than weakened. One identity-stage deadline (5s)
+occurred once in a first batch while the user's own Kiro session was active; it did not recur in two
+standalone reruns or in the recorded batch, whose identity stages finish in about 2s.
+
+The Kiro interop gates that compared `--version` output with the exact pin now use the shared
+admission parser and log the observed version, so an admitted unmeasured build is recorded with its
+own version instead of failing or being mislabeled; the read-only catalog control logs the measured
+pin as `measured_version`. The inventory variants identify the measured build through the pin
+constant.
+
+Risk and limits: a later 2.x Kiro may change ACP negotiation, tool inventory, resource handling or
+CLI output in ways the recorded evidence does not cover, and this policy admits it without new
+measurement and runs the measured execution policy on it. Evidence gathered on an admitted build
+must be recorded with its observed version and does not make that build measured; a D114-style
+migration with fresh finite checks remains the way to do that. No dependency changes. Logs under
+`.cache/history-review/`: `d114-kiro-finite.log`, `d114-compiled-run.log`, `d114-all-race.log` and
+`d114-all-vet.log`. The rebuilt development artifact and its `measured-kiro` inventory are recorded
+in DEPENDENCY_REVIEW.md.

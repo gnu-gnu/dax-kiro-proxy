@@ -144,7 +144,7 @@ func main() {
 			}
 			switch strings.Join(os.Args[1:], " ") {
 			case "--version":
-				fmt.Println(role + " 2.21.2")
+				fmt.Println(role + " 2.21.3")
 			case "whoami --format json":
 				fmt.Println(`{"accountType":"fixture","email":"terminal@example.invalid"}`)
 			case "chat --list-models --format json":

@@ -6,6 +6,20 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D114 admits a Kiro main/helper pair by major version and moves the measured Kiro pin from 2.21.2
+  to 2.21.3 after the installed pair updated itself and the exact pin rejected every doctor/run at
+  login_check. Preflight requires the same build on both executables and the measured major; startup
+  reports `kiro_version_measured`, doctor labels other admitted builds unmeasured, and the
+  development execution policy runs unchanged on them. Finite read-only Kiro controls pass on the
+  installed 2.21.3 with the credit opt-in off (39 controls with 18 live controls skipped, 307.128s
+  package time); 2.21.3 keeps login under the account HOME, so the synthetic-HOME controls now
+  require its login-bound diagnostics while the product's account-HOME plus private-KIRO_HOME
+  configuration keeps working; compiled-command controls with the 2.21.3 fixture pass (six controls,
+  58.483s package time); launcher/command suites (launcher 34.559s, command 4.407s), race suite
+  (interop 29.939s, launcher 33.494s, session 29.155s) and vet pass. The Kiro interop gates use the
+  shared parser and log observed versions. Live credit-consuming episodes were not rerun. This is
+  the same directed deviation from ACCEPTANCE_SPEC.md section I as D110, recorded as such. The
+  artifact is rebuilt and frozen as the `measured-kiro` inventory.
 - D113 moves the measured Claude Code pin from 2.1.263 to 2.1.267 after the full installed-client
   regression on the unmodified 2.1.267 client: 68 controls pass in 551.945s package time with the
   Kiro credit opt-in off under `umask 077`. Measured on the way: 2.1.267 may retain an interrupted

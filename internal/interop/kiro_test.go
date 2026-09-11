@@ -104,7 +104,7 @@ func TestKiroReadOnlyPreflightSurface(t *testing.T) {
 	command.Executable = filepath.Join(filepath.Dir(executable), "kiro-cli-chat")
 	command.Args = []string{"--version"}
 	helperVersion, helperErr := runner.Run(t.Context(), command)
-	if helperErr != nil || strings.TrimSpace(string(helperVersion.Stdout)) != "kiro-cli-chat "+launcher.SupportedKiroVersion {
+	if helperErr != nil || !launcher.CompatibleKiroOutput("kiro-cli-chat", helperVersion.Stdout) {
 		t.Log("matching helper unavailable")
 		return
 	}
@@ -183,7 +183,8 @@ func TestKiroPublicConfigurationFlags(t *testing.T) {
 	root := t.TempDir()
 	command := childproc.Command{Executable: executable, Directory: root, Environment: []string{"HOME=" + os.Getenv("HOME"), "PATH=" + filepath.Dir(executable) + ":/usr/bin:/bin:/usr/sbin:/sbin", "TMPDIR=" + root, "TERM=dumb", "LANG=en_US.UTF-8"}, Args: []string{"--version"}}
 	version, err := runner.Run(t.Context(), command)
-	if err != nil || strings.TrimSpace(string(version.Stdout)) != "kiro-cli "+launcher.SupportedKiroVersion {
+	kiroVersion, admitted := launcher.KiroVersionFromOutput("kiro-cli", version.Stdout)
+	if err != nil || !admitted {
 		t.Fatal("unverified Kiro version")
 	}
 	flag := regexp.MustCompile(`(?m)^\s+(?:-[a-zA-Z],\s+)?(--[a-zA-Z][a-zA-Z0-9-]*)`)
@@ -197,7 +198,7 @@ func TestKiroPublicConfigurationFlags(t *testing.T) {
 		for _, match := range flag.FindAllSubmatch(result.Stdout, 128) {
 			flags = append(flags, string(match[1]))
 		}
-		t.Logf("version=%s, command=%s, advertised_flags=%v", launcher.SupportedKiroVersion, strings.Join(args[:len(args)-1], " "), flags)
+		t.Logf("version=%s, command=%s, advertised_flags=%v", kiroVersion, strings.Join(args[:len(args)-1], " "), flags)
 	}
 }
 
@@ -217,7 +218,8 @@ func TestKiroReadOnlyModelListingShape(t *testing.T) {
 	root := t.TempDir()
 	command := childproc.Command{Executable: executable, Directory: root, Environment: []string{"HOME=" + os.Getenv("HOME"), "PATH=" + filepath.Dir(executable) + ":/usr/bin:/bin:/usr/sbin:/sbin", "TMPDIR=" + root, "TERM=dumb", "LANG=en_US.UTF-8"}, Args: []string{"--version"}}
 	version, err := runner.Run(t.Context(), command)
-	if err != nil || strings.TrimSpace(string(version.Stdout)) != "kiro-cli "+launcher.SupportedKiroVersion {
+	kiroVersion, admitted := launcher.KiroVersionFromOutput("kiro-cli", version.Stdout)
+	if err != nil || !admitted {
 		t.Fatal("unverified Kiro version")
 	}
 	command.Args = []string{"chat", "--list-models", "--format", "json"}
@@ -227,7 +229,7 @@ func TestKiroReadOnlyModelListingShape(t *testing.T) {
 	}
 	var value any
 	if json.Unmarshal(result.Stdout, &value) != nil {
-		t.Logf("version=%s, model_listing_json=false, bytes=%d, output_shape=%v", launcher.SupportedKiroVersion, len(result.Stdout), kiroOutputShape(result.Stdout))
+		t.Logf("version=%s, model_listing_json=false, bytes=%d, output_shape=%v", kiroVersion, len(result.Stdout), kiroOutputShape(result.Stdout))
 		return
 	}
 	fieldKinds := func(value any) []string {
@@ -272,7 +274,7 @@ func TestKiroReadOnlyModelListingShape(t *testing.T) {
 	if len(items) > 0 {
 		first = fieldKinds(items[0])
 	}
-	t.Logf("version=%s, model_listing_json=true, root_array=%v, model_count=%d, first_item_fields=%v", launcher.SupportedKiroVersion, array, len(items), first)
+	t.Logf("version=%s, model_listing_json=true, root_array=%v, model_count=%d, first_item_fields=%v", kiroVersion, array, len(items), first)
 }
 
 type catalogObservationRunner struct {
@@ -333,5 +335,5 @@ func TestKiroPinnedReadOnlyCatalog(t *testing.T) {
 			t.Fatal("public model IDs were approximated or collided")
 		}
 	}
-	t.Logf("version=%s, model_count=%d, default_advertised=true, aliases_round_trip=true, recognized_rate_units=%v", launcher.SupportedKiroVersion, len(c.List()), observed.units)
+	t.Logf("measured_version=%s, model_count=%d, default_advertised=true, aliases_round_trip=true, recognized_rate_units=%v", launcher.SupportedKiroVersion, len(c.List()), observed.units)
 }

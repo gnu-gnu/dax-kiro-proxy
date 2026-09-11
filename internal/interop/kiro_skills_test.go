@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"dax-kiro-proxy/internal/acp"
+	"dax-kiro-proxy/internal/launcher"
 	"dax-kiro-proxy/internal/ndjson"
 )
 
@@ -33,7 +34,7 @@ func TestKiroPinnedSkillInheritance(t *testing.T) {
 	}
 	for _, mode := range []string{"explicit", "inherit", "suppress"} {
 		if !t.Run(mode, func(t *testing.T) {
-			observePinnedInventory(t, executable, []string{}, []string{}, "", inventoryVariant{version: "2.21.2", context: true, skills: &skillInventoryProbe{mode: mode}})
+			observePinnedInventory(t, executable, []string{}, []string{}, "", inventoryVariant{version: launcher.SupportedKiroVersion, context: true, skills: &skillInventoryProbe{mode: mode}})
 		}) {
 			return
 		}

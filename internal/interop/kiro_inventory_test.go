@@ -215,7 +215,7 @@ func TestKiroPinnedContextCommandAdvertisement(t *testing.T) {
 	if executable == "" {
 		t.Skip("set DAX_INTEROP_KIRO_BINARY for an owned context descriptor observation; no model prompt")
 	}
-	observePinnedInventory(t, executable, []string{}, []string{}, "", inventoryVariant{version: "2.21.2"})
+	observePinnedInventory(t, executable, []string{}, []string{}, "", inventoryVariant{version: launcher.SupportedKiroVersion})
 }
 
 func TestKiroPinnedReadOnlyContextShow(t *testing.T) {
@@ -223,7 +223,7 @@ func TestKiroPinnedReadOnlyContextShow(t *testing.T) {
 	if executable == "" {
 		t.Skip("set DAX_INTEROP_KIRO_BINARY for owned context show; no model prompt")
 	}
-	observePinnedInventory(t, executable, []string{}, []string{}, "", inventoryVariant{version: "2.21.2", context: true})
+	observePinnedInventory(t, executable, []string{}, []string{}, "", inventoryVariant{version: launcher.SupportedKiroVersion, context: true})
 }
 
 func TestKiroPinnedExplicitResourceContext(t *testing.T) {
@@ -231,7 +231,7 @@ func TestKiroPinnedExplicitResourceContext(t *testing.T) {
 	if executable == "" {
 		t.Skip("set DAX_INTEROP_KIRO_BINARY for owned resource context inspection; no model prompt")
 	}
-	observePinnedInventory(t, executable, []string{}, []string{}, "", inventoryVariant{version: "2.21.2", context: true, resource: true})
+	observePinnedInventory(t, executable, []string{}, []string{}, "", inventoryVariant{version: launcher.SupportedKiroVersion, context: true, resource: true})
 }
 
 func TestKiroPinnedDefaultResourceInheritance(t *testing.T) {
@@ -241,7 +241,7 @@ func TestKiroPinnedDefaultResourceInheritance(t *testing.T) {
 	}
 	for _, mode := range []string{"inherit", "suppress", "split-session-only", "split-inherit", "split-suppress", "workspace-override", "launch-override"} {
 		if !t.Run(mode, func(t *testing.T) {
-			observePinnedInventory(t, executable, []string{}, []string{}, "", inventoryVariant{version: "2.21.2", context: true, resourceControl: mode})
+			observePinnedInventory(t, executable, []string{}, []string{}, "", inventoryVariant{version: launcher.SupportedKiroVersion, context: true, resourceControl: mode})
 		}) {
 			return
 		}
@@ -347,7 +347,7 @@ func observePinnedInventory(t *testing.T, executable string, declaredTools, list
 	if privateQuery && (variant.effort != nil && variant.usage != nil || variant.version != "" || len(declaredTools) != 0 || relayExecutable != "" || variant.native != nil || variant.context || variant.catalog || variant.sources != nil || variant.directories != nil || variant.skills != nil || variant.resource || variant.resourceControl != "") {
 		t.Fatal("private command observation requires its separate empty-agent setup")
 	}
-	if variant.version != "" && (variant.version != "2.21.2" || len(declaredTools) != 0 || relayExecutable != "" || variant.native != nil || variant.catalog || variant.sources != nil || variant.directories != nil) {
+	if variant.version != "" && (variant.version != launcher.SupportedKiroVersion || len(declaredTools) != 0 || relayExecutable != "" || variant.native != nil || variant.catalog || variant.sources != nil || variant.directories != nil) {
 		t.Fatal("new-version observation must remain an empty-agent read-only probe")
 	}
 	if variant.directories != nil && (variant.sources != nil || relayExecutable != "") {
@@ -444,7 +444,7 @@ func observePinnedInventory(t *testing.T, executable string, declaredTools, list
 		t.Fatal("cannot write owned inventory configuration")
 	}
 	if variant.skills != nil {
-		if variant.version != "2.21.2" || !variant.context || variant.resource || variant.resourceControl != "" {
+		if variant.version != launcher.SupportedKiroVersion || !variant.context || variant.resource || variant.resourceControl != "" {
 			t.Fatal("skill controls require the separate empty-agent context probe")
 		}
 		variant.skills.prepare(t, configuration, cwd, name)
@@ -455,7 +455,7 @@ func observePinnedInventory(t *testing.T, executable string, declaredTools, list
 		if mode != "inherit" && mode != "suppress" && mode != "split-session-only" && mode != "split-inherit" && mode != "split-suppress" && mode != "workspace-override" && mode != "launch-override" {
 			t.Fatal("unknown owned resource control")
 		}
-		if !variant.context || variant.version != "2.21.2" || variant.resource {
+		if !variant.context || variant.version != launcher.SupportedKiroVersion || variant.resource {
 			t.Fatal("resource control cannot share another probe")
 		}
 		if strings.HasPrefix(mode, "split-") || mode == "workspace-override" || mode == "launch-override" {

@@ -11,12 +11,15 @@ record its observed version and is not evidence for the measured build. Run ever
 control under `umask 077`: private readers reject group/other-readable files, and a permissive umask
 fails owned fixtures for a reason unrelated to the client.
 
-The installed Kiro main/helper now report 2.21.2, and D59 moves production preflight to that exact
-pair after fresh finite account/catalog checks. The 2.21.1 live results below remain historical
-evidence for that version. D58's resource observations sent no model prompt. The native-effect
-experiment below is prepared for one fresh 2.21.2 attempt after the read-only isolation prerequisites
-pass, retaining its prompt, bounds and explicit credit opt-in. The user's continuing authorization
-covers completing those prerequisites and this bounded follow-up. Production policy stays closed.
+The installed Kiro main/helper now report 2.21.3; D114 moved the measured pin there on 2026-09-11
+after fresh finite checks and admits a same-major pair unmeasured, recording its observed version.
+D59 had moved production preflight to exact 2.21.2 after fresh finite account/catalog checks. The
+2.21.1 and 2.21.2 live results below remain historical evidence for those versions. D58's resource
+observations sent no model prompt. The native-effect experiment below is prepared for one fresh
+2.21.2 attempt after the read-only isolation prerequisites pass, retaining its prompt, bounds and
+explicit credit opt-in. The user's continuing authorization covers completing those prerequisites
+and this bounded follow-up. Production policy stays closed.
+
 
 After that native-effect attempt passes, the existing single-Read client-hook denial test is also
 prepared for one fresh 2.21.2 attempt with Claude 2.1.263. Its prompt, exact refusal guard, client
@@ -1780,7 +1783,8 @@ fixture/hook vet, formatting, whitespace and all 139 development-artifact byte c
 
 ## D99: bounded effort command and state observation
 
-Use only the pinned Kiro 2.21.2/v2 executable. DAX_INTEROP_KIRO_BINARY opts into these no-prompt
+Use the measured Kiro 2.21.3/v2 executable, or an admitted same-major pair recording its observed
+version. DAX_INTEROP_KIRO_BINARY opts into these no-prompt
 checks; credit opt-in and the Claude binary remain disabled. Each test owns one empty-agent ACP
 session, private KIRO_HOME/workspace/TMPDIR and one-minute total deadline with fifteen-second RPC
 ceilings. It advertises no filesystem/terminal capabilities and exposes no tools or MCP servers.

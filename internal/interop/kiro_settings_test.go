@@ -112,6 +112,7 @@ func observeKiroHomeSettings(t *testing.T, options kiroSettingsOptions) {
 	})
 	ctx, cancel := context.WithTimeout(t.Context(), totalLimit)
 	defer cancel()
+	homeBound := 0
 	run := func(label, binary, directory string, args []string, captureDiagnostics bool) childproc.Result {
 		t.Helper()
 		versionCommand := len(args) == 1 && args[0] == "--version"
@@ -185,6 +186,10 @@ func observeKiroHomeSettings(t *testing.T, options kiroSettingsOptions) {
 		if !cleanupJoined {
 			t.Fatal("owned settings-discovery process group survived cleanup")
 		}
+		// Measured 2.21.3: the settings command also needs the login store kept under the account
+		// HOME, so a synthetic HOME sees only a missing-file diagnostic (D114). The account-HOME
+		// readback control covers the product's configuration; an earlier build succeeded here.
+		homeBoundShape := !options.accountHome && !versionCommand && !helpCommand && result.ExitCode != 0 && !authenticationMarker && !syntaxMarker && strings.Contains(lower, "no such file or directory")
 		if runErr != nil || result.ExitCode != 0 || authenticationMarker || syntaxMarker {
 			if strings.HasSuffix(label, "-set") {
 				// Inspect only the expected owned paths. A missing or linked parent prevents
@@ -206,16 +211,20 @@ func observeKiroHomeSettings(t *testing.T, options kiroSettingsOptions) {
 					t.Logf("command=%s, failed_setter_owned_file_bytes=%d, root_object=%v, top_level_fields=%d, flat_boolean=%v, nested_boolean=%v, successful_exit=false", label, len(data), object, len(fields), flat, nested)
 				}
 			}
+			if homeBoundShape {
+				homeBound++
+				return result
+			}
 			t.Fatal("owned HOME settings command failed; settings discovery remains unverified")
 		}
 		return result
 	}
-	for _, binary := range []struct{ label, path, version string }{
-		{"main-version", executable, "kiro-cli " + launcher.SupportedKiroVersion},
-		{"helper-version", filepath.Join(filepath.Dir(executable), "kiro-cli-chat"), "kiro-cli-chat " + launcher.SupportedKiroVersion},
+	for _, binary := range []struct{ label, path, name string }{
+		{"main-version", executable, "kiro-cli"},
+		{"helper-version", filepath.Join(filepath.Dir(executable), "kiro-cli-chat"), "kiro-cli-chat"},
 	} {
 		result := run(binary.label, binary.path, first, []string{"--version"}, false)
-		verified := strings.TrimSpace(string(result.Stdout)) == binary.version
+		verified := launcher.CompatibleKiroOutput(binary.name, result.Stdout)
 		t.Logf("command=%s, pinned_version_verified=%v", binary.label, verified)
 		if !verified {
 			t.Fatal("owned settings probe requires both pinned public binaries")
@@ -260,6 +269,12 @@ func observeKiroHomeSettings(t *testing.T, options kiroSettingsOptions) {
 		value, boolean := kiroSettingsProbeBoolean(result.Stdout)
 		matches := boolean && value == selected.want
 		t.Logf("scope=%s, getter_boolean=%v, getter_matches=%v", selected.label, boolean, matches)
+		if homeBound != 0 {
+			if matches {
+				t.Fatal("synthetic HOME getter succeeded after a login-bound setter diagnostic")
+			}
+			continue
+		}
 		if !matches {
 			t.Fatal("owned settings getter did not return the expected Boolean; readback remains unverified")
 		}
@@ -280,7 +295,14 @@ func observeKiroHomeSettings(t *testing.T, options kiroSettingsOptions) {
 			t.Fatal("owned settings file did not contain one unambiguous expected Boolean")
 		}
 	}
-	t.Logf("settings_search_root_verified=%v, settings_readback_verified=%v, setter_success_verified=%v, resource_suppression_verified=false, session_created=false, prompt_sent=false", !t.Failed(), !t.Failed(), !options.seededReadback && !t.Failed())
+	expectedHomeBound := 2
+	if !options.seededReadback {
+		expectedHomeBound += 2
+	}
+	if homeBound != 0 && homeBound != expectedHomeBound {
+		t.Fatal("synthetic HOME settings commands did not share one measured login-bound diagnostic")
+	}
+	t.Logf("settings_search_root_verified=%v, settings_readback_verified=%v, setter_success_verified=%v, login_bound_home=%v, resource_suppression_verified=false, session_created=false, prompt_sent=false", homeBound == 0 && !t.Failed(), homeBound == 0 && !t.Failed(), homeBound == 0 && !options.seededReadback && !t.Failed(), homeBound != 0)
 }
 
 func kiroSettingsProbePathType(path string) string {

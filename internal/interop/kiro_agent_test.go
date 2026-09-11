@@ -37,7 +37,7 @@ func TestKiroAgentValidationExitStatus(t *testing.T) {
 	defer runner.Close()
 	command := childproc.Command{Executable: executable, Directory: root, Environment: []string{"HOME=" + os.Getenv("HOME"), "PATH=" + filepath.Dir(executable) + ":/usr/bin:/bin:/usr/sbin:/sbin", "TMPDIR=" + root, "TERM=dumb", "LANG=en_US.UTF-8"}, Args: []string{"--version"}}
 	version, err := runner.Run(t.Context(), command)
-	if err != nil || strings.TrimSpace(string(version.Stdout)) != "kiro-cli "+launcher.SupportedKiroVersion {
+	if err != nil || !launcher.CompatibleKiroOutput("kiro-cli", version.Stdout) {
 		t.Fatal("unverified Kiro version")
 	}
 	registry, err := toolregistry.Build(t.Context(), []json.RawMessage{json.RawMessage(`{"name":"syntax_only_action","input_schema":{"type":"object"}}`)}, nil, syntaxFixtureValidator{})
@@ -68,7 +68,8 @@ func TestKiroAgentValidationExitStatus(t *testing.T) {
 		command.Executable = filepath.Join(filepath.Dir(executable), name)
 		command.Args = []string{"--version"}
 		version, err := runner.Run(t.Context(), command)
-		if err != nil || strings.TrimSpace(string(version.Stdout)) != name+" "+launcher.SupportedKiroVersion {
+		kiroVersion, admitted := launcher.KiroVersionFromOutput(name, version.Stdout)
+		if err != nil || !admitted {
 			t.Fatal("candidate probe requires both pinned public binaries")
 		}
 		command.Args = []string{"agent", "--help"}
@@ -108,6 +109,6 @@ func TestKiroAgentValidationExitStatus(t *testing.T) {
 			}
 			t.Logf("binary=%s, negative_control=%v, exit=%d, bounded_output_bytes=%d, output_shape=%v, fixed_validation_markers=%v", name, index == 1, result.ExitCode, len(result.Stdout), kiroOutputShape(result.Stdout), markers)
 		}
-		t.Logf("binary=%s, version=%s, exit_distinguishes_control=%v, execution_restriction_verified=%v", name, launcher.SupportedKiroVersion, results[0].ExitCode != results[1].ExitCode, agent.ExecutionVerified)
+		t.Logf("binary=%s, version=%s, exit_distinguishes_control=%v, execution_restriction_verified=%v", name, kiroVersion, results[0].ExitCode != results[1].ExitCode, agent.ExecutionVerified)
 	}
 }

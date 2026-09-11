@@ -14,9 +14,10 @@ import (
 	"dax-kiro-proxy/internal/launcher"
 )
 
-// Compare only public version/identity commands. The helper can list owned agents without the
-// main entry point's synthetic-HOME failure, but that does not establish identity continuity.
-// No credentials are copied, no account command mutates login, and no agent/session is started.
+// Compare only public version/identity commands. On the measured 2.21.3 build login is kept under
+// the account HOME, so both entry points report no account from a synthetic HOME (D114); an earlier
+// build reported the account from any HOME. No credentials are copied, no account command mutates
+// login, and no agent/session is started.
 func TestKiroOwnedHomeHelperIdentity(t *testing.T) {
 	executable, accountHome := os.Getenv("DAX_INTEROP_KIRO_BINARY"), os.Getenv("HOME")
 	if executable == "" {
@@ -96,13 +97,17 @@ func TestKiroOwnedHomeHelperIdentity(t *testing.T) {
 			}
 			equal := verified && baseline != "" && info.ProfileScope == baseline
 			t.Logf("identity_verified=%v, baseline_equal=%v, synthetic_home=%v, helper_identity=%v, session_created=false, prompt_sent=false", verified, equal, selected.home != accountHome, selected.useHelper)
-			if !equal {
-				t.Error("identity continuity was not established for this HOME/entry point")
+			if selected.home != accountHome {
+				if verified || !errors.Is(checkErr, launcher.ErrLoginCheck) {
+					t.Error("synthetic HOME reported an account identity; the measured build keeps login under the account HOME")
+				}
+			} else if !equal {
+				t.Error("identity continuity was not established for the account HOME")
 			}
 		})
 		if selected.name == "baseline-before" && baseline == "" {
 			t.Fatal("initial account baseline failed; no alternate HOME is queried")
 		}
 	}
-	t.Log("execution_restriction_verified=false; no production HOME or executable selection changed")
+	t.Log("login_bound_home=true, execution_restriction_verified=false; no production HOME or executable selection changed")
 }
