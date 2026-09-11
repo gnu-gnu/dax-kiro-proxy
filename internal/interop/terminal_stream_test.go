@@ -130,7 +130,7 @@ type terminalTrace struct {
 	Hook, HookHeld, HookReleased, HookInterrupted, HookPost                                   int
 	AuthExits                                                                                 int
 	RecoveryPrompts, RecoveryTexts, RecoveryEnds, RecoveryACP                                 int
-	SoakPrompts, SoakTexts, SoakEnds                                                          int
+	SoakPrompts, SoakTexts, SoakEnds, SoakACP                                                 int
 	RelayCalls, RelayResults                                                                  int
 	Client, ACP, Agent, Proxy, Supervisor                                                     int
 	Foreground                                                                                int
@@ -242,6 +242,7 @@ func readTerminalTraceBounded(root string, fileLimit, totalLimit int64) (termina
 					trace.TitlePrompts++
 				} else if r.SoakScope > 0 {
 					trace.SoakPrompts++
+					trace.SoakACP = r.Group
 				} else if r.RecoveryScope {
 					trace.RecoveryPrompts++
 					trace.RecoveryACP = r.Group
@@ -371,11 +372,25 @@ func TestCompiledRunSoakTurnsWithFakeACP(t *testing.T) {
 	runCompiledTerminalStream(t, "soak-turns", "")
 }
 
-type ownedProcessSample struct{ rssKB, fds, procs int }
+// The same many-turn soak against the actual Kiro process, sampling its process group's resident
+// size as well (D120). Every turn is one model call; the credit opt-in is explicit.
+func TestKiroLiveCompiledRunSoakTurns(t *testing.T) {
+	if os.Getenv("DAX_INTEROP_KIRO_CREDIT_OPT_IN") != "1" {
+		t.Skip("live soak requires explicit Kiro credit opt-in")
+	}
+	kiro := os.Getenv("DAX_INTEROP_KIRO_BINARY")
+	if kiro == "" || os.Getenv("DAX_INTEROP_CLAUDE_BINARY") == "" {
+		t.Fatal("both pinned executables are required")
+	}
+	runCompiledTerminalStream(t, "soak-turns", kiro)
+}
+
+type ownedProcessSample struct{ rssKB, fds, procs, acpRSSKB, acpProcs int }
 
 // sampleOwnedProcess reads the owned proxy's resident size, open descriptor count and process-group
-// size through finite system commands; a failed sample reads as zero and is visible in the log.
-func sampleOwnedProcess(pid int) ownedProcessSample {
+// size, and the backend process group's summed resident size and size, through finite system
+// commands; a failed sample reads as zero and is visible in the log.
+func sampleOwnedProcess(pid, acpGroup int) ownedProcessSample {
 	var s ownedProcessSample
 	run := func(name string, args ...string) string {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -387,6 +402,16 @@ func sampleOwnedProcess(pid int) ownedProcessSample {
 	s.fds = max(0, strings.Count(run("/usr/sbin/lsof", "-p", strconv.Itoa(pid)), "\n")-1)
 	if group, err := syscall.Getpgid(pid); err == nil {
 		s.procs = len(strings.Fields(run("/usr/bin/pgrep", "-g", strconv.Itoa(group))))
+	}
+	if acpGroup > 1 {
+		pids := strings.Fields(run("/usr/bin/pgrep", "-g", strconv.Itoa(acpGroup)))
+		s.acpProcs = len(pids)
+		if len(pids) > 0 {
+			for _, field := range strings.Fields(run("/bin/ps", "-o", "rss=", "-p", strings.Join(pids, ","))) {
+				n, _ := strconv.Atoi(field)
+				s.acpRSSKB += n
+			}
+		}
 	}
 	return s
 }
@@ -505,8 +530,12 @@ func runTerminalScenario(t *testing.T, mode, kiro string, history *terminalHisto
 		// Every turn redraws the screen and writes fixed-shape receipts; bound both in proportion.
 		traceFileLimit, traceTotalLimit = 2<<20, 8<<20
 		captureLimit += soakTurns * 16 << 10
-		terminalLifetime += time.Duration(soakTurns) * time.Second
-		scenarioLifetime += time.Duration(soakTurns) * time.Second
+		perTurn := time.Second
+		if kiro != "" {
+			perTurn = 15 * time.Second // an actual model turn
+		}
+		terminalLifetime += time.Duration(soakTurns) * perTurn
+		scenarioLifetime += time.Duration(soakTurns) * perTurn
 	}
 	readTrace := func() (terminalTrace, error) { return readTerminalTraceBounded(root, traceFileLimit, traceTotalLimit) }
 	home, project, bin, artifacts := filepath.Join(root, "home"), filepath.Join(root, "project"), filepath.Join(root, "bin"), filepath.Join(root, "runtime")
@@ -844,7 +873,7 @@ func runTerminalScenario(t *testing.T, mode, kiro string, history *terminalHisto
 				}
 			} else if soakMode {
 				if trace.Ends == 1 {
-					soakSamples = append(soakSamples, sampleOwnedProcess(trace.Proxy))
+					soakSamples = append(soakSamples, sampleOwnedProcess(trace.Proxy, trace.ACP))
 					soakIndex = 1
 					if os.WriteFile(filepath.Join(root, "soak-allowed"), []byte("1"), 0600) != nil {
 						receiptErr = errors.New("cannot admit owned soak question")
@@ -979,13 +1008,13 @@ func runTerminalScenario(t *testing.T, mode, kiro string, history *terminalHisto
 				return "\r"
 			}
 		case 51:
-			if time.Since(soakAt) > 20*time.Second {
+			if time.Since(soakAt) > 45*time.Second {
 				receiptErr = fmt.Errorf("soak turn %d not completed", soakIndex)
 				stop()
 				return ""
 			}
 			if trace.SoakEnds >= soakIndex && trace.SoakPrompts >= soakIndex && strings.Contains(screen, "Soak_"+strconv.Itoa(soakIndex)) && syscall.Kill(trace.Client, 0) == nil && syscall.Kill(trace.Proxy, 0) == nil {
-				soakSamples = append(soakSamples, sampleOwnedProcess(trace.Proxy))
+				soakSamples = append(soakSamples, sampleOwnedProcess(trace.Proxy, trace.SoakACP))
 				if soakIndex >= soakTurns {
 					stage, exitKey = 5, true
 					return "\x04"
@@ -1283,8 +1312,12 @@ func runTerminalScenario(t *testing.T, mode, kiro string, history *terminalHisto
 			warm, last = soakSamples[3], soakSamples[len(soakSamples)-1]
 			for _, sample := range soakSamples {
 				peak.rssKB, peak.fds, peak.procs = max(peak.rssKB, sample.rssKB), max(peak.fds, sample.fds), max(peak.procs, sample.procs)
+				peak.acpRSSKB, peak.acpProcs = max(peak.acpRSSKB, sample.acpRSSKB), max(peak.acpProcs, sample.acpProcs)
 			}
 			bounded = bounded && warm.rssKB > 0 && warm.fds > 0 && warm.procs > 0 && last.rssKB-warm.rssKB <= 32<<10 && last.fds <= warm.fds+4 && last.procs <= warm.procs
+			// The backend group: the same process count throughout and, for the actual Kiro, a first
+			// declared resident envelope of 256 MiB over the warm-up sample.
+			bounded = bounded && warm.acpProcs > 0 && last.acpProcs == warm.acpProcs && last.acpRSSKB-warm.acpRSSKB <= 256<<10
 		} else {
 			bounded = false
 		}

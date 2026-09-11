@@ -17,11 +17,13 @@ D59 had moved production preflight to exact 2.21.2 after fresh finite account/ca
 2.21.1 and 2.21.2 live results below remain historical evidence for those versions. On 2026-09-11
 the user authorized re-running every credit-consuming control on the measured 2.21.3 / 2.1.267 pair:
 all eighteen pass, two earlier that day and sixteen in one package run (877.124s package;
-`live-recheck-kiro2213-claude21267.log`, `live-recheck-2-kiro2213-claude21267.log`). D58's resource
-observations sent no model prompt. The native-effect experiment below is prepared for one fresh
-2.21.2 attempt after the read-only isolation prerequisites pass, retaining its prompt, bounds and
-explicit credit opt-in. The user's continuing authorization covers completing those prerequisites
-and this bounded follow-up. Production policy stays closed.
+`live-recheck-kiro2213-claude21267.log`, `live-recheck-2-kiro2213-claude21267.log`). A nineteenth
+credit-consuming control, D120's twenty-turn live soak of one session, passed later that day
+(59.55s; `d120-live-soak-20.log`). D58's resource observations sent no model prompt. The
+native-effect experiment below is prepared for one fresh 2.21.2 attempt after the read-only
+isolation prerequisites pass, retaining its prompt, bounds and explicit credit opt-in. The user's
+continuing authorization covers completing those prerequisites and this bounded follow-up.
+Production policy stays closed.
 
 
 After that native-effect attempt passes, the existing single-Read client-hook denial test is also

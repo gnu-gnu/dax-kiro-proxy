@@ -11,6 +11,7 @@ var errFrame = errors.New("independent terminal frame limit or shape")
 
 type frameGuard struct {
 	maxPrompts             int
+	maxFrames, maxBytes    int // zero selects the fixed defaults; the soak mode scales them
 	mu                     sync.Mutex
 	frames, total, prompts int
 	id                     json.RawMessage
@@ -25,7 +26,14 @@ func (g *frameGuard) inspect(from string, raw []byte) (string, error) {
 	}
 	g.frames++
 	g.total += len(raw)
-	if len(raw) > 256<<10 || g.frames > 1024 || g.total > 8<<20 {
+	maxFrames, maxBytes := g.maxFrames, g.maxBytes
+	if maxFrames <= 0 {
+		maxFrames = 1024
+	}
+	if maxBytes <= 0 {
+		maxBytes = 8 << 20
+	}
+	if len(raw) > 256<<10 || g.frames > maxFrames || g.total > maxBytes {
 		return "", errFrame
 	}
 	var fields map[string]json.RawMessage

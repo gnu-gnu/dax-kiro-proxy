@@ -14,8 +14,13 @@ does not redefine completion around an intermediate phase.
   proxy's resident size, descriptors and process-group size after every turn: 20 turns in 14.59s
   (16,464→18,240 KiB, 22→22 descriptors, 2→2 processes after warm-up) and 100 turns pass in 27.52s
   with 17,776 KiB, 22 descriptors and two processes after warm-up and 20,736 KiB, 22 and two at the
-  end. Native Kiro resident size and a live soak remain separate. Test-only; the D118 artifact
-  remains current.
+  end. The same soak against the actual Kiro 2.21.3 process, authorized by the user, also samples
+  the backend process group: twenty turns pass in 59.55s with the proxy at 17,776→18,096 KiB, 24→22
+  descriptors and 2→2 processes after warm-up and the four-process backend group at 319,568→106,560
+  KiB (peak 320,080 KiB; a transient of the actual backend, since a first attempt that the terminal
+  peer's fixed frame budget stopped at nineteen turns sampled 101,856→94,560 KiB), and the soak mode
+  now also scales the peer's frame and byte budgets with the turn count (`d120-live-soak-20.log`).
+  Test-only; the D118 artifact remains current.
 - D119 verifies plugin acceptance against the actual restricted Kiro process through the real
   gateway: the model calls the owned plugin's advertised Skill tool, the client expands the skill,
   and a fresh marker that only the skill's own instruction supplies appears in the final answer

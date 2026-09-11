@@ -373,7 +373,8 @@ tests, native-client allow/deny/hook controls and actual Kiro/Claude allowed-too
 finite measurements do not establish general throughput. D120 runs the churn controls at their
 maximum waves and adds a many-turn actual-client soak (20 and 100 turns of one session with the
 independent fixture) that samples the proxy's resident size, descriptors and process-group size
-after every turn; native Kiro resident size and a live soak remain separate.
+after every turn; one authorized live soak against the actual Kiro also samples the backend process
+group's resident size under a first declared envelope.
 
 Phase 7 has frozen dependency inventories and retained scoped notices. For the D118 workspace-trust
 development artifact, run `python3 tools/verify_dependency_inventory.py --gomodcache .cache/gomod

@@ -5689,10 +5689,27 @@ redraws; the soak mode now raises the receipt, capture and lifetime bounds in pr
 declared budget while every other mode keeps them, and `DAX_INTEROP_SOAK_TURNS` accepts 5..200 for
 longer runs.
 
-Limits: the fixture answers instantly, so this is a lifecycle and resource soak of the proxy, client
-and relay path, not a throughput or provider measurement; the proxy's resident size is sampled by
-the observer, not by the product; native Kiro resident size and a credit-consuming live soak remain
-separate; concurrency and many-turn soak are measured separately, not combined. Every
+The sampler also reads the backend process group, and the user authorized the same soak against the
+actual Kiro 2.21.3 process: a first attempt, which the terminal peer's fixed 1,024-frame budget
+stopped at nineteen turns because the actual backend streams far more frames per turn than the
+fixture, had already sampled the four-process backend group at 101,856 KiB resident after warm-up,
+105,760 KiB peak and 94,560 KiB at the end (`d120-live-soak-19-frame-budget.log`), so the soak mode
+now scales the peer's frame and byte budgets with the declared turn count as well (1,024 frames plus
+128 and 8 MiB plus 256 KiB per turn), allows live turns 45 seconds each and extends the terminal
+lifetime by fifteen seconds per turn. The full rerun passes twenty turns in 59.55s (59.863s package)
+with the proxy at 17,776 KiB resident, 24 descriptors and two owned processes after warm-up and
+18,096 KiB, 22 and two at the end (peak 18,384 KiB), while the backend group keeps four processes
+throughout and measures 319,568 KiB resident at the warm-up sample, 320,080 KiB at its peak and
+106,560 KiB at the end; that warm-up figure, three times the first attempt's, falls to a third by
+the end, so it records a transient of the actual backend rather than growth, and its cause is not
+measured (`d120-live-soak-20.log`). The backend group must keep its process count throughout; its
+resident growth over the warm-up sample is bounded by a first declared 256 MiB envelope that this
+run measures rather than derives. Limits: the fixture answers instantly, so the fixture runs are a
+lifecycle and resource soak of the proxy, client and relay path, not a throughput or provider
+measurement; the proxy's resident size is sampled by the observer, not by the product; a longer live
+soak remains separate; concurrency and many-turn soak are measured separately, not combined. Every
 compiled-command control passes after the observer's bounds became per-mode parameters (106.791s
-package, `d120-compiled-run.log`); the interop race package (29.972s) and vet pass. No production
-change; the D118 artifact remains current.
+package, `d120-compiled-run.log`) and again after the peer's soak budgets were scaled (105.776s
+package, `d120-compiled-run-b.log`; the interop race package passes in 28.820s, `d120-race-b.log`);
+vet passes. No production change; the D118 artifact remains current.
+

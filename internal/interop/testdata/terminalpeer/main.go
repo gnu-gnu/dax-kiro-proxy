@@ -391,7 +391,8 @@ func bridge(target string, env []string) int {
 		g.maxPrompts = 2
 	}
 	if cfg.SoakTurns > 0 {
-		g.maxPrompts = cfg.SoakTurns + 1
+		// An actual backend streams many frames per turn; scale the frame budget with the turns.
+		g.maxPrompts, g.maxFrames, g.maxBytes = cfg.SoakTurns+1, 1024+128*cfg.SoakTurns, 8<<20+(256<<10)*cfg.SoakTurns
 	}
 	go func() {
 		if err := forward(os.Stdin, stdin, "client", &g); err != nil && !errors.Is(err, io.EOF) {
@@ -417,7 +418,8 @@ func fakeACP() {
 		g.maxPrompts = 2
 	}
 	if cfg.SoakTurns > 0 {
-		g.maxPrompts = cfg.SoakTurns + 1
+		// An actual backend streams many frames per turn; scale the frame budget with the turns.
+		g.maxPrompts, g.maxFrames, g.maxBytes = cfg.SoakTurns+1, 1024+128*cfg.SoakTurns, 8<<20+(256<<10)*cfg.SoakTurns
 	}
 	var output sync.Mutex
 	send := func(value any) {

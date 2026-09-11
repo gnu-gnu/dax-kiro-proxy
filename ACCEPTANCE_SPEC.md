@@ -430,8 +430,9 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
   and final cleanup across repeated waves; observe relay PID/group membership and config/directory
   removal independently of pool counters. D95 covers eight single-call sessions for 32 waves,
   including steady descriptor/Go-goroutine counts and a declared heap envelope. Multi-call batches,
-  prepared policy, shared ACP processes and native RSS remain separate checks; D120 records the
-  32-wave run and the actual-client many-turn soak.
+  prepared policy and shared ACP processes remain separate checks; D120 records the 32-wave run, the
+  actual-client many-turn soak and one live soak that samples the actual Kiro process group's
+  resident size under a first declared envelope.
 - Prepared policy cleanup occurs once after ACP/router shutdown and before releasing capacity.
   Repeated idle release joins the same cleanup result. A retired cleanup failure remains visible to
   pool shutdown and prevents admission of further launch artifacts.
