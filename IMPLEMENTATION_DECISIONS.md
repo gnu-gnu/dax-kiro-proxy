@@ -5323,7 +5323,11 @@ by the independent peer's classification. The whole-repository opt-ins-off race 
 `d113-picker-glyph-diagnostic.log`, `d113-all-race-2.log` and `d113-all-vet-2.log`; the earlier
 `d113-*` logs record the diagnosis, including the batch that failed only on the picker observer. The
 rebuilt development artifact and its `measured-client` inventory are recorded in
-DEPENDENCY_REVIEW.md.
+DEPENDENCY_REVIEW.md and installed. Its `client_version` phase admits the installed 2.1.267 in 18ms,
+but the doctor summary line was not observed on this host: the Kiro main/helper updated themselves
+to 2.21.3 on 2026-09-11, and D59's exact 2.21.2 pin rejects them at `login_check` for the D112 and
+D113 artifacts alike. The unit test covers the measured rendering; moving the Kiro pin is a separate
+D59-style decision.
 
 Risk and limits: this measures the controls in this repository on 2.1.267. It does not rerun the
 credit-consuming live Kiro episodes, does not observe what the client persists inside the private

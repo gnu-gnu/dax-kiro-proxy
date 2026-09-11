@@ -768,3 +768,27 @@ All 141 byte checks pass against the candidate with release clearance false. Exi
 reachability, native/build/test attribution, clean-host distribution and owner-rights work remain
 open. Admitting a client build by major version and opting it out of a later build's window
 enforcement grant no license or distribution right and do not change the reviewed dependency set.
+
+## Measured-client artifact snapshot — D113, 2026-09-11
+
+`third_party/inventory/macos-arm64-measured-client.json` records the rebuilt 13641842-byte development
+command, SHA-256 `840b83337a385609ef361cefacacff0935cc98b522fd7b12a86d4b601008adba`.
+It identifies Go 1.27.1, darwin/arm64, CGO_ENABLED=1 and the clean committed revision
+e6f96e9c8903b9522ee7f71743983669e851ece0 with vcs.modified=false; the inventory commit follows that
+revision rather than capturing uncommitted inputs.
+
+The 102 repository input records remain 93 selected Go files, seven notice/reference files and
+go.mod/go.sum. One production file changes from D112: the launcher's profile.go, whose measured
+client version constant moves from 2.1.263 to 2.1.267. The 267 import paths, four external module
+versions/sums/package sets, selected native files, stdlib vendor packages and retained notices are
+unchanged. No dependency is added or upgraded. The D110–D112 client-version inventory is the hashed
+predecessor; the D112 and D113 executables are retained under the ignored history-review directory.
+
+```sh
+python3 tools/verify_dependency_inventory.py --gomodcache .cache/gomod --snapshot measured-client --binary dist/dax-kiro-proxy
+```
+
+All 141 byte checks pass against the candidate with release clearance false. Existing advisory/
+reachability, native/build/test attribution, clean-host distribution and owner-rights work remain
+open. Moving the measured client pin grants no license or distribution right and does not change
+the reviewed dependency set.

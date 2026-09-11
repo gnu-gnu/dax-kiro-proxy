@@ -18,8 +18,11 @@ does not redefine completion around an intermediate phase.
   a `B` over the selection glyph; the picker observer acts only on settled frames and fails fast on
   a wrong confirmation (four consecutive whole-test passes, 12.27–13.16s). The whole-repository
   opt-ins-off race suite (interop 29.730s, launcher 34.289s, session 30.885s) and vet pass. The
-  artifact is rebuilt and frozen as the `measured-client` inventory in DEPENDENCY_REVIEW.md; the
-  D112 executable is retained, and doctor reports the installed client as measured. Live
+  artifact is rebuilt and frozen as the `measured-client` inventory in DEPENDENCY_REVIEW.md and
+  installed; the D112 executable is retained. Its `client_version` phase admits the installed
+  2.1.267 in 18ms, but the doctor summary was not observed: the host's Kiro main/helper updated
+  themselves to 2.21.3 on 2026-09-11 and D59's exact 2.21.2 pin rejects them at `login_check` for
+  the D112 and D113 artifacts alike. Moving the Kiro pin is a separate decision. Live
   credit-consuming episodes were not rerun; the both-auth warning and per-launch onboarding dialogs
   remain open.
 - D112 opts the prepared client out of a later build's unknown-model context-window enforcement.
