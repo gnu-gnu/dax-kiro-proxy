@@ -6,6 +6,22 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D118 keeps the user's yes answer to the client's workspace-trust dialog as native Claude Code
+  does: after the client exits, the launcher splices exactly `projects[<the client's
+  key>].hasTrustDialogAccepted = true` into the user's `~/.claude.json`, only when this launch's
+  private profile recorded the answer, the source lacks the value and the source bytes still equal
+  what the launch read; every other byte is preserved, the result is validated for the next launch
+  and renamed into place, and any doubt skips so the dialog repeats. This is a reviewed exception to
+  D64 and the launcher's only write to a source client file; auto-trust and a product-private store
+  were rejected. Launcher unit tests cover the splice and the guards (launcher 37.717s and command
+  8.216s race packages); the compiled-command control answers the dialog in one owned HOME and
+  requires the file changed by that fragment alone, then a second launch without the dialog (four
+  consecutive two-launch runs of 18.55–20.71s, three of them in a 57.068s package); neighbouring
+  controls (68.541s package), the complete installed-client batch (72 controls: 69 pass in the
+  637.174s batch and the three load-sensitive controls, existing-statusline precedence and the two
+  personal-asset controls, pass standalone in 35.929s), race suite (interop 29.769s, launcher
+  37.717s, session 30.417s) and vet pass. The artifact is rebuilt, frozen as the `project-trust`
+  inventory and installed.
 - D117 measures the logged-out Kiro boundary synthetically and verifies the graceful login fallback
   in the foreground client. With the measured 2.21.3 build a synthetic HOME is logged out (D114):
   `kiro-cli acp` then fails at `initialize` with one stderr line naming the login command, nothing

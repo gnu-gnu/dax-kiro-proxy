@@ -36,7 +36,13 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
   and idle keepalives expire, and oversized headers or incomplete unauthorized bodies cannot retain
   unbounded resources.
 - Child environments contain no direct provider credential or provider-routing flag capable of bypass.
-- Starting and stopping leaves global and project client settings byte-for-byte unchanged.
+- Starting and stopping leaves global and project client settings byte-for-byte unchanged, with one
+  reviewed exception (D118): a yes answer to the client's workspace-trust dialog is spliced into the
+  global file as exactly `projects[<the client's key>].hasTrustDialogAccepted = true`, only after the
+  client exits, only when the source lacks the value and its bytes still equal what the launch read,
+  with every other byte preserved and the result validated for the next launch. Require unit
+  controls for the splice and each guard, and a compiled-command control that answers the dialog,
+  shows the file changed by that fragment alone and starts the next launch without the dialog.
 - The private client runtime retains standard-HOME user/local MCP declarations and existing
   decisions at native scopes. Installed-client positive/negative controls verify project approval,
   server disable/re-enable, local/project/user name precedence, unchanged source bytes and complete

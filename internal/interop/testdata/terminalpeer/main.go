@@ -102,27 +102,6 @@ func main() {
 		if !strings.HasPrefix(profile, cfg.Root+string(os.PathSeparator)) {
 			os.Exit(71)
 		}
-		state := filepath.Join(profile, ".claude.json")
-		data, err := os.ReadFile(state)
-		var global map[string]any
-		if err != nil || len(data) > 2<<20 || json.Unmarshal(data, &global) != nil {
-			os.Exit(71)
-		}
-		projects, _ := global["projects"].(map[string]any)
-		if projects == nil {
-			projects = make(map[string]any)
-			global["projects"] = projects
-		}
-		project, _ := projects[cfg.Project].(map[string]any)
-		if project == nil {
-			project = make(map[string]any)
-			projects[cfg.Project] = project
-		}
-		project["hasTrustDialogAccepted"] = true
-		data, _ = json.Marshal(global)
-		if os.WriteFile(state, data, 0600) != nil {
-			os.Exit(71)
-		}
 		foreground, _ := unix.IoctlGetInt(0, unix.TIOCGPGRP)
 		record("client", map[string]any{"profile": profile, "endpoint": os.Getenv("ANTHROPIC_BASE_URL"), "foreground": foreground})
 		args := append([]string{cfg.Client}, os.Args[1:]...)

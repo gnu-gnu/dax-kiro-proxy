@@ -14,9 +14,33 @@ type terminalHistoryPlan struct {
 	Stage                          int
 	Picker                         bool
 	Name                           string
+	// Trust reuses Home/Project across two launches of the trust-dialog mode without any
+	// native-history semantics (D118).
+	Trust bool
 }
 
 func TestCompiledRunNativeHistoryWithFakeACP(t *testing.T) { runCompiledNativeHistory(t, "") }
+
+// Two launches in one owned HOME whose global file lacks the project (D118): the first answers the
+// client's workspace-trust dialog with yes and must write exactly that key back; the second must
+// start without the dialog and leave the file unchanged.
+func TestCompiledRunTrustDialogWriteBackWithFakeACP(t *testing.T) {
+	if os.Getenv("DAX_INTEROP_CLAUDE_BINARY") == "" {
+		t.Skip("pinned Claude executable required")
+	}
+	root, err := os.MkdirTemp("/private/tmp", "dax-terminal-trust-")
+	if err != nil {
+		t.Fatal("shared owned trust root")
+	}
+	defer os.RemoveAll(root)
+	plan := &terminalHistoryPlan{Home: filepath.Join(root, "home"), Project: filepath.Join(root, "project"), Trust: true}
+	for stage := 1; stage <= 2; stage++ {
+		plan.Stage = stage
+		if !t.Run(fmt.Sprintf("launch-%d", stage), func(t *testing.T) { runTerminalScenario(t, "trust-dialog", "", plan) }) {
+			return
+		}
+	}
+}
 
 func TestCompiledRunNativeHistoryPickerWithFakeACP(t *testing.T) {
 	runCompiledHistoryScenario(t, "", true)

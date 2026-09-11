@@ -131,7 +131,9 @@ and reported as unmeasured (D114, D110). They use the installed CLIs' finite ver
 commands, without an ACP session or model prompt. `--kiro` and `--client` accept absolute executable
 paths. Private scope/cache state defaults to `~/.dax-kiro-proxy`; `--state-dir` selects a different
 private directory. Temporary runtime files are removed when the command finishes. Source client
-settings are not modified.
+settings are not modified, except that a yes answer to the client's workspace-trust dialog is
+recorded in `~/.claude.json` for that project exactly as native Claude Code records it, so the
+question is asked once per project (D118).
 
 Development `run` is enabled on macOS arm64 for the measured Kiro 2.21.3/v2 and Claude Code 2.1.267
 combination. Run it from a foreground terminal. Other Kiro major versions, mismatched main/helper

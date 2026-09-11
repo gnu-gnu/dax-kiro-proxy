@@ -2410,13 +2410,15 @@ remain the client's responsibilities. The proxy does not run these servers or th
 
 The projection keeps mcpServers objects; enabledMcpjsonServers, disabledMcpjsonServers,
 enabledMcpServers, disabledMcpServers and mcpContextUris string arrays; enableAllProjectMcpServers;
-and per-project hasTrustDialogAccepted Booleans. It preserves original project keys and declaration
-values, including tool-specific MCP authentication, in owner-only temporary files. It excludes
-unrelated provider sign-in, model defaults, conversation and other global state. D111 records the
-reviewed exclusion of the client's `claudeAiMcpEverConnected` breadcrumb. Other unrecognized
-MCP-related keys reject rather than silently dropping a possibly restrictive policy. Malformed
-objects, duplicate keys, null array elements, unsafe source modes/links and files over 2 MiB reject
-before runtime creation. This is a pinned mapping, not a general client-state migration facility.
+and per-project hasTrustDialogAccepted Booleans (D118 later writes a yes answer to that dialog back
+to the source, the launcher's only write to a source client file). It preserves original project
+keys and declaration values, including tool-specific MCP authentication, in owner-only temporary
+files. It excludes unrelated provider sign-in, model defaults, conversation and other global state.
+D111 records the reviewed exclusion of the client's `claudeAiMcpEverConnected` breadcrumb. Other
+unrecognized MCP-related keys reject rather than silently dropping a possibly restrictive policy.
+Malformed objects, duplicate keys, null array elements, unsafe source modes/links and files over 2
+MiB reject before runtime creation. This is a pinned mapping, not a general client-state migration
+facility.
 
 The public [MCP reference](https://code.claude.com/docs/en/mcp) documents native scopes and the
 distinct per-project server toggles versus .mcp.json approvals. The public
@@ -5446,8 +5448,9 @@ pass.
 
 Risk and limits: a launch from a HOME whose global file lacks `hasCompletedOnboarding` still shows
 the theme picker once per launch, and the client may still show its documented trust dialog for an
-untrusted project; neither is answered by the product. The Bearer-only environment is measured on
-the 2.1.267 client; an admitted unmeasured build could route or approve differently. Logs under
+untrusted project; neither is answered by the product (D118 later records a yes answer to the trust
+dialog so it is asked once per project). The Bearer-only environment is measured on the 2.1.267
+client; an admitted unmeasured build could route or approve differently. Logs under
 `.cache/history-review/`: `d115-onboarding-arms.log` and `d115-onboarding-keys.log` (the bounded
 terminal measurements), `d115-controls-first.log` (the first control run, whose projection kept the
 flag but not the seeded theme), `d115-plugin-stall.log`, `d115-plugin-after-helper.log`,
@@ -5548,3 +5551,63 @@ line is a synthetic line carrying the recognized instruction, not the CLI's reta
 that fails after streaming has begun (the late-expiry path) is covered only by the gateway unit
 controls. Logs under `.cache/history-review/`: `d117-logged-out.log`, `d117-auth-expiry.log` and
 `d117-compiled-run.log`.
+
+## D118: keep the user's answer to the client's workspace-trust dialog
+
+The product is meant to give the experience of Claude Code in a directory with only the backend
+replaced by Kiro. Native Claude Code asks its workspace-trust question once per project and records
+the answer in `~/.claude.json` under `projects[<path>].hasTrustDialogAccepted`; the proxy asked on
+every launch of a project the user had not opened natively, because the client wrote the answer into
+the private profile, which is discarded at exit, and the launcher never writes a source client file
+(D64). With the installed pair the dialog reads "Accessing workspace … Quick safety check … ❯ No,
+exit / Yes, I trust this folder", its default exits the client, and it appears for a directory with
+files or a repository but not for an empty one. Projects the user trusted natively were already
+projected (49 of the user's 58 recorded projects), so only proxy-only projects repeated.
+
+The user directed native parity with the narrow write-back: the dialog stays the client's own
+security gate, but a yes answer is recorded where the client records it. Auto-trusting the launch
+directory was rejected because it would bypass that gate for project hooks and settings, and a
+product-private trust store was rejected because native Claude Code would not see trust granted
+through the proxy. This decision is a reviewed exception to D64's byte-for-byte rule and is the
+launcher's only write to a source client file.
+
+Safeguards, all in the launcher: the write happens only after the client exits, only when the
+private profile of this launch records `hasTrustDialogAccepted: true` for the launch project under
+the client's own key (the launch path or its resolved form), only when the source file existed at
+launch and lacks the value, and only when the source bytes are identical to what this launch read (a
+digest taken at preparation); a native client rewriting the file in the meantime makes the launch
+skip the write, so the dialog is asked once more. The document is spliced, not re-encoded: the one
+key is inserted into the existing project object, or the project object into `projects`, or a
+`projects` object at the top, and an explicit false becomes true in place; every other byte is
+preserved. The result must parse as a strict object, must be accepted by the next launch's
+projection and must carry exactly that one new value; it is written beside the source with the
+source's permission bits and renamed into place, and a link or an unsafe mode aborts. An absent
+source is never created, "No, exit" records nothing, and every doubt skips silently. The client run
+result reports `ProjectTrustPersisted`.
+
+Witnesses: launcher unit tests cover the splice for an empty document, a missing `projects` object,
+an existing project with nested braces inside strings and arrays, an empty project object and a
+false value, reject malformed or unexpected documents, and require the written source to differ from
+the seed by exactly the inserted fragment with its mode kept and no temporary file left; they also
+require silence for no answer, a source changed since launch, an absent source, an already projected
+trust and a closed profile (launcher 37.717s and command 8.216s race packages). The compiled-command
+control launches the unmodified 2.1.267 client twice in one owned HOME whose global file lacks the
+project: the first launch shows the dialog, moves to "Yes, I trust this folder" only after a fresh
+render shows the selection there, completes an ordinary question, and leaves the global file changed
+by that fragment alone; the second launch starts without the dialog and leaves the file unchanged
+(four consecutive two-launch runs of 18.55–20.71s, three of them in a 57.068s package). The other
+compiled-command scenarios now seed native trust for their project in the owned global file, which
+the projection carries, instead of the fixture writing acceptance into the private profile: that
+fixture write was indistinguishable from a user's answer and would have been persisted. Neighbouring
+compiled-command controls pass (68.541s package); the complete installed-client batch passes (72
+controls: 69 pass in the 637.174s batch and the three load-sensitive controls, existing-statusline
+precedence and the two personal-asset controls, pass standalone in 35.929s); the whole-repository
+opt-ins-off race suite (interop 29.769s, launcher 37.717s, session 30.417s) and vet pass. The
+rebuilt development artifact and its `project-trust` inventory are recorded in DEPENDENCY_REVIEW.md
+and installed.
+
+Limits: the compiled control exercises the same client-run path with the independent Kiro fixture;
+no observation was made against the user's own global file, which would have left a temporary
+project entry in it. The client's own key form on a symlinked launch path is accepted by resolved
+comparison but was measured only with a plain path. The dialog's default and wording remain the
+client's.

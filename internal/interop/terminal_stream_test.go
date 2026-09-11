@@ -407,6 +407,14 @@ func runTerminalScenario(t *testing.T, mode, kiro string, history *terminalHisto
 	heldFollowup := mode == "held-hook-followup"
 	authExpiry := mode == "auth-expiry-followup"
 	heldAuth := mode == "held-hook-auth-expiry"
+	trustMode := mode == "trust-dialog"
+	var trustPlan *terminalHistoryPlan
+	if history != nil && history.Trust {
+		trustPlan, history = history, nil
+	}
+	if trustMode != (trustPlan != nil) {
+		t.Fatal("trust-dialog mode requires its two-launch plan")
+	}
 	followup := mode == "cancel-followup" || heldFollowup
 	modelCheck := strings.HasPrefix(mode, "model-")
 	modelSlot := 1
@@ -436,9 +444,13 @@ func runTerminalScenario(t *testing.T, mode, kiro string, history *terminalHisto
 	if history != nil {
 		home, project = history.Home, history.Project
 	}
+	if trustPlan != nil {
+		home, project = trustPlan.Home, trustPlan.Project
+	}
+	secondLaunch := history != nil && history.Stage == 2 || trustPlan != nil && trustPlan.Stage == 2
 	for _, dir := range []string{home, project, bin, artifacts, filepath.Join(root, "events"), filepath.Join(home, ".claude"), filepath.Join(root, "tmp")} {
 		if err := os.Mkdir(dir, 0700); err != nil {
-			if history != nil && history.Stage == 2 && (dir == home || dir == project || dir == filepath.Join(home, ".claude")) && errors.Is(err, os.ErrExist) {
+			if secondLaunch && (dir == home || dir == project || dir == filepath.Join(home, ".claude")) && errors.Is(err, os.ErrExist) {
 				if info, e := os.Lstat(dir); e == nil && info.IsDir() {
 					continue
 				}
@@ -473,8 +485,16 @@ func runTerminalScenario(t *testing.T, mode, kiro string, history *terminalHisto
 			t.Fatal("cannot prepare owned Read fixture")
 		}
 	}
-	if history == nil || history.Stage == 1 {
-		if os.WriteFile(settings, settingsData, 0600) != nil || os.WriteFile(filepath.Join(home, ".claude.json"), []byte(`{}`), 0600) != nil {
+	// The trust-dialog mode seeds a richer global file so the write-back's other bytes are checked.
+	const trustSeed = "{\n  \"numStartups\": 3,\n  \"hasCompletedOnboarding\": true,\n  \"projects\": {\n    \"/owned/other\": {\n      \"hasTrustDialogAccepted\": true,\n      \"allowedTools\": []\n    }\n  },\n  \"mcpServers\": {}\n}\n"
+	// Ordinary modes launch a project the user trusted natively, carried by the projection (D64); the
+	// trust-dialog mode leaves the project out so the client asks.
+	globalSeed, _ := json.Marshal(map[string]any{"projects": map[string]any{project: map[string]bool{"hasTrustDialogAccepted": true}}})
+	if trustMode {
+		globalSeed = []byte(trustSeed)
+	}
+	if !secondLaunch {
+		if os.WriteFile(settings, settingsData, 0600) != nil || os.WriteFile(filepath.Join(home, ".claude.json"), globalSeed, 0600) != nil {
 			t.Fatal("cannot prepare owned terminal settings")
 		}
 	}
@@ -601,6 +621,8 @@ func runTerminalScenario(t *testing.T, mode, kiro string, history *terminalHisto
 	var followupAt, recoveryAt time.Time
 	groupsBeforeRecovery := make(map[int]bool)
 	loginMessages, recoveryAttempts := 0, 0
+	var trustDialogSeen, trustAnswered bool
+	var trustKeyAt time.Time
 	var historyLoaded, historyAnswered bool
 	var historyPickerSeen, historyPicked bool
 	var historyPickerAt time.Time
@@ -657,6 +679,20 @@ func runTerminalScenario(t *testing.T, mode, kiro string, history *terminalHisto
 		}
 		switch stage {
 		case 0:
+			// The client's own workspace-trust dialog: move to "Yes, I trust this folder" and confirm
+			// only after a fresh render shows the selection there (D118).
+			if trustMode && strings.Contains(lower, "trust this folder") && strings.Contains(lower, "no, exit") {
+				trustDialogSeen = true
+				if time.Since(trustKeyAt) < 400*time.Millisecond {
+					return ""
+				}
+				trustKeyAt = time.Now()
+				if strings.Contains(strings.ReplaceAll(lower, " ", ""), "❯yes,itrustthisfolder") {
+					trustAnswered = true
+					return "\r"
+				}
+				return "\x1b[B"
+			}
 			if trace.Client > 1 && trace.Foreground == trace.Client && statusProjectVisible(lower, project) && strings.Contains(screen, "❯") && !strings.Contains(lower, "do you want") && !strings.Contains(lower, "enter to continue") {
 				if history != nil && history.Stage == 2 && history.Picker && !historyPicked {
 					stage = 20
@@ -734,7 +770,7 @@ func runTerminalScenario(t *testing.T, mode, kiro string, history *terminalHisto
 					stage, followupAt = 8, time.Now()
 					return terminalFollowupPrompt
 				}
-			} else if mode == "natural-completion" {
+			} else if mode == "natural-completion" || trustMode {
 				if trace.Ends == 1 {
 					stage = 5
 					exitKey = true
@@ -1032,7 +1068,33 @@ func runTerminalScenario(t *testing.T, mode, kiro string, history *terminalHisto
 			conn.Close()
 		}
 	}
-	sources := beforeSettings == fileFingerprint(t, settings) && beforeGlobal == fileFingerprint(t, filepath.Join(home, ".claude.json"))
+	globalUnchanged := beforeGlobal == fileFingerprint(t, filepath.Join(home, ".claude.json"))
+	sources := beforeSettings == fileFingerprint(t, settings) && globalUnchanged
+	trustWritten := false
+	if trustMode {
+		after, readErr := os.ReadFile(filepath.Join(home, ".claude.json"))
+		// The write-back must add exactly the client's own key for this project and nothing else.
+		var fields struct {
+			Projects map[string]struct {
+				Trusted bool `json:"hasTrustDialogAccepted"`
+			} `json:"projects"`
+		}
+		if readErr == nil && json.Unmarshal(after, &fields) == nil {
+			for key, entry := range fields.Projects {
+				resolved, resolveErr := filepath.EvalSymlinks(key)
+				if !entry.Trusted || key == "/owned/other" || resolveErr != nil || resolved != project {
+					continue
+				}
+				encoded, _ := json.Marshal(key)
+				fragment := string(encoded) + `:{"hasTrustDialogAccepted":true},`
+				trustWritten = strings.Count(string(after), fragment) == 1 && strings.Replace(string(after), fragment, "", 1) == trustSeed
+			}
+		}
+		if trustPlan.Stage == 1 {
+			sources = beforeSettings == fileFingerprint(t, settings) && trustWritten
+		}
+		t.Logf("trust_stage=%d trust_dialog_seen=%v trust_answered=%v trust_written=%v global_unchanged=%v", trustPlan.Stage, trustDialogSeen, trustAnswered, trustWritten, globalUnchanged)
+	}
 	modelRestored := false
 	if modelCheck && modelObserved && groupsGone && pidsGone {
 		before := trace
@@ -1099,6 +1161,12 @@ func runTerminalScenario(t *testing.T, mode, kiro string, history *terminalHisto
 		valid = valid && heldObserved && trace.HookReleased == 0 && trace.HookPost == 0 && trace.RelayResults == 0 && trace.Ends == 0 && !strings.Contains(string(result.Stdout), "OwnedHookRead_47") && exitLatency < 8*time.Second && lateReleaseQuiet
 	} else if mode == "held-hook-release" {
 		valid = valid && heldObserved && trace.HookReleased == 1 && trace.HookPost == 1 && trace.RelayResults == 1 && trace.Ends == 1 && trace.Cancels == 0
+	} else if trustMode {
+		if trustPlan.Stage == 1 {
+			valid = valid && trustDialogSeen && trustAnswered && trustWritten && trace.Cancels == 0 && trace.Ends == 1
+		} else {
+			valid = valid && !trustDialogSeen && !trustAnswered && globalUnchanged && trace.Cancels == 0 && trace.Ends == 1
+		}
 	} else if heldAuth {
 		t.Logf("auth_fallback_observed=%v api_error_visible=%v login_messages=%d recovery_attempts=%d acp_auth_exits=%d hook_released=%d hook_post=%d relay_results=%d first_ends=%d", authFallbackObserved, apiErrorVisible, loginMessages, recoveryAttempts, trace.AuthExits, trace.HookReleased, trace.HookPost, trace.RelayResults, trace.Ends)
 		t.Logf("recovery_observed=%v recovery_prompts=%d recovery_texts=%d recovery_ends=%d recovery_group_previously_observed=%v title_prompts=%d", recoveryObserved, trace.RecoveryPrompts, trace.RecoveryTexts, trace.RecoveryEnds, groupsBeforeRecovery[trace.RecoveryACP], trace.TitlePrompts)
