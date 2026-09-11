@@ -6,6 +6,22 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D113 moves the measured Claude Code pin from 2.1.263 to 2.1.267 after the full installed-client
+  regression on the unmodified 2.1.267 client: 68 controls pass in 551.945s package time with the
+  Kiro credit opt-in off under `umask 077`. Measured on the way: 2.1.267 may retain an interrupted
+  tool pair with a fixed error result and continuation line before the placeholder, which the HTTP
+  guard and the independent ACP peer now each classify and must agree on (`interrupted_history_form`
+  abandoned in seven cases and retained in seven, each matched by the independent peer's
+  classification); the D112 notice control's positive arm is the measured build; the `/model` picker
+  scrolls, adds an effort row and an Enter/`s` footer, warns that both auth variables are set, and
+  emits `ESC ( B` mid-session, which the bounded screen reconstructor now parses instead of painting
+  a `B` over the selection glyph; the picker observer acts only on settled frames and fails fast on
+  a wrong confirmation (four consecutive whole-test passes, 12.27–13.16s). The whole-repository
+  opt-ins-off race suite (interop 29.730s, launcher 34.289s, session 30.885s) and vet pass. The
+  artifact is rebuilt and frozen as the `measured-client` inventory in DEPENDENCY_REVIEW.md; the
+  D112 executable is retained, and doctor reports the installed client as measured. Live
+  credit-consuming episodes were not rerun; the both-auth warning and per-launch onboarding dialogs
+  remain open.
 - D112 opts the prepared client out of a later build's unknown-model context-window enforcement.
   Installed Claude 2.1.267 printed that notice for the launch alias through `run`; the measured
   2.1.263 build never did, and product IDs are absent from every client catalog by design. The

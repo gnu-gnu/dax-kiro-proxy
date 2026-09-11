@@ -124,13 +124,14 @@ cleans up. These checks do not retry the abandoned operation. Actual Kiro intera
 and uncertain effect/acknowledgement windows remain open.
 
 The diagnostic checks support Kiro CLI 2.21.2 (including its adjacent `kiro-cli-chat` helper) and the
-measured Claude Code 2.1.263; another Claude Code build with the same major version is admitted and
-reported as unmeasured (D110). They use the installed CLIs' finite version/account/catalog commands,
+measured Claude Code 2.1.267 (D113 moved the measured build from 2.1.263 after a full regression
+pass); another Claude Code build with the same major version is admitted and reported as unmeasured
+(D110). They use the installed CLIs' finite version/account/catalog commands,
 without an ACP session or model prompt. `--kiro` and `--client` accept absolute executable paths. Private scope/cache state
 defaults to `~/.dax-kiro-proxy`; `--state-dir` selects a different private directory. Temporary runtime
 files are removed when the command finishes. Source client settings are not modified.
 
-Development `run` is enabled on macOS arm64 for the measured Kiro 2.21.2/v2 and Claude Code 2.1.263
+Development `run` is enabled on macOS arm64 for the measured Kiro 2.21.2/v2 and Claude Code 2.1.267
 combination. Run it from a foreground terminal. Other Kiro versions, mismatched main/helper pairs,
 other Claude Code major versions and unverified execution platforms are rejected; there is no trust
 override. A same-major Claude Code build launches without new measurement and `doctor` marks it

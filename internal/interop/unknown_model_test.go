@@ -19,9 +19,10 @@ import (
 )
 
 // The product's model IDs are deliberately absent from the client's built-in catalog (D08).
-// A client build later than the measured one emits an unknown-model notice on stderr and clamps
-// auto-compact to an assumed window unless its opt-out is set. The prepared profile sets that
-// opt-out (D112). Compare the unmodified client without it against the prepared profile with it.
+// Client builds from 2.1.267 (measured since D113; 2.1.263 did not) emit an unknown-model notice on
+// stderr and clamp auto-compact to an assumed window unless their opt-out is set. The prepared
+// profile sets that opt-out (D112). Compare the unmodified client without it against the prepared
+// profile with it.
 const unknownModelNotice = "isn't described by this version's model catalog"
 
 func TestClaudeUnknownModelWindowNotice(t *testing.T) {

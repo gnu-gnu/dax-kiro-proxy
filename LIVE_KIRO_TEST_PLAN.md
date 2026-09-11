@@ -4,10 +4,12 @@ Current development status: D62 enables `run` for the measured installation and 
 below about blocked production launch describe their historical checkpoints. The default-client
 recreation experiment at the end has now passed separately from the earlier single-tool cases.
 
-D110 admits a Claude Code build sharing the measured 2.1.263 major version; the installed client
-reports 2.1.267 from 2026-09-10. Experiments below that name Claude 2.1.263 record the build they
-measured. A later run on an admitted build must record its observed version and is not 2.1.263
-evidence.
+D110 admits a Claude Code build sharing the measured build's major version. D113 moved the measured
+build from 2.1.263 to 2.1.267 on 2026-09-11 after the full installed-client regression; experiments
+below that name Claude 2.1.263 record the build they measured. A later run on an admitted build must
+record its observed version and is not evidence for the measured build. Run every installed-client
+control under `umask 077`: private readers reject group/other-readable files, and a permissive umask
+fails owned fixtures for a reason unrelated to the client.
 
 The installed Kiro main/helper now report 2.21.2, and D59 moves production preflight to that exact
 pair after fresh finite account/catalog checks. The 2.21.1 live results below remain historical

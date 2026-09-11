@@ -29,7 +29,7 @@ func profileConfig(t *testing.T) launcher.ClientConfig {
 		t.Fatal(err)
 	}
 	return launcher.ClientConfig{RuntimeParent: base, Home: home, Project: project,
-		Executable: "/fixture/claude", Version: "2.1.263", Model: "claude-dax-fixture-0123456789abcdef",
+		Executable: "/fixture/claude", Version: launcher.SupportedClientVersion, Model: "claude-dax-fixture-0123456789abcdef",
 		GatewayURL: "http://127.0.0.1:32123", ModelToken: tokens.Model,
 		UserSettings: filepath.Join(home, "settings.json"),
 		Environment:  []string{"PATH=/usr/bin:/bin", "LANG=en_US.UTF-8", "TERM=xterm-256color"}}

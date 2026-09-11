@@ -18,7 +18,7 @@ import (
 
 func main() {
 	if len(os.Args) == 2 && os.Args[1] == "--version" {
-		fmt.Println("2.1.263 (Claude Code)")
+		fmt.Println("2.1.267 (Claude Code)")
 		return
 	}
 	if len(os.Args) != 5 || os.Args[1] != "--settings" || os.Args[3] != "--model" {

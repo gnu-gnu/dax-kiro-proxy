@@ -168,6 +168,8 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
   and auxiliary-only observations cannot prove a switch. After exit, the next diagnostic preflight
   must restore the delivered model without another client/ACP session or source-settings change.
   This fake-ACP control does not replace actual Kiro selection or conversation-resume gates (D85).
+  The picker observer acts only on a frame that has settled, parses the client's charset and string
+  escapes as non-text, and fails when a confirmation names a different row (D113).
 - The actual model-selection experiment uses a fresh advertised catalog and distinguishes rendered
   labels, focused catalog rows and successful inference on the chosen pair. Extra selected rows
   may receive bounded navigation but cannot count as a catalog model or receive Enter. A matching
@@ -258,6 +260,10 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
   require the old effect to remain absent after late hook release and throughout the new turn.
   Retain the exact old question and measured partial text/native non-completion placeholder before
   the exact new question in both resumed requests; do not manufacture the omitted old tool pair.
+  A later build may instead retain the unfinished pair itself with a fixed error result and a fixed
+  continuation line before the same placeholder (D113 measured this for 2.1.267 without partial
+  text). Both the HTTP witness and the independent ACP peer must classify the same measured
+  representation and reject any other; neither form is a successful result.
   Require a distinct new call and matching success/refusal under current client policy, with
   independent effect/hook witnesses and joined new cleanup. Old history cannot substitute for
   the new result. D98 supplies no-text/partial-text native-client controls with independent ACP
@@ -502,9 +508,10 @@ An inactive inheritance positive control cannot establish effective exclusion. A
 alone does not establish native-tool restrictions or approved execution. Bind evidence to the tested
 CLI/engine and effective execution policy; keep unverified paths disabled. Unknown/new versions must
 not inherit verification automatically. No trust override may stand in for this evidence. D110
-records one directed exception: a Claude Code build sharing the measured 2.1.263 major version is
+records one directed exception: a Claude Code build sharing the measured build's major version is
 admitted without new measurement, reported as unmeasured, and evidence gathered on it is recorded
-with its observed version. Kiro keeps its exact main/helper pin.
+with its observed version. Making a build measured requires the full installed-client regression on
+that build with the same witnesses (D113 did this for 2.1.267). Kiro keeps its exact main/helper pin.
 
 Optional private metadata, account usage, native web support and full Anthropic option parity are
 not conditions for development run. Their absence must not interrupt supported ordinary turns.

@@ -5174,8 +5174,8 @@ Risk and limits: a later 2.x client may change request shapes, onboarding, hooks
 the recorded evidence does not cover, and this policy admits it without new measurement. The
 measured combination in README.md and ACCEPTANCE_SPEC.md remains Kiro 2.21.2/v2 with Claude 2.1.263.
 A D59-style explicit migration of the measured pin, with a fresh regression pass on the new build,
-remains the way to make that build measured. Kiro preflight keeps its exact main/helper pin. No
-dependency changes.
+remains the way to make that build measured (D113 later did this for 2.1.267). Kiro preflight keeps
+its exact main/helper pin. No dependency changes.
 
 The independent parser/admission cases pass with the launcher suite (31.490s race package) and the
 command suite, including the new unmeasured-render case (4.726s). With the installed 2.1.267 client,
@@ -5257,6 +5257,76 @@ Black-box observations, all with the unmodified 2.1.267 client and no Kiro model
   `d112-pty-observe.exp` with fixed facts only; no terminal capture is kept.
 
 The launcher unit test requires the opt-out in the prepared environment. Existing D110 controls are
-unchanged. This does not make 2.1.267 measured and does not change compaction behavior on the
-measured build. Logs under `.cache/history-review/`: `d112-native-unknown-model.log`,
+unchanged. This does not make 2.1.267 measured (D113 later did) and does not change compaction
+behavior on the measured build. Logs under `.cache/history-review/`: `d112-native-unknown-model.log`,
 `d112-pty-observation.log`, `d112-all-race.log` and `d112-all-vet.log`.
+
+## D113: measure Claude Code 2.1.267 and move the measured client pin
+
+D110 admitted the self-updated 2.1.267 client by major version as a directed exception and named a
+D59-style explicit migration, with a fresh regression pass on the new build, as the way to make a
+build measured. This decision performs that migration on 2026-09-11: `SupportedClientVersion` is
+2.1.267, `doctor` reports the installed client as measured, and a 2.1.263 client would now be
+admitted as unmeasured under D110's rule. The regression is the complete installed-client control set
+in internal/interop (68 `TestClaude*`/`TestCompiledRun*` functions) with the unmodified 2.1.267
+client, local fixtures, independent ACP peers and the Kiro credit opt-in off; the finite Kiro
+commands those controls use start no ACP session. The credit-consuming live episodes recorded for
+2.1.263 were not rerun and remain historical evidence for that build. The only production change is
+the constant; the major-only admission rule, Kiro's exact main/helper pin and the dependency set are
+unchanged.
+
+Three behavioral differences from 2.1.263 were found and measured with independent witnesses before
+the pin moved:
+
+- Interrupted native history. When a held tool is interrupted, 2.1.263 omitted the unfinished tool
+  pair from the resumed request (the abandoned form of D57/D98). 2.1.267 may instead retain the
+  pair: the `tool_use` block stays, its `tool_result` carries `is_error` with the fixed text
+  `[Request interrupted by user for tool use]`, and a fixed user text `Continue from where you left
+  off.` follows in the same message before the same non-completion placeholder (the retained form).
+  The HTTP-side guard and the independent ACP peer now each classify the measured form, must agree,
+  and reject any other: a successful result, foreign ids, other notice text, a missing or moved
+  continuation, a missing placeholder, a repeated call or a split pair. Neither form is a successful
+  result; the effect, hook and cleanup witnesses of D57/D98 are unchanged, and the controls log the
+  form beside their existing facts. ACCEPTANCE_SPEC.md section F records the second form.
+- Unknown-model notice. The D112 control's positive arm is now the measured build itself, so its
+  suppression assertions are exercised on the measured build rather than logged as absent.
+- `/model` picker. 2.1.267 renders a scrolling window with `↑ N.`/`… +N models` indicators, an
+  effort row and the footer `Enter to set as default · s to use this session only · Esc to cancel`,
+  and warns that both `ANTHROPIC_AUTH_TOKEN` and `ANTHROPIC_API_KEY` are set (D24 sets both; the
+  warning is recorded here, not changed). Two observer defects surfaced under this picker, both in
+  test code. The client emits the charset designation `ESC ( B` while re-asserting mouse reporting
+  mid-session; the bounded screen reconstructor did not parse two-byte intermediate escapes and
+  painted a literal `B` over the selection-glyph cell, which the client's differential renderer
+  never repaints, so the observer lost the selection and stalled. The reconstructor now treats
+  intermediate-byte escapes and DCS/APC/PM/SOS strings as non-text. Separately, a picker frame
+  arrives across several terminal writes; acting on a partially painted row once double-moved the
+  selection and confirmed `Opus 5 (1M context)` instead of the target. The observer now acts only on
+  a frame unchanged for one idle observation (100ms), fails immediately when a confirmation names a
+  different row, and bounds the confirmation wait at 15s with a bounded screen excerpt. The D85
+  requirements are unchanged; Enter now also sets the client's default for new sessions, which the
+  control still requires to leave the source settings unchanged and which the disposed private
+  profile does not carry forward.
+
+A test-host requirement also surfaced: private readers reject group/other-readable files, so a
+control that writes an owned fixture with default permissions fails under a permissive umask for a
+reason unrelated to the client. The regression and its reruns use `umask 077`, as the whole-repository
+suites already did; LIVE_KIRO_TEST_PLAN.md records the requirement.
+
+With the observer fixes, `TestCompiledRunModelSelectionWithFakeACP` passes four consecutive
+whole-test repetitions (12.27–13.16s; 3 actions unchanged, 2 for the switch, 26 for the wide switch
+with all 19 catalog rows focused and no reversal). The complete batch of 68 installed-client
+controls passes in 551.945s package time with no Kiro model request; the interrupted-history
+controls log `interrupted_history_form` abandoned in seven cases and retained in seven, each matched
+by the independent peer's classification. The whole-repository opt-ins-off race suite (interop
+29.730s, launcher 34.289s, session 30.885s) and vet pass on the final code. Logs under
+`.cache/history-review/`: `d113-claude-regression-clean.log`, `d113-model-selection-settled.log`,
+`d113-picker-glyph-diagnostic.log`, `d113-all-race-2.log` and `d113-all-vet-2.log`; the earlier
+`d113-*` logs record the diagnosis, including the batch that failed only on the picker observer. The
+rebuilt development artifact and its `measured-client` inventory are recorded in
+DEPENDENCY_REVIEW.md.
+
+Risk and limits: this measures the controls in this repository on 2.1.267. It does not rerun the
+credit-consuming live Kiro episodes, does not observe what the client persists inside the private
+profile after Enter in the picker, and does not remove the both-auth-variables warning or the
+per-launch onboarding dialogs, which remain open. A later 2.x build is still admitted unmeasured under
+D110 until it is measured the same way.
