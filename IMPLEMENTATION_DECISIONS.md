@@ -5497,3 +5497,54 @@ Limits: this observes the fake ACP peer, not actual Kiro; it does not establish 
 recovery, history equivalence or persisted restart/resume, and the same-session representation is
 recorded for 2.1.267 only. An admitted unmeasured client build may represent the interruption
 differently, which the recorded counts would show.
+
+## D117: measure the logged-out Kiro boundary and verify the graceful login fallback
+
+The internal-alpha stage lists authentication expiry, and the clean-machine checklist requires a
+startup login instruction when logged out and a graceful assistant fallback when the login is lost
+during a session. D04's injected classifier and the gateway's login text completion implement the
+fallback, but no control had observed the real CLI's logged-out behavior or the fallback in the
+foreground client. The user asked for a synthetic ("pseudo") reproduction rather than logging the
+account out: the measured 2.21.3 build keeps its login under the account HOME (D114), so a synthetic
+HOME reproduces the logged-out state without changing the account, copying a credential or consuming
+credits. It does not reproduce a token that expires while a process is running; that boundary
+remains unmeasured and is emulated from the measured one.
+
+Two probes run the unmodified 2.21.3 executable from a synthetic HOME after `whoami` reports no
+account. Started through the product's ACP client with the injected classifier, the logged-out
+process fails at `initialize` and the failure is classified as authentication expiry. Started raw
+with one initialize request, it writes nothing on stdout, prints one stderr line that the classifier
+recognizes (it names the login command), and exits with status 1 within about two seconds; no
+JSON-RPC error is produced. Both probes pass (two runs each, 21.805s package). The startup path
+already reports `Kiro login could not be verified; run kiro-cli login and retry` from the same
+`login_check` phase (D26, D114).
+
+The compiled-command terminal observer gains an `auth-expiry-followup` mode. One ordinary question
+completes through the independent Kiro fixture; the observer then authorizes and types the follow-up
+question, and the fixture reproduces the measured boundary on it: one stderr line carrying the login
+instruction, nothing on stdout, exit status 1, recorded as `acp-auth-exit`. With the unmodified
+2.1.267 client the gateway's `Kiro authentication expired. Run \`kiro-cli login\` and retry this
+request.` text appears in the client as a normal completion, no API-error or 502 text appears, the
+original client and proxy stay live until the confirmed keyboard exit, the follow-up prompt has no
+text update or end, and the first turn's single end_turn is unchanged. The observer then marks the
+login as restored, and the same client session carries one more ordinary question: the fixture
+answers it from a fresh ACP group absent from every previously observed group, the answer is visible
+in the client, the original client, proxy, profile and gateway address remain, one title prompt is
+used in all, and cleanup joins. The session is therefore usable again after the login is restored,
+the situation the user reported as failing in an earlier build. A second mode,
+`held-hook-auth-expiry`, loses the login while the client holds a relayed Read call through its
+PreToolUse hook: the fixture exits at the measured boundary on the parent's auth-cut marker while
+its relay call is waiting, the observer releases the hook, the client's tool result finds no relay
+and its request receives the same login completion (one login message, no API-error text), and the
+recovery question is answered from a fresh ACP group at the first attempt; the pending outcome did
+not report the expiry a second time (three consecutive runs of 3.69–4.36s (12.563s package)). It
+passes three consecutive runs of 9.07–9.26s (27.719s package); the neighbouring keyboard,
+interrupted-follow-up, held-hook keyboard and held-hook follow-up controls pass unchanged (21.028s
+package for the held-hook group) (36.580s package); the interop race package (27.858s) and vet pass.
+Test-only change; the D115 artifact remains current.
+
+Limits: the fake ACP peer, not actual Kiro, delivers the mid-session boundary, and the reproduced
+line is a synthetic line carrying the recognized instruction, not the CLI's retained text. A prompt
+that fails after streaming has begun (the late-expiry path) is covered only by the gateway unit
+controls. Logs under `.cache/history-review/`: `d117-logged-out.log`, `d117-auth-expiry.log` and
+`d117-compiled-run.log`.

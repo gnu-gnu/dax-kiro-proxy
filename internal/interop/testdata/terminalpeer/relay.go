@@ -6,11 +6,13 @@ import (
 	"bufio"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 // Exactly one admitted main prompt owns this connection. Keep it reachable until the ACP process
@@ -116,9 +118,37 @@ func fakeHeldTool() error {
 		return err
 	}
 	record("relay-called", nil)
-	result, err := read(103)
-	if err != nil {
-		return err
+	type outcome struct {
+		result json.RawMessage
+		err    error
+	}
+	answered := make(chan outcome, 1)
+	go func() {
+		result, err := read(103)
+		answered <- outcome{result, err}
+	}()
+	var result json.RawMessage
+	tick := time.NewTicker(20 * time.Millisecond)
+	defer tick.Stop()
+waiting:
+	for {
+		select {
+		case done := <-answered:
+			if done.err != nil {
+				return done.err
+			}
+			result = done.result
+			break waiting
+		case <-tick.C:
+			if !cfg.AuthCut {
+				continue
+			}
+			if _, statErr := os.Stat(filepath.Join(cfg.Root, "auth-cut")); statErr == nil {
+				record("acp-auth-exit", nil)
+				fmt.Fprintln(os.Stderr, "error: You are not logged in, please log in with kiro-cli login")
+				os.Exit(1)
+			}
+		}
 	}
 	var returned struct {
 		IsError bool

@@ -186,7 +186,11 @@ ACP. The shared launcher configuration also passes actual Bash approval and hook
 Kiro/client runtime cancellation after a delivered Read handoff and held client hook joins all
 observed processes/artifacts (D74). D81 below verifies process-loss recovery, and D82 verifies typed
 Ctrl+C during a streamed response. D86 below verifies idle model selection for a measured pair;
-authentication expiry, persisted resume and broader cancellation paths remain alpha work.
+persisted resume and broader cancellation paths remain alpha work. D117 measures the pinned Kiro
+build's logged-out boundary from a synthetic HOME (one recognized stderr line, exit status 1 at
+initialize) and verifies the client-visible `kiro-cli login` completion after an ordinary question
+and one more answered question in the same session once the login is restored; an actual logout
+during a live session remains a manual check.
 
 On Kiro 2.21.2, seven initial-session file-resource controls pass: active inherited files disappear
 when default-resource inheritance is disabled, including with a separate session workspace. An

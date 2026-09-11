@@ -131,11 +131,17 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
 - Tool streaming produces a valid tool-use block and tool-use stop reason.
 - Server web search produces compatible use/result blocks and request count when supported.
 - Provider token usage remains zero when unreported; estimates appear only in labeled local metadata.
-- Recognized auth expiry returns HTTP 200 valid text completion in streaming and non-streaming modes,
-  includes an initial fallback header before commitment or a declared terminal trailer after stream
-  commitment, instructs `kiro-cli login`, and never attempts another provider. Late expiry finishes
-  the existing message without a second message start or an SSE error; visible login text works even
-  when the client discards trailers.
+- Recognized auth expiry returns HTTP 200 valid text completion in streaming and non-streaming
+  modes, includes an initial fallback header before commitment or a declared terminal trailer after
+  stream commitment, instructs `kiro-cli login`, and never attempts another provider. Late expiry
+  finishes the existing message without a second message start or an SSE error; visible login text
+  works even when the client discards trailers. The measured logged-out boundary of the pinned Kiro
+  build is one recognized stderr line, nothing on stdout and exit status 1 at `initialize`; require
+  the injected classifier to recognize it from a synthetic logged-out HOME and a compiled-command
+  control to show the login completion in the client after an ordinary question, with no API-error
+  text, and then to answer one more ordinary question in the same client session once the login is
+  restored, both after an ordinary completion and after a login lost while a relayed tool call is
+  held (D117).
 
 ## D. Models and effort
 
@@ -543,7 +549,9 @@ On a clean supported macOS machine:
 - a logged-in text prompt streams successfully through Kiro;
 - the Kiro model list appears in the client selector and a model change affects the next turn;
 - a client file/shell tool round trip is approved and executed only by the client;
-- logout during an existing session produces the graceful assistant fallback;
+- logout during an existing session produces the graceful assistant fallback (D117 verifies the
+  fallback and the session's recovery after a restored login with the measured logged-out boundary
+  reproduced by the fixture; an actual logout during a live session remains a manual check);
 - resume after restart either loads safely or recreates explicitly without duplicate deltas;
 - force reinstall and uninstall are documented and leave user settings unchanged;
 - no runtime, build, test, or documentation reference to the previous repository is present;

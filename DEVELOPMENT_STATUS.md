@@ -6,10 +6,25 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
-- Live re-verification on the measured Kiro 2.21.3 / Claude 2.1.267 pair, authorized by the user for
-  two credit-consuming episodes on 2026-09-11: the actual model-selection episode (D86) passes in
-  25.54s with all 19 catalog labels rendered and focused in 26 actions, no bounded reversal, one
-  target acknowledgement, correlated first/next markers and zero non-success results; the actual
+- D117 measures the logged-out Kiro boundary synthetically and verifies the graceful login fallback
+  in the foreground client. With the measured 2.21.3 build a synthetic HOME is logged out (D114):
+  `kiro-cli acp` then fails at `initialize` with one stderr line naming the login command, nothing
+  on stdout and exit status 1, and the product's classifier recognizes it (two runs each, 21.805s
+  package). The new compiled-command control completes one question, reproduces that boundary on the
+  next one through the independent fixture, and observes the gateway's `Kiro authentication expired.
+  Run kiro-cli login` completion in the client with no API-error text, then, once the login is
+  marked restored, answers one more ordinary question in the same client session from a fresh ACP
+  group, with live client/proxy until keyboard exit and joined cleanup; a second mode loses the
+  login while a relayed tool call is held and shows one login completion for the tool result before
+  answering the recovery question at the first attempt (three consecutive runs of 3.69–4.36s
+  (12.563s package)) (three consecutive runs of 9.07–9.26s (27.719s package)); neighbouring
+  compiled-command controls (36.580s package), the interop race package (27.858s) and vet pass. No
+  account was logged out and no credit was consumed. Test-only change; the D115 artifact remains
+  current. A token expiring inside a running process remains unmeasured. - Live re-verification on
+  the measured Kiro 2.21.3 / Claude 2.1.267 pair, authorized by the user for two credit-consuming
+  episodes on 2026-09-11: the actual model-selection episode (D86) passes in 25.54s with all 19
+  catalog labels rendered and focused in 26 actions, no bounded reversal, one target
+  acknowledgement, correlated first/next markers and zero non-success results; the actual
   interrupted follow-up episode (D84) passes in 21.19s with 32 streamed updates before one cancel,
   one follow-up prompt in a fresh ACP group, old/new instruction fragments and the partial marker
   present, and two main plus one title admission. Both keep the same client/proxy/profile/address,

@@ -25,13 +25,19 @@ import (
 )
 
 type config struct {
-	HistoryStage                                    int
-	HistorySeed, HistoryID, HistoryName             string
-	ModelCheck                                      bool
-	ModelEntries                                    int
-	ModelIDs                                        [2]string
-	AllowFollowup                                   bool
-	HeldHook                                        bool
+	HistoryStage                        int
+	HistorySeed, HistoryID, HistoryName string
+	ModelCheck                          bool
+	ModelEntries                        int
+	ModelIDs                            [2]string
+	AllowFollowup                       bool
+	HeldHook                            bool
+	// Reproduce the measured logged-out boundary on the follow-up prompt: one stderr line naming
+	// the login command, nothing on stdout, exit status 1 (D117).
+	AuthExpiry bool
+	// Reproduce the same boundary while a relayed tool call is still waiting (D117): the process
+	// exits with the login line once the parent writes the auth-cut marker.
+	AuthCut                                         bool
 	Root, Proxy, Client, Kiro, AccountHome, Project string
 	Args                                            []string
 }
@@ -41,6 +47,7 @@ var events sync.Mutex
 var eventBytes int
 var titleScope atomic.Bool
 var followScope atomic.Bool
+var recoveryScope atomic.Bool
 
 func record(kind string, values map[string]any) {
 	events.Lock()
@@ -51,6 +58,7 @@ func record(kind string, values map[string]any) {
 	values["kind"], values["pid"], values["group"] = kind, os.Getpid(), syscall.Getpgrp()
 	values["title_scope"] = titleScope.Load()
 	values["follow_scope"] = followScope.Load()
+	values["recovery_scope"] = recoveryScope.Load()
 	data, _ := json.Marshal(values)
 	eventBytes += len(data) + 1
 	if eventBytes > 64<<10 {
@@ -256,6 +264,7 @@ func notePrompt(raw []byte) {
 		lower := bytes.ToLower(raw)
 		titleScope.Store(bytes.Contains(lower, []byte("title")))
 		followScope.Store(bytes.Contains(raw, []byte("concatenation of Follow and _49")))
+		recoveryScope.Store(bytes.Contains(raw, []byte("concatenation of Recovered and _53")))
 		if cfg.ModelCheck {
 			followScope.Store(bytes.Contains(raw, []byte("concatenation of ModelSecond and _67")))
 		}
@@ -267,6 +276,7 @@ func notePrompt(raw []byte) {
 			"old_input":        bytes.Contains(raw, []byte("concatenation of Ready and _47")) || bytes.Contains(raw, []byte("concatenation of HookControl and _47")),
 			"partial_marker":   bytes.Contains(raw, []byte("Ready_47")),
 			"new_input":        followScope.Load(),
+			"recovery_input":   recoveryScope.Load(),
 			"null_marker":      bytes.Contains(raw, []byte("UnsentControl_53")),
 			"interrupted_form": interruptedForm(raw),
 		})
@@ -311,6 +321,17 @@ func admitObservedPrompt(title, follow bool) error {
 		data, err := os.ReadFile(filepath.Join(cfg.Root, "followup-allowed"))
 		return cfg.AllowFollowup && err == nil && string(data) == "owned-new-question"
 	}
+	// The recovery question after a reproduced login loss needs its own parent authorization.
+	recoveryIntent := func() bool {
+		data, err := os.ReadFile(filepath.Join(cfg.Root, "recovery-allowed"))
+		return cfg.AuthExpiry && err == nil && string(data) == "owned-recovery-question"
+	}
+	if !title && recoveryScope.Load() {
+		if !recoveryIntent() {
+			return errFrame
+		}
+		return admitNamed("prompt-admission-recovery")
+	}
 	if !title && follow {
 		if !intent() {
 			return errFrame
@@ -319,7 +340,10 @@ func admitObservedPrompt(title, follow bool) error {
 	}
 	err := admitPrompt(title)
 	if title && errors.Is(err, os.ErrExist) && intent() {
-		return admitNamed("prompt-admission-second-title")
+		err = admitNamed("prompt-admission-second-title")
+		if errors.Is(err, os.ErrExist) && recoveryIntent() {
+			return admitNamed("prompt-admission-third-title")
+		}
 	}
 	return err
 }
@@ -470,6 +494,16 @@ func fakeACP() {
 				send(map[string]any{"jsonrpc": "2.0", "method": "session/update", "params": map[string]any{"sessionId": "owned-stream", "update": map[string]any{"sessionUpdate": "agent_message_chunk", "content": map[string]string{"type": "text", "text": text}}}})
 				reply(r.ID, map[string]string{"stopReason": "end_turn"})
 				continue
+			}
+			if recoveryScope.Load() {
+				send(map[string]any{"jsonrpc": "2.0", "method": "session/update", "params": map[string]any{"sessionId": "owned-stream", "update": map[string]any{"sessionUpdate": "agent_message_chunk", "content": map[string]string{"type": "text", "text": "Recovered_53"}}}})
+				reply(r.ID, map[string]string{"stopReason": "end_turn"})
+				continue
+			}
+			if followScope.Load() && cfg.AuthExpiry {
+				record("acp-auth-exit", nil)
+				fmt.Fprintln(os.Stderr, "error: You are not logged in, please log in with kiro-cli login")
+				os.Exit(1)
 			}
 			if followScope.Load() {
 				send(map[string]any{"jsonrpc": "2.0", "method": "session/update", "params": map[string]any{"sessionId": "owned-stream", "update": map[string]any{"sessionUpdate": "agent_message_chunk", "content": map[string]string{"type": "text", "text": "Follow_49"}}}})

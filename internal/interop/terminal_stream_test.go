@@ -21,6 +21,7 @@ import (
 
 const terminalStreamPrompt = `Begin with the concatenation of Ready and _47 without spaces. Then list integers 1 through 2000, one per line, without tools or any other text.`
 const terminalFollowupPrompt = `Stop the counting task. Reply with the concatenation of Follow and _49 without spaces, and no other text.`
+const terminalRecoveryPrompt = `Reply with the concatenation of Recovered and _53 without spaces, and no other text.`
 const terminalModelFirst = `Reply with the concatenation of ModelFirst and _61 without spaces, and no other text.`
 const terminalModelSecond = `Reply with the concatenation of ModelSecond and _67 without spaces, and no other text.`
 
@@ -94,6 +95,7 @@ type terminalReceipt struct {
 	// Fixed counts of the historical tool blocks a follow-up prompt carried (D116).
 	InterruptedForm string `json:"interrupted_form"`
 	FollowScope     bool   `json:"follow_scope"`
+	RecoveryScope   bool   `json:"recovery_scope"`
 	OldInput        bool   `json:"old_input"`
 	NewInput        bool   `json:"new_input"`
 	PartialMarker   bool   `json:"partial_marker"`
@@ -123,6 +125,8 @@ type terminalTrace struct {
 	FollowOldInput, FollowNewInput, FollowPartial                                             bool
 	FollowForm                                                                                string
 	Hook, HookHeld, HookReleased, HookInterrupted, HookPost                                   int
+	AuthExits                                                                                 int
+	RecoveryPrompts, RecoveryTexts, RecoveryEnds, RecoveryACP                                 int
 	RelayCalls, RelayResults                                                                  int
 	Client, ACP, Agent, Proxy, Supervisor                                                     int
 	Foreground                                                                                int
@@ -208,6 +212,8 @@ func readTerminalTrace(root string) (terminalTrace, error) {
 				trace.HookInterrupted++
 			case "hook-post":
 				trace.HookPost++
+			case "acp-auth-exit":
+				trace.AuthExits++
 			case "client":
 				trace.Clients++
 				trace.Client, trace.Foreground, trace.Profile, trace.Endpoint = r.PID, r.Foreground, r.Profile, r.Endpoint
@@ -224,6 +230,9 @@ func readTerminalTrace(root string) (terminalTrace, error) {
 			case "prompt":
 				if r.TitleScope {
 					trace.TitlePrompts++
+				} else if r.RecoveryScope {
+					trace.RecoveryPrompts++
+					trace.RecoveryACP = r.Group
 				} else if r.FollowScope {
 					trace.FollowPrompts++
 					trace.FollowACP = r.Group
@@ -247,7 +256,9 @@ func readTerminalTrace(root string) (terminalTrace, error) {
 					trace.SummaryHints++
 				}
 			case "text":
-				if !r.TitleScope && r.FollowScope {
+				if !r.TitleScope && r.RecoveryScope {
+					trace.RecoveryTexts++
+				} else if !r.TitleScope && r.FollowScope {
 					trace.FollowTexts++
 				} else if !r.TitleScope {
 					trace.Texts++
@@ -261,6 +272,8 @@ func readTerminalTrace(root string) (terminalTrace, error) {
 			case "end":
 				if r.TitleScope {
 					trace.TitleEnds++
+				} else if r.RecoveryScope {
+					trace.RecoveryEnds++
 				} else if r.FollowScope {
 					trace.FollowEnds++
 				} else {
@@ -332,6 +345,21 @@ func TestCompiledRunInterruptedFollowupWithFakeACP(t *testing.T) {
 	runCompiledTerminalStream(t, "cancel-followup", "")
 }
 
+// One ordinary question completes, then the independent peer reproduces the measured logged-out
+// boundary on the next question (D117). The client must show the gateway's login instruction as a
+// normal completion, not an API error, while the original client and proxy stay live until exit.
+func TestCompiledRunAuthExpiryFollowupWithFakeACP(t *testing.T) {
+	runCompiledTerminalStream(t, "auth-expiry-followup", "")
+}
+
+// The login is lost while the client holds a relayed tool call (D117): after the fixture exits at
+// the measured boundary and the hook is released, the client must see the login completion, and
+// once the login is marked restored the same session must answer one more question, typed again
+// at most once if the stale pending outcome reports the expiry one more time.
+func TestCompiledRunHeldHookAuthExpiryWithFakeACP(t *testing.T) {
+	runCompiledTerminalStream(t, "held-hook-auth-expiry", "")
+}
+
 // Ctrl+C while the client holds a tool through its PreToolUse hook, then one new question in the
 // same client session (D116). The hook must be interrupted, no tool result delivered, and the new
 // question answered by a fresh ACP process while the original client/proxy stay live.
@@ -377,6 +405,8 @@ func runTerminalScenario(t *testing.T, mode, kiro string, history *terminalHisto
 	t.Helper()
 	heldHook := strings.HasPrefix(mode, "held-hook-")
 	heldFollowup := mode == "held-hook-followup"
+	authExpiry := mode == "auth-expiry-followup"
+	heldAuth := mode == "held-hook-auth-expiry"
 	followup := mode == "cancel-followup" || heldFollowup
 	modelCheck := strings.HasPrefix(mode, "model-")
 	modelSlot := 1
@@ -518,7 +548,7 @@ func runTerminalScenario(t *testing.T, mode, kiro string, history *terminalHisto
 			args = append(args, "--resume", history.ID)
 		}
 	}
-	config, _ := json.Marshal(map[string]any{"Root": root, "Proxy": proxy, "Client": client, "Kiro": kiro, "AccountHome": os.Getenv("HOME"), "Project": project, "Args": args, "HeldHook": heldHook, "AllowFollowup": followup || modelCheck, "ModelCheck": modelCheck, "ModelIDs": modelIDs, "ModelEntries": modelEntries, "HistoryStage": historyStage, "HistorySeed": historySeed, "HistoryID": historyID, "HistoryName": historyName})
+	config, _ := json.Marshal(map[string]any{"Root": root, "Proxy": proxy, "Client": client, "Kiro": kiro, "AccountHome": os.Getenv("HOME"), "Project": project, "Args": args, "HeldHook": heldHook, "AuthExpiry": authExpiry || heldAuth, "AuthCut": heldAuth, "AllowFollowup": followup || authExpiry || modelCheck, "ModelCheck": modelCheck, "ModelIDs": modelIDs, "ModelEntries": modelEntries, "HistoryStage": historyStage, "HistorySeed": historySeed, "HistoryID": historyID, "HistoryName": historyName})
 	if os.WriteFile(filepath.Join(bin, "terminal.json"), config, 0600) != nil {
 		t.Fatal("cannot write terminal role configuration")
 	}
@@ -567,7 +597,10 @@ func runTerminalScenario(t *testing.T, mode, kiro string, history *terminalHisto
 	var heldObserved, hookAtConfirmation bool
 	var originalClient, originalProxy int
 	var originalProfile, originalEndpoint string
-	var followupObserved bool
+	var followupObserved, authFallbackObserved, apiErrorVisible, recoveryObserved bool
+	var followupAt, recoveryAt time.Time
+	groupsBeforeRecovery := make(map[int]bool)
+	loginMessages, recoveryAttempts := 0, 0
 	var historyLoaded, historyAnswered bool
 	var historyPickerSeen, historyPicked bool
 	var historyPickerAt time.Time
@@ -664,6 +697,15 @@ func runTerminalScenario(t *testing.T, mode, kiro string, history *terminalHisto
 						return ""
 					}
 					heldObserved = true
+					if heldAuth {
+						if os.WriteFile(filepath.Join(root, "auth-cut"), []byte("owned-auth-cut"), 0600) != nil {
+							receiptErr = errors.New("cannot cut owned authentication")
+							stop()
+							return ""
+						}
+						stage, keyAt = 40, time.Now()
+						return ""
+					}
 					if heldFollowup {
 						stage, keyAt = 3, time.Now()
 						return "\x03"
@@ -678,6 +720,19 @@ func runTerminalScenario(t *testing.T, mode, kiro string, history *terminalHisto
 					}
 					stage, exitKey, keyAt = 5, true, time.Now()
 					return "\x04"
+				}
+			} else if authExpiry {
+				if trace.Ends == 1 {
+					if os.WriteFile(filepath.Join(root, "followup-allowed"), []byte("owned-new-question"), 0600) != nil {
+						receiptErr = errors.New("cannot admit owned new question")
+						stop()
+						return ""
+					}
+					for _, group := range trace.Groups {
+						groupsBeforeFollowup[group] = true
+					}
+					stage, followupAt = 8, time.Now()
+					return terminalFollowupPrompt
 				}
 			} else if mode == "natural-completion" {
 				if trace.Ends == 1 {
@@ -765,12 +820,98 @@ func runTerminalScenario(t *testing.T, mode, kiro string, history *terminalHisto
 				return "\r"
 			}
 		case 9:
+			if authExpiry {
+				if time.Since(followupAt) > 20*time.Second {
+					receiptErr = errors.New("login fallback not observed")
+					stop()
+					return ""
+				}
+				if trace.FollowPrompts == 1 && trace.AuthExits == 1 && strings.Contains(lower, "kiro authentication expired") && strings.Contains(lower, "kiro-cli login") && syscall.Kill(trace.Client, 0) == nil && syscall.Kill(trace.Proxy, 0) == nil && trace.Client == originalClient && trace.Proxy == originalProxy {
+					authFallbackObserved = true
+					apiErrorVisible = strings.Contains(lower, "api error") || strings.Contains(lower, "api_error")
+					// The login is "restored": the fixture answers again, and the same client session
+					// must carry one more ordinary question through a fresh ACP process.
+					if os.WriteFile(filepath.Join(root, "recovery-allowed"), []byte("owned-recovery-question"), 0600) != nil {
+						receiptErr = errors.New("cannot admit owned recovery question")
+						stop()
+						return ""
+					}
+					for _, group := range trace.Groups {
+						groupsBeforeRecovery[group] = true
+					}
+					stage, recoveryAt = 30, time.Now()
+					return terminalRecoveryPrompt
+				}
+				return ""
+			}
 			complete := terminalFollowupComplete(trace)
 			if heldFollowup {
 				complete = terminalHeldFollowupComplete(trace)
 			}
 			if complete && !groupsBeforeFollowup[trace.FollowACP] && strings.Contains(screen, "Follow_49") && trace.Client == originalClient && trace.Proxy == originalProxy && trace.Profile == originalProfile && trace.Endpoint == originalEndpoint && syscall.Kill(originalClient, 0) == nil && syscall.Kill(originalProxy, 0) == nil && errors.Is(syscall.Kill(-trace.ACP, 0), syscall.ESRCH) {
 				followupObserved = true
+				stage, exitKey = 5, true
+				return "\x04"
+			}
+		case 40:
+			if time.Since(keyAt) > 10*time.Second {
+				receiptErr = errors.New("authentication cut not observed by the fixture")
+				stop()
+				return ""
+			}
+			if trace.AuthExits == 1 {
+				if os.WriteFile(filepath.Join(root, "hook-release"), []byte("release-owned-hook"), 0600) != nil {
+					receiptErr = errors.New("cannot release owned hook")
+					stop()
+					return ""
+				}
+				stage, keyAt = 41, time.Now()
+			}
+		case 41:
+			if time.Since(keyAt) > 25*time.Second {
+				receiptErr = errors.New("login fallback after the held tool not observed")
+				stop()
+				return ""
+			}
+			if trace.HookReleased == 1 && strings.Contains(lower, "kiro authentication expired") && strings.Contains(lower, "kiro-cli login") && syscall.Kill(trace.Client, 0) == nil && syscall.Kill(trace.Proxy, 0) == nil && trace.Client == originalClient && trace.Proxy == originalProxy {
+				authFallbackObserved = true
+				apiErrorVisible = strings.Contains(lower, "api error") || strings.Contains(lower, "api_error")
+				if apiErrorVisible {
+					t.Logf("fallback_screen=%q", boundedScreen(screen))
+				}
+				loginMessages = strings.Count(lower, "kiro authentication expired")
+				if os.WriteFile(filepath.Join(root, "recovery-allowed"), []byte("owned-recovery-question"), 0600) != nil {
+					receiptErr = errors.New("cannot admit owned recovery question")
+					stop()
+					return ""
+				}
+				for _, group := range trace.Groups {
+					groupsBeforeRecovery[group] = true
+				}
+				stage, recoveryAt = 30, time.Now()
+				return terminalRecoveryPrompt
+			}
+		case 30:
+			if strings.Contains(strings.Join(strings.Fields(screen), " "), terminalRecoveryPrompt) {
+				stage = 31
+				return "\r"
+			}
+		case 31:
+			if time.Since(recoveryAt) > 25*time.Second {
+				receiptErr = errors.New("recovery after restored login not observed")
+				stop()
+				return ""
+			}
+			// A stale pending outcome may report the expiry once more for the first question after
+			// the login is restored; the observer retypes the question at most once and records it.
+			if heldAuth && trace.RecoveryPrompts == 0 && strings.Count(lower, "kiro authentication expired") > loginMessages && recoveryAttempts == 0 && time.Since(recoveryAt) > time.Second {
+				recoveryAttempts++
+				loginMessages = strings.Count(lower, "kiro authentication expired")
+				stage, recoveryAt = 30, time.Now()
+				return terminalRecoveryPrompt
+			}
+			if trace.RecoveryPrompts == 1 && trace.RecoveryEnds == 1 && trace.RecoveryTexts > 0 && strings.Contains(screen, "Recovered_53") && !groupsBeforeRecovery[trace.RecoveryACP] && trace.Client == originalClient && trace.Proxy == originalProxy && trace.Profile == originalProfile && trace.Endpoint == originalEndpoint && syscall.Kill(trace.Client, 0) == nil && syscall.Kill(trace.Proxy, 0) == nil {
+				recoveryObserved = true
 				stage, exitKey = 5, true
 				return "\x04"
 			}
@@ -940,6 +1081,9 @@ func runTerminalScenario(t *testing.T, mode, kiro string, history *terminalHisto
 	if followup || modelCheck {
 		titleLimit = 2
 	}
+	if authExpiry || heldAuth {
+		titleLimit = 3
+	}
 	valid := runErr == nil && result.ExitCode == 0 && receiptErr == nil && err == nil && foregroundObserved && exitKey && trace.Exited && trace.ExitCode == 0 && trace.Restored && groupsGone && pidsGone && listenerGone && artifactErr == nil && len(entries) == 0 && os.IsNotExist(profileErr) && sources && trace.Prompts == 1 && trace.TitlePrompts <= titleLimit && trace.Failures == 0 && trace.PromptFailures == 0
 	if history != nil {
 		t.Logf("native_history_stage=%d previous_answer_visible_before_input=%v active_answer_observed=%v history_inputs=%d history_answers=%d", history.Stage, historyLoaded, historyAnswered, trace.HistoryInputs, trace.HistoryAnswers)
@@ -955,6 +1099,14 @@ func runTerminalScenario(t *testing.T, mode, kiro string, history *terminalHisto
 		valid = valid && heldObserved && trace.HookReleased == 0 && trace.HookPost == 0 && trace.RelayResults == 0 && trace.Ends == 0 && !strings.Contains(string(result.Stdout), "OwnedHookRead_47") && exitLatency < 8*time.Second && lateReleaseQuiet
 	} else if mode == "held-hook-release" {
 		valid = valid && heldObserved && trace.HookReleased == 1 && trace.HookPost == 1 && trace.RelayResults == 1 && trace.Ends == 1 && trace.Cancels == 0
+	} else if heldAuth {
+		t.Logf("auth_fallback_observed=%v api_error_visible=%v login_messages=%d recovery_attempts=%d acp_auth_exits=%d hook_released=%d hook_post=%d relay_results=%d first_ends=%d", authFallbackObserved, apiErrorVisible, loginMessages, recoveryAttempts, trace.AuthExits, trace.HookReleased, trace.HookPost, trace.RelayResults, trace.Ends)
+		t.Logf("recovery_observed=%v recovery_prompts=%d recovery_texts=%d recovery_ends=%d recovery_group_previously_observed=%v title_prompts=%d", recoveryObserved, trace.RecoveryPrompts, trace.RecoveryTexts, trace.RecoveryEnds, groupsBeforeRecovery[trace.RecoveryACP], trace.TitlePrompts)
+		valid = valid && heldObserved && authFallbackObserved && !apiErrorVisible && recoveryObserved && trace.AuthExits == 1 && trace.HookReleased == 1 && trace.RelayResults == 0 && trace.RecoveryPrompts == 1 && trace.RecoveryEnds == 1 && trace.Ends == 0 && trace.Failures == 0 && !strings.Contains(string(result.Stdout), "OwnedHookRead_47")
+	} else if authExpiry {
+		t.Logf("auth_fallback_observed=%v api_error_visible=%v follow_prompts=%d follow_ends=%d follow_texts=%d acp_auth_exits=%d first_ends=%d", authFallbackObserved, apiErrorVisible, trace.FollowPrompts, trace.FollowEnds, trace.FollowTexts, trace.AuthExits, trace.Ends)
+		t.Logf("recovery_observed=%v recovery_prompts=%d recovery_texts=%d recovery_ends=%d recovery_group_previously_observed=%v title_prompts=%d", recoveryObserved, trace.RecoveryPrompts, trace.RecoveryTexts, trace.RecoveryEnds, groupsBeforeRecovery[trace.RecoveryACP], trace.TitlePrompts)
+		valid = valid && authFallbackObserved && !apiErrorVisible && recoveryObserved && trace.FollowPrompts == 1 && trace.FollowEnds == 0 && trace.FollowTexts == 0 && trace.AuthExits == 1 && trace.RecoveryPrompts == 1 && trace.RecoveryEnds == 1 && trace.Ends == 1 && trace.Cancels == 0 && trace.Failures == 0
 	} else if heldFollowup {
 		t.Logf("interrupted_history_form=%q manufactured_tool_result=%v old_prompt_cancels=%d read_delivered=%v", trace.FollowForm, manufacturedToolResult(trace.FollowForm), trace.Cancels, strings.Contains(string(result.Stdout), "OwnedHookRead_47"))
 		valid = valid && heldObserved && canceledAlive && followupObserved && trace.HookInterrupted == 1 && trace.HookReleased == 0 && trace.HookPost == 0 && trace.RelayResults == 0 && trace.Ends == 0 && trace.FollowPrompts == 1 && trace.FollowEnds == 1 && trace.FollowForm != "" && !manufacturedToolResult(trace.FollowForm) && !strings.Contains(string(result.Stdout), "OwnedHookRead_47")
