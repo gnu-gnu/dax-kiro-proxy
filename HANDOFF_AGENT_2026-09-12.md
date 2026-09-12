@@ -1,0 +1,255 @@
+# Agent handoff: continuing after D124 (2026-09-12)
+
+This brief lets a coding agent with no prior context continue the work of the D121–D124 session
+lineage. It is a brief, not a record: `IMPLEMENTATION_DECISIONS.md`, `DEVELOPMENT_STATUS.md`,
+`DEPENDENCY_REVIEW.md`, `ACCEPTANCE_SPEC.md` and `LIVE_KIRO_TEST_PLAN.md` remain the authoritative
+text and this brief defers to them wherever they differ. `HANDOFF_REVIEW_2026-09-11.md` is the
+earlier review brief for D109–D120 written for the previous maintainer; it is not superseded by
+this one. `AGENTS.md` still requires reading every document in the `README.md` order before touching
+implementation code; do that first.
+
+## 1. State you inherit
+
+- `main` is at `e07e591` (merge of D124). The working tree is clean. There is no remote; never push
+  or add one without being asked. Feature branches `d122-diagnostics-lifetimes`,
+  `d123-deferred-standing`, `d124-measure-client-2-1-268`, the probe branch
+  `client-2-1-268-measure` and the historical `codex/kiro-isolation-checks` are kept as history;
+  nothing on them is unmerged work.
+- Measured pins: Claude Code 2.1.268 (`launcher.SupportedClientVersion`, D124) and Kiro CLI 2.21.3
+  (`launcher.SupportedKiroVersion`, D114). D110/D114 admit same-major builds as "unmeasured". The
+  retained 2.1.267 client at `~/.local/share/claude/versions/2.1.267` is now the admitted one; use
+  it only to cross-check build-form differences.
+- Installed executable: the D124 build (`~/.local/bin/dax-kiro-proxy`, SHA-256 `282b8556…`,
+  revision `e08ce8e`, snapshot `third_party/inventory/macos-arm64-measured-client-268.json`).
+  `doctor` reports login and execution policy verified, launch available, Kiro 2.21.3 and Claude
+  Code 2.1.268 without the "unmeasured" suffix. Every earlier build is retained under the ignored
+  `.cache/history-review/dax-kiro-proxy-d<NN>` on this host.
+- Decisions D121–D124 in one line each: D121 completed the dependency inventory and moved the
+  owner's rights checklist outside the repository; D122 added run diagnostics and lifetimes (7-day
+  client lifetime, SIGHUP cleanup, named failure messages, `--tool-timeout`/`--turn-timeout`/
+  `--first-event-timeout`, schema-worker 429, retained tool-wait outcome); D123 defers a rotated
+  standing instruction on result-only continuations instead of recreating the Kiro session; D124
+  measured 2.1.268 and moved the client pin.
+- The 2.1.268 request form, measured by `internal/interop/client_shape_probe_test.go`: the first
+  user message is a plain string; the first request's trailing system-role message carries an
+  environment block (about 395 bytes, run-varying) plus the selected output style; later requests
+  move that message into history and send the 49-byte token-budget line as the trailing message.
+  D123 absorbs the rotation, D124's output-style control records where the style body sits.
+
+## 2. Standing instructions from the user
+
+These were given during the sessions and are not all written elsewhere.
+
+- Work in batches. Each batch: branch from `main` → implement → verify → documents → commit →
+  (production change only) clean rebuild, inventory freeze, `install --force`, inventory commit →
+  brief an independent reviewer agent that has no session context → apply its findings → refreeze
+  only if a production input changed → `git merge --no-ff` into `main`. Keep the branch.
+- The user reads terse Korean, wants options with a recommendation, and then usually says "권장대로
+  진행" (proceed as recommended) or "승인" (approved). "일단" means a pragmatic fix with the
+  deviation recorded. Report outcomes with fixed facts; do not pad.
+- Never run `kiro-cli login` or `kiro-cli logout`. Never kill the user's own `claude` or
+  `kiro-cli --resume` processes (they may be running on this host). Synthetic ("pseudo")
+  reproduction of a logged-out backend is preferred over touching the real login.
+- Credit-consuming tests (`DAX_INTEROP_KIRO_CREDIT_OPT_IN=1`, the 21 `TestKiroLive*` controls) run
+  only with explicit per-run approval from the user. Approval for one run does not carry over.
+- Never run two tests that launch the installed client or Kiro at the same time (also not two
+  agents doing so); run every installed-client control under `umask 077`.
+- Tests and logs record fixed-shape facts only: counts, roles, block kinds, digests, byte lengths,
+  booleans. No prompt text, tool output or file paths.
+- The owner's rights checklist (licensing, distribution, employer policy, service terms) is outside
+  the repository by the user's decision (D121). Do not re-add it as a gate. The three unattributed
+  metaschema resources are recorded and are not a task; do not list them again.
+- A clean macOS install/uninstall check will be done by someone else; the remote/push decision is
+  the user's. Do not schedule either.
+
+## 3. Environment and commands
+
+Go toolchain and caches (every `go` command):
+
+```sh
+cd /Users/geunwooshim/gnu-gnu-personal/dax-kiro-proxy
+umask 077
+export GOTOOLCHAIN=go1.27.1 GOMODCACHE=$PWD/.cache/gomod GOCACHE=$PWD/.cache/gobuild
+```
+
+Installed-client and Kiro witnesses (owned fake ACP backend, no model credits unless opted in):
+
+```sh
+export DAX_INTEROP_CLAUDE_BINARY=/Users/geunwooshim/.local/share/claude/versions/2.1.268
+export DAX_INTEROP_KIRO_BINARY=/Users/geunwooshim/.local/bin/kiro-cli
+export DAX_INTEROP_KIRO_CREDIT_OPT_IN=0
+```
+
+| Purpose | Command | Expectation |
+| --- | --- | --- |
+| Unit and fixture suites with the race detector | `go test -race ./... -count=1 -timeout 30m` | every package `ok` |
+| Full installed-client batch | `go test ./internal/interop -run '^Test(Claude\|CompiledRun)' -count=1 -v -timeout 40m` | 74 of 74 PASS, about 600 s |
+| Vet | `go vet ./...` | no output |
+| Artifact snapshot | `python3 tools/verify_dependency_inventory.py --gomodcache .cache/gomod --snapshot measured-client-268 --binary dist/dax-kiro-proxy` | 142 checks, release clearance false |
+| Component record | `python3 tools/verify_dependency_inventory.py --gomodcache .cache/gomod --components` | 18 records |
+
+Two controls are load-sensitive inside a full batch and pass standalone:
+`TestClaudeInterruptedResumedToolPolicyWithFakeACP` and `internal/acp/edge_test.go` (50 ms request
+deadline). System memory pressure has killed long batches before; rerun the whole batch rather than
+splitting it silently. Keep batch logs under `.cache/history-review/<dNNN>-*.log` and cite them from
+the decision record. Remove `tools/__pycache__/` before committing (the freeze script imports the
+verifier).
+
+## 4. Production-change procedure (what D122–D124 did, step by step)
+
+1. Commit the code and documents first. The rebuild must come from a clean committed revision
+   (`vcs.modified=false`); the inventory commit follows it.
+2. Rebuild exactly like the prior snapshots, without `-trimpath` and without extra `GOFLAGS`:
+   `go build -o dist/dax-kiro-proxy ./cmd/dax-kiro-proxy`, then
+   `go version -m -json dist/dax-kiro-proxy > .cache/history-review/dNNN-build-info.json`,
+   `go list -deps -json ./cmd/dax-kiro-proxy > .cache/history-review/dNNN-command-packages.json`,
+   `git rev-parse HEAD > .cache/history-review/dNNN-head.txt`, and copy the executable to
+   `.cache/history-review/dax-kiro-proxy-dNNN`.
+3. Freeze with a script modelled on `.cache/history-review/freeze-d124.py` (host-local, ignored):
+   load the prior snapshot (`macos-arm64-measured-client-268.json` is the current predecessor),
+   assert toolchain go1.27.1, darwin/arm64, CGO_ENABLED=1, `vcs.revision` equal to the head file,
+   267 packages, the four external modules' versions/sums/package sets unchanged, native selected
+   files and stdlib vendor packages unchanged, the `repository_inputs` diff equal to exactly the
+   production files the decision changed (103 records today), and the import-path list identical
+   (D122 relaxed this to set equality once because it reordered imports; D123 and D124 assert
+   equality again). Rename the comparison keys to `*_since_D124` / `*_match_D124`, write
+   `third_party/inventory/macos-arm64-<name>.json` with `'xb'`, and run the verifier on it.
+4. Add the snapshot name to the `--snapshot` choices and help text in
+   `tools/verify_dependency_inventory.py`; add a dated section to `DEPENDENCY_REVIEW.md` in the
+   shape of the D124 section (bytes, SHA-256, revision, changed production files, verifier
+   command, "all 142 byte checks pass", the scope caveats).
+5. `dist/dax-kiro-proxy install --force`, then confirm `~/.local/bin/dax-kiro-proxy` has the frozen
+   SHA and `doctor` shows both versions measured. Commit the inventory.
+6. Brief the reviewer (section 7). Test-only or document-only fixes need no refreeze; prove it by
+   rerunning the verifier with `--binary` after the fixes (the snapshot hashes every production
+   input). A production fix means a new commit, rebuild and refreeze (D123 did this).
+7. Every production change also needs: a `## D<NNN>: …` record appended to
+   `IMPLEMENTATION_DECISIONS.md` with a verification paragraph citing the logs, a bullet at the top
+   of the "Current evidence" list in `DEVELOPMENT_STATUS.md`, and amendments wherever
+   `ACCEPTANCE_SPEC.md`, `README.md`, `PRODUCT_SPEC.md` or `PROTOCOL_SPEC.md` state the behavior
+   in the present tense. Documents wrap at 100 columns; when editing with a script, rewrap only
+   the paragraph or bullet touched (a blank-line-bounded rewrap once collapsed a bulleted section).
+
+## 5. Remaining planned batches
+
+The numbering below continues from D124; each batch is one branch, one review, one merge. The
+file positions were checked against `main` at `e07e591`. Items marked LIVE need the user's approval
+for a credit-consuming run.
+
+### D125 — protocol compatibility (removes causes of a session dying or every request failing)
+
+1. Media limits apply to the whole request, and Claude Code resends the whole history each turn:
+   `internal/anthropic/request.go:121` rejects once accumulated images exceed
+   `MaxMediaParts` (20) / `MaxMediaTotalBytes` (6 MiB) from `internal/anthropic/media.go:19-21`,
+   and `internal/projection/media.go:85` applies the same totals. Apply the limits to the new
+   content (the delta after the last projected position) and replace older media with a fixed-shape
+   marker. Keep the history canonicalizer's hash inputs stable (`internal/history`), or record why
+   they change.
+2. `internal/schemawire/input.go:35` rejects any MCP tool schema whose `$schema` is not the
+   2020-12 URI, with an error that does not name the tool. Accept the draft-07, 2019-09 and 2020-12
+   URIs by stripping them, and include the tool name in the 400 reason. Whether Claude Code forwards
+   MCP servers' `$schema` verbatim is unmeasured (a fixture MCP server in the interop suite can
+   measure it without credits).
+3. `internal/session/turn.go:183-208` treats only `agent_message_chunk` as visible output, so a
+   backend that emits only thought chunks or `tool_call` updates for 90 s trips the first-event
+   deadline (`internal/gateway/http.go:294`, default at `:86`). Count every session-scoped update as
+   liveness while keeping text as the only visible output.
+4. `internal/session/turn.go:136-148`: `stopReason` values other than `end_turn`, `max_tokens`,
+   `refusal` and the tool path fail the turn and discard the process; ACP's `max_turn_requests`
+   should end the turn with the streamed text preserved, and non-text agent chunks (image, resource)
+   should be ignored rather than fatal.
+5. Tool results with `document` or URL-sourced content are mapped as raw JSON text in
+   `internal/session/continuation.go:150-175`; replace them with a size marker and unify the nested
+   image size rule with the top-level one (`internal/relay/broker.go:447-452` decodes and checks
+   the nested form).
+6. Expose a "Diverged" counter (session key replaced by a diverging history) in the turn metrics and
+   the status line so context replays are visible; `internal/requestfamily/classify.go:24-44`
+   classifies tool-less requests as Main unless they match the title shape exactly.
+   Risk: medium (history hashing and projection). Verify 1–3 with unit and fixture controls; 3 and 4
+   would benefit from one LIVE observation.
+
+### D126 — operational and diagnostic
+
+7. Startup sweeper for stale owner-only runtime residue: `dax-startup-*`
+   (`internal/launcher/startup.go:226`), `dax-account-usage-*`
+   (`internal/launcher/kiro_usage.go:96`) and the relay's `/private/tmp/dax-r-*`; remove only
+   directories whose socket/flock owner is gone.
+8. `doctor` returns before `PrepareClient` (`cmd/dax-kiro-proxy/main.go:330` prints "Client
+   initialization: unverified"); include the read-only profile checks so `run` cannot fail on a
+   settings cause that `doctor` called available. Attach the offending path or rule to
+   `launcher.ErrSettings` (`internal/launcher/client_customizations.go:30-70`).
+9. `internal/launcher/kiro.go:100-105` reports a `whoami` timeout as "not logged in"; separate the
+   timeout from a non-zero exit, and tolerate a trailing postamble on `chat --list-models`
+   (`internal/launcher/catalog.go:21`) the way `whoami` already does.
+10. `models` should print the backend model id beside the client id; the cleanup-failure message
+    should name the directory left behind.
+11. README: state the bounds (8 sessions / 4 processes, 90 s first event, 10 min turn default
+    tool wait 15 m, 16 MiB body, 20 media parts / 6 MiB) and `MAX_RETRIES=0`.
+    Risk: low.
+
+### D127 — relay and session robustness
+
+12. `internal/relay/attachment.go:17-66`: the relay attach wait is `ReadTimeout`; align it with the
+    session `SetupTimeout` and fail closed on expiry.
+13. The Kiro agent definition (`internal/launcher/agent.go:44-45`) sets no MCP `timeout` for the
+    `dax_session` relay server; make it match `ToolTimeout`. LIVE: Kiro's default MCP timeout and
+    cancel behavior are unmeasured.
+14. `internal/relay/broker.go:268` fails the whole relay on one cancelled call; fail only that call.
+15. `internal/session/turn.go:311-331`: an abort in the Seal–Finish window records no outcome, the
+    deadline reason depends on which error wins the race (`:271-279`), and
+    `internal/relay/group_unix.go:20` treats a zombie as alive; make these deterministic.
+16. D118 write-back (`internal/launcher/client_trust.go:232-256`) renames without taking the
+    client's `.claude.json.lock`; either take it or re-compare the source bytes immediately before
+    the rename.
+    Risk: medium. 13 needs approval.
+
+### D128 — quality (no production change, no artifact freeze)
+
+17. `internal/acp/edge_test.go:63` couples a 50 ms `RequestTimeout` to the initialize handshake;
+    separate a startup timeout or raise the bound.
+18. Dead code: `Request.TextOnly` (`internal/anthropic/request.go:233`), `projection.Delta`
+    (`internal/projection/text.go:20`), `clientMCPState` (`internal/launcher/client_mcp.go:15`);
+    capitalized error strings (`internal/launcher/startup.go:23`, `kiro.go:20-21`,
+    `internal/ndjson/frame.go:14`, `internal/childproc/run.go:18-22`).
+19. Coverage gaps: stop_reason validation and the streaming output cap in
+    `internal/gateway/http.go`, late drain in `internal/session/turn.go:108-126`, `acp.Call` against
+    an exhausted client, identical tool_result resubmission.
+20. Log hygiene: `internal/interop/tool_restart_test.go:382` logs up to 200 bytes of the issued tool
+    input (the fixture's Bash command text and temp paths appear in batch logs through the
+    interrupted-follow-up controls). Replace with a digest and length.
+21. Split `Handler.messages`, `Driver.Start`, `Driver.prepare`; unify the three process-group
+    helpers and the raw-JSON string helpers. Last, because of regression risk.
+
+Recommended order: D125 → D128 items 17–18 and 20 (cheap) → D126 → D127 → the rest of D128.
+
+## 6. Decisions waiting on the user
+
+- Rerunning the 21 `TestKiroLive*` controls on the 2.1.268 pair (about 15 minutes of model
+  turns). Until approved, `README.md` and D124 state that the live evidence stands on the 2.1.267
+  pair; the owned-witness batch is the 2.1.268 evidence.
+- Whether the D110 same-major admission rule should be narrowed after the 2.1.268 incident (13
+  controls failed on an admitted build before D123/D124). It is listed in the review brief; no
+  change was requested.
+- Remote/push, clean-host install check, owner's rights items: outside this brief.
+
+## 7. Briefing the independent reviewer
+
+Give the reviewer: repository path, branch and base commit, the diff range, `AGENTS.md`
+conventions, the decision's claims in plain words, the evidence logs it may read, exact questions
+per area (correctness, content safety of test logging, stale statements, artifact consistency,
+document wording, anything else), the allowed commands with the environment prefix, the sequential
+rule for client-launching tests, and the prohibitions (no login/logout, no credit tests, no killing
+processes, no edits, no git writes). Ask for findings ordered by severity with file:line, a
+"checked and OK" list per area, and the commands run with results. The D122–D124 reviews each
+returned one medium and several low findings that were all applied before merging; expect the same.
+
+## 8. Commit map of this lineage
+
+| Commit | Content |
+| --- | --- |
+| `d00ec30` | D109–D120 review brief and corrected document statements |
+| `5de746a` | D121 component inventory; owner's rights checklist scoped out |
+| `4665909` | Merge D122 (branch `d122-diagnostics-lifetimes`; snapshot `run-diagnostics`, SHA `59e8eb4b…`) |
+| `a756dde` | Merge D123 (branch `d123-deferred-standing`; snapshot `deferred-standing`, SHA `20a81468…`) |
+| `e08ce8e`, `257514e`, `4f242dc` | D124 code and documents, inventory freeze, review fixes |
+| `e07e591` | Merge D124 (snapshot `measured-client-268`, SHA `282b8556…`) |

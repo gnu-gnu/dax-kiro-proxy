@@ -29,6 +29,9 @@ Read these documents before implementation:
 13. `LIVE_KIRO_TEST_PLAN.md` — bounded opt-in client-denial/native-effect experiments and their limits.
 14. `HANDOFF_REVIEW_2026-09-11.md` — review brief for D109–D120: decisions needing judgment,
     production changes, verification state, open items and the commit map.
+15. `HANDOFF_AGENT_2026-09-12.md` — agent handoff after D124: inherited state, the user's standing
+    instructions, the batch and artifact procedure, the remaining planned batches D125–D128 with
+    code positions, and decisions waiting on the user.
 
 `AGENTS.md` makes this reading order mandatory for coding agents.
 
@@ -41,7 +44,8 @@ gate. The dependency inventory is complete for the darwin/arm64 development arti
 owner's rights and project-license decisions are outside this repository, and live-release gates
 remain open. Implementation began with independent fixtures and fake-process transport tests and now
 reaches an installed development artifact (D118); consult DEVELOPMENT_STATUS.md for verified
-progress and `HANDOFF_REVIEW_2026-09-11.md` for the D109–D120 review brief.
+progress, `HANDOFF_REVIEW_2026-09-11.md` for the D109–D120 review brief and
+`HANDOFF_AGENT_2026-09-12.md` for the agent handoff after D124.
 
 ## Development commands
 
