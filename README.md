@@ -445,9 +445,9 @@ independent fixture) that samples the proxy's resident size, descriptors and pro
 after every turn; one authorized live soak against the actual Kiro also samples the backend process
 group's resident size under a first declared envelope.
 
-Phase 7 has frozen dependency inventories and retained scoped notices. For the installed D132
+Phase 7 has frozen dependency inventories and retained scoped notices. For the installed D133
 development artifact, run `python3 tools/verify_dependency_inventory.py
---gomodcache .cache/gomod --snapshot schema-dialects --binary dist/dax-kiro-proxy`.
+--gomodcache .cache/gomod --snapshot media-history --binary dist/dax-kiro-proxy`.
 The default `development` snapshot identifies D78's earlier D77 binary; `installation` identifies D79.
 `native-history` identifies D87 and `relay-close` identifies D96; `effort` identifies D99, `usage`
 identifies D101, `output-styles` identifies D108, `tool-images` identifies D109, `client-version`
@@ -456,7 +456,7 @@ identifies D110–D112, `measured-client` identifies D113, `measured-kiro` ident
 `deferred-standing` identifies D123, `measured-client-268` identifies D124 and `trust-publication`
 identifies D125; `measured-client-269` identifies D126, `progress-setup` identifies D127 and
 `resolved-cancellation` identifies D128, `tool-outcomes` identifies D129 and `prompt-stop`
-identifies D130; `account-check` identifies D131.
+identifies D130; `account-check` identifies D131 and `schema-dialects` identifies D132.
 Those historical snapshots do not match this rebuild and its changed production source. These
 offline byte checks do not grant release clearance; see DEPENDENCY_REVIEW.md for the D121 component
 record, the three unattributed metaschema resources and the owner's external rights items.

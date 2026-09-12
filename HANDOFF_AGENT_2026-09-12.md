@@ -103,7 +103,9 @@ Actual Claude 2.1.269 with the real gateway and fake ACP retains 20/21/21 histor
 HTTP and sends only 20/1/0 to the same backend. Focused race tests and this native control pass.
 All 27 race-tested packages and full vet pass. Four existing native core controls pass in
 27.293s, including all six tool-policy cases, joined cancellation, result continuation and
-image-result/native-resume reconstruction. Artifact/review verification follows. No Kiro model ran.
+image-result/native-resume reconstruction. The clean 04eaad2 artifact is installed as
+media-history (144 byte checks, 18 component checks, doctor verified on its first invocation).
+Independent review follows. No Kiro model ran.
 
 ## 1. State you inherit
 

@@ -6763,3 +6763,17 @@ The image control observes the exact result encoding and one native image in bot
 turn and fresh resume, with Read hooks only once and complete source/ownership cleanup. No
 actual Kiro process, model request, login/logout or source-setting mutation is involved.
 Artifact and independent review results follow.
+
+The clean `04eaad22d59fad672d31ba11bc65deccbf52bf0f` artifact is frozen as
+`third_party/inventory/macos-arm64-media-history.json`: 13,694,946 bytes, SHA-256
+`569ede34b509ea259f41ae843f1874504960b0a9d72463c70866359301cc988b`, Go 1.27.1,
+darwin/arm64, CGO_ENABLED=1 and vcs.modified=false. Only internal/anthropic/media.go and
+internal/anthropic/request.go change among the same 105 production inputs. All 267 ordered
+packages, selected/native/vendor files, four external modules and notices remain unchanged.
+Candidate and strictly resolved installed binaries pass all 144 byte checks, and all 18
+component checks pass (`d133-freeze.log`, `d133-installed-verify.log`, `d133-components.log`).
+Install --force succeeds (`d133-install.log`). The first installed doctor invocation verifies
+measured Kiro 2.21.3/Claude 2.1.269, login/policy and launch availability, with login_check
+2.217s (`d133-installed-doctor.json`, `d133-installed-doctor-timing.log`). Client initialization
+remains unverified and release clearance remains false. No new advisory scan or Kiro model
+request ran. Independent review follows.
