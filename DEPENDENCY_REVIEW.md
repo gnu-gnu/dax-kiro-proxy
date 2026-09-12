@@ -1007,3 +1007,33 @@ under `~/.local/bin` is byte-identical to it. Existing advisory/reachability, na
 attribution and clean-host distribution work remain open; the owner's rights items are outside this
 repository (D121). Measuring a client build grants no license or distribution right and does not
 change the reviewed dependency set.
+
+## Guarded trust-publication artifact snapshot — D125, 2026-09-12
+
+`third_party/inventory/macos-arm64-trust-publication.json` records the rebuilt 13,677,154-byte
+development command, SHA-256 `5e387757f3b7a58e3e4c3aac9a9bba5b260c4961b0268b751192350533cf7d6c`. It
+identifies Go 1.27.1, darwin/arm64, CGO_ENABLED=1 and clean committed revision `c67627a` with
+`vcs.modified=false`. The inventory commit follows the code commit.
+
+There are 104 repository input records: `internal/launcher/client_trust.go` changes and
+`internal/launcher/client_trust_write.go` is added relative to D124. The 267 import paths, four
+external module versions/sums/package sets, selected native files, stdlib vendor packages and
+retained notices are unchanged. The D124 measured-client-268 inventory is the hashed predecessor.
+No dependency is added or upgraded, and the D121 component record still passes its 18 checks.
+
+```sh
+python3 tools/verify_dependency_inventory.py --gomodcache .cache/gomod --snapshot trust-publication --binary dist/dax-kiro-proxy
+```
+
+All 143 byte checks pass against both the candidate and the resolved installed executable, with
+release clearance false. `install --force` succeeds (`d125-install.log`). The installed diagnostic
+reports Kiro 2.21.3 measured and Claude Code 2.1.269 unmeasured: the host updated its client again;
+the tested client pin remains 2.1.268. Login and the development execution policy pass, and launch
+availability is true (`d125-installed-doctor.json`). This is no verification claim for 2.1.269.
+
+The D121-reviewed govulncheck v1.8.0 reports no vulnerabilities in binary, source and source-with-test
+modes on this artifact/source. Its database is updated 2026-09-10T14:48:42Z
+(`d125-govulncheck-version.log`, `d125-govulncheck-binary.log`, `d125-govulncheck-source.log`,
+`d125-govulncheck-source-test.log`). These scans cover curated Go reports with symbol reachability
+as of that database date, not unknown vulnerabilities, system libraries or separately installed
+executables. The owner's rights determinations remain outside the repository under D121.

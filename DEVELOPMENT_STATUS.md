@@ -17,7 +17,10 @@ does not redefine completion around an intermediate phase.
   (602.114s). A subsequent permission regression shows umask narrowing and accepts a changed
   staged mode; both are fixed, with the focused race controls and two-launch trust test passing
   again (4.718s and 19.700s package time). The final whole-repository race suite passes 27 tested
-  packages and vet passes. Review and the new artifact are pending; D124 remains the installed build.
+  packages and vet passes. The clean D125 build is installed and frozen as `trust-publication`
+  (143 byte checks; unchanged four-module dependency set); all three refreshed advisory scans
+  report no vulnerabilities. Review is pending. The host client is now 2.1.269, reported unmeasured
+  by doctor; the regression evidence and tested pin remain 2.1.268.
 - D124 measures the self-updated Claude Code 2.1.268 and moves the measured client pin from 2.1.267
   to it: the first user message is a plain string, the first request's standing message carries the
   environment block and the selected output style (D123 defers the rotation), and the output-style

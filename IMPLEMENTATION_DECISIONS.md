@@ -6079,6 +6079,9 @@ Before that final permission fix, the complete installed-client batch passes 75 
 (602.114 s, `d125-client-2.1.268-batch.log`), the whole-repository race suite passes 27 packages
 (`d125-all-race.log`) and vet passes (`d125-all-vet.log`). After the permission fix, the final
 whole-repository race suite passes all 27 tested packages (`d125-all-race-final.log`) and vet
-passes (`d125-all-vet-final.log`). Independent review and artifact verification are pending on the
-working branch. The installed D124 artifact remains current until the clean-commit rebuild is
-recorded here.
+passes (`d125-all-vet-final.log`). The clean `c67627a` build is frozen as `trust-publication` and
+installed, with all 143 byte checks passing against both copies and the D121 component record's
+18 checks still passing. Binary/source/source-with-test advisory scans report no vulnerabilities
+against the database dated 2026-09-10T14:48:42Z. DEPENDENCY_REVIEW.md records the exact artifact and
+scan scope. The host client has meanwhile updated to 2.1.269; doctor reports it unmeasured under
+D110, while the tested pin remains 2.1.268. Independent review is pending on the working branch.
