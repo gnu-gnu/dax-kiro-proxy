@@ -6235,9 +6235,9 @@ deadline, matching HTTP disconnect semantics and leaving the separate total-time
 The corrected complete ACP/session/gateway race suites pass in 5.027s, 34.770s and 4.872s,
 including the added bounded tracking and visible-output accounting controls. Vet and diff
 whitespace checks pass. Evidence is retained in d127-progress-race-final.log and
-d127-progress-vet.log under the ignored .cache/history-review directory. Core turn/relay work,
-batch review and artifact installation remain open; no installed client or actual Kiro model was
-invoked.
+d127-progress-vet.log under the ignored .cache/history-review directory. These progress-only
+controls precede the full-batch, installed-client and artifact results below; they invoke neither
+an installed client nor an actual Kiro model.
 
 
 Relay setup correction: both the parent binding wait and the child attachment previously expired
