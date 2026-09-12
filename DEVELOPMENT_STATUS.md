@@ -19,6 +19,11 @@ does not redefine completion around an intermediate phase.
   question cases and three compiled model-picker cases, including next-preflight restoration,
   unchanged sources and joined recorded ownership. Native paused-model restoration remains
   outside these separate regression controls.
+  Clean code b09bb9e is rebuilt and installed as paused-model, with 144 candidate/installed
+  byte checks and 18 component checks passing. Only launcher/model_state.go changes among
+  105 production inputs; all 267 packages and four modules remain unchanged. The first
+  installed doctor verifies measured versions, login/policy and launch availability.
+  Client initialization and full release clearance remain open.
 
 - D137 on d137-terminal-delivery (base d4ed7b8) fixes an immediate continuation receiving 409
   after the client reads terminal bytes but before the server finishes delivery bookkeeping.

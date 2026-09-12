@@ -7086,3 +7086,14 @@ The compiled model-picker control passes unchanged, switch and wide-catalog swit
 in 12.77s, with next preflight restoring the used model without another client or ACP session,
 unchanged sources and joined recorded resources. These are regression controls; they do not
 combine a native paused response with preference restoration or use an actual Kiro model.
+
+Clean code `b09bb9e` is rebuilt and installed as `paused-model`: 13,695,074 bytes, SHA-256
+`bd0e3f3def1ad308171f48840db482a53f4754cfdb4e5e5adfa582f1c438e376`. The only changed
+production input is launcher/model_state.go among the same 105 records. All 267 ordered
+packages, four external modules, selected files and notices remain unchanged. Candidate and
+strictly resolved installed inputs pass 144 byte checks; all 18 component checks pass.
+Install --force and the first installed doctor pass, with measured Kiro 2.21.3/Claude 2.1.269,
+verified login/policy and launch availability. Client initialization remains unverified and
+release clearance false. Logs: `d138-freeze.log`, `d138-candidate-verify.log`,
+`d138-installed-verify.log`, `d138-components.log`, `d138-install.log` and
+`d138-installed-doctor.json`. No dependency upgrade, advisory refresh or model prompt occurs.

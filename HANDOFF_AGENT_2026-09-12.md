@@ -183,6 +183,11 @@ Two actual-Claude 2.1.269/fake-local regression controls pass sequentially (16.1
 stop/next-question cases and three compiled model-picker cases, with next-preflight restoration,
 unchanged sources and joined recorded ownership. Native pause plus preference restoration is
 not combined in these controls; the new combined check uses an HTTP recorder.
+Clean code `b09bb9e` is rebuilt and installed as `paused-model`, SHA-256
+`bd0e3f3def1ad308171f48840db482a53f4754cfdb4e5e5adfa582f1c438e376`. Candidate and strictly
+resolved installed/current inputs pass 144 checks; 18 component checks pass. Exactly one
+production file changes among the same 105 inputs, 267 packages and four modules. The first
+installed doctor verifies measured versions, login/policy and launch availability.
 
 ## 1. State you inherit
 
