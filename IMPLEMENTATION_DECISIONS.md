@@ -6331,5 +6331,14 @@ independent ACP (`d128-client-core.log`, package 28.447s): launcher cancellation
 tool-result continuation 2.22s and all six Read/Write/Bash allow/deny/hook cases 18.18s.
 Cancellation joins the recorded client/hook/backend/relay and private artifacts in 155ms after
 one delivered handoff. Source settings remain unchanged, denied effects stay absent and matching
-results complete. No actual Kiro or model credits are used. Artifact installation and independent
-review remain pending.
+results complete. No actual Kiro or model credits are used. These controls precede the artifact
+checks below.
+
+The clean `4494910a4f996b62b867cb12bcb4b2d6e12d04bf` artifact is installed as
+`resolved-cancellation`: 13,694,242 bytes, SHA-256
+`3f4d9841458407612395bbc06fa2aa113ed0b7e1602447e890f0213c72a81d6d`, with 105 production
+input records and unchanged 267 packages/four modules. Only `internal/relay/broker.go` changes its
+recorded source bytes. Candidate and resolved installation pass 144 byte checks; components pass
+18 checks. Doctor reports the measured Kiro 2.21.3/Claude 2.1.269 pair, verified login/policy
+and launch available. No new advisory scan or live inference is claimed. Independent review
+remains pending.

@@ -6,7 +6,7 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
-- D128 in progress on d128-relay-cancellation (base c8c631c) fixes a reproduced race where a
+- D128 on d128-relay-cancellation (base c8c631c) fixes a reproduced race where a
   resolved tool call's late cancellation retires queued, sealed, delivered or next-turn work.
   The exact pending-call check shares the resolution lock; committed results stay exact and
   unresolved cancellation still retires the whole prompt. All four regressions fail before the
@@ -14,8 +14,10 @@ does not redefine completion around an intermediate phase.
   sequential package scheduling, and vet passes. Two earlier parallel-package runs failed on
   independent process startup failures, recorded separately in D128. The three applicable actual
   Claude 2.1.269/fake-ACP controls pass sequentially (28.447s), including all six tool-policy
-  cases, continuation and joined cancellation. No actual Kiro model runs. Artifact installation
-  and independent review remain pending; the installed build remains D127.
+  cases, continuation and joined cancellation. No actual Kiro model runs. The clean 4494910
+  artifact is frozen and installed as resolved-cancellation (144 byte checks, 18 component
+  checks); doctor reports the measured pair and verified login/policy with launch available.
+  Independent review remains pending.
 
 - D127 on d127-turn-relay (base ea49c87) fixes two reproduced timeout defects. Validated owned
   ACP progress satisfies only the first-event wait, preserves answer/history/usage boundaries
