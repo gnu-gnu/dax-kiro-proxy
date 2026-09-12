@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"io"
 	"os"
 	"strconv"
 	"strings"
@@ -13,7 +14,7 @@ import (
 
 // Independently authored three-call ACP/MCP peer. Client operations have no implementation.
 // Only the supplied relay child is executed, and only fixed synthetic results are accepted.
-func batchRelayFixture() {
+func batchRelayFixture(prepared bool) {
 	deadline := time.AfterFunc(40*time.Second, func() { os.Exit(80) })
 	defer deadline.Stop()
 	input := bufio.NewScanner(os.Stdin)
@@ -47,12 +48,41 @@ func batchRelayFixture() {
 				CWD string
 				MCP []json.RawMessage `json:"mcpServers"`
 			}
-			if child != nil || json.Unmarshal(q.Params, &p) != nil || p.CWD == "" || len(p.MCP) != 1 {
+			if child != nil || json.Unmarshal(q.Params, &p) != nil || p.CWD == "" {
 				os.Exit(82)
 			}
-			child = startFixtureRelay(p.MCP[0], p.CWD)
+			var descriptor json.RawMessage
+			var alias string
+			if prepared {
+				if len(os.Args) != 3 || len(p.MCP) != 0 {
+					os.Exit(82)
+				}
+				file, err := os.Open(os.Args[2])
+				if err != nil {
+					os.Exit(82)
+				}
+				data, readErr := io.ReadAll(io.LimitReader(file, 4097))
+				closeErr := file.Close()
+				var policy struct {
+					Aliases []string
+					MCP     json.RawMessage
+				}
+				if readErr != nil || closeErr != nil || len(data) > 4096 || json.Unmarshal(data, &policy) != nil || len(policy.Aliases) != 1 || len(policy.Aliases[0]) == 0 || len(policy.Aliases[0]) > 256 || len(policy.MCP) == 0 {
+					os.Exit(82)
+				}
+				descriptor, alias = policy.MCP, policy.Aliases[0]
+			} else {
+				if len(p.MCP) != 1 {
+					os.Exit(82)
+				}
+				descriptor = p.MCP[0]
+			}
+			child = startFixtureRelay(descriptor, p.CWD)
 			childDone = make(chan struct{})
 			go func() { _ = child.cmd.Wait(); close(childDone) }()
+			if prepared && child.alias != alias {
+				os.Exit(82)
+			}
 			reply(q.ID, map[string]any{"sessionId": session, "models": map[string]any{"currentModelId": "fixture-backend", "availableModels": []any{map[string]string{"modelId": "fixture-backend", "name": "Fixture"}}}})
 		case "session/set_model":
 			reply(q.ID, map[string]any{})

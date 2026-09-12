@@ -70,8 +70,8 @@ func main() {
 		pendingChurnFixture()
 		return
 	}
-	if mode == "batch-relay" {
-		batchRelayFixture()
+	if mode == "batch-relay" || mode == "batch-relay-prepared" {
+		batchRelayFixture(mode == "batch-relay-prepared")
 		return
 	}
 	if strings.HasPrefix(mode, "inventory-") {
