@@ -2257,3 +2257,75 @@ descriptors 24→22, two owned processes throughout; backend group four processe
 falls to a third by the end (`d120-live-soak-20.log`). Limits: one session of twenty turns; a longer
 live soak and a combined concurrency-plus-soak run remain open. Test-only; the D118 artifact remains
 current.
+
+## D134: explicit MCP request timeout (prepared, not yet run)
+
+HANDOFF item 13 requires the relay's Kiro wait to match the configured client tool wait. The
+agent currently omits MCP `timeout`; premature expiry during actual client approval has not been
+reproduced. This experiment determines whether that field governs `tools/call` on Kiro 2.21.3.
+It does not complete the client approval, hook or cancellation gates.
+
+Prior owned, no-prompt observations found that the native configuration writer preserves 1500,
+900000 and 3600000 as numeric `timeout`, while omission leaves it absent. Three-second MCP
+initialize/list responses still succeed with `timeout: 1500`. Neither finding establishes a
+request timeout or its default. Current CLI 3 configuration documentation cannot establish CLI 2
+semantics. The fixed observations are retained in `d134-mcp-config.log` and
+`d134-mcp-timing-after.log` under `.cache/history-review`.
+
+`TestKiroLiveMCPRequestTimeoutObservation` admits two sequential fresh ACP sessions, with
+`timeout: 1500` then `timeout: 8000`. Each advertises and allows only the independently authored
+`@owned_timing/owned_wait` MCP tool. Its empty-input call returns fixed text after three seconds
+and performs no client file, shell or network effect. The exact prompt in both cases is:
+
+> Independent protocol timing exercise. Call owned_wait exactly once with an empty object.
+> Do not use another tool, inspect files or configuration, or retry.
+> After the call succeeds or fails, finish with a short statement of its status.
+
+Each peer accepts at most one tool call. A failed or inconclusive first case prevents the second
+prompt; this invocation never retries. Both installed executables must report exactly 2.21.3.
+Only an advertised `auto` model is selected. Existing Kiro authentication is used normally, with
+an owned workspace, isolated KIRO_HOME, default-resource suppression, empty resources/hooks and
+no inherited MCP configuration. The observer advertises no client execution capabilities and
+denies permission requests. Claude, user projects and existing conversation data are not inputs.
+
+Each episode has a 70-second deadline including version checks, setup and observation. Each
+version check is bounded at five seconds, setup at twenty seconds, inventory advertisement at
+five seconds, model selection at five seconds and the original prompt at 45 seconds. Four
+seconds of observation after its response remain within that original deadline. The independent
+peer has 32 input frames of at most 64 KiB, sixteen request IDs, 96 witness records, a 70-second
+context and a 75-second outer exit bound. The observer admits 256 notifications, 64 KiB per
+notification and 1 MiB total. Every owned group is closed and checked before the next episode.
+
+Acceptance requires exactly one MCP call and one correlated ACP tool call: a failed status
+1.0–2.2 seconds after receipt in the short case, and a completed status after the three-second
+reply in the long case. Matching/foreign/repeated cancellation and a deliberate late reply are
+recorded distinctly. Changing a failed ACP status to completed after the late reply rejects the
+observation. Timings use local timestamps with a 100-ms clock-drift check; no exact scheduler
+timing is claimed. Missing native status, extra calls, changed configuration, unmatched evidence
+or incomplete cleanup are inconclusive, not success. Model prose is never timeout evidence.
+
+Local race controls pass in `d134-timing-local-controls.log`: the observer in 2.192s and the
+independent peer in 1.609s. They cover correlation, cancellation, delayed/late responses, extra
+calls, malformed/excess input, deadlines and ambiguous evidence. The live test skips with credit
+opt-in zero. An initial peer control found and fixed its null-ID parser before these passes;
+that fixture defect is not a product finding. The complete interop race suite and peer controls
+also pass in 26.575s and 1.396s (`d134-interop-race.log`); focused vet exits zero
+(`d134-interop-vet.log`). All installed-client and Kiro opt-ins remain off.
+These controls exercise the peer over an in-memory pipe and the ACP observer with independent
+event sequences. They do not execute the new peer's process entry point, its blocked-output
+outer exit timer or the complete native ACP/MCP call combination. Earlier no-prompt process
+observations used the separate prototype; they are not an execution of this prepared harness.
+
+The following single command requires new explicit per-run approval. It may send up to two ACP
+prompts to the Kiro service and consume credits; ACP prompt count is not a billed-call or cost
+bound. No approval or actual model result is recorded for D134 yet.
+
+```sh
+umask 077
+GOTOOLCHAIN=go1.27.1 GOMODCACHE="$PWD/.cache/gomod" GOCACHE="$PWD/.cache/gobuild" \
+  DAX_INTEROP_CLAUDE_BINARY= \
+  DAX_INTEROP_KIRO_BINARY=/Users/geunwooshim/.local/bin/kiro-cli \
+  DAX_INTEROP_KIRO_CREDIT_OPT_IN=1 \
+  go test ./internal/interop -run '^TestKiroLiveMCPRequestTimeoutObservation$' \
+  -count=1 -v -timeout 4m > .cache/history-review/d134-live-mcp-timeout.log 2>&1
+```
