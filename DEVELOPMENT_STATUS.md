@@ -7,17 +7,23 @@ does not redefine completion around an intermediate phase.
 ## Current evidence
 
 - D139 on d139-concurrent-native-tools (base 9c9adbb) adds a finite combined native-client
-  tool check on one gateway/manager/pool. The 128-round race run passes in 21.043s, including
-  a 15.975-second active loop with two Claude 2.1.269 clients and exactly two independent ACP
+  tool check on one gateway/manager/pool. The 128-round race run passes in 21.839s, including
+  a 16.092-second active loop with two Claude 2.1.269 clients and exactly two independent ACP
   prompts. All 127 allowed Read results and 128 hook refusals retain exact owners. The final
   Read is withheld before canceling one client; its ACP/relay join before the sibling finishes.
-  Descriptors/goroutines remain 30/50 after warm-up; post-GC heap grows from 775,472 to a peak
-  of 1,256,848 bytes. Final values are 5/2/706,296. HTTP ownership, recorded groups, relay
+  Descriptors/goroutines remain 30/50 after warm-up; post-GC heap grows from 790,128 to a peak
+  of 1,252,936 bytes. Final values are 5/2/750,584. HTTP ownership, recorded groups, relay
   directories and private profiles join; source settings and all owned files stay unchanged.
   Eight-round controls and independent bad-result/resource controls pass. The final observers
   require the hook's refusal reason and distinct round markers; unrelated errors and round
   prefix collisions cannot count as success. All five related packages pass race and vet;
   the strengthened local observers and final vet pass after those test-only corrections.
+  Independent review of 93fafeb finds three observer gaps. Failing counterexamples reproduce
+  stale first-owner liveness, early sibling release during a held cancellation callback and
+  foreign content accepted at MCP. Corrections require both backend pairs alive at the paired
+  barrier, complete server cancellation before sibling release, and foreign-marker rejection
+  at MCP. Focused race and the final native run pass; both changed packages pass full race
+  again (36.817s/1.229s) and vet. No product defect is demonstrated.
   No product code or installed D138 artifact changes; current inputs still pass 144 checks.
   Actual Kiro, shared ACP, interactive permissions and long-duration combined soak remain
   separate. D134 is still unapproved and unrun.

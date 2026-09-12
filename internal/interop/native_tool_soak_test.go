@@ -54,6 +54,7 @@ type nativeToolBackend struct {
 	started, ended                time.Time
 	failure                       error
 	cancel                        context.CancelFunc
+	live                          func(int, int) bool
 }
 
 func (b *nativeToolBackend) Models(context.Context) ([]inference.Model, error) {
@@ -105,7 +106,7 @@ func (b *nativeToolBackend) tools(ctx context.Context, lane int, calls []anthrop
 	if err == nil {
 		var w nativeToolWitness
 		w, err = readNativeToolWitness(filepath.Join(b.path, fmt.Sprintf("owner-%d.json", lane)))
-		if err == nil && (w.Lane != lane || w.Calls != round || w.Results != round-1 || !nativeToolLive(w.PID, w.PID) || !nativeToolLive(w.Peer, w.PID)) {
+		if err == nil && (w.Lane != lane || w.Calls != round || w.Results != round-1 || !b.live(w.PID, w.PID) || !b.live(w.Peer, w.PID)) {
 			err = errors.New("native tool reached HTTP without its live ACP and relay")
 		}
 		old := b.owners[lane]
@@ -130,7 +131,11 @@ func (b *nativeToolBackend) tools(ctx context.Context, lane int, calls []anthrop
 		if round == 1 {
 			b.started = time.Now()
 		}
-		if !nativeToolLive(b.clients[0], b.clients[0]) || !nativeToolLive(b.clients[1], b.clients[1]) || b.clients[0] == b.clients[1] || b.owners[0].PID == b.owners[1].PID || b.owners[0].Peer == b.owners[1].Peer || b.owners[0].Config == b.owners[1].Config {
+		live := b.live(b.clients[0], b.clients[0]) && b.live(b.clients[1], b.clients[1])
+		for _, owner := range b.owners {
+			live = live && b.live(owner.PID, owner.PID) && b.live(owner.Peer, owner.PID)
+		}
+		if !live || b.clients[0] == b.clients[1] || b.owners[0].PID == b.owners[1].PID || b.owners[0].Peer == b.owners[1].Peer || b.owners[0].Config == b.owners[1].Config {
 			err = errors.New("native overlap lacked distinct live client and backend owners")
 		} else if round >= 4 {
 			var observed nativeToolResources
@@ -205,6 +210,33 @@ func (t *nativeToolTurn) Finish() {
 }
 func (t *nativeToolTurn) Cancel() {
 	t.once.Do(func() { t.Turn.Cancel(); t.backend.mu.Lock(); t.backend.canceled[t.lane]++; t.backend.mu.Unlock() })
+}
+
+func nativeToolOwnersGone(w nativeToolWitness) bool {
+	if !errors.Is(syscall.Kill(-w.PID, 0), syscall.ESRCH) || !errors.Is(syscall.Kill(w.Peer, 0), syscall.ESRCH) {
+		return false
+	}
+	_, err := os.Lstat(filepath.Dir(w.Config))
+	return errors.Is(err, os.ErrNotExist)
+}
+
+func (b *nativeToolBackend) waitCanceled(ctx context.Context, lane int, gone func(nativeToolWitness) bool) error {
+	ticker := time.NewTicker(5 * time.Millisecond)
+	defer ticker.Stop()
+	for {
+		b.mu.Lock()
+		owner := b.owners[lane]
+		joined := b.canceled[lane] == 1
+		b.mu.Unlock()
+		if joined && gone(owner) {
+			return nil
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-ticker.C:
+		}
+	}
 }
 
 type nativeToolCapture struct {
@@ -299,7 +331,7 @@ func TestClaudeConcurrentNativeToolSoak(t *testing.T) {
 		t.Fatal("native tool catalog")
 	}
 	model, _ := models.ClientID("fixture-backend")
-	b := &nativeToolBackend{models: models, path: filepath.Join(root, "witness"), finalReady: make(chan struct{}), cancel: cancel}
+	b := &nativeToolBackend{models: models, path: filepath.Join(root, "witness"), finalReady: make(chan struct{}), cancel: cancel, live: nativeToolLive}
 	b.ledger.Rounds = rounds
 	project := filepath.Join(root, "project")
 	for _, dir := range []string{project, b.path} {
@@ -449,15 +481,11 @@ func TestClaudeConcurrentNativeToolSoak(t *testing.T) {
 	if !errors.Is(interrupted, context.Canceled) || errors.Is(interrupted, childproc.ErrCleanup) {
 		t.Fatal("one native client cancellation did not join")
 	}
-	b.mu.Lock()
-	old := b.owners[0]
-	b.mu.Unlock()
-	deadline := time.Now().Add(3 * time.Second)
-	for !errors.Is(syscall.Kill(-old.PID, 0), syscall.ESRCH) && time.Now().Before(deadline) {
-		time.Sleep(5 * time.Millisecond)
-	}
-	if !errors.Is(syscall.Kill(-old.PID, 0), syscall.ESRCH) || !errors.Is(syscall.Kill(old.Peer, 0), syscall.ESRCH) {
-		t.Fatal("canceled native request retained its ACP or relay")
+	joinCtx, stopJoin := context.WithTimeout(ctx, 3*time.Second)
+	joinErr := b.waitCanceled(joinCtx, 0, nativeToolOwnersGone)
+	stopJoin()
+	if joinErr != nil {
+		t.Fatal("canceled native request did not finish its server-side cleanup")
 	}
 	b.mu.Lock()
 	close(b.rounds[rounds-1].Release)

@@ -458,7 +458,7 @@ D139 adds two actual Claude 2.1.269 conversations sharing one gateway, manager a
 independent ACP processes. Across 128 overlapping tool rounds, 127 allowed Read results and
 128 hook refusals remain with their own sessions. Canceling one client before its last tool is
 delivered leaves the other able to finish. Post-warm-up descriptors/goroutines stay at 30/50;
-recorded groups, HTTP ownership and private profiles clean up. This finite 15.975-second active
+recorded groups, HTTP ownership and private profiles clean up. This finite 16.092-second active
 loop uses fake ACP; interactive permissions, actual Kiro and long-duration combined soak remain
 separate checks.
 

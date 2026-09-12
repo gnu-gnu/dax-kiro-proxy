@@ -3,6 +3,7 @@
 package interop_test
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -14,8 +15,10 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"dax-kiro-proxy/internal/anthropic"
+	"dax-kiro-proxy/internal/inference"
 )
 
 type nativeToolLane struct {
@@ -315,5 +318,111 @@ func TestNativeToolSoakRoundBounds(t *testing.T) {
 		if (err == nil) != valid || valid && (n < 8 || n > 128) {
 			t.Fatal("native tool round bound changed")
 		}
+	}
+}
+
+func TestNativeToolSoakRechecksFirstOwnerAtPairedWait(t *testing.T) {
+	for _, kind := range []string{"alive", "first-acp-lost", "first-relay-lost"} {
+		t.Run(kind, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
+			var workers sync.WaitGroup
+			defer func() { cancel(); workers.Wait() }()
+			live := map[[2]int]bool{{101, 101}: true, {102, 102}: true, {201, 201}: true, {202, 202}: true, {301, 201}: true, {302, 202}: true}
+			b := &nativeToolBackend{ledger: nativeToolLedgerFixture(), path: t.TempDir(), clients: [2]int{101, 102}, finalReady: make(chan struct{}), cancel: cancel}
+			b.live = func(pid, group int) bool { return live[[2]int{pid, group}] }
+			b.ledger.Rounds = 1
+			b.rounds = []nativeToolRound{{Release: make(chan struct{})}}
+			var calls [2][]anthropic.ToolUse
+			for lane := range 2 {
+				if _, err := b.ledger.request(nativeToolRequestFixture(&b.ledger, lane, nil)); err != nil {
+					t.Fatal("owned overlap request")
+				}
+				w := nativeToolWitness{PID: 201 + lane, Peer: 301 + lane, Lane: lane, Prompts: 1, Calls: 1, Config: fmt.Sprintf("/owned/lane-%d/relay.json", lane)}
+				encoded, _ := json.Marshal(w)
+				if os.WriteFile(filepath.Join(b.path, fmt.Sprintf("owner-%d.json", lane)), encoded, 0600) != nil {
+					t.Fatal("owned overlap witness")
+				}
+				input, _ := json.Marshal(map[string]string{"file_path": nativeToolPath(b.ledger.Lanes[lane], 1)})
+				calls[lane] = []anthropic.ToolUse{{ID: fmt.Sprintf("toolu_overlap_%d", lane), Name: "Read", Input: input}}
+			}
+			results := make(chan error, 2)
+			workers.Go(func() { _, err := b.tools(ctx, 0, calls[0]); results <- err })
+			ticker := time.NewTicker(time.Millisecond)
+			defer ticker.Stop()
+			for {
+				b.mu.Lock()
+				arrived := b.rounds[0].Seen[0]
+				b.mu.Unlock()
+				if arrived {
+					break
+				}
+				select {
+				case <-ctx.Done():
+					t.Fatal("first owned arrival did not reach its held wait")
+				case <-ticker.C:
+				}
+			}
+			// Lose the first owner only after its per-arrival checks have passed.
+			b.mu.Lock()
+			if kind == "first-acp-lost" {
+				live[[2]int{201, 201}] = false
+			} else if kind == "first-relay-lost" {
+				live[[2]int{301, 201}] = false
+			}
+			b.mu.Unlock()
+			workers.Go(func() { _, err := b.tools(ctx, 1, calls[1]); results <- err })
+			ready := false
+			select {
+			case <-b.finalReady:
+				ready = true
+			case <-results:
+			case <-ctx.Done():
+			}
+			b.mu.Lock()
+			failed := b.failure != nil
+			b.mu.Unlock()
+			close(b.rounds[0].Release)
+			cancel()
+			workers.Wait()
+			if ready != (kind == "alive") || failed != (kind != "alive") {
+				t.Fatal("paired wait relied on stale first-owner liveness")
+			}
+		})
+	}
+}
+
+type nativeToolHeldCancel struct {
+	inference.Turn
+	entered, release chan struct{}
+}
+
+func (t *nativeToolHeldCancel) Cancel() { close(t.entered); <-t.release }
+
+func TestNativeToolSoakWaitsForCancellationCallback(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
+	defer cancel()
+	b := &nativeToolBackend{}
+	held := &nativeToolHeldCancel{entered: make(chan struct{}), release: make(chan struct{})}
+	turn := &nativeToolTurn{Turn: held, backend: b}
+	var once sync.Once
+	release := func() { once.Do(func() { close(held.release) }) }
+	var workers sync.WaitGroup
+	defer func() { release(); workers.Wait() }()
+	workers.Go(turn.Cancel)
+	select {
+	case <-held.entered:
+	case <-ctx.Done():
+		t.Fatal("owned cancellation callback did not begin")
+	}
+	wait, stop := context.WithTimeout(ctx, 20*time.Millisecond)
+	err := b.waitCanceled(wait, 0, func(nativeToolWitness) bool { return true })
+	stop()
+	if !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatal("sibling could proceed while server cancellation was still joining")
+	}
+	release()
+	workers.Wait()
+	if err := b.waitCanceled(ctx, 0, func(nativeToolWitness) bool { return true }); err != nil {
+		t.Fatal("completed cancellation did not release the sibling")
 	}
 }

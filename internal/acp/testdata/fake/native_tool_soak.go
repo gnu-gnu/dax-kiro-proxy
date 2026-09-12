@@ -22,7 +22,7 @@ type nativeSoakWitness struct {
 	Config                                   string
 }
 
-func validNativeSoakResult(raw []byte, id int, lane nativeSoakLane, round int, denied bool) bool {
+func validNativeSoakResult(raw []byte, id int, lane nativeSoakLane, foreign string, round int, denied bool) bool {
 	var r struct {
 		JSONRPC string
 		ID      int
@@ -41,6 +41,9 @@ func validNativeSoakResult(raw []byte, id int, lane nativeSoakLane, round int, d
 			return false
 		}
 		text.WriteString(b.Text)
+	}
+	if strings.Contains(text.String(), foreign) {
+		return false
 	}
 	if denied {
 		return !strings.Contains(text.String(), lane.Seed) && strings.Contains(text.String(), "independent native refusal")
@@ -166,7 +169,7 @@ func nativeToolSoakFixture() {
 				name := "read-" + fmtSoakIndex(round)
 				child.send(id, "tools/call", map[string]any{"name": child.alias, "arguments": map[string]string{"file_path": filepath.Join(plan.Lanes[lane].Directory, name)}})
 				line, err := child.output.ReadSlice('\n')
-				if err != nil || !validNativeSoakResult(line, id, plan.Lanes[lane], round, lane == 1) {
+				if err != nil || !validNativeSoakResult(line, id, plan.Lanes[lane], plan.Lanes[1-lane].Seed, round, lane == 1) {
 					return
 				}
 				w.Results = round

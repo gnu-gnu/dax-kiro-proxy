@@ -7123,8 +7123,10 @@ other session's marker from the complete normalized request, and requires one un
 prompt per client. The peer separately checks the MCP response ID and allowed marker or
 configured hook refusal reason; refusals must not contain the file marker. Before the
 last pair is delivered, one native client is canceled. Its ACP/relay group must join before
-the sibling's final handoff is released; that sibling then receives its final refusal and
-completes visibly. The withheld tool is never counted as delivered or completed.
+the sibling's final handoff is released. The server-side cancellation callback must return
+and the relay configuration disappear too. That sibling then receives its final refusal and
+completes visibly. Both HTTP and MCP reject the other session's marker. The withheld tool is
+never counted as delivered or completed.
 
 Default coverage is eight paired rounds; `DAX_INTEROP_TOOL_SOAK_ROUNDS=128` selects the
 maximum, with an eight-minute episode/client/peer bound. Each peer admits one prompt, sixteen
@@ -7151,16 +7153,29 @@ reason and a delimited round marker fixes both. Focused race passes in 1.843s/1.
 (`d139-round-after.log`); the eight-round native control with the hook reason passes in
 5.293s (`d139-native-refusal-8.log`). These are test corrections, not product defects.
 
-The final 128-round run, including both observer corrections, bounded drain and explicit HTTP
-cleanup checks, passes under race in 19.73s (21.043s package, `d139-native-final-128.log`). The
-active loop lasts 15.975 seconds. All 257 HTTP requests, 127 allowed results, 128 hook refusals and
-two original ACP prompts match. Post-warm-up FD/goroutine counts stay 30/50; heap grows from
-775,472 to a peak of 1,256,848 bytes. Final values are 5/2/706,296. Source settings and all
-256 Read files stay unchanged; recorded groups, relay directories, profiles and all HTTP
-handlers/connections join. Related race passes all five packages in `d139-related-race.log`
+Independent review of `93fafeb` identifies three more observer gaps: first-arrival liveness
+was not rechecked at the paired barrier, process disappearance did not establish that server
+cancellation had returned, and the MCP observer did not reject the other session's marker.
+Five counterexamples fail (`d139-review-before.log`): loss of the first ACP or relay after
+arrival, a held cancellation callback despite gone owners, and foreign content mixed into an
+allowed result or refusal. The corrections recheck both backend pairs at the paired barrier,
+wait for the cancellation callback plus group/relay/config removal before releasing the
+sibling, and reject the foreign marker in MCP replies. Focused race then passes in
+1.983s/1.766s (`d139-review-after.log`). These also correct only the test observers.
+
+The final 128-round run, including the review corrections, bounded drain and explicit HTTP
+cleanup checks, passes under race in 20.50s (21.839s package, `d139-native-reviewed-128.log`).
+The active loop lasts 16.092 seconds. All 257 HTTP requests, 127 allowed results, 128 hook
+refusals and two original ACP prompts match. Post-warm-up FD/goroutine counts stay 30/50.
+Heap grows from 790,128 to a peak of 1,252,936 bytes. Final values are 5/2/750,584.
+Source settings and all 256 Read files stay unchanged. Recorded groups, relay directories,
+private profiles and HTTP handlers/connections join. Related race passes all five packages
+in `d139-related-race.log`
 (interop 35.966s, session 75.334s, ACP 5.867s, pool 2.621s, fake peer 1.296s). Final related vet
-passes (`d139-final-vet.log`). The installed D138 and current production inputs still pass
-144 byte checks (`d139-final-inventory.log`); no rebuild or installation is required.
+passes (`d139-final-vet.log`), as does changed-package vet after independent review
+(`d139-reviewed-vet.log`). Both changed packages pass full race again in 36.817s/1.229s
+(`d139-reviewed-packages-race.log`). The installed D138 and current production inputs still pass
+144 byte checks (`d139-reviewed-inventory.log`); no rebuild or installation is required.
 
 This is a finite mixed native-client concurrency control, not a new production fix or proof
 of long-duration stability. It does not exercise actual Kiro inference/policy, interactive

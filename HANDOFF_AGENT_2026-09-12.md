@@ -194,13 +194,17 @@ independent clean-commit source/metadata comparison passing. No correction or re
 
 D138 merged as `9c9adbb`. D139 on `d139-concurrent-native-tools` adds two actual Claude
 2.1.269 clients sharing one gateway/manager/pool with independent ACP. The 128-round check
-passes under race (21.043s package, 15.975-second active loop): 127 allowed Read results,
+passes under race (21.839s package, 16.092-second active loop): 127 allowed Read results,
 128 hook refusals, exact ownership, cancellation before the final Read delivery and a
 successful sibling completion. FD/goroutine counts remain 30/50 after warm-up, post-GC heap
-peaks at 1,256,848 bytes, and final counts are 5/2. Settings/files are unchanged and recorded
+peaks at 1,252,936 bytes, and final counts are 5/2. Settings/files are unchanged and recorded
 HTTP/process/relay/profile ownership joins. Guard and retained-resource controls pass;
 unrelated errors and round-prefix collisions cannot satisfy the final observers. All five
 related packages pass race and vet, with final focused race and vet after observer fixes.
+Independent review of 93fafeb finds three observer gaps, reproduced by failing controls and
+corrected: paired backend liveness, completed server cancellation before sibling release,
+and foreign-marker rejection at MCP. Focused race and the final native run pass; both changed
+packages pass full race again (36.817s/1.229s) and vet.
 Test-only; installed D138/current inputs pass 144 checks, with no rebuild or installation.
 This finite control does not complete actual Kiro, interactive permissions, shared ACP or
 long-duration combined soak. No new D134 credit approval exists.

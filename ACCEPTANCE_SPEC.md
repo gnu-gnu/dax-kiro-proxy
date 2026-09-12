@@ -516,9 +516,10 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
 - Combine actual native client tool continuations on one gateway/manager/pool (D139). Require
   two distinct live clients and independent ACP/relay owners at every paired tool wait, exact
   Read inputs/results and the configured hook refusal reason, no foreign session content or
-  repeated call IDs, and the same two ACP prompts throughout. Cancel one client before its final
-  tool delivery and
-  require the sibling to complete. Observe bounded output drains, post-warm-up FD/goroutine/
+  repeated call IDs, and the same two ACP prompts throughout. Reject foreign content again in
+  the MCP result. Cancel one client before its final tool delivery, wait for its server-side
+  cancellation callback and process/relay cleanup, then require the sibling to complete.
+  Observe bounded output drains, post-warm-up FD/goroutine/
   Go-heap bounds, unchanged settings/files and joined HTTP/groups/relay/profile ownership.
   The finite 128-round Claude/fake-ACP control does not establish shared ACP, native Kiro policy,
   interactive approval or long-duration combined soak.
