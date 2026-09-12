@@ -6789,3 +6789,25 @@ all 18 component checks pass. Embedded metadata, all 105 committed/current input
 passes (`d133-post-review-doc-verify.log`). Whole-result parsing before aggregate counting and
 finite native/loaded-session evidence limits are explicitly reviewed. No unresolved actionable
 finding, production fix or refreeze remains; native and doctor logs are inspected without reruns.
+
+## D134: Measure MCP call timeout before changing relay policy
+
+HANDOFF item 13 requires the Kiro relay wait to match ToolTimeout. The agent's MCP entry omits
+`timeout`, but a premature actual client tool failure has not yet been reproduced. Kiro 2.21.3
+accepting a number in its configuration is insufficient evidence of call semantics. Owned
+no-prompt observations preserve numeric values and complete three-second initialize/list
+operations despite `timeout: 1500`; the current CLI 3 documentation does not settle CLI 2 calls.
+
+An independent, standard-library-only MCP peer and single-use ACP observer are prepared on
+`d134-mcp-call-timeout`, based on `4e9bf87`. The peer accepts one empty-input call and delays a
+fixed, effect-free response. Correlated cancellation remains observable during that delay; the
+deliberate late reply cannot turn a failed ACP call into successful timing evidence. Protocol
+and observer controls reject wrong ownership, extra calls, malformed/excess input, expired
+turns and ambiguous timing. Local race controls pass; the credit-gated test skips. The initial
+peer null-ID negative exposed a fixture parser bug, fixed before these passes.
+
+LIVE_KIRO_TEST_PLAN.md records the exact two-case command, prompt, bounds and evidence required.
+Only one short-timeout and one long-timeout prompt are admitted, sequentially, with no retry;
+an inconclusive first result prevents the second. No D134 model run or per-run approval exists
+yet. The field's default, actual client approval wait and broader cancellation behavior remain
+unmeasured. This preparation changes no production code, dependency or installed D133 artifact.

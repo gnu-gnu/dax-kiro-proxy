@@ -109,6 +109,12 @@ Independent review accepts 418988d plus the corrected README installed-artifact 
 race, full vet, three 144-check binary results and 18 component checks pass independently.
 No production fix, refreeze or unresolved finding remains. No Kiro model ran.
 
+D134 is prepared on `d134-mcp-call-timeout` from `4e9bf87` for item 13's unmeasured MCP call
+timeout. Independent peer/observer controls and the opt-ins-off interop race suite pass. The
+exact two-case live command in LIVE_KIRO_TEST_PLAN.md has no new per-run approval or actual
+model result yet. No production code or installed D133 artifact changes; call semantics and
+client approval-wait alignment remain open.
+
 ## 1. State you inherit
 
 - `main` is at `e07e591` (merge of D124). The working tree is clean. There is no remote; never push
@@ -156,7 +162,7 @@ These were given during the sessions and are not all written elsewhere.
 - Never run `kiro-cli login` or `kiro-cli logout`. Never kill the user's own `claude` or
   `kiro-cli --resume` processes (they may be running on this host). Synthetic ("pseudo")
   reproduction of a logged-out backend is preferred over touching the real login.
-- Credit-consuming tests (`DAX_INTEROP_KIRO_CREDIT_OPT_IN=1`, the 21 `TestKiroLive*` controls) run
+- Credit-consuming tests (`DAX_INTEROP_KIRO_CREDIT_OPT_IN=1`, the `TestKiroLive*` controls) run
   only with explicit per-run approval from the user. Approval for one run does not carry over.
 - Never run two tests that launch the installed client or Kiro at the same time (also not two
   agents doing so); run every installed-client control under `umask 077`.

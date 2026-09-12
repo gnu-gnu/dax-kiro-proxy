@@ -6,6 +6,13 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D134 prepares one bounded MCP call-timeout comparison for HANDOFF item 13. Local protocol
+  and observer race controls pass with Kiro opt-in off; no actual model run or new approval is
+  recorded. Earlier no-prompt Kiro 2.21.3 observations establish configuration storage and
+  initialize/list behavior only. The exact two-prompt maximum and acceptance evidence are in
+  LIVE_KIRO_TEST_PLAN.md. Production code and the installed D133 artifact remain unchanged;
+  actual call semantics and client approval-wait alignment are still open.
+
 - D133 on d133-media-history (base 2566be2) fixes the whole request applying a single ACP
   prompt's media allowance before history reconciliation. Independent process controls reproduce
   rejection of the 21st accumulated image and a third 3-MiB document. Complete input now admits
