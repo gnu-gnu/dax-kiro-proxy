@@ -20,8 +20,9 @@ does not redefine completion around an intermediate phase.
   model was invoked.
   The clean 7ce5a58 build is frozen and installed as progress-setup (144 byte checks, 18
   component checks). Doctor reports both versions measured, login/policy verified and launch
-  available. Independent review remains pending. Other core turn/relay candidates continue in
-  the next batch.
+  available. Independent review found no introduced production defect. Its two record findings
+  are fixed at 220f094 and accepted on follow-up; focused race controls and artifact checks pass.
+  No production input changed during review. Other core turn/relay candidates continue next.
 
 - D126 fixes two terminal-observer defects exposed by Claude Code 2.1.269: a keyboard-flags query
   was interpreted as cursor restore, and full-screen margin reset did not reset the cursor. The

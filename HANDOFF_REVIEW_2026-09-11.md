@@ -10,7 +10,7 @@ authoritative text, and this brief defers to them wherever they differ.
 Overtaken since this brief was written: D121–D127 (2026-09-11 to 2026-09-12) are recorded in the
 authoritative documents. D126 moved `SupportedClientVersion` to 2.1.269 and installed that build on
 2026-09-12; D125 strengthened trust publication. D127 installs progress and relay-setup timeout
-corrections with independent review pending. The 2.1.267 statements in sections 3, 4 and 6
+corrections with independent review complete. The 2.1.267 statements in sections 3, 4 and 6
 describe the state as of 2026-09-11.
 
 ## 1. Scope and branch state

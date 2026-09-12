@@ -6181,7 +6181,7 @@ unchanged.
 
 Branch d127-turn-relay, based on ea49c87, addresses the two reproduced timeout defects in
 HANDOFF items 3 and 12. Code is committed at 7ce5a58, verified, frozen and installed.
-Independent review remains pending. Other core turn/relay candidates continue in the next batch;
+Independent review accepts the fixes at 220f094. Other core turn/relay candidates continue next;
 the overall core-product objective remains open.
 
 An active owned prompt now emits an internal payload-free Progress event for usable public
@@ -6282,4 +6282,10 @@ The clean `7ce5a58` artifact is installed as progress-setup: 13,694,242 bytes, S
 and unchanged 267 packages/four modules. Candidate and resolved installation pass all 144 byte
 checks; the component record passes 18 checks. Doctor reports both pinned versions measured,
 login/policy verified and launch_available true. These checks consume no model credits.
-Independent review remains pending.
+Independent review found no introduced production defect and requested two record corrections:
+mark the earlier verification checkpoint as historical and register the new progress fixture in
+its provenance manifest. Both are fixed at `220f094`; follow-up review accepts them with no
+unresolved D127 findings (`d127-independent-review.md`). The reviewer independently reran focused
+progress and attachment race controls, confirmed all 144 candidate/installed byte checks and 18
+component checks, and inspected the retained full-suite and actual-Claude evidence. Production
+inputs are unchanged by these corrections, so the installed artifact needs no refreeze.

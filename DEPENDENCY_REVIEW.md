@@ -1093,4 +1093,7 @@ All 144 byte checks pass for the candidate and resolved installed executable; th
 checks pass too. Install --force succeeds, and doctor reports measured Kiro 2.21.3/Claude
 2.1.269, verified login/policy and launch_available true. The snapshot retains release_clearance
 false. D125 advisory results remain historical; this batch performs no fresh advisory scan or
-actual Kiro model turn. Independent code review remains pending.
+actual Kiro model turn. Independent review accepts D127 after the two record corrections at
+`220f094`, with no production input changes. The reviewer independently confirms the 144 byte
+checks for both candidate and installed executables and all 18 component checks; no refreeze is
+needed.

@@ -36,8 +36,9 @@ validated ACP progress satisfies the first-event wait without becoming answer co
 binding/child attachment use the session setup allowance. All 27 race-tested packages, vet and
 the three applicable Claude 2.1.269 core controls pass. The clean `7ce5a58` artifact is frozen
 and installed as `progress-setup` (144 byte checks, 18 component checks, doctor verified).
-Independent review remains pending. Other core turn/relay candidates continue in the next batch;
-no Kiro inference ran.
+Independent review accepts both record corrections at `220f094`, with no unresolved D127
+findings and unchanged production inputs. Other core turn/relay candidates continue next;
+no Kiro inference ran. The branch is retained after the required no-fast-forward merge.
 
 ## 1. State you inherit
 
