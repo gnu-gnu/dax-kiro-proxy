@@ -20,6 +20,10 @@ does not redefine completion around an intermediate phase.
   releases its ledger lock during OS cleanup to avoid serializing the order being measured;
   focused resource/prepared and held-cleanup controls pass. Its final extended rerun also passes;
   the figures above describe that adjusted observer at 9e1e7ca.
+  Independent review accepts 9e1e7ca and b65e9b7 without actionable findings. Focused session/
+  pool race checks pass independently (10.883s/2.617s), along with five-package vet and 144
+  installed/current-input checks. An initial sandbox listener denial is followed by a passing
+  unchanged socket-enabled run. No production fix, refreeze or installation is required.
 
 - D135 on d135-multi-call-relay (base e8d64a9) adds real-process checks for concurrent batches
   of three tools. Eight direct-relay waves verify 96 completed/24 cancelled calls and sixteen

@@ -136,16 +136,20 @@ Follow-up review accepts `0fdc8bc` with no remaining finding. Independent focuse
 race passes (7.968s), and installed D133/current inputs pass all 144 byte checks after the fix.
 
 D135 merged as `c9f7ebc`. D136 on `d136-prepared-batch-churn` keeps one gateway/manager/pool
-across 1,024 prepared three-call waves. The final 216.765-second loop joins all 3,072 ACP/relay/policy
-owners, preserves exact mixed results/recovery history and verifies old cleanup before each
-replacement preparation. Fixed resource bounds and retained-resource/release controls pass;
-descriptors/goroutines remain 22/30 until final cleanup yields 5/2. Peak post-GC heap is
+across 1,024 prepared three-call waves. The final 216.765-second loop joins all 3,072
+ACP/relay/policy owners, preserves exact mixed results/recovery history and verifies old cleanup
+before each replacement preparation. Fixed resource bounds and retained-resource/release controls
+pass; descriptors/goroutines remain 22/30 until final cleanup yields 5/2. Peak post-GC heap is
 1,083,952 bytes. This is independent prepared-lifetime evidence, without native Kiro policy,
 shared ACP or backend/installed-proxy RSS measurement. No production change or actual client/
 Kiro execution; installed D133/current inputs pass 144 checks. D134 approval remains pending.
 The full five related race suites and vet pass. The observer's ledger lock is subsequently
 released during OS cleanup; focused resource/prepared and held-cleanup controls pass. The
 extended run also passes on that final observer at `9e1e7ca`; the figures above use this run.
+Independent review accepts `9e1e7ca` and `b65e9b7` without actionable findings. Focused
+session/pool race checks pass independently (10.883s/2.617s); five-package vet and 144 installed/
+current-input checks also pass. An initial sandbox listener denial is resolved by the unchanged
+socket-enabled rerun. No production fix, refreeze or installation is required.
 
 ## 1. State you inherit
 
