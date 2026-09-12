@@ -46,6 +46,9 @@ func main() {
 		request["pid"] = os.Getppid()
 	}
 	write(conn, request)
+	if mode == "delayed" || mode == "delayed-stall" {
+		fmt.Println("attaching")
+	}
 	response, ok := read(conn)
 	if !ok {
 		fmt.Println("rejected")
@@ -55,7 +58,7 @@ func main() {
 	if string(response["version"]) != "1" || string(response["operation"]) != `"attach"` || json.Unmarshal(response["group"], &group) != nil || group <= 1 {
 		os.Exit(34)
 	}
-	if mode == "stall" {
+	if mode == "stall" || mode == "delayed-stall" {
 		_, _ = read(conn)
 		fmt.Println("rejected")
 		return

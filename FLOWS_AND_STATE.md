@@ -261,6 +261,10 @@ Client disconnect before turn completion cancels the Kiro session and discards i
 first event and timeout for the total turn are distinct diagnostics. A tool timeout completes the relay
 call with a tool error and prevents late result reuse.
 
+Validated progress from the active owned prompt satisfies only the first-event wait (D127). It
+does not advance conversation history, publish tools, count as visible output or extend the original
+turn deadline. Streaming heartbeat scheduling remains independent of silent progress notifications.
+
 Recognized Kiro authentication expiry produces the successful assistant fallback, marks the process and
 session unhealthy, and instructs login. Other ACP/backend failures return a bounded 502 error. No path
 can use a direct Anthropic credential or alternate provider.

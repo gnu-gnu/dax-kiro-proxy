@@ -31,6 +31,15 @@ follow-up review accepts all fixes with no additional finding. D126 verification
 Next: turn/relay robustness, personal memory, request compatibility, diagnostics, then approved live
 reverification and combined soak. The original labels below are candidates, not completed decisions.
 
+D127 on `d127-turn-relay`, based on `ea49c87`, addresses two reproduced timeout defects:
+validated ACP progress satisfies the first-event wait without becoming answer content, and relay
+binding/child attachment use the session setup allowance. All 27 race-tested packages, vet and
+the three applicable Claude 2.1.269 core controls pass. The clean `7ce5a58` artifact is frozen
+and installed as `progress-setup` (144 byte checks, 18 component checks, doctor verified).
+Independent review accepts both record corrections at `220f094`, with no unresolved D127
+findings and unchanged production inputs. Other core turn/relay candidates continue next;
+no Kiro inference ran. The branch is retained after the required no-fast-forward merge.
+
 ## 1. State you inherit
 
 - `main` is at `e07e591` (merge of D124). The working tree is clean. There is no remote; never push
@@ -70,6 +79,11 @@ These were given during the sessions and are not all written elsewhere.
 - The user reads terse Korean, wants options with a recommendation, and then usually says "권장대로
   진행" (proceed as recommended) or "승인" (approved). "일단" means a pragmatic fix with the
   deviation recorded. Report outcomes with fixed facts; do not pad.
+- Latest scope instruction: strengthen the existing core product. Prioritize basic/continued
+  conversations, client tool approval/refusal/hooks, cancellation/recovery/cleanup and preservation
+  of existing user instructions. HANDOFF candidates require a demonstrated core failure or an
+  explicit mandatory specification gap before implementation. Defer optional features, cosmetic
+  work and broad refactoring; a client update alone is not a reason to start another migration.
 - Never run `kiro-cli login` or `kiro-cli logout`. Never kill the user's own `claude` or
   `kiro-cli --resume` processes (they may be running on this host). Synthetic ("pseudo")
   reproduction of a logged-out backend is preferred over touching the real login.

@@ -315,15 +315,38 @@ func (h *Handler) messages(ctx context.Context, w http.ResponseWriter, r *http.R
 		}
 	}
 	gotFirst := false
+	nextPing := time.Now().Add(h.cfg.KeepAliveInterval)
+	ping := func() error {
+		if err := beginStream(); err != nil {
+			return err
+		}
+		if output.remaining < 640 {
+			_ = stream.Fail(errOutputLimit.Error())
+			return errOutputLimit
+		}
+		if err := stream.Ping(); err != nil {
+			return err
+		}
+		nextPing = time.Now().Add(h.cfg.KeepAliveInterval)
+		return nil
+	}
 	for {
 		nextCtx := ctx
 		if !gotFirst {
 			nextCtx = firstCtx
 		}
+		// Silent progress does not move the heartbeat deadline. Check before another read so
+		// an always-ready notification source cannot starve pings.
+		if request.Stream && !time.Now().Before(nextPing) && nextCtx.Err() == nil {
+			if err := ping(); err != nil {
+				return
+			}
+			continue
+		}
 		waitCtx := nextCtx
 		stopWait := func() {}
 		if request.Stream {
-			waitCtx, stopWait = context.WithTimeout(nextCtx, h.cfg.KeepAliveInterval)
+			waitCtx, stopWait = context.WithDeadline(nextCtx, nextPing)
 		}
 		event, err := turn.Next(waitCtx)
 		pingDue := errors.Is(err, context.DeadlineExceeded) && waitCtx.Err() == context.DeadlineExceeded && nextCtx.Err() == nil
@@ -332,14 +355,7 @@ func (h *Handler) messages(ctx context.Context, w http.ResponseWriter, r *http.R
 			pingDue = false
 		}
 		if request.Stream && pingDue {
-			if err := beginStream(); err != nil {
-				return
-			}
-			if output.remaining < 640 {
-				_ = stream.Fail(errOutputLimit.Error())
-				return
-			}
-			if err := stream.Ping(); err != nil {
+			if err := ping(); err != nil {
 				return
 			}
 			continue
@@ -366,7 +382,9 @@ func (h *Handler) messages(ctx context.Context, w http.ResponseWriter, r *http.R
 		if event.Kind == inference.Text && event.Text == "" {
 			continue
 		}
-		if event.Kind != inference.Text && event.Kind != inference.End && event.Kind != inference.Tools || event.Kind == inference.Tools && !validToolBatch(request, event.Tools) || len(pendingTools) > 0 && event.Kind != inference.End {
+		supported := event.Kind == inference.Text || event.Kind == inference.End || event.Kind == inference.Tools || event.Kind == inference.Progress
+		invalidProgress := event.Kind == inference.Progress && (event.Text != "" || event.StopReason != "" || len(event.Tools) != 0)
+		if !supported || invalidProgress || event.Kind == inference.Tools && !validToolBatch(request, event.Tools) || len(pendingTools) > 0 && event.Kind != inference.End {
 			if stream != nil {
 				_ = stream.Fail("Unsupported Kiro response event")
 			} else {
@@ -377,6 +395,9 @@ func (h *Handler) messages(ctx context.Context, w http.ResponseWriter, r *http.R
 		if !gotFirst {
 			gotFirst = true
 			stopFirst()
+		}
+		if event.Kind == inference.Progress {
+			continue
 		}
 		// Keep complete validated tools private until the backend confirms the tool-use handoff.
 		if event.Kind == inference.Tools {
@@ -399,6 +420,7 @@ func (h *Handler) messages(ctx context.Context, w http.ResponseWriter, r *http.R
 				if err := stream.Text(event.Text); err != nil {
 					return
 				}
+				nextPing = time.Now().Add(h.cfg.KeepAliveInterval)
 			} else {
 				if len(event.Text) > h.cfg.MaxOutputBytes-buffered.Len() {
 					writeError(w, 502, "api_error", errOutputLimit.Error())

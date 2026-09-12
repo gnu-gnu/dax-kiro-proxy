@@ -6,6 +6,24 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D127 on d127-turn-relay (base ea49c87) fixes two reproduced timeout defects. Validated owned
+  ACP progress satisfies only the first-event wait, preserves answer/history/usage boundaries
+  and does not starve streaming pings or extend the original total deadline. Relay binding and
+  the actual child handshake use the configured session setup allowance; initial-frame and
+  acknowledgement reads remain separate. The original setup context rejects a late binding,
+  while a completed binding survives setup completion. Private child configuration v3 carries
+  the bounded attachment limit.
+  Initial regressions fail before the fixes. The final full repository race suite passes all 27
+  tested packages, and full vet passes. Three applicable Claude 2.1.269/fake-ACP controls pass
+  sequentially (26.026s): cancellation, tool-result continuation and all six client tool
+  allow/deny/hook cases. Sources remain unchanged and owned resources are joined. No actual Kiro
+  model was invoked.
+  The clean 7ce5a58 build is frozen and installed as progress-setup (144 byte checks, 18
+  component checks). Doctor reports both versions measured, login/policy verified and launch
+  available. Independent review found no introduced production defect. Its two record findings
+  are fixed at 220f094 and accepted on follow-up; focused race controls and artifact checks pass.
+  No production input changed during review. Other core turn/relay candidates continue next.
+
 - D126 fixes two terminal-observer defects exposed by Claude Code 2.1.269: a keyboard-flags query
   was interpreted as cursor restore, and full-screen margin reset did not reset the cursor. The
   trust navigator now requires exact, unique option rows and an observed yes selection before

@@ -16,6 +16,8 @@ const (
 	Text Kind = iota + 1
 	End
 	Tools
+	// Progress carries no content. It satisfies the first-event wait, never the turn deadline.
+	Progress
 )
 
 type Event struct {

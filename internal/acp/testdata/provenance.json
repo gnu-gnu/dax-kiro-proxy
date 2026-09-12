@@ -8,6 +8,8 @@
     "https://agentclientprotocol.com/protocol/v1/session-setup",
     "https://agentclientprotocol.com/protocol/v1/session-config-options",
     "https://agentclientprotocol.com/protocol/v1/tool-calls",
+    "https://agentclientprotocol.com/protocol/v1/agent-plan",
+    "https://agentclientprotocol.github.io/typescript-sdk/types/SessionUpdate.html",
     "https://modelcontextprotocol.io/specification/2025-06-18/basic/lifecycle",
     "https://modelcontextprotocol.io/specification/2025-06-18/server/tools",
     "https://code.claude.com/docs/en/hooks",
@@ -17,8 +19,9 @@
     "https://kiro.dev/docs/cli/2x-reference/"
   ],
   "repository_sources": ["PROTOCOL_SPEC.md", "ACCEPTANCE_SPEC.md", "IMPLEMENTATION_DECISIONS.md"],
-  "fixtures": ["fake/main.go", "fake/relay.go", "fake/pool.go", "fake/inventory.go", "fake/native.go", "fake/recovery.go", "fake/tool_history.go", "fake/image_history.go", "fake/churn.go", "fake/pending_churn.go"],
+  "fixtures": ["fake/main.go", "fake/relay.go", "fake/pool.go", "fake/inventory.go", "fake/native.go", "fake/recovery.go", "fake/tool_history.go", "fake/image_history.go", "fake/churn.go", "fake/pending_churn.go", "fake/progress.go"],
   "constraints": [
+    "The progress peer accepts at most one prompt per process with 1 MiB input frames, emits only authored progress/answer frames on a 450 ms or 3 s schedule, and joins its worker on cancellation or input closure. Its driver test owns the process lifetime; the peer writes only its own PID to the owned witness, imports no proxy package and performs no client tool effect",
     "The native-image-history peer reads only an authored path/digest expectation and public protocol frames, never the image file or native transcript. It accepts one prompt per process with a 25-second lifetime and 1 MiB input frame cap. The initial peer requests one client Read through MCP and verifies PNG pixels; the resumed peer requires one native ACP image with the same encoded digest and requests no tool",
     "The pending-churn peer accepts one session/prompt, twelve bounded frames and thirty seconds; it exposes only its own process/relay identities and supplied config path in a synthetic observation, never reads that configuration, requests an unimplemented inert action, and answers a fresh recovery question without a tool call. It promptly reaps its owned MCP child while ACP remains idle",
     "The HTTP churn peer accepts one session, two prompts, twelve frames and thirty seconds at most; it returns its own PID and public prompt projection, then holds the second prompt for caller cancellation. It has no proxy imports, subprocesses, tool effects, file reads or network access",

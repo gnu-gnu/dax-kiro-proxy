@@ -5859,8 +5859,8 @@ at least the tool wait) and `FirstEventTimeout` (default ninety seconds, 10s..tu
 --tool-timeout`, `--turn-timeout` and `--first-event-timeout`; the launcher passes them to the relay
 limits, the session driver and the gateway, which previously used their package defaults (five
 minutes, ten minutes, ninety seconds). The defaults trade responsiveness for patience with a
-permission prompt answered late; the first-event wait still counts only visible text (D123 is
-planned to count every session update as liveness).
+permission prompt answered late. At this stage the first-event wait counted only visible text;
+D127 later adds validated progress without admitting arbitrary updates as liveness.
 
 Witnesses: unit tests cover lifetime classification against a caller deadline, the
 acquisition-versus-restore terminal sentinels, queued admission of eight concurrent checks through
@@ -6175,3 +6175,117 @@ Follow-up review accepts the fixes without another finding, including the final 
 (`d126-independent-review.md`). Its focused observer/choice race run passes in 1.299 s, and the
 143 snapshot checks pass. The D126 verification is complete; the remaining HANDOFF work is
 unchanged.
+
+
+## D127: validated progress and relay setup deadlines
+
+Branch d127-turn-relay, based on ea49c87, addresses the two reproduced timeout defects in
+HANDOFF items 3 and 12. Code is committed at 7ce5a58, verified, frozen and installed.
+Independent review accepts the fixes at 220f094. Other core turn/relay candidates continue next;
+the overall core-product objective remains open.
+
+An active owned prompt now emits an internal payload-free Progress event for usable public
+activity. It satisfies the first-event wait after dispatch, without extending the original HTTP
+or owned ACP turn deadline. It never creates answer blocks, changes history, publishes a tool
+request or contributes to visible-output estimates. The existing relay remains the only tool
+handoff path. Normal and late notification drains use the same content accounting.
+
+Admission requires the existing owned-session envelope validation. A thought must have nonblank
+text content. A plan must contain 1..4096 entries with nonblank content and known
+priority/status values. A tool start requires a nonblank title and ID of at most 1024 bytes;
+optional kind/status values must be known. Only SHA-256 ID digests are retained, at most 4096
+per ACP turn. Additional valid starts still qualify, but their later untracked updates do not. A
+status update qualifies only for a tracked ID and an explicit known status, with a valid
+title/kind if supplied. Status-less updates are valid public protocol forms but intentionally do
+not establish progress here. The set survives HTTP tool handoffs and is not inherited by a fresh
+ACP prompt.
+
+These are admission checks on public control fields, not validation or conversion of unused tool
+content, locations or raw input/output. Those payloads are ignored. Unknown updates, private
+metadata, blank content and unusable informational shapes remain ignored rather than becoming
+new request errors. The existing malformed-envelope, foreign-session and invalid-answer failures
+stay explicit. This relies on the single active prompt and public notification ordering; it does
+not claim an independent prompt identifier on every update.
+
+Silent progress does not restart the streaming keepalive interval. The gateway retains an
+absolute next-ping deadline, checks it even while notifications are immediately available, and
+resets it after an actual ping or visible text write. A Progress event with answer, stop or tool
+payload fails explicitly. Streaming and buffered responses preserve final content and the
+existing completion/cancellation barrier.
+
+Public definitions checked 2026-09-12: [ACP session
+updates](https://agentclientprotocol.github.io/typescript-sdk/types/SessionUpdate.html),
+[content chunks](https://agentclientprotocol.github.io/typescript-sdk/types/ContentChunk.html),
+[plans](https://agentclientprotocol.com/protocol/v1/agent-plan) and [tool
+calls](https://agentclientprotocol.com/protocol/v1/tool-calls). No dependency or private Kiro
+extension was added.
+
+Initial evidence: gateway progress controls fail before the change in all four stream/completion
+combinations. Session controls fail on the missing progress event in normal and forced late
+drains. Focused race tests pass for session (3.825s) and gateway (4.677s). The independent
+process control passes all 12 streaming/buffered thought, plan, tool, unusable-update,
+total-timeout and caller-cancellation cases (10.915s package). It verifies unchanged answer
+content and joined owned PID/group, without installed clients or model credits.
+
+The first broader run passed ACP and gateway but exposed an ambiguous cancellation test: its
+caller deadline was inherited as the same owned total deadline, so turn expiry could precede
+observation of caller cancellation. The test now uses explicit cancellation without a caller
+deadline, matching HTTP disconnect semantics and leaving the separate total-timeout arm intact.
+
+The corrected complete ACP/session/gateway race suites pass in 5.027s, 34.770s and 4.872s,
+including the added bounded tracking and visible-output accounting controls. Vet and diff
+whitespace checks pass. Evidence is retained in d127-progress-race-final.log and
+d127-progress-vet.log under the ignored .cache/history-review directory. These progress-only
+controls precede the full-batch, installed-client and artifact results below; they invoke neither
+an installed client nor an actual Kiro model.
+
+
+Relay setup correction: both the parent binding wait and the child attachment previously expired
+after five seconds, although session setup permits thirty seconds by default. The parent now
+receives the original setup context plus the configured SetupTimeout; an expired/canceled setup
+rejects a new local process binding. The child receives a separate attachment limit, while
+initial-frame and acknowledgement reads keep their previous limits. Successful local binding
+survives cancellation of the completed setup context, including a relay child that starts later.
+Normal tool-result waits and shutdown bounds are unchanged.
+
+This supersedes the configuration/timing portion of D42. Private child configuration version 3
+requires eight exact fields, adding attachTimeoutMillis in 1..60000 to the seven earlier fields.
+Missing/zero/negative/excessive values and versions 1 or 2 reject. The driver supplies its
+SetupTimeout (default 30s, maximum 1m); standalone socket callers default to the read limit. The
+server observes the original setup deadline while unbound, so creating a new peer cannot restart
+that deadline. The authenticated attachment and tool frames remain version 1; ACP and MCP wire
+versions do not change.
+
+The independent attachment test failed before the correction for delayed binding, incomplete
+acknowledgement after that delay and late binding after setup cancellation. The actual relay
+executable also exited before a six-second local binding delay, despite an eight-second setup
+allowance. After correction these controls pass: relay attachment/authentication/lifetime suite
+6.448s; actual-child delayed attachment 9.063s. Further cases cover actual setup expiry and
+invalid private-configuration limits. The source and tests execute no client tool effect in
+these controls. No Kiro model or installed client was needed to reproduce either defect.
+
+The final full-repository race run passes all 27 tested packages (d127-all-race.log), including
+ACP 5.789s, relay 7.842s, MCP child 8.533s, session 34.648s and gateway 4.931s. Full go vet
+passes (d127-all-vet.log). Installed-client and Kiro opt-ins were disabled for those runs.
+
+The three applicable actual-Claude controls pass sequentially on the retained 2.1.269 executable
+with independent ACP: launcher cancellation (4.57s), tool-result continuation (2.16s), and all
+six Read/Write/Bash allow/deny/hook cases (18.40s); package total 26.026s in
+d127-client-core.log. Cancellation joins the observed client, hook, ACP group, relay, profiles
+and artifacts in 157ms after one delivered handoff, with unchanged sources. Each allowed effect
+occurs under the client policy, denied effects stay absent, and matching results reach a
+completed continuation. No Kiro model calls or credits were used. This is a focused core
+regression, not a new client migration or a full live-release claim.
+
+The clean `7ce5a58` artifact is installed as progress-setup: 13,694,242 bytes, SHA-256
+`1d9e080e63bd880917def5d2f429b7e1da840afce12ebfc23ad36ec3cec104af`, 105 production input records
+and unchanged 267 packages/four modules. Candidate and resolved installation pass all 144 byte
+checks; the component record passes 18 checks. Doctor reports both pinned versions measured,
+login/policy verified and launch_available true. These checks consume no model credits.
+Independent review found no introduced production defect and requested two record corrections:
+mark the earlier verification checkpoint as historical and register the new progress fixture in
+its provenance manifest. Both are fixed at `220f094`; follow-up review accepts them with no
+unresolved D127 findings (`d127-independent-review.md`). The reviewer independently reran focused
+progress and attachment race controls, confirmed all 144 candidate/installed byte checks and 18
+component checks, and inspected the retained full-suite and actual-Claude evidence. Production
+inputs are unchanged by these corrections, so the installed artifact needs no refreeze.

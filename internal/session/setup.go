@@ -119,7 +119,7 @@ func (d *Driver) prepare(ctx context.Context, reuse bool, registry *toolregistry
 			if err != nil {
 				return fail(err)
 			}
-			socket, err := relay.Listen(broker, relay.SocketConfig{})
+			socket, err := relay.Listen(broker, relay.SocketConfig{AttachTimeout: d.cfg.SetupTimeout, SetupContext: setup})
 			if err != nil {
 				broker.Close()
 				return fail(err)

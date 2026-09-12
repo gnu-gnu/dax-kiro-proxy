@@ -19,6 +19,9 @@ type SocketConfig struct {
 	BaseDirectory             string
 	Connections               int
 	ReadTimeout, WriteTimeout time.Duration
+	AttachTimeout             time.Duration
+	// SetupContext bounds the one-time local binding; completed setup does not end a bound relay.
+	SetupContext context.Context
 }
 type MCPTool struct {
 	Name        string          `json:"name"`
@@ -28,15 +31,17 @@ type MCPTool struct {
 
 // Client descriptions keep their complete 8 KiB allowance; relay attribution has its own bound.
 const maxMCPDescriptionBytes = 8192 + 256
+const childConfigVersion = 3
 
 type ChildConfig struct {
-	Version       int       `json:"version"`
-	SupervisorPID int       `json:"supervisorPid"`
-	Socket        string    `json:"socket"`
-	Owner         string    `json:"owner"`
-	Secret        string    `json:"secret"`
-	TimeoutMillis int64     `json:"timeoutMillis"`
-	Tools         []MCPTool `json:"tools"`
+	Version             int       `json:"version"`
+	SupervisorPID       int       `json:"supervisorPid"`
+	Socket              string    `json:"socket"`
+	Owner               string    `json:"owner"`
+	Secret              string    `json:"secret"`
+	TimeoutMillis       int64     `json:"timeoutMillis"`
+	AttachTimeoutMillis int64     `json:"attachTimeoutMillis"`
+	Tools               []MCPTool `json:"tools"`
 }
 type Socket struct {
 	broker              *Broker
@@ -67,7 +72,13 @@ func Listen(b *Broker, cfg SocketConfig) (*Socket, error) {
 	if cfg.WriteTimeout == 0 {
 		cfg.WriteTimeout = 5 * time.Second
 	}
-	if b == nil || !filepath.IsAbs(cfg.BaseDirectory) || cfg.Connections < 1 || cfg.Connections > 65 || cfg.ReadTimeout <= 0 || cfg.ReadTimeout > 10*time.Second || cfg.WriteTimeout <= 0 || cfg.WriteTimeout > 10*time.Second {
+	if cfg.AttachTimeout == 0 {
+		cfg.AttachTimeout = cfg.ReadTimeout
+	}
+	if cfg.SetupContext == nil {
+		cfg.SetupContext = context.Background()
+	}
+	if b == nil || !filepath.IsAbs(cfg.BaseDirectory) || cfg.Connections < 1 || cfg.Connections > 65 || cfg.ReadTimeout <= 0 || cfg.ReadTimeout > 10*time.Second || cfg.WriteTimeout <= 0 || cfg.WriteTimeout > 10*time.Second || cfg.AttachTimeout < time.Millisecond || cfg.AttachTimeout > time.Minute {
 		return nil, ErrCall
 	}
 	directory, err := os.MkdirTemp(cfg.BaseDirectory, "dax-r-")
@@ -96,7 +107,7 @@ func Listen(b *Broker, cfg SocketConfig) (*Socket, error) {
 		fail()
 		return nil, ErrCall
 	}
-	child := ChildConfig{Version: 2, SupervisorPID: os.Getpid(), Socket: path, Owner: b.credentials.Owner, Secret: b.credentials.Secret, TimeoutMillis: (b.limits.ToolTimeout + 15*time.Second).Milliseconds(), Tools: make([]MCPTool, 0)}
+	child := ChildConfig{Version: childConfigVersion, SupervisorPID: os.Getpid(), Socket: path, Owner: b.credentials.Owner, Secret: b.credentials.Secret, TimeoutMillis: (b.limits.ToolTimeout + 15*time.Second).Milliseconds(), AttachTimeoutMillis: cfg.AttachTimeout.Milliseconds(), Tools: make([]MCPTool, 0)}
 	for _, tool := range b.registry.Tools() {
 		description := "Client tool name: \"" + tool.Name + "\". This relay requests execution by the client; client permissions and hooks decide whether it runs.\n\n" + tool.Description
 		child.Tools = append(child.Tools, MCPTool{Name: tool.Alias, Description: description, InputSchema: tool.Schema})
@@ -234,15 +245,15 @@ func LoadChildConfig(path string) (ChildConfig, error) {
 		return ChildConfig{}, ErrCall
 	}
 	fields, err := ndjson.Object(raw)
-	if err != nil || len(fields) != 7 {
+	if err != nil || len(fields) != 8 {
 		return ChildConfig{}, ErrCall
 	}
 	var c ChildConfig
-	if string(fields["version"]) != "2" || json.Unmarshal(fields["supervisorPid"], &c.SupervisorPID) != nil || c.SupervisorPID <= 1 || c.SupervisorPID > 1<<31-1 || !controlString(fields["socket"], &c.Socket) || !controlString(fields["owner"], &c.Owner) || !controlString(fields["secret"], &c.Secret) || json.Unmarshal(fields["timeoutMillis"], &c.TimeoutMillis) != nil || json.Unmarshal(fields["tools"], &c.Tools) != nil {
+	if string(fields["version"]) != "3" || json.Unmarshal(fields["supervisorPid"], &c.SupervisorPID) != nil || c.SupervisorPID <= 1 || c.SupervisorPID > 1<<31-1 || !controlString(fields["socket"], &c.Socket) || !controlString(fields["owner"], &c.Owner) || !controlString(fields["secret"], &c.Secret) || json.Unmarshal(fields["timeoutMillis"], &c.TimeoutMillis) != nil || json.Unmarshal(fields["attachTimeoutMillis"], &c.AttachTimeoutMillis) != nil || json.Unmarshal(fields["tools"], &c.Tools) != nil {
 		return ChildConfig{}, ErrCall
 	}
-	c.Version = 2
-	if !filepath.IsAbs(c.Socket) || filepath.Dir(c.Socket) != filepath.Dir(path) || len(c.Socket) > 100 || len(c.Owner) != 22 || len(c.Secret) != 43 || c.TimeoutMillis < 1 || c.TimeoutMillis > (time.Hour+15*time.Second).Milliseconds() || len(c.Tools) > toolregistry.MaxTools {
+	c.Version = childConfigVersion
+	if !filepath.IsAbs(c.Socket) || filepath.Dir(c.Socket) != filepath.Dir(path) || len(c.Socket) > 100 || len(c.Owner) != 22 || len(c.Secret) != 43 || c.TimeoutMillis < 1 || c.TimeoutMillis > (time.Hour+15*time.Second).Milliseconds() || c.AttachTimeoutMillis < 1 || c.AttachTimeoutMillis > time.Minute.Milliseconds() || len(c.Tools) > toolregistry.MaxTools {
 		return ChildConfig{}, ErrCall
 	}
 	seen := make(map[string]bool)

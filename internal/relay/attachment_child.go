@@ -21,10 +21,10 @@ type Attachment struct {
 }
 
 func Attach(ctx context.Context, config ChildConfig) (*Attachment, error) {
-	if config.Version != 2 || config.SupervisorPID <= 1 {
+	if config.Version != childConfigVersion || config.SupervisorPID <= 1 || config.AttachTimeoutMillis < 1 || config.AttachTimeoutMillis > time.Minute.Milliseconds() {
 		return nil, ErrCall
 	}
-	setup, cancelSetup := context.WithTimeout(ctx, 5*time.Second)
+	setup, cancelSetup := context.WithTimeout(ctx, time.Duration(config.AttachTimeoutMillis)*time.Millisecond)
 	defer cancelSetup()
 	var dialer net.Dialer
 	connection, err := dialer.DialContext(setup, "unix", config.Socket)

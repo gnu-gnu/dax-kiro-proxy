@@ -47,6 +47,7 @@ type turn struct {
 	inputEstimate       status.InputEstimate
 	previousEstimate    status.InputEstimate
 	visibleOutput       status.VisibleOutput
+	progressTools       map[[32]byte]struct{}
 }
 type round struct {
 	turn              *turn
@@ -88,19 +89,11 @@ func (r *round) Next(ctx context.Context) (inference.Event, error) {
 			return inference.Event{}, err
 		}
 		if available {
-			text, visible, err := t.notification(event)
-			if err != nil {
-				return inference.Event{}, err
+			out, err := r.notification(event)
+			if err != nil || out.Kind != 0 {
+				return out, err
 			}
-			if !visible {
-				continue
-			}
-			if r.text.Len()+len(text) > 16<<20 {
-				return inference.Event{}, acp.ErrFrameTooLarge
-			}
-			r.text.WriteString(text)
-			t.visibleOutput.AddText(text)
-			return inference.Event{Kind: inference.Text, Text: text}, nil
+			continue
 		}
 		select {
 		case <-t.done:
@@ -111,19 +104,11 @@ func (r *round) Next(ctx context.Context) (inference.Event, error) {
 				return inference.Event{}, err
 			}
 			if available {
-				text, visible, err := t.notification(late)
-				if err != nil {
-					return inference.Event{}, err
+				out, err := r.notification(late)
+				if err != nil || out.Kind != 0 {
+					return out, err
 				}
-				if !visible {
-					continue
-				}
-				if r.text.Len()+len(text) > 16<<20 {
-					return inference.Event{}, acp.ErrFrameTooLarge
-				}
-				r.text.WriteString(text)
-				t.visibleOutput.AddText(text)
-				return inference.Event{Kind: inference.Text, Text: text}, nil
+				continue
 			}
 			if t.resultErr != nil {
 				return inference.Event{}, t.resultErr
@@ -180,9 +165,10 @@ func (r *round) Next(ctx context.Context) (inference.Event, error) {
 		}
 	}
 }
-func (t *turn) notification(event acp.Notification) (string, bool, error) {
+func (r *round) notification(event acp.Notification) (inference.Event, error) {
+	t := r.turn
 	if event.SessionID != "" && event.SessionID != t.id {
-		return "", false, acp.ErrProtocol
+		return inference.Event{}, acp.ErrProtocol
 	}
 	if event.Method != "session/update" {
 		if event.Method == "_kiro.dev/commands/available" && event.SessionID == t.id {
@@ -191,29 +177,40 @@ func (t *turn) notification(event acp.Notification) (string, bool, error) {
 		if event.Method == "_kiro.dev/metadata" && event.SessionID == t.id {
 			t.metadata.Apply(event.Params)
 		}
-		return "", false, nil
+		return inference.Event{}, nil
 	}
 	if event.SessionID != t.id {
-		return "", false, acp.ErrProtocol
+		return inference.Event{}, acp.ErrProtocol
 	}
 	fields, err := ndjson.Object(event.Params)
 	if err != nil {
-		return "", false, acp.ErrProtocol
+		return inference.Event{}, acp.ErrProtocol
 	}
 	update, err := ndjson.Object(fields["update"])
 	var kind string
 	if err != nil || !strictString(update["sessionUpdate"], &kind) {
-		return "", false, acp.ErrProtocol
+		return inference.Event{}, acp.ErrProtocol
 	}
 	if kind != "agent_message_chunk" {
-		return "", false, nil
+		if t.progress(kind, update) {
+			return inference.Event{Kind: inference.Progress}, nil
+		}
+		return inference.Event{}, nil
 	}
 	content, err := ndjson.Object(update["content"])
 	var typ, text string
 	if err != nil || !strictString(content["type"], &typ) || typ != "text" || !strictString(content["text"], &text) {
-		return "", false, acp.ErrProtocol
+		return inference.Event{}, acp.ErrProtocol
 	}
-	return text, text != "", nil
+	if text == "" {
+		return inference.Event{}, nil
+	}
+	if r.text.Len()+len(text) > 16<<20 {
+		return inference.Event{}, acp.ErrFrameTooLarge
+	}
+	r.text.WriteString(text)
+	t.visibleOutput.AddText(text)
+	return inference.Event{Kind: inference.Text, Text: text}, nil
 }
 func (r *round) Finish() {
 	r.mu.Lock()

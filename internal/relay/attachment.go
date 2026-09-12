@@ -1,6 +1,7 @@
 package relay
 
 import (
+	"context"
 	"crypto/subtle"
 	"encoding/json"
 	"errors"
@@ -23,6 +24,12 @@ func (s *Socket) BindProcess(pid int) error {
 	defer s.mu.Unlock()
 	if s.closed || s.group != 0 {
 		return ErrClosed
+	}
+	if err := s.cfg.SetupContext.Err(); err != nil {
+		return err
+	}
+	if deadline, ok := s.cfg.SetupContext.Deadline(); ok && !time.Now().Before(deadline) {
+		return context.DeadlineExceeded
 	}
 	s.group = pid
 	close(s.groupReady)
@@ -47,14 +54,26 @@ func (s *Socket) attach(conn *net.UnixConn, fields map[string]json.RawMessage) {
 	if err != nil || pid <= 1 || pid == os.Getpid() {
 		return
 	}
-	timer := time.NewTimer(s.cfg.ReadTimeout)
-	defer timer.Stop()
 	select {
 	case <-s.groupReady:
-	case <-s.closing:
-		return
-	case <-timer.C:
-		return
+	default:
+		timer := time.NewTimer(s.cfg.AttachTimeout)
+		defer timer.Stop()
+		select {
+		case <-s.groupReady:
+		case <-s.closing:
+			return
+		case <-s.cfg.SetupContext.Done():
+			// Successful setup cancels its context too. A binding made before that boundary
+			// remains valid for a child that is already connecting or starts later.
+			select {
+			case <-s.groupReady:
+			default:
+				return
+			}
+		case <-timer.C:
+			return
+		}
 	}
 	s.mu.Lock()
 	if s.closed || s.peer != 0 {
