@@ -7106,3 +7106,85 @@ all 18 component checks pass. Independent comparison matches all 105 inputs agai
 An initial bootstrap toolchain check fails with its checksum database disabled, before testing;
 using the existing reviewed Go binary directly resolves that environment issue. No production
 correction, refreeze or reinstall is needed.
+
+## D139: Concurrent native tool results, hook refusals and cancellation
+
+On `d139-concurrent-native-tools`, based on `9c9adbb`, this test-only batch addresses the
+combined native-client coverage remaining after D120/D135/D136. Two actual Claude 2.1.269
+print clients share one authenticated gateway, manager and two-process pool. Each has a
+separate private profile, native session ID, owned source settings and independent ACP/relay
+processes. Both use the same owned project, with distinct Read files and markers. The proxy
+does not execute client tools; the independent peer only asks the supplied MCP relay to Read.
+
+Each tool round waits for both clients and both ACP/relay owners to be alive before releasing
+the handoffs. One client may Read; the other's native PreToolUse hook refuses every Read.
+The observer checks exact paths, IDs, statuses and round-specific allowed markers, excludes the
+other session's marker from the complete normalized request, and requires one unchanged ACP
+prompt per client. The peer separately checks the MCP response ID and allowed marker or
+configured hook refusal reason; refusals must not contain the file marker. Before the
+last pair is delivered, one native client is canceled. Its ACP/relay group must join before
+the sibling's final handoff is released. The server-side cancellation callback must return
+and the relay configuration disappear too. That sibling then receives its final refusal and
+completes visibly. Both HTTP and MCP reject the other session's marker. The withheld tool is
+never counted as delivered or completed.
+
+Default coverage is eight paired rounds; `DAX_INTEROP_TOOL_SOAK_ROUNDS=128` selects the
+maximum, with an eight-minute episode/client/peer bound. Each peer admits one prompt, sixteen
+ACP input frames of at most 8 MiB, a 64-KiB plan and per-call MCP replies of at most 64 KiB.
+Client stdout stays in bounded memory (1 MiB each), stderr goes to the null device, and output
+drain after exit has a three-second join bound. All fixture files and processes are owned.
+No actual Kiro, model credits, login/logout or user project is involved.
+
+After four tool rounds, every paired wait samples open descriptors, goroutines and post-GC
+Go heap in the test process hosting the gateway. The envelope is +4 descriptors, +16 goroutines
+and +16 MiB over that warm sample. Separate retained descriptor/goroutine/heap controls must
+exceed it and then settle after release. Other guard controls reject crossed session/call
+ownership, wrong paths/status/content, repeated results and canary disclosure in a refusal.
+An initial guard fixture encoded content with Go field names instead of protocol keys;
+correcting that test input makes its positive controls pass. A first integration compile
+attempt also corrects the fingerprint type and relay-limit field. Neither is a product defect.
+Initial local controls pass in 1.963s/1.218s (`d139-final-observers.log`); earlier attempts are
+retained in `d139-observer-first.log` and `d139-before-native.log`.
+
+Self-review finds two observer weaknesses: an unrelated error could count as hook refusal,
+and a round-10 marker contained the round-1 marker. Each has a failing counterexample in both
+observers (`d139-refusal-before.log`, `d139-round-before.log`). Requiring the configured hook
+reason and a delimited round marker fixes both. Focused race passes in 1.843s/1.824s
+(`d139-round-after.log`); the eight-round native control with the hook reason passes in
+5.293s (`d139-native-refusal-8.log`). These are test corrections, not product defects.
+
+Independent review of `93fafeb` identifies three more observer gaps: first-arrival liveness
+was not rechecked at the paired barrier, process disappearance did not establish that server
+cancellation had returned, and the MCP observer did not reject the other session's marker.
+Five counterexamples fail (`d139-review-before.log`): loss of the first ACP or relay after
+arrival, a held cancellation callback despite gone owners, and foreign content mixed into an
+allowed result or refusal. The corrections recheck both backend pairs at the paired barrier,
+wait for the cancellation callback plus group/relay/config removal before releasing the
+sibling, and reject the foreign marker in MCP replies. Focused race then passes in
+1.983s/1.766s (`d139-review-after.log`). These also correct only the test observers.
+
+The final 128-round run, including the review corrections, bounded drain and explicit HTTP
+cleanup checks, passes under race in 20.50s (21.839s package, `d139-native-reviewed-128.log`).
+The active loop lasts 16.092 seconds. All 257 HTTP requests, 127 allowed results, 128 hook
+refusals and two original ACP prompts match. Post-warm-up FD/goroutine counts stay 30/50.
+Heap grows from 790,128 to a peak of 1,252,936 bytes. Final values are 5/2/750,584.
+Source settings and all 256 Read files stay unchanged. Recorded groups, relay directories,
+private profiles and HTTP handlers/connections join. Related race passes all five packages
+in `d139-related-race.log`
+(interop 35.966s, session 75.334s, ACP 5.867s, pool 2.621s, fake peer 1.296s). Final related vet
+passes (`d139-final-vet.log`), as does changed-package vet after independent review
+(`d139-reviewed-vet.log`). Both changed packages pass full race again in 36.817s/1.229s
+(`d139-reviewed-packages-race.log`). The installed D138 and current production inputs still pass
+144 byte checks (`d139-reviewed-inventory.log`); no rebuild or installation is required.
+
+This is a finite mixed native-client concurrency control, not a new production fix or proof
+of long-duration stability. It does not exercise actual Kiro inference/policy, interactive
+permission UI, multiple sessions sharing one ACP process, or installed-proxy/backend RSS.
+Those broader gates and personal-instruction preservation remain open; D134 remains
+unapproved and unrun. No dependency, provider behavior or public support scope changes.
+
+Follow-up independent review accepts `da54c95` with all three findings resolved and no remaining
+actionable finding. The reviewer confirms complete reading of all seventeen mandatory documents
+and the amended paragraphs/evidence. Its focused observer race passes in 1.426s/1.222s;
+changed-package vet, whitespace checks and the strictly resolved installed/current 144-byte-check
+inventory pass. No additional correction, production refreeze or installation is needed.

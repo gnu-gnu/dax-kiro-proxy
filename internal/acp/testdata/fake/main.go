@@ -58,6 +58,10 @@ func main() {
 		nativeToolHistory()
 		return
 	}
+	if mode == "native-tool-soak" {
+		nativeToolSoakFixture()
+		return
+	}
 	if mode == "native-image-history" {
 		nativeImageHistory()
 		return
