@@ -17,8 +17,8 @@ does not redefine completion around an intermediate phase.
   request-shape probe records roles, block kinds and digests only. Verified with the measured
   2.1.267 (74 of 74 installed-client controls) and, after adapting the three recreation-expecting
   controls, with 2.1.268 (the output-style form remains for its own decision); the live D71 variant
-  awaits its authorized rerun. Production change; the artifact snapshot is recorded in
-  DEPENDENCY_REVIEW.md.
+  passes on the actual Kiro with one launch (18.05s). Production change; the artifact snapshot is
+  recorded in DEPENDENCY_REVIEW.md.
 - D122 raises the interactive client lifetime to the seven-day ceiling and classifies its expiry,
   handles SIGHUP like an interrupt, separates "run needs a foreground terminal" (exit 2, nothing
   started) from a failed terminal restore, names absent or rejected executables with their found

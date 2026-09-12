@@ -5952,4 +5952,7 @@ leaving only the personal output-style control, whose 2.1.268 form (the style bo
 message) is measured separately. The whole-repository opt-ins-off race suite (interop 28.258s,
 launcher 34.141s, session 29.282s; `d123-all-race.log`) and vet pass. The credit-consuming live
 variant of the denial probe (`TestKiroLiveDefaultClientDenialRecreation`, D71) now expects the
-deferral and awaits its authorized rerun on the actual Kiro.
+deferral, and its user-authorized rerun on the actual Kiro 2.21.3 with the measured 2.1.267 passes
+at the first attempt: one launch, the denied result matched into the pending prompt, one final
+completion, the standing rotation observed at HTTP, relay and group gone (18.05s,
+`d123-live-default-denial.log`).

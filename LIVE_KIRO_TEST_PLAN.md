@@ -19,10 +19,12 @@ the user authorized re-running every credit-consuming control on the measured 2.
 all eighteen pass, two earlier that day and sixteen in one package run (877.124s package;
 `live-recheck-kiro2213-claude21267.log`, `live-recheck-2-kiro2213-claude21267.log`). A nineteenth
 credit-consuming control, D120's twenty-turn live soak of one session, passed later that day
-(59.55s; `d120-live-soak-20.log`). D58's resource observations sent no model prompt. The
-native-effect experiment below was prepared for one fresh 2.21.2 attempt after the read-only
-isolation prerequisites passed, retaining its prompt, bounds and explicit credit opt-in; it passed
-then and again in the 2026-09-11 re-verification. The user's continuing authorization covered those
+(59.55s; `d120-live-soak-20.log`). On 2026-09-12 the D71 default-client denial control was rerun
+under D123's deferral semantics with the measured 2.1.267 and passes with one launch (18.05s;
+`d123-live-default-denial.log`). D58's resource observations sent no model prompt. The native-effect
+experiment below was prepared for one fresh 2.21.2 attempt after the read-only isolation
+prerequisites passed, retaining its prompt, bounds and explicit credit opt-in; it passed then and
+again in the 2026-09-11 re-verification. The user's continuing authorization covered those
 prerequisites and that bounded follow-up. Release policy stays closed; development `run` is enabled
 (D62).
 
