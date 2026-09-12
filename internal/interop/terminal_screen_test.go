@@ -134,11 +134,13 @@ func statusTerminalScreen(raw []byte) string {
 				case 'r':
 					// The observed full-screen DECSTBM resets the cursor as well as margins.
 					// This observer does not interpret partial scrolling regions or origin mode.
-					bottom := value(1, rows)
-					if bottom == 0 {
-						bottom = rows
+					// Match numeric defaults exactly; an oversized parameter must not become
+					// a default through value's fallback and fabricate a cursor movement.
+					top, bottom := strings.TrimLeft(params[0], "0"), ""
+					if len(params) > 1 {
+						bottom = strings.TrimLeft(params[1], "0")
 					}
-					if len(params) <= 2 && n == 1 && bottom == rows {
+					if len(params) <= 2 && (top == "" || top == "1") && (bottom == "" || bottom == strconv.Itoa(rows)) {
 						x, y = 0, 0
 					}
 				}
@@ -242,6 +244,10 @@ func TestStatusScreenDistinguishesPrivateQueriesAndMarginReset(t *testing.T) {
 		{"margin-reset", "\x1b[r", 0, 0},
 		{"full-margins", "\x1b[1;40r", 0, 0},
 		{"default-margins", "\x1b[0;0r", 0, 0},
+		{"padded-full-margins", "\x1b[0001;0040r", 0, 0},
+		{"oversized-top", "\x1b[10001r", 4, 3},
+		{"oversized-bottom", "\x1b[1;10001r", 4, 3},
+		{"overflow-top", "\x1b[999999999999999999999999r", 4, 3},
 		{"ordinary-cursor-restore", "\x1b[s\x1b[2;2H\x1b[u", 4, 3},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

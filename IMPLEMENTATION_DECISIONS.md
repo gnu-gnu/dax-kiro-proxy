@@ -6145,8 +6145,8 @@ is visible and all recorded owners and terminal state clean up.
 
 The two-launch control passes on 2.1.269 (17.88 s test, 18.113 s package,
 `d126-trust-screen-269.log`) and, after removing temporary diagnostics, on 2.1.268 (18.15 s test,
-19.313 s package, `d126-trust-screen-268.log`). The complete 2.1.269 installed-client regression then
-passes 75/75 (579.147 s,
+19.313 s package, `d126-trust-screen-268.log`). The complete 2.1.269 installed-client regression
+then passes 75/75 (579.147 s,
 `d126-client-269-batch.log`), including the final trust navigator without temporary diagnostics
 (17.63 s test), selected output-style placement and all terminal controls. The final repository-wide
 race suite passes all 27 tested packages (`d126-all-race.log`, package parallelism limited to two,
@@ -6159,4 +6159,16 @@ snapshot follow this code commit and are recorded separately in DEPENDENCY_REVIE
 The clean `3302837` build is frozen as `measured-client-269` and installed. All 143 byte checks
 pass against the candidate and resolved installed executable; the component record passes its
 18 checks. Doctor reports both versions measured, login/policy verified and launch available.
-DEPENDENCY_REVIEW.md records the exact hash and scope. Independent review and merge remain pending.
+DEPENDENCY_REVIEW.md records the exact hash and scope.
+
+Independent review finds that the shared numeric parser defaults oversized or overflowing margin
+parameters, incorrectly homing the cursor for unsupported values (`d126-independent-review.md`).
+Three new negative fixtures fail before correction (`d126-review-margin-before.log`). The margin
+branch now compares canonical decimal values directly to the supported full-screen defaults;
+oversized values cannot become defaults. A padded-decimal positive control and all ten control
+cases pass within the complete interop race package (26.704 s, `d126-review-interop-race.log`),
+followed by interop vet. The native two-launch trust check passes again on 2.1.269 (18.76 s test,
+19.514 s package, `d126-review-native-trust.log`). The older review preface now names the installed
+D126 build, and the touched prose is wrapped. These fixes change tests and documents only: the
+installed `3302837` artifact still passes all 143 byte checks, so it needs no refreeze.
+Follow-up review and merge remain pending.
