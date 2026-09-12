@@ -2311,6 +2311,10 @@ opt-in zero. An initial peer control found and fixed its null-ID parser before t
 that fixture defect is not a product finding. The complete interop race suite and peer controls
 also pass in 26.575s and 1.396s (`d134-interop-race.log`); focused vet exits zero
 (`d134-interop-vet.log`). All installed-client and Kiro opt-ins remain off.
+These controls exercise the peer over an in-memory pipe and the ACP observer with independent
+event sequences. They do not execute the new peer's process entry point, its blocked-output
+outer exit timer or the complete native ACP/MCP call combination. Earlier no-prompt process
+observations used the separate prototype; they are not an execution of this prepared harness.
 
 The following single command requires new explicit per-run approval. It may send up to two ACP
 prompts to the Kiro service and consume credits; ACP prompt count is not a billed-call or cost

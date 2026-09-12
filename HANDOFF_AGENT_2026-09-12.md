@@ -114,6 +114,9 @@ timeout. Independent peer/observer controls and the opt-ins-off interop race sui
 exact two-case live command in LIVE_KIRO_TEST_PLAN.md has no new per-run approval or actual
 model result yet. No production code or installed D133 artifact changes; call semantics and
 client approval-wait alignment remain open.
+Independent review accepts `329558c` plus the explicit local-coverage clarification. Focused
+race/vet and the installed D133's 144 byte checks pass. The exact paired command is ready to
+request per-run approval; no production fix or refreeze is needed for this preparation.
 
 ## 1. State you inherit
 
