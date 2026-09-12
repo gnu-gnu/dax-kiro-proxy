@@ -129,6 +129,9 @@ soak, prepared policy and shared ACP remain separate; D134's model approval is s
 The complete related race suites and final vet pass; an existing test-peer cancel closure is
 made explicit and its twelve progress controls pass. Installed D133/current inputs pass all
 144 byte checks. No rebuild or installation is required for these test-only changes.
+Independent review finds one SSE observer issue. Six counterexamples reproduce invalid
+lifecycle acceptance; explicit start/terminal ordering fixes it, with all observer controls,
+eight HTTP waves (6.813s) and session vet passing. Post-response cleanup evidence is clarified.
 
 ## 1. State you inherit
 

@@ -57,11 +57,22 @@ func TestBatchRecoveryRejectsMissingOrChangedThirdCall(t *testing.T) {
 }
 
 func TestBatchSSERejectsIncompleteToolSequence(t *testing.T) {
-	for _, fault := range []string{"none", "missing-input", "missing-third-stop", "foreign-index", "missing-terminal", "duplicate-terminal"} {
+	for _, fault := range []string{"none", "missing-input", "missing-third-stop", "foreign-index", "missing-terminal", "duplicate-terminal", "missing-start", "duplicate-start", "early-terminal", "early-delta", "post-terminal-content", "post-terminal-start"} {
 		t.Run(fault, func(t *testing.T) {
 			var wire strings.Builder
 			packet := func(v any) { data, _ := json.Marshal(v); wire.WriteString("data: " + string(data) + "\n\n") }
-			packet(map[string]string{"type": "message_start"})
+			if fault != "missing-start" {
+				packet(map[string]string{"type": "message_start"})
+			}
+			if fault == "duplicate-start" {
+				packet(map[string]string{"type": "message_start"})
+			}
+			if fault == "early-terminal" {
+				packet(map[string]string{"type": "message_stop"})
+			}
+			if fault == "early-delta" {
+				packet(map[string]any{"type": "message_delta", "delta": map[string]string{"stop_reason": "tool_use"}})
+			}
 			for i := range 3 {
 				packet(map[string]any{"type": "content_block_start", "index": i, "content_block": map[string]any{"type": "tool_use", "id": fmt.Sprintf("owned-%d", i), "name": "batch_action", "input": map[string]any{}}})
 				if fault != "missing-input" || i != 2 {
@@ -71,16 +82,24 @@ func TestBatchSSERejectsIncompleteToolSequence(t *testing.T) {
 					}
 					packet(map[string]any{"type": "content_block_delta", "index": index, "delta": map[string]string{"type": "input_json_delta", "partial_json": fmt.Sprintf(`{"n":%d}`, i+1)}})
 				}
-				if fault != "missing-third-stop" || i != 2 {
+				if (fault != "missing-third-stop" && fault != "post-terminal-content") || i != 2 {
 					packet(map[string]any{"type": "content_block_stop", "index": i})
 				}
 			}
-			packet(map[string]any{"type": "message_delta", "delta": map[string]string{"stop_reason": "tool_use"}})
-			if fault != "missing-terminal" {
+			if fault != "early-delta" {
+				packet(map[string]any{"type": "message_delta", "delta": map[string]string{"stop_reason": "tool_use"}})
+			}
+			if fault != "missing-terminal" && fault != "early-terminal" {
 				packet(map[string]string{"type": "message_stop"})
 			}
 			if fault == "duplicate-terminal" {
 				packet(map[string]string{"type": "message_stop"})
+			}
+			if fault == "post-terminal-content" {
+				packet(map[string]any{"type": "content_block_stop", "index": 2})
+			}
+			if fault == "post-terminal-start" {
+				packet(map[string]string{"type": "message_start"})
 			}
 			result, err := decodeBatchSSE([]byte(wire.String()))
 			if (err == nil) != (fault == "none") {

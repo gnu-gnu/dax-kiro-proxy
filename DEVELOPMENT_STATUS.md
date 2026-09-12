@@ -20,6 +20,10 @@ does not redefine completion around an intermediate phase.
   Complete session/interop/ACP/fake-package race suites pass. Explicit fake-package vet finds
   an existing indirect-cancel warning; a one-line explicit defer passes its twelve progress
   controls and final related vet. Installed D133/current-input verification passes 144 checks.
+  Independent review finds an SSE observer accepting missing starts or content after an early
+  terminal. Six counterexamples reproduce it; explicit lifecycle checks, all observer controls
+  and the eight HTTP waves then pass (6.813s), with session vet passing. Old-owner disappearance
+  is observed after recovery, without an independent pre-dispatch timing witness.
 
 - D134 prepares one bounded MCP call-timeout comparison for HANDOFF item 13. Local protocol
   and observer race controls pass with Kiro opt-in off; no actual model run or new approval is

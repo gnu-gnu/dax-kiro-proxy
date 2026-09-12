@@ -152,7 +152,7 @@ func decodeBatchSSE(data []byte) (anthropic.Response, error) {
 	result := anthropic.Response{Type: "message"}
 	var inputs []string
 	var closed []bool
-	stops := 0
+	started, ended := false, false
 	for _, packet := range bytes.Split(bytes.TrimSpace(data), []byte("\n\n")) {
 		var raw []byte
 		for _, line := range bytes.Split(packet, []byte("\n")) {
@@ -173,8 +173,24 @@ func decodeBatchSSE(data []byte) (anthropic.Response, error) {
 		if json.Unmarshal(raw, &e) != nil {
 			return result, errors.New("owned SSE batch frame")
 		}
+		if ended {
+			return result, errors.New("owned SSE event after terminal")
+		}
+		if e.Type == "ping" {
+			continue
+		}
+		if !started && e.Type != "message_start" {
+			return result, errors.New("owned SSE message start missing")
+		}
+		if result.StopReason != nil && e.Type != "message_stop" {
+			return result, errors.New("owned SSE event after stop reason")
+		}
 		switch e.Type {
-		case "message_start", "ping":
+		case "message_start":
+			if started {
+				return result, errors.New("owned SSE repeated message start")
+			}
+			started = true
 		case "content_block_start":
 			if e.Index != len(result.Content) || len(result.Content) == 3 {
 				return result, errors.New("owned SSE block count")
@@ -203,17 +219,25 @@ func decodeBatchSSE(data []byte) (anthropic.Response, error) {
 				return result, errors.New("owned SSE delta kind")
 			}
 		case "message_delta":
-			if e.Delta.Stop == "" || result.StopReason != nil {
+			if e.Delta.Stop == "" || result.StopReason != nil || len(closed) == 0 {
 				return result, errors.New("owned SSE stop reason")
+			}
+			for _, done := range closed {
+				if !done {
+					return result, errors.New("owned SSE stop reason before block completion")
+				}
 			}
 			result.StopReason = &e.Delta.Stop
 		case "message_stop":
-			stops++
+			if result.StopReason == nil {
+				return result, errors.New("owned SSE terminal before stop reason")
+			}
+			ended = true
 		default:
 			return result, errors.New("owned SSE unexpected event")
 		}
 	}
-	if stops != 1 || result.StopReason == nil || len(closed) == 0 {
+	if !started || !ended || result.StopReason == nil || len(closed) == 0 {
 		return result, errors.New("owned SSE completion missing")
 	}
 	for _, done := range closed {

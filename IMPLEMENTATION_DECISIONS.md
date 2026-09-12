@@ -6851,6 +6851,8 @@ results, then accepts only the next question's delta on the same process. All 48
 MCP round trips, 24 abandoned denials and 24 joined ACP/relay owners are checked. Negative
 observer controls reject a changed third call/result, reordered results, changed old question,
 extra/nontext prompt parts, replayed calls and incomplete SSE tool sequences.
+Old-owner disappearance is observed after the recovery response, not independently before
+replacement dispatch; the existing production cleanup order is not a new timing measurement.
 
 The first HTTP recovery failed with a setup timeout (`d135-multi-call-http-first.log`,
 `d135-http-recovery-shape.log`, `d135-http-recovery-stage.log`). The harness had allowed the
@@ -6877,3 +6879,13 @@ prepared Kiro policy or shared-ACP-process checks. It launches no actual Claude 
 executes no client tool effects, so native approval/hooks and actual backend timing retain their
 separate evidence. D134's exact model experiment still awaits per-run approval. The installed
 D133 artifact and dependency inputs are unchanged; no rebuild or installation is required.
+
+Independent review of `8057d17` finds one test-observer issue: the SSE decoder accepts a missing
+start or content arriving after an early terminal. Six new lifecycle counterexamples reproduce
+that false success (`d135-sse-lifecycle-before.log`). Explicit one-start/one-terminal ordering
+now requires closed blocks before the stop reason and rejects events after completion. All
+observer controls and the eight real HTTP waves pass after the fix (session 6.813s,
+`d135-sse-lifecycle-after.log`), and session vet passes (`d135-sse-lifecycle-vet.log`). This changes
+only the test oracle. The record now explicitly limits old-owner absence to the post-response
+observation. The initial independent focused race checks also pass (15.346s/12.268s), with
+four-package vet and 144 installed-artifact checks passing (`d135-review-*.log`).
