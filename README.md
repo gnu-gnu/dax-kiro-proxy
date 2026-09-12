@@ -221,15 +221,18 @@ are outside the initial-session evidence; the proxy issues no configuration relo
 
 Default Claude Code traffic with 25 tools and its ordinary system prompt passes text and a Read
 hook-denial round trip through the real gateway/validator/relay with fake ACP. Exact full-history
-continuations can recreate after a changed standing instruction, validated tool registry (D70), or
-successful tool results followed by client text (D73), with joined cleanup, one original deadline
-and a default limit of sixteen recreations per turn. Unchanged result-only continuations keep their
-prompt. Recreation adds provider work and loses hidden backend context. Actual Kiro also passes
-default-tool Read hook refusal and one joined recreation (D71), with all 25 client tools and
-ordinary thinking/context declarations. D72's actual registry experiment reaches the wait, expanded
-tools, one plugin call and joined cleanup, but fails its final-answer marker condition; D119 later
-closes the actual-Kiro plugin skill and hook gate, leaving remote marketplaces and mid-session
-plugin changes open. Other lifecycle paths remain alpha checks. No general Messages/API
+continuations can recreate after a validated tool registry change (D70) or successful tool results
+followed by client text (D73), with joined cleanup, one original deadline and a default limit of
+sixteen recreations per turn. Result-only continuations keep their prompt, including when the client
+rotates its one-message standing instruction: the rotated message is recorded for history matching
+instead of recreating the session, and the backend sees the next prompt's own standing message
+(D123, which removes one recreation per conversation on Claude Code builds that rotate it, such as
+2.1.263 and 2.1.268). Recreation adds provider work and loses hidden backend context. Actual Kiro
+also passes default-tool Read hook refusal and one joined recreation (D71), with all 25 client tools
+and ordinary thinking/context declarations. D72's actual registry experiment reaches the wait,
+expanded tools, one plugin call and joined cleanup, but fails its final-answer marker condition;
+D119 later closes the actual-Kiro plugin skill and hook gate, leaving remote marketplaces and
+mid-session plugin changes open. Other lifecycle paths remain alpha checks. No general Messages/API
 compatibility is implied.
 
 Actual Kiro 2.21.2 and Claude 2.1.263 now also verify process loss before Read delivery, a client-visible
@@ -395,17 +398,17 @@ independent fixture) that samples the proxy's resident size, descriptors and pro
 after every turn; one authorized live soak against the actual Kiro also samples the backend process
 group's resident size under a first declared envelope.
 
-Phase 7 has frozen dependency inventories and retained scoped notices. For the D122 run-diagnostics
-development artifact, run `python3 tools/verify_dependency_inventory.py --gomodcache .cache/gomod
---snapshot run-diagnostics --binary dist/dax-kiro-proxy`. The default `development` snapshot
-identifies D78's earlier D77 binary, `installation` identifies D79, `native-history` identifies D87
-and `relay-close` identifies D96; `effort` identifies D99, `usage` identifies D101, `output-styles`
-identifies D108, `tool-images` identifies D109, `client-version` identifies D110–D112,
-`measured-client` identifies D113, `measured-kiro` identifies D114, `onboarding` identifies D115 and
-`project-trust` identifies D118. Those historical snapshots do not match this rebuild and its
-changed production source. These offline byte checks do not grant release clearance; see
-DEPENDENCY_REVIEW.md for the D121 component record, the three unattributed metaschema resources and
-the owner's external rights items.
+Phase 7 has frozen dependency inventories and retained scoped notices. For the D123
+deferred-standing development artifact, run `python3 tools/verify_dependency_inventory.py
+--gomodcache .cache/gomod --snapshot deferred-standing --binary dist/dax-kiro-proxy`. The default
+`development` snapshot identifies D78's earlier D77 binary, `installation` identifies D79,
+`native-history` identifies D87 and `relay-close` identifies D96; `effort` identifies D99, `usage`
+identifies D101, `output-styles` identifies D108, `tool-images` identifies D109, `client-version`
+identifies D110–D112, `measured-client` identifies D113, `measured-kiro` identifies D114,
+`onboarding` identifies D115, `project-trust` identifies D118 and `run-diagnostics` identifies D122.
+Those historical snapshots do not match this rebuild and its changed production source. These
+offline byte checks do not grant release clearance; see DEPENDENCY_REVIEW.md for the D121 component
+record, the three unattributed metaschema resources and the owner's external rights items.
 
 ## Naming
 

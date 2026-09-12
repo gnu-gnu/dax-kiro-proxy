@@ -69,7 +69,9 @@ func (d *Driver) restartForContinuation(ctx context.Context, r *anthropic.Reques
 		return nil, nil
 	}
 	repeated := d.repeatedSystem(previous.pendingHistory, suffix)
-	if stamp == previous.compat && repeated && !additionalText {
+	// A rotated one-message standing instruction on a result-only continuation is deferred to the
+	// next prompt by the resume path rather than recreating the session (D123).
+	if stamp == previous.compat && (repeated || rotatedStanding(previous.pendingHistory, suffix)) && !additionalText {
 		d.mu.Unlock()
 		return nil, nil
 	}

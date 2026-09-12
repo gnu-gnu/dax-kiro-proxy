@@ -31,7 +31,7 @@ func TestSuccessfulResultWithClientTextRecreatesExactHistory(t *testing.T) {
 	for _, changed := range []bool{false, true} {
 		t.Run(map[bool]string{false: "repeated_standing", true: "changed_standing"}[changed], func(t *testing.T) {
 			d := toolDriver(t, "chat-tools-restart", 10*time.Second, func(c *session.Config) { c.TurnTimeout = 10 * time.Second; c.Process.Limits.FrameBytes = frameLimit })
-			next, old := instructionHandoff(t, t.Context(), d)
+			next, old := instructionHandoff(t, t.Context(), d, false)
 			successfulResultText(t, next)
 			i := next.LatestUserIndex()
 			if !changed {
@@ -90,7 +90,7 @@ func TestSuccessfulResultTextRetainsDeadlineAndFailedReplacementCleanup(t *testi
 			ctx, cancel := context.WithTimeout(t.Context(), 1200*time.Millisecond)
 			defer cancel()
 			deadline, _ := ctx.Deadline()
-			next, old := instructionHandoff(t, ctx, d)
+			next, old := instructionHandoff(t, ctx, d, false)
 			successfulResultText(t, next)
 			turn, err := d.Start(t.Context(), next)
 			if err == nil {
@@ -115,7 +115,7 @@ func TestSuccessfulResultTextRetainsDeadlineAndFailedReplacementCleanup(t *testi
 
 func TestSuccessfulResultTextSharesRecreationBudget(t *testing.T) {
 	d := toolDriver(t, "chat-tools-system-repeat", 10*time.Second, func(c *session.Config) { c.MaxRecreations = 1; c.TurnTimeout = 10 * time.Second })
-	next, first := instructionHandoff(t, t.Context(), d)
+	next, first := instructionHandoff(t, t.Context(), d, false)
 	successfulResultText(t, next)
 	last, second := registryHandoff(t, t.Context(), d, next)
 	last.Messages = append(last.Messages, next.Messages[len(next.Messages)-1])

@@ -2950,8 +2950,10 @@ The shared prepared-process harness allows exactly two launches and one recreati
 original 45-second deadline. It proves old relay/group/artifact removal before the next preparation,
 checks the final live group before shutdown and requires both groups gone afterward. The client's
 ordinary changed standing message triggers the existing full-history path; no product exception is
-added. The fake's launch-manifest variant checks the full projection, exact historical Read and
-owned denial before completing its replacement prompt. Raw request/output data is not persisted.
+added (D123 later defers a rotated one-message standing instruction on result-only continuations
+instead of recreating). The fake's launch-manifest variant checks the full projection, exact
+historical Read and owned denial before completing its replacement prompt. Raw request/output data
+is not persisted.
 
 default-denial-rehearsal.gHGa9W passes the prepared default-client control plus earlier default and
 single-tool controls in 14.364s under race. The new case takes 3.26s, with 25 tools, unchanged policy/
@@ -5891,3 +5893,77 @@ phase and exits 2 with "run needs a foreground terminal" after removing its runt
 (runtime_cleanup 3ms); `run --tool-timeout 0s` is a usage error; `run --model no-such-model-zz`
 exits 2 with the catalog message naming `dax-kiro-proxy models` (`d122-install.log`,
 `d122-run-nontty.log`).
+
+## D123: defer a rotated standing instruction instead of recreating the session
+
+D63 measured, on Claude Code 2.1.263 in its default configuration, that the trailing per-message
+system text of the first request (7,231 bytes) is replaced on the next request by the 49-byte
+token-budget line, and chose a bounded full-history recreation for that changed standing
+instruction; D71 verified that path with the actual Kiro and added no product exception. The
+measured 2.1.267 build did not rotate the standing message in the print configuration the fixture
+controls use, so the recreation never appeared in them. The host's self-updated 2.1.268 (admitted
+unmeasured under D110) rotates it again, now in every configuration: the first request's trailing
+system message carries an environment block (about 395 bytes, varying per run) and, when an output
+style is selected, the style body; from the second request on, that message moves into the history
+as a system-role message and the trailing message is the budget line. A structural probe
+(`TestClaudeToolResultRequestShapeProbe`, which records roles, block kinds and content digests only)
+shows two backend starts on 2.1.267 and three on 2.1.268 for one denied-tool continuation; twelve
+tool-result controls and the two held-hook compiled controls failed on 2.1.268 for that reason, and
+every interactive conversation on that build paid one session recreation, with its full-history
+replay and lost hidden backend context, at its first tool result.
+
+The recreation was never required by the transport: the pending backend turn already holds the
+standing instruction it was given, the client re-sends the current standing message with every
+request, and a result-only continuation projects nothing into the backend beyond the results
+themselves. This decision therefore defers a rotated standing instruction instead of recreating. On
+the result-only continuation path (`resume`), a suffix of exactly one nonempty text-only system
+message that replaces a one-message standing sequence (the same shape D63's recreation rule
+accepted) is now treated like a repeated one: the results resolve into the pending relay call, the
+same process answers, and the rotated message is recorded in the history digest so later requests
+still match; the rotated text itself is not delivered to the backend, which next receives whatever
+standing message accompanies the next prompt, unless a later full projection replays the history.
+`restartForContinuation` no longer starts a replacement for that shape, and the
+all-denial/new-question recovery (`restartAfterDenial`) accepts it as well, since its fresh
+full-history prompt carries the standing suffix itself. Everything else is unchanged: results
+followed by client text (D73) and changed registries (D70) still recreate with the exact-prefix
+rule; stacked standing sequences, non-text standing blocks, changed owner/model/effort/registry,
+foreign or duplicate results and replay still reject without consuming pending ownership; the
+recreation budget is untouched by deferrals. A rotated message that the client keeps sending, such
+as the budget line, therefore reaches the backend with the next ordinary prompt; a message the
+client sends once and then absorbs into history is not delivered, which the earlier full replay
+would have done, and that is accepted for the measured shapes (the environment block and the
+output-style body are given to the backend as the first prompt's standing message, and the budget
+line recurs). The deferral path inherits the ordinary resume path's overlap rule rather than D63's
+exact-prefix proof: like a repeated standing instruction it re-projects nothing, so a truncated
+overlap is not rejected there.
+
+Witnesses: the session unit controls now pin, for error and successful results, that a rotated
+standing instruction resumes the same process with the pending relay result, that the completed
+result cannot be replayed, and that the next question on the same process carries the rotated
+message and not the original one; the invalid variants (other owner, model, effort, registry,
+altered history, empty, duplicated or foreign results, an assistant trailing message, two trailing
+system messages, a non-text standing block) still reject with pending ownership intact; the
+recreation controls keep their semantics through the results-with-text path, and a result-only
+rotation no longer consumes the recreation budget; the denial-recovery control rejects a stacked or
+non-text standing sequence in place of the former changed-instruction case. Nothing in the
+projection, relay, history hashing or cleanup changes. Three installed-client controls that had
+asserted the recreation (the default-client denial probe with its live variant, the default request
+through the gateway and the plugin tool round trip) now expect one backend process, one launch and
+the same completion text, while the plugin wait flows keep their two-process expectation because
+they recreate through results followed by text. With the measured Claude Code 2.1.267 the complete
+installed-client batch passes 74 of 74 controls, the new shape probe included (590.784s package,
+`d123-client-2.1.267-batch.log`); with the self-updated 2.1.268 the same batch passes 70 of 74 when
+compiled before those three controls were adapted (`d123-client-2.1.268-batch.log`), and the adapted
+three plus the probe then pass (21.080s, `d123-2.1.268-adapted.log`, probe backend starts 3 → 2),
+leaving only the personal output-style control, whose 2.1.268 form (the style body in the standing
+message) is measured separately. The whole-repository opt-ins-off race suite (interop 28.258s,
+launcher 34.141s, session 29.282s; `d123-all-race.log`) and vet pass. The credit-consuming live
+variant of the denial probe (`TestKiroLiveDefaultClientDenialRecreation`, D71) now expects the
+deferral, and its user-authorized rerun on the actual Kiro 2.21.3 with the measured 2.1.267 passes
+at the first attempt: one launch, the denied result matched into the pending prompt, one final
+completion, the standing rotation observed at HTTP, relay and group gone (18.05s,
+`d123-live-default-denial.log`). That log records no client version; the build is known from the
+invocation. Limits: the request after a deferred continuation is shown to extend the same process by
+the session unit control and by the held-hook follow-up compiled control on 2.1.268, not by a
+real-client third request in one print session, which that client mode cannot issue; and the
+denial-recovery unit control now covers the rotated shape for both the live and the expired outcome.

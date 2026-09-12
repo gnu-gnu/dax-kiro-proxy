@@ -58,7 +58,9 @@ func (d *Driver) restartAfterDenial(ctx context.Context, r *anthropic.Request, r
 		pending, ids, owner = d.outcome.pending, d.outcome.ids, d.outcome.compat
 	}
 	plan, planErr := d.hasher.Plan(pending, r)
-	valid := owner == stamp && sameResultIDs(ids, results) && planErr == nil && plan.Mode == history.Extend && plan.Start == i && d.repeatedSystem(pending, r.Messages[i+1:])
+	// The fresh full-history prompt carries the standing suffix itself, so a rotated one-message
+	// standing instruction is as acceptable here as a repeated one (D123).
+	valid := owner == stamp && sameResultIDs(ids, results) && planErr == nil && plan.Mode == history.Extend && plan.Start == i && (d.repeatedSystem(pending, r.Messages[i+1:]) || rotatedStanding(pending, r.Messages[i+1:]))
 	d.mu.Unlock()
 	if !valid {
 		return false, inference.ErrRequest

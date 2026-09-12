@@ -111,8 +111,10 @@ func runClientToolProbe(t *testing.T, clientExecutable, kiroExecutable, effectKi
 			}
 		}
 	}
+	// The default client rotates its standing instruction at the first tool result; that rotation
+	// is deferred to the next prompt (D123), so only an explicit recovery needs a second launch.
 	launchBudget := int32(1)
-	if fullClient || effect != nil && effect.recoverNext {
+	if effect != nil && effect.recoverNext {
 		launchBudget = 2
 	}
 	emptyMCP := filepath.Join(root, "client-mcp.json")
@@ -313,8 +315,8 @@ func runClientToolProbe(t *testing.T, clientExecutable, kiroExecutable, effectKi
 		}
 		clientOK = clientOK && json.Unmarshal(result.Stdout, &completion) == nil && !completion.IsError && strings.TrimSpace(completion.Result) != ""
 		records, err := relayProcessRecords(relayExecutable)
-		if err == nil && len(records) == 2 {
-			finalGroup, _ = syscall.Getpgid(records[1].pid)
+		if err == nil && len(records) == int(launchBudget) {
+			finalGroup, _ = syscall.Getpgid(records[len(records)-1].pid)
 		}
 	}
 	serverErr := server.Close()
@@ -335,7 +337,7 @@ func runClientToolProbe(t *testing.T, clientExecutable, kiroExecutable, effectKi
 	}
 	groupGone := relayGroup.Load() > 1 && errors.Is(syscall.Kill(-int(relayGroup.Load()), 0), syscall.ESRCH)
 	if fullClient {
-		groupGone = groupGone && finalGroup > 1 && finalGroup != int(relayGroup.Load()) && errors.Is(syscall.Kill(-finalGroup, 0), syscall.ESRCH)
+		groupGone = groupGone && finalGroup > 1 && (launchBudget == 1 || finalGroup != int(relayGroup.Load())) && errors.Is(syscall.Kill(-finalGroup, 0), syscall.ESRCH)
 	}
 	canaryAfter, canaryErr := readDenialArtifact(project, filepath.Base(filename), 128)
 	marker, markerErr := readDenialArtifact(root, filepath.Base(hookMarker), 32)

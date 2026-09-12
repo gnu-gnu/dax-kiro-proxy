@@ -268,7 +268,9 @@ func observeClaudeDefaultRequest(t *testing.T, denyRead bool) {
 	fixtureArgs, answer, requests := []string{"chat"}, "birch stone", int32(1)
 	processLedger := filepath.Join(backendDir, "owned-processes")
 	if denyRead {
-		fixtureArgs, answer, requests = []string{"chat-tools-default-client", filepath.Join(project, "denied-fixture"), processLedger}, "independent client instruction restart complete", 2
+		// The denied result resolves into the pending prompt; the rotated standing instruction is
+		// deferred to the next prompt instead of recreating the session (D123).
+		fixtureArgs, answer, requests = []string{"chat-tools-default-client", filepath.Join(project, "denied-fixture"), processLedger}, "independent client relay complete", 2
 	}
 	driver, err := session.New(session.Config{Process: acp.Config{Executable: fake, Args: fixtureArgs, Directory: backendDir, Environment: []string{"HOME=" + home, "PATH=/usr/bin:/bin"}, ClientInfo: acp.Info{Name: "independent-default-client", Version: "1"}}, Validator: validator, RelayExecutable: proxy, SetupTimeout: 10 * time.Second, TurnTimeout: 15 * time.Second})
 	if err != nil {
@@ -338,8 +340,8 @@ func observeClaudeDefaultRequest(t *testing.T, denyRead bool) {
 	if denyRead {
 		data, err := os.ReadFile(processLedger)
 		pids := strings.Fields(string(data))
-		if err != nil || len(pids) != 2 {
-			t.Fatal("expected one joined ACP replacement")
+		if err != nil || len(pids) != 1 {
+			t.Fatal("expected the single ACP process to answer the deferred continuation")
 		}
 		for _, value := range pids {
 			pid, err := strconv.Atoi(value)

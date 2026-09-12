@@ -223,21 +223,26 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
   the original total deadline. Timeout/auth expiry while no response is open still cleans up the
   session; a matching later request observes only the scoped terminal outcome, never tool replay.
 - A tool-result request may repeat the complete most recent standing system-message sequence without
-  starting another ACP prompt. Changed, partial, reordered or older instructions and extra user text
-  reject on that same-prompt path before any pending result is consumed, except the separately
-  validated recreation cases below.
-- A changed text-only standing system message may recreate after a result-only user message when
-  the preceding standing sequence also has exactly one message. Require an exact complete prior-
-  history prefix and unchanged owner/model/effort/top-level system/metadata/tool-choice policy.
-  A validated changed registry may also recreate, including without a changed system suffix. Validate
-  the complete delivered batch, encoded result bounds and full projection before revocation. Wrong,
-  missing, duplicate, undelivered or oversized results and truncated overlap reject without mutation.
-  Join the old group and relay before creating a replacement with the full request history. Neither
-  the supplied results nor new instructions enter the old prompt; no tool is automatically replayed.
-  Bound recreations per logical turn (default sixteen), preserve the absolute deadline through setup
-  and further tool handoffs, and reject replay after completion or failed replacement. Exact repeated
-  suffixes continue normally, including after the restart allowance is exhausted. Multi-message
-  changed sequences remain unsupported. Distinguish actual-client/fake-ACP evidence from live Kiro.
+  starting another ACP prompt, or replace a one-message standing sequence with one nonempty
+  text-only system message, which is recorded in the history for matching and is not delivered to
+  the pending prompt; the backend next receives whatever standing message accompanies the next
+  prompt (D123). Partial, reordered, stacked or non-text instructions and extra user text reject on
+  that same-prompt path before any pending result is consumed, except the separately validated
+  recreation cases below.
+- A changed text-only standing system message recreates only together with client text (D73) or a
+  changed registry (D70); on a result-only user message it is deferred (D123). Where recreation
+  applies, the preceding standing sequence must also have exactly one message. Require an exact
+  complete prior- history prefix and unchanged owner/model/effort/top-level
+  system/metadata/tool-choice policy. A validated changed registry may also recreate, including
+  without a changed system suffix. Validate the complete delivered batch, encoded result bounds and
+  full projection before revocation. Wrong, missing, duplicate, undelivered or oversized results and
+  truncated overlap reject without mutation. Join the old group and relay before creating a
+  replacement with the full request history. Neither the supplied results nor new instructions enter
+  the old prompt; no tool is automatically replayed. Bound recreations per logical turn (default
+  sixteen), preserve the absolute deadline through setup and further tool handoffs, and reject
+  replay after completion or failed replacement. Exact repeated suffixes continue normally,
+  including after the restart allowance is exhausted. Multi-message changed sequences remain
+  unsupported. Distinguish actual-client/fake-ACP evidence from live Kiro.
 - A complete delivered result batch containing at least one success may be followed by nonempty
   client text in the same user message. Require all result blocks first and only text blocks after
   them. Recreate from the complete immutable prefix and full supplied content, including when the
@@ -256,14 +261,14 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
   marker is used, independently prove its final-response provenance and current visibility. Partial
   tool/cleanup evidence does not pass a failed end-to-end live experiment (D72).
 - A new user question following all matching client error results may abandon the old prompt only
-  with an exact compatible owner, proven history extension, results preceding text, and unchanged
-  repeated standing instructions. Join old process/relay cleanup before a fresh full-history prompt;
-  never resolve those results into the abandoned prompt, replay a tool or reuse canceled state. The
-  same proof may use the bounded five-minute retired outcome, which answers identical resubmissions
-  of the retired batch with the same terminal error until it expires or a new turn starts (D122).
-  Missing, duplicate, partial, successful, cross-owner or divergent results reject on this
-  all-denial/retired-outcome path without consuming recovery ownership; active D73 continuations
-  follow the separate rule above.
+  with an exact compatible owner, proven history extension, results preceding text, and repeated
+  standing instructions or one rotated text-only standing message (D123). Join old process/relay
+  cleanup before a fresh full-history prompt; never resolve those results into the abandoned prompt,
+  replay a tool or reuse canceled state. The same proof may use the bounded five-minute retired
+  outcome, which answers identical resubmissions of the retired batch with the same terminal error
+  until it expires or a new turn starts (D122). Missing, duplicate, partial, successful, cross-owner
+  or divergent results reject on this all-denial/retired-outcome path without consuming recovery
+  ownership; active D73 continuations follow the separate rule above.
 - Cancellation and timeout resolve all suspended relay calls and remove owner-only socket/config data.
 - MCP starts only after authenticated supervisor/child PID checks and verified ACP group membership.
   A peer cannot supply its own PID/group, forge a join, replay an attachment or replace a valid child.
