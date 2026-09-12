@@ -166,7 +166,10 @@ Clean code `3a13775` is rebuilt and installed as `terminal-delivery`, SHA-256
 `3d386e521b29bd41bbded9f8255d789ebce8c91b887ec7a6b8174a2775d4cea7`. Candidate and strictly
 resolved installed/current inputs pass 144 checks; all 18 component checks pass. The first
 doctor verifies measured versions, login/policy and launch availability. Independent review
-is pending; no actual Kiro model run or new credit approval occurs.
+accepts `4f767aa` without actionable findings. Focused race checks pass in 16.688s/4.674s;
+related vet, candidate/installed 144 checks, 18 component checks and independent build/source/
+package comparison also pass. No correction or refreeze is needed. No actual Kiro model run
+or new credit approval occurs.
 
 ## 1. State you inherit
 

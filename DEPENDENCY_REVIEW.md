@@ -1294,3 +1294,9 @@ installed doctor invocation verifies measured Kiro 2.21.3/Claude 2.1.269, login/
 availability (`d137-installed-doctor.json`). Client initialization remains unverified; release
 clearance remains false. D125 advisory scans remain historical; no new scan or actual Kiro
 model turn ran. Owner rights remain outside this repository under D121.
+
+Independent review accepts `4f767aa` without actionable findings. Candidate and strictly
+resolved installed binaries each pass 144 checks; all 18 component checks pass. Independent
+comparison confirms the clean binary metadata, all 105 committed inputs, exactly two production
+source changes and the current ordered 267-package graph. No correction or refreeze is needed
+(`d137-review-report.log`, `d137-review-artifact-metadata.log`).
