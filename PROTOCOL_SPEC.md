@@ -157,6 +157,15 @@ A streaming text response follows this order:
 
 A non-streaming response contains the equivalent single assistant message and text block.
 
+ACP `max_turn_requests` maps to Messages `pause_turn` (D130). This means a per-turn model-request
+limit, separately from `max_tokens`. Preserve every preceding text chunk and complete the HTTP
+response normally; successful finalization commits that answer and leaves the session idle.
+The proxy sends no automatic continuation. The measured Claude 2.1.269 text/print client also
+makes no automatic request for this response; an explicit next user question carries the prior
+answer through ordinary history reconciliation. This is not general assistant-prefill support.
+Existing `end_turn`, `max_tokens` and `refusal` retain their classes. An unresolved relay call,
+unknown/malformed ACP stop reason or unsupported non-text answer remains an explicit failure.
+
 Streaming responses send a public Anthropic `ping` during a silent wait, initially every 15 seconds.
 The first ping can commit the message headers before any model text. Pings do not satisfy the first
 usable-event deadline, reset total-turn time, count as model output, or change provider usage.

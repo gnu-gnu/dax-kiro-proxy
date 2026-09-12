@@ -122,7 +122,10 @@ func (r *round) Next(ctx context.Context) (inference.Event, error) {
 				return inference.Event{}, acp.ErrProtocol
 			}
 			switch stop {
-			case "end_turn", "max_tokens", "refusal":
+			case "end_turn", "max_tokens", "refusal", "max_turn_requests":
+				if stop == "max_turn_requests" {
+					stop = "pause_turn"
+				}
 				r.terminal = true
 				r.success = true
 				return inference.Event{Kind: inference.End, StopReason: stop}, nil

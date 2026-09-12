@@ -6427,3 +6427,69 @@ attempt failed session fixtures before handoff; no concrete socket denial was ob
 cause remains unestablished. The identical escalated command passes without source changes.
 The reviewer independently confirms both 144-check artifact results and all 18 component checks.
 No production fix, refreeze or additional installed-client/model run is needed for this review.
+
+## D130: preserve completion at the per-turn model-request limit
+
+Branch `d130-stop-reason`, based on `495a6e5`, addresses HANDOFF item 4's explicit ACP completion
+gap. Previously a valid `max_turn_requests` reply was classified as a protocol failure, losing
+buffered text and retiring the session; streaming emitted text but ended with an error. Only the
+session stop-reason mapping and gateway's permitted completion reasons change in production.
+
+Public references checked 2026-09-13:
+
+- [ACP prompt turns](https://agentclientprotocol.com/protocol/v1/prompt-turn) distinguish the
+  per-turn model-request count limit from token exhaustion and permit a later prompt after a turn
+  completes.
+- [Messages reasons](https://platform.claude.com/docs/en/build-with-claude/handling-stop-reasons)
+  use pause_turn for a server sampling-loop limit and describe resending the assistant response to
+  continue. Pending client tools instead require tool_use and their matching results.
+
+Mapping the ACP request-count limit to Messages `pause_turn` is this adapter's interoperability
+decision, supported by the local observations below. It does not claim universal client behavior
+or equivalence of private backend loops. Keep max_tokens and refusal distinct. Preserve all
+preceding text, including notifications drained after the correlated prompt result arrives.
+Successful response finalization commits the existing history and returns to idle. No automatic
+prompt, synthetic continuation instruction, output truncation or deadline extension is introduced.
+The next explicit user question follows normal history proof and delta dispatch. Failed delivery
+still cancels; unknown/malformed reasons and a reply with unresolved client tools still fail.
+Non-text answer output remains explicitly unsupported rather than discarded or replaced.
+
+First measure the unmodified Claude 2.1.269 against a local HTTP peer: both end_turn and pause_turn
+display the exact first text and exit successfully with one request, without an automatic retry
+(`d130-client-pause-observation.log`, 1.823s package). The strengthened history control then runs
+an explicit second question through native resume in the same owned profile. Both arms retain the
+first answer exactly once, the original question and the new question in the second request;
+both are accepted by the existing decoder (`d130-client-pause-history.log`, 2.477s package).
+The first attempt to launch that command was rejected before execution because automatic approval
+review timed out; its one permitted retry ran successfully. This was not a test or policy failure.
+
+Regression fixtures are authored before production changes. Six cases fail on the old code:
+queued/late-drained max_turn_requests, buffered/streaming HTTP continuation, and buffered/streaming
+gateway pause_turn admission (`d130-stops-before.log`). A safe local invocation helper then
+replaces the existing tool-test helper so future failures cannot print response content. Focused
+race controls pass (`d130-stops-after.log`, session 4.089s, gateway 1.876s): eight completion/drain
+cases, malformed/unknown/cancelled and non-text rejection, eight independent-process HTTP cases,
+and 36 gateway reason/tool/stream combinations. The independent peer is capped at two prompts,
+64 frames, 1 MiB input frames and 20 seconds; its witness retains only PID/count/delta facts.
+
+The complete native control additionally runs actual Claude through the real gateway/session and
+that independent ACP peer (`d130-client-gateway.log`, 5.413s race package). All three arms pass
+six explicit questions. The actual adapter preserves the first answer, completes the next question
+with the same backend owner and only its new delta, and joins both client launches and the ACP
+group. Source settings are unchanged and the temporary profile is removed. These text/print
+observations do not establish interactive or server-tool auto-continuation, nor actual Kiro limit
+behavior. Empty-output classification also has a separate unit control; it must invent no text.
+No actual Kiro model or credits are used. Full regression, installation and independent review
+follow these controls.
+
+The full opt-ins-off race suite passes all 27 tested packages with sequential package scheduling
+and unchanged internal concurrency (`d130-all-race.log`): session 38.948s, gateway 5.004s,
+relay 8.547s, interop 24.843s and launcher 30.648s. The empty-output classification control is
+included. Full vet exits successfully (`d130-all-vet.log`). The earlier combined vet/test command
+did not retain vet's separate exit status, so vet was rechecked as its own command.
+
+The three applicable existing actual-Claude/local-fake controls pass sequentially
+(`d130-client-core.log`, package 24.019s): launcher cancellation 3.94s, tool-result continuation
+2.02s and all six Read/Write/Bash allowance/refusal/hook cases 17.35s. Cancellation joins recorded
+ownership in 164ms; source settings and denied effects remain unchanged. No actual Kiro model
+ran. Artifact installation and fresh-context independent review remain pending.

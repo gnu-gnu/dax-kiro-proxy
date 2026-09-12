@@ -60,6 +60,14 @@ doctor verified). Independent review accepts `3065fd2` without an actionable fin
 focused race and artifact checks passing. No production fix or refreeze is needed. Other core
 candidates continue separately. No actual Kiro model ran.
 
+D129 merged as `495a6e5`. D130 on `d130-stop-reason` addresses item 4's public completion gap.
+The max_turn_requests reason now maps to pause_turn with exact text and ordinary history commit.
+Controlled Claude 2.1.269 observations preserve that answer on an explicit next question, with
+one request per input; the real gateway/independent ACP control also reuses the owner with only
+the new delta. All 27 race-tested packages, full vet and three existing native core controls pass
+(24.019s), including the six tool-policy cases. Artifact installation and independent review
+remain pending. Installed source remains D129; no actual Kiro model ran.
+
 ## 1. State you inherit
 
 - `main` is at `e07e591` (merge of D124). The working tree is clean. There is no remote; never push

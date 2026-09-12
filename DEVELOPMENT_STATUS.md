@@ -6,6 +6,17 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D130 in progress on d130-stop-reason (base 495a6e5) fixes the public ACP max_turn_requests
+  completion being treated as a protocol failure. It maps to pause_turn, preserves text/history,
+  and retains the normal explicit-next-question path without an automatic prompt. The corrected
+  session/gateway controls pass, including same-process delta continuation and invalid completion
+  rejection. Claude 2.1.269 direct end_turn/pause_turn controls and the real gateway with an
+  independent ACP peer pass all six explicit questions (5.413s race package), preserving the
+  original answer once and joining recorded ownership. All 27 race-tested packages and full vet
+  pass. Three existing native core controls also pass (24.019s), including all six tool-policy
+  cases, result continuation and joined cancellation. Artifact installation and independent review
+  remain pending. The installed artifact remains D129; no Kiro model ran.
+
 - D129 on d129-tool-outcomes (base bbc4335) fixes reproduced tool outcome loss
   between response write and Finish, and deadline causes hidden by cleanup/late completion.
   Sealing retains uncommitted candidate digests/IDs; normal results still require successful

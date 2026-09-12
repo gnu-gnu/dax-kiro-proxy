@@ -88,6 +88,11 @@ An exact retry must prove the same history and complete tool IDs; normal result 
 requires successful finalization. Known deadlines keep their cause through cleanup, and a late
 finalization cannot alter a new turn after recovery.
 
+D130 preserves the answer when ACP stops at its per-turn model-request limit. It emits
+`pause_turn`, retains the completed text and lets the next explicit question continue normally.
+The proxy does not issue an automatic continuation; the measured Claude 2.1.269 text/print
+control likewise sends one request per explicit question. This limit is distinct from max_tokens.
+
 D87 verifies explicit-ID text resume with fresh profiles, addresses, tokens and backend processes,
 using both an independent ACP peer and actual Kiro. D88 also verifies ordinary terminal `run`,
 keyboard exit and a new `run --resume UUID`: the previous answer appears before new input, followed
