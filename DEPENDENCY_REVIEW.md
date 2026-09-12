@@ -1263,4 +1263,8 @@ Candidate and strictly resolved installed binaries each pass all 144 byte checks
 invocation verifies measured Kiro 2.21.3/Claude 2.1.269, login/policy and launch availability
 (`d133-installed-doctor.json`). Client initialization remains unverified; release clearance
 remains false. D125 advisory scans remain historical; no new scan or actual Kiro model turn ran.
-Independent review follows. Owner rights stay outside this repository under D121.
+Independent review accepts `418988d` plus the corrected README installed-artifact label.
+Candidate, strictly resolved installed and retained binaries each pass 144 checks independently;
+all 18 component checks, embedded metadata, 105 committed/current inputs and current ordered
+package graph match. The post-document-fix verifier also passes. No production fix or refreeze
+is needed. Owner rights stay outside this repository under D121.

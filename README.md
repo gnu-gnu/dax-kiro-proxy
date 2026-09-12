@@ -43,7 +43,7 @@ experiment design; the explicit language selection supersedes comparative experi
 gate. The dependency inventory is complete for the darwin/arm64 development artifact (D121); the
 owner's rights and project-license decisions are outside this repository, and live-release gates
 remain open. Implementation began with independent fixtures and fake-process transport tests and now
-reaches an installed development artifact (D132); consult DEVELOPMENT_STATUS.md for verified
+reaches an installed development artifact (D133); consult DEVELOPMENT_STATUS.md for verified
 progress, `HANDOFF_REVIEW_2026-09-11.md` for the D109–D120 review brief and
 `HANDOFF_AGENT_2026-09-12.md` for the agent handoff after D124.
 

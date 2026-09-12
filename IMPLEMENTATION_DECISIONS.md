@@ -6762,7 +6762,7 @@ six Read/Write/Bash approval/refusal/hook cases, and image-result/native-resume 
 The image control observes the exact result encoding and one native image in both its initial
 turn and fresh resume, with Read hooks only once and complete source/ownership cleanup. No
 actual Kiro process, model request, login/logout or source-setting mutation is involved.
-Artifact and independent review results follow.
+Artifact and independent review results are recorded below.
 
 The clean `04eaad22d59fad672d31ba11bc65deccbf52bf0f` artifact is frozen as
 `third_party/inventory/macos-arm64-media-history.json`: 13,694,946 bytes, SHA-256
@@ -6776,4 +6776,16 @@ Install --force succeeds (`d133-install.log`). The first installed doctor invoca
 measured Kiro 2.21.3/Claude 2.1.269, login/policy and launch availability, with login_check
 2.217s (`d133-installed-doctor.json`, `d133-installed-doctor-timing.log`). Client initialization
 remains unverified and release clearance remains false. No new advisory scan or Kiro model
-request ran. Independent review follows.
+request ran.
+
+Fresh-context independent review accepts `418988d` plus one documentation correction
+(`d133-independent-review.md`). README's current-phase paragraph still named D132 as the
+installed artifact; it now names D133. No production input changes. The reviewer independently
+passes focused race checks for anthropic 47.052s, projection 7.213s, session 31.247s and history
+1.441s, plus distinct positive reconstruction/history controls (1.230s/1.242s) and full vet.
+Candidate, strictly resolved installed and retained D133 binaries each pass all 144 byte checks;
+all 18 component checks pass. Embedded metadata, all 105 committed/current inputs, current
+267 ordered packages and dependency/notices records match. The post-document-fix verifier also
+passes (`d133-post-review-doc-verify.log`). Whole-result parsing before aggregate counting and
+finite native/loaded-session evidence limits are explicitly reviewed. No unresolved actionable
+finding, production fix or refreeze remains; native and doctor logs are inspected without reruns.

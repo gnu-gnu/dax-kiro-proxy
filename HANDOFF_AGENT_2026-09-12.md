@@ -105,7 +105,9 @@ All 27 race-tested packages and full vet pass. Four existing native core control
 27.293s, including all six tool-policy cases, joined cancellation, result continuation and
 image-result/native-resume reconstruction. The clean 04eaad2 artifact is installed as
 media-history (144 byte checks, 18 component checks, doctor verified on its first invocation).
-Independent review follows. No Kiro model ran.
+Independent review accepts 418988d plus the corrected README installed-artifact label; focused
+race, full vet, three 144-check binary results and 18 component checks pass independently.
+No production fix, refreeze or unresolved finding remains. No Kiro model ran.
 
 ## 1. State you inherit
 

@@ -20,7 +20,10 @@ does not redefine completion around an intermediate phase.
   image-result/native-resume reconstruction. The clean 04eaad2 artifact is installed as
   media-history (144 byte checks, 18 component checks). Doctor verifies the measured pair,
   login/policy and launch availability on its first invocation; initialization stays unverified.
-  Independent review follows. No Kiro model ran.
+  Independent review accepts 418988d plus the corrected README installed-artifact label.
+  Focused race and full vet pass independently; all three binaries pass 144 checks each and
+  all 18 component checks pass. No production fix, refreeze or unresolved finding remains.
+  No Kiro model ran.
 
 - D132 on d132-mcp-schema-dialects (base cf3a162) reproduces Claude 2.1.269 forwarding
   Draft 7 and 2019-09 MCP input schemas unchanged and completing their effect-free calls, while
