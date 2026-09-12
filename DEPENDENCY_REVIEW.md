@@ -1268,3 +1268,29 @@ Candidate, strictly resolved installed and retained binaries each pass 144 check
 all 18 component checks, embedded metadata, 105 committed/current inputs and current ordered
 package graph match. The post-document-fix verifier also passes. No production fix or refreeze
 is needed. Owner rights stay outside this repository under D121.
+
+## Terminal delivery artifact snapshot — D137, 2026-09-13
+
+`third_party/inventory/macos-arm64-terminal-delivery.json` records the rebuilt 13,695,074-byte
+development command, SHA-256
+`3d386e521b29bd41bbded9f8255d789ebce8c91b887ec7a6b8174a2775d4cea7`. It identifies Go 1.27.1,
+darwin/arm64, CGO_ENABLED=1 and clean revision `3a137754a70e49a40c1b32de00ccd78016500cd3` with
+vcs.modified=false. D133 media-history is the hashed predecessor and remains retained.
+
+Only `internal/session/driver.go` and `internal/session/turn.go` change among the same
+105 production input records. All 267 ordered import paths, selected files, four external
+module versions/sums/package sets, native files, stdlib vendor packages and notices remain
+unchanged. No dependency is added or upgraded.
+
+```sh
+python3 tools/verify_dependency_inventory.py --gomodcache .cache/gomod \
+  --snapshot terminal-delivery --binary dist/dax-kiro-proxy
+```
+
+Candidate and strictly resolved installed binaries each pass all 144 byte checks
+(`d137-freeze.log`, `d137-candidate-verify.log`, `d137-installed-verify.log`); all 18 component
+checks pass (`d137-components.log`). Install --force succeeds (`d137-install.log`). The first
+installed doctor invocation verifies measured Kiro 2.21.3/Claude 2.1.269, login/policy and launch
+availability (`d137-installed-doctor.json`). Client initialization remains unverified; release
+clearance remains false. D125 advisory scans remain historical; no new scan or actual Kiro
+model turn ran. Owner rights remain outside this repository under D121.

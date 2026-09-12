@@ -18,7 +18,10 @@ does not redefine completion around an intermediate phase.
   The first full race run exposes six cases using an old immediate-busy expectation in their
   shared registry helper; that expectation is updated without a further production change.
   Final whole-repository race passes all 27 tested packages (session 74.754s), and final vet
-  passes. Clean artifact publication follows the source commit.
+  passes. Clean code 3a13775 is rebuilt and installed as terminal-delivery; candidate and
+  strictly resolved installed/current inputs pass 144 checks, with all 18 components unchanged.
+  The first installed doctor verifies measured versions, login/policy and launch availability.
+  Independent review is pending; client initialization and full release clearance remain open.
 
 - D136 on d136-prepared-batch-churn (base c9f7ebc) retains one gateway/manager/pool across
   1,024 prepared three-call waves. All 6,144 exact MCP results, 3,072 abandoned denials and

@@ -7030,4 +7030,15 @@ measurement of the held-terminal-flush reproduction.
 Final `go test -race -p 1 ./... -count=1 -timeout 20m` passes all 27 tested packages with
 native/model opt-ins off (`d137-final-race.log`), including session 74.754s, gateway 5.054s,
 launcher 33.774s and interop 35.106s. Final whole-repository vet passes with an empty log
-(`d137-final-vet.log`). Clean artifact publication follows the source commit.
+(`d137-final-vet.log`).
+
+Clean source commit `3a13775` is rebuilt and installed as `terminal-delivery`:
+13,695,074 bytes, SHA-256
+`3d386e521b29bd41bbded9f8255d789ebce8c91b887ec7a6b8174a2775d4cea7`. Candidate and strictly
+resolved installed inputs each pass 144 checks; all 18 component checks pass. Only the two
+session source files change among the same 105 inputs, 267 ordered packages and four external
+modules. Install --force and the first installed doctor pass, with measured Kiro 2.21.3/
+Claude 2.1.269, login/policy verified and launch available. Client initialization remains
+unverified and release clearance false. Logs are `d137-freeze.log`, `d137-candidate-verify.log`,
+`d137-installed-verify.log`, `d137-components.log`, `d137-install.log` and
+`d137-installed-doctor.json`. No model prompt, dependency upgrade or advisory refresh occurs.
