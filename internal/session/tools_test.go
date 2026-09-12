@@ -96,8 +96,11 @@ func TestToolHandoffSurvivesHTTPContextAndResumesSamePrompt(t *testing.T) {
 		t.Fatal(err)
 	}
 	prefix, uses := toolHandoff(t, turn)
-	if _, err := d.Start(context.Background(), followup(t, r, prefix, uses)); !errors.Is(err, inference.ErrBusy) {
-		t.Fatal("result admitted before response completion")
+	waitCtx, stopWait := context.WithTimeout(t.Context(), 20*time.Millisecond)
+	_, waitErr := d.Start(waitCtx, followup(t, r, prefix, uses))
+	stopWait()
+	if !errors.Is(waitErr, context.DeadlineExceeded) || d.State() != session.Prompting {
+		t.Fatal("result admitted before response completion or canceled its owner")
 	}
 	turn.Finish()
 	cancel()

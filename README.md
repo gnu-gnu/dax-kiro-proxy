@@ -88,6 +88,12 @@ An exact retry must prove the same history and complete tool IDs; normal result 
 requires successful finalization. Known deadlines keep their cause through cleanup, and a late
 finalization cannot alter a new turn after recovery.
 
+D137 lets an immediate tool result or next question wait for the previous response's final
+delivery bookkeeping. Terminal bytes can already be visible to the client while the server's
+final write is returning. One request may wait per session; further overlapping starts remain
+busy. Cancellation of that waiter leaves the previous turn intact. Results are still checked
+and released only after successful delivery; failed delivery retains its cancellation or timeout.
+
 D130 preserves the answer when ACP stops at its per-turn model-request limit. It emits
 `pause_turn`, retains the completed text and lets the next explicit question continue normally.
 The proxy does not issue an automatic continuation; the measured Claude 2.1.269 text/print

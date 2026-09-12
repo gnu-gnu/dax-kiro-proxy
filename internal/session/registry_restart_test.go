@@ -28,8 +28,11 @@ func registryHandoff(t *testing.T, ctx context.Context, d *session.Driver, r *an
 		t.Fatal(err)
 	}
 	text, calls := toolHandoff(t, turn)
-	if _, err := d.Start(t.Context(), followup(t, r, text, calls)); !errors.Is(err, inference.ErrBusy) {
-		t.Fatal("undelivered result admitted")
+	waitCtx, stopWait := context.WithTimeout(t.Context(), 20*time.Millisecond)
+	_, waitErr := d.Start(waitCtx, followup(t, r, text, calls))
+	stopWait()
+	if !errors.Is(waitErr, context.DeadlineExceeded) || d.State() != session.Prompting {
+		t.Fatal("undelivered result admitted or its waiting caller retired the owner")
 	}
 	turn.Finish()
 	var pid int

@@ -193,6 +193,24 @@ func (d *Driver) Start(ctx context.Context, r *anthropic.Request) (inference.Tur
 		return nil, inference.ErrRequest
 	}
 	d.mu.Lock()
+	var delivery <-chan struct{}
+	if d.current != nil {
+		delivery = d.current.delivery
+	}
+	d.mu.Unlock()
+	if delivery != nil {
+		// The single start gate bounds admission to one waiter. Never resolve tools before
+		// successful delivery, and let caller cancellation leave the preceding response intact.
+		select {
+		case <-delivery:
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
+		if ctx.Err() != nil {
+			return nil, ctx.Err()
+		}
+	}
+	d.mu.Lock()
 	busy := d.state == Starting || d.state == Prompting
 	d.mu.Unlock()
 	if busy {

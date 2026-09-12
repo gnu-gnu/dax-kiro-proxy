@@ -28,6 +28,7 @@ type turn struct {
 	owned               context.Context
 	cancelOwned         context.CancelFunc
 	done, released      chan struct{}
+	delivery            chan struct{} // Protected by driver.mu; closed after Finish or joined abort.
 	result              json.RawMessage
 	resultErr           error
 	settle              sync.Once
@@ -80,9 +81,7 @@ func (r *round) Next(ctx context.Context) (inference.Event, error) {
 			return inference.Event{}, t.broker.Err()
 		}
 		if r.batch.Number != 0 {
-			r.terminal = true
-			r.success = true
-			return inference.Event{Kind: inference.End, StopReason: "tool_use"}, nil
+			return r.end("tool_use")
 		}
 		event, available, err := t.client.TryNext()
 		if err != nil {
@@ -126,9 +125,7 @@ func (r *round) Next(ctx context.Context) (inference.Event, error) {
 				if stop == "max_turn_requests" {
 					stop = "pause_turn"
 				}
-				r.terminal = true
-				r.success = true
-				return inference.Event{Kind: inference.End, StopReason: stop}, nil
+				return r.end(stop)
 			case "cancelled":
 				return inference.Event{}, context.Canceled
 			default:
@@ -166,6 +163,27 @@ func (r *round) Next(ctx context.Context) (inference.Event, error) {
 		case <-relayReady:
 		case <-relayDone:
 		}
+	}
+}
+
+// Terminal bytes can reach the client before the HTTP writer returns. Only this completed
+// response permits one following Start to await delivery; active generation remains busy.
+func (r *round) end(stop string) (inference.Event, error) {
+	d := r.turn.driver
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if d.closed || d.current != r.turn || d.state != Prompting {
+		return inference.Event{}, context.Canceled
+	}
+	r.terminal, r.success = true, true
+	r.turn.delivery = make(chan struct{})
+	return inference.Event{Kind: inference.End, StopReason: stop}, nil
+}
+
+func (t *turn) deliveredLocked() {
+	if t.delivery != nil {
+		close(t.delivery)
+		t.delivery = nil
 	}
 }
 
@@ -268,6 +286,9 @@ func (r *round) Finish() {
 		}
 		d.state = WaitingTools
 		err := t.broker.Delivered(batch.Number)
+		if err == nil {
+			t.deliveredLocked()
+		}
 		d.mu.Unlock()
 		if err != nil {
 			t.abort(err)
@@ -321,6 +342,7 @@ func (t *turn) complete(text string) {
 					_ = lease.SetIdle(true)
 				}
 			}
+			t.deliveredLocked()
 		}
 	})
 }
@@ -355,6 +377,7 @@ func (t *turn) abort(reason error) {
 		if !d.closed {
 			d.state = Unstarted
 		}
+		t.deliveredLocked()
 	})
 }
 

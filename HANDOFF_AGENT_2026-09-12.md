@@ -151,6 +151,18 @@ session/pool race checks pass independently (10.883s/2.617s); five-package vet a
 current-input checks also pass. An initial sandbox listener denial is resolved by the unchanged
 socket-enabled rerun. No production fix, refreeze or installation is required.
 
+D136 merged as `d4ed7b8`. D137 on `d137-terminal-delivery` reproduces HTTP 409 for an exact
+immediate tool result after terminal JSON/SSE is visible but before server finalization returns.
+The driver now allows one Start to wait for that terminal response's Finish or joined abort.
+Cancellation of the waiter preserves the preceding owner; active generation/additional starts
+stay busy. Direct next-question, result, admission and retirement controls pass. No Kiro model
+or D134 run. Clean artifact publication follows the source commit.
+Native Claude 2.1.269/fake-ACP core controls pass in 25.828s, including six permission/hook cases
+and 152-ms joined cancellation with unchanged sources. The first full race run fails six old
+registry-helper busy expectations; the shared check now verifies canceled waiting instead.
+No additional production change is involved. Final whole-repository race passes all 27 tested
+packages (session 74.754s); final whole-repository vet also passes.
+
 ## 1. State you inherit
 
 - `main` is at `e07e591` (merge of D124). The working tree is clean. There is no remote; never push
