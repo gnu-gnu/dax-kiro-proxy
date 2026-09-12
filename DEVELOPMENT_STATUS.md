@@ -6,6 +6,20 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D138 on d138-paused-model-preference (base 77f7d19) reproduces a delivered pause_turn
+  retaining the preceding model preference in both JSON and SSE handler controls. The other
+  three final stop reasons already restore the actual model on the next launch. The one-line
+  production correction admits pause_turn to the existing successful foreground-delivery rule.
+  Focused launcher/gateway race checks pass (5.021s/1.750s), including paused cancellation,
+  agent and authentication exclusions. These are independent HTTP-handler/model-owner controls;
+  no actual Kiro model runs and D134 approval remains pending.
+  Whole-repository race passes all 27 tested packages (launcher 36.048s, session 74.223s),
+  and whole-repository vet passes.
+  Two actual-Claude 2.1.269/fake-local controls pass sequentially (16.186s): three stop/next-
+  question cases and three compiled model-picker cases, including next-preflight restoration,
+  unchanged sources and joined recorded ownership. Native paused-model restoration remains
+  outside these separate regression controls.
+
 - D137 on d137-terminal-delivery (base d4ed7b8) fixes an immediate continuation receiving 409
   after the client reads terminal bytes but before the server finishes delivery bookkeeping.
   Both real local HTTP JSON/SSE cases fail before the fix and pass afterward. One Start may

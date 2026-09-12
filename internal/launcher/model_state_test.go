@@ -4,7 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
@@ -15,6 +18,7 @@ import (
 	"dax-kiro-proxy/internal/acp"
 	"dax-kiro-proxy/internal/anthropic"
 	"dax-kiro-proxy/internal/catalog"
+	"dax-kiro-proxy/internal/gateway"
 	"dax-kiro-proxy/internal/inference"
 )
 
@@ -98,8 +102,61 @@ func (t *modelFixtureTurn) Next(context.Context) (inference.Event, error) {
 func (t *modelFixtureTurn) Finish() { t.finishes.Add(1) }
 func (t *modelFixtureTurn) Cancel() { t.cancels.Add(1) }
 
+func TestDeliveredCompletionRestoresActualModelOnNextLaunch(t *testing.T) {
+	for _, stop := range []string{"end_turn", "max_tokens", "refusal", "pause_turn"} {
+		for _, stream := range []bool{false, true} {
+			t.Run(fmt.Sprintf("%s/stream-%t", stop, stream), func(t *testing.T) {
+				cfg, data := modelStateFixture(t)
+				if err := catalog.SaveLastModel(cfg.Cache.Directory, cfg.Cache.Identity, "fixture.one", true); err != nil {
+					t.Fatal("cannot seed prior model preference")
+				}
+				models, err := PrepareModels(t.Context(), cfg)
+				if err != nil {
+					t.Fatal("cannot prepare first model owner")
+				}
+				defer models.Close()
+				actual, _ := data.ClientID("fixture.two")
+				original := &modelFixtureTurn{model: actual, stop: stop}
+				backend := &modelFixtureBackend{turn: original}
+				tokens := gateway.Tokens{Model: strings.Repeat("m", 43), UI: strings.Repeat("u", 43)}
+				h, err := gateway.New(gateway.Config{
+					Tokens: tokens, Backend: &catalogBackend{inner: backend, models: models},
+					FirstEventTimeout: time.Second, TurnTimeout: 2 * time.Second,
+				})
+				if err != nil {
+					t.Fatal("cannot prepare model response gateway")
+				}
+				body := fmt.Sprintf(`{"model":%q,"max_tokens":128,"stream":%t,"messages":[{"role":"user","content":"independent model preference question"}]}`, models.Selection().Client, stream)
+				r := httptest.NewRequest(http.MethodPost, "/v1/messages", strings.NewReader(body))
+				r.Header.Set("Authorization", "Bearer "+tokens.Model)
+				r.Header.Set("Content-Type", "application/json")
+				w := httptest.NewRecorder()
+				h.ServeHTTP(w, r)
+				if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), `"stop_reason":"`+stop+`"`) ||
+					!strings.Contains(w.Body.String(), `"model":"`+actual+`"`) ||
+					stream && !strings.HasSuffix(w.Body.String(), "event: message_stop\ndata: {\"type\":\"message_stop\"}\n\n") {
+					t.Fatal("HTTP completion did not deliver its actual model and stop reason")
+				}
+				if original.finishes.Load() != 1 || original.cancels.Load() != 0 || backend.starts.Load() != 1 || backend.lists.Load() != 0 || models.SaveFailed() {
+					t.Fatal("model response did not finalize once without additional inference discovery")
+				}
+				models.Close()
+				next, err := PrepareModels(t.Context(), cfg)
+				if err != nil {
+					t.Fatal("cannot prepare next model owner")
+				}
+				defer next.Close()
+				selection := next.Selection()
+				if selection.Source != ModelLastUsed || selection.Backend != "fixture.two" || selection.Client != actual {
+					t.Fatal("next launch restored the old model after a delivered foreground completion")
+				}
+			})
+		}
+	}
+}
+
 func TestModelPreferenceRequiresDeliveredForegroundCompletion(t *testing.T) {
-	for _, kind := range []string{"main", "followup", "title", "agent", "parent-agent", "handoff", "cancel", "early-finish", "auth", "noninteractive", "unadvertised"} {
+	for _, kind := range []string{"main", "followup", "title", "agent", "parent-agent", "handoff", "cancel", "early-finish", "auth", "noninteractive", "unadvertised", "paused-cancel", "paused-agent", "paused-auth"} {
 		t.Run(kind, func(t *testing.T) {
 			cfg, data := modelStateFixture(t)
 			cfg.Interactive = kind != "noninteractive"
@@ -110,6 +167,9 @@ func TestModelPreferenceRequiresDeliveredForegroundCompletion(t *testing.T) {
 			defer models.Close()
 			actual, _ := data.ClientID("fixture.two")
 			original := &modelFixtureTurn{model: actual, stop: "end_turn"}
+			if strings.HasPrefix(kind, "paused-") {
+				original.stop = "pause_turn"
+			}
 			backend := &modelFixtureBackend{turn: original}
 			wrapped := &catalogBackend{inner: backend, models: models}
 			list, err := wrapped.Models(t.Context())
@@ -124,13 +184,13 @@ func TestModelPreferenceRequiresDeliveredForegroundCompletion(t *testing.T) {
 				r.Extra["output_config"] = json.RawMessage(`{"format":{"type":"json_schema","schema":{"type":"object","properties":{"title":{"type":"string"}},"required":["title"]}}}`)
 			case "followup":
 				r.Messages[0].Content = []anthropic.Block{{Type: "tool_result", Raw: json.RawMessage(`{"type":"tool_result","tool_use_id":"independent-call","content":"synthetic result"}`)}}
-			case "agent":
+			case "agent", "paused-agent":
 				r.Identity.Agent = "independent-agent"
 			case "parent-agent":
 				r.Identity.ParentAgent = "independent-parent"
 			case "handoff":
 				original.stop = "tool_use"
-			case "auth":
+			case "auth", "paused-auth":
 				original.failure = acp.ErrAuthentication
 			case "unadvertised":
 				original.model = "claude-dax-unknown-fixture"
@@ -142,7 +202,7 @@ func TestModelPreferenceRequiresDeliveredForegroundCompletion(t *testing.T) {
 			if kind != "early-finish" {
 				_, _ = turn.Next(t.Context())
 			}
-			if kind == "cancel" {
+			if kind == "cancel" || kind == "paused-cancel" {
 				turn.Cancel()
 			} else {
 				turn.Finish()
