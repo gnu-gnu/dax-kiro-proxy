@@ -110,8 +110,8 @@ func TestKiroPreflightNeverConfusesInvalidOutputOrTimeoutWithKnownLogin(t *testi
 		}
 	}
 	f := &preflightFixture{identity: `{"email":"x","accountType":"z"}`, failure: context.DeadlineExceeded}
-	if _, err := launcher.CheckKiro(t.Context(), f, cfg); !errors.Is(err, launcher.ErrLoginCheck) {
-		t.Fatal("timeout was treated as identity evidence")
+	if _, err := launcher.CheckKiro(t.Context(), f, cfg); !errors.Is(err, context.DeadlineExceeded) || errors.Is(err, launcher.ErrLoginCheck) {
+		t.Fatal("timeout lost its cause or was treated as a login failure")
 	}
 	for _, version := range []string{"3.0.0", "1.21.3", "2.21.3-beta", "v2.21.3", "2.21.3 extra"} {
 		f = &preflightFixture{version: version}

@@ -465,6 +465,11 @@ func failure(out io.Writer, err error, client launcher.ClientRunResult) int {
 		code, message = 2, "requested model is not in the current Kiro catalog; run dax-kiro-proxy models"
 	case errors.Is(err, launcher.ErrConfig), errors.Is(err, launcher.ErrSettings), errors.Is(err, childproc.ErrParameters):
 		code, message = 2, "invalid or unsupported launch configuration"
+	case errors.Is(err, launcher.ErrAccountCheck):
+		message = "Kiro account check could not complete; retry dax-kiro-proxy doctor --timing"
+		if errors.Is(err, context.DeadlineExceeded) {
+			message = "Kiro account check timed out; retry dax-kiro-proxy doctor --timing"
+		}
 	case errors.Is(err, launcher.ErrLoginCheck):
 		message = "Kiro login could not be verified; run kiro-cli login and retry"
 	case errors.Is(err, launcher.ErrExecutableNotFound) && errors.Is(err, launcher.ErrKiroVersion):

@@ -189,6 +189,10 @@ with default-resource suppression, and each ACP process has a separate relay-onl
 The client continues to decide tool permissions and execute tools.
 
 `doctor` succeeding means its checks completed; inspect `launch_available` and `policy` separately.
+An account-command timeout is reported as a timeout (D131); retry `doctor --timing` to inspect
+the startup stages. Command launch/read failures likewise do not ask for login. A completed
+nonzero account-command exit or invalid identity retains the login-check failure. All these
+failures stop startup, and a concurrent cleanup failure is reported separately.
 `client_version` and `kiro_version` are the detected builds; `client_version_measured` and
 `kiro_version_measured` say whether each is the measured one. For this measured combination,
 successful login and policy checks report `launch_available: true` and `policy: verified`. This

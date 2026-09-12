@@ -36,7 +36,11 @@ execute and return the result.
     untouched. This coordinates cooperating writers but is not atomic against unlocked writes.
 
 Optional startup timing reports each phase separately. The login check has its own timeout and cannot
-hang the launcher indefinitely.
+hang the launcher indefinitely. D131 retains that account command's deadline, cancellation and
+cleanup causes. Partial identity output cannot establish a successful check. A deadline gets an
+account-check timeout diagnostic; other execution failures get a failed-check diagnostic. A
+completed nonzero exit or malformed identity keeps the existing unverified-login result. Cleanup
+failures remain visible alongside the primary failure, and no failed check reaches execution policy.
 
 Individual SessionStart callbacks, hook completion and visible status are distinct observations.
 Neither callback arrival nor status rendering establishes step 9. Optional hooks may be disabled

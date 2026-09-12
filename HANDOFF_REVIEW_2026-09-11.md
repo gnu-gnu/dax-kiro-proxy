@@ -16,6 +16,11 @@ known-deadline cause preservation, with independent review complete. D130 instal
 request-limit completion mapping, with independent review complete. The 2.1.267 statements
 in sections 3, 4 and 6 describe the state as of 2026-09-11.
 
+D131 is in progress on the account-command diagnostic/cleanup defect in the later handoff's
+item 9. Independent process controls, all 27 race-tested packages, full vet and the three native
+core controls pass. Installation and review remain pending; D130 remains the installed artifact
+until that procedure completes.
+
 ## 1. Scope and branch state
 
 - Commit range: `3464d12` (D109, 2026-09-10) through `c577dcf` (D120 live soak, 2026-09-11), 23

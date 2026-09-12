@@ -71,6 +71,15 @@ retry after its first login check fails; both are recorded. Independent review a
 without an actionable finding; focused race and artifact checks pass independently. No production
 fix or refreeze is needed. Other core candidates continue separately. No actual Kiro model ran.
 
+D130 merged as `14a0478`. D131 on `d131-account-check` addresses item 9's account-command failure
+classification and lost cleanup causes. Independent controls reproduce the deadline/login confusion
+and dropped cleanup; the focused race checks now pass. Account command execution failures stop
+startup without instructing login, while completed nonzero exits and invalid identity keep the
+existing login-check failure. The four finite process controls join ownership and preserve source
+settings. All 27 race-tested packages, full vet and the three actual-Claude/local-fake core
+controls pass (25.363s). Installation and independent review remain pending. Other preflight
+stages and the catalog-postamble candidate are separate. No actual Kiro model ran.
+
 ## 1. State you inherit
 
 - `main` is at `e07e591` (merge of D124). The working tree is clean. There is no remote; never push
