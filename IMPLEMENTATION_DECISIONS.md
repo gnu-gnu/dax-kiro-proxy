@@ -6946,11 +6946,11 @@ D135 scenario then passes (8.615s, `d136-reuse-wave-fixed.log`). Initial combine
 in 10.548s (`d136-initial-controls.log`). Final resource-release negatives, wave bounds and the
 eight-wave prepared case pass in 6.791s (`d136-final-controls.log`).
 
-The maximum 1,024-wave race run passes (`d136-prepared-1024.log`, package 217.610s). Its active
-loop lasts 213.686 seconds and completes 7,168 HTTP requests, 6,144 exact MCP results and
+The final maximum 1,024-wave race run passes (`d136-prepared-1024-final.log`, package 221.297s).
+Its active loop lasts 216.765 seconds and completes 7,168 HTTP requests, 6,144 exact MCP results and
 3,072 abandoned denial calls. All 3,072 ACP groups, relay children and prepared policies join;
 all 1,024 recovery-order checks pass. Warm-up baseline is 22 descriptors, 30 goroutines
-and 745,176 heap bytes; peak is 22/30/1,087,600, final 5/2/868,408. Measurements remain
+and 689,432 heap bytes; peak is 22/30/1,083,952, final 5/2/879,832. Measurements remain
 inside the original envelope. They describe the Go test process containing the real gateway
 and manager; they do not measure installed-proxy or backend RSS, native client hooks or actual
 Kiro retention. Shared ACP processes and broader actual-client/Kiro combined soak remain
@@ -6966,5 +6966,5 @@ Subsequent observer inspection removes its ledger lock around OS cleanup: a new 
 not wait behind the very cleanup order being measured. The prepared/default resource controls
 and existing held-cleanup/capacity control pass after this adjustment (6.698s/1.938s,
 `d136-cleanup-observer.log`), and session vet passes (`d136-cleanup-observer-vet.log`).
-The extended figures above precede this observer adjustment; the final 1,024-wave rerun is
-required before accepting the refined timing evidence.
+The first extended run (`d136-prepared-1024.log`, 213.686-second loop) precedes this adjustment.
+The final 1,024-wave figures above come from the adjusted observer at committed `9e1e7ca`.

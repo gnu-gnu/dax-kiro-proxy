@@ -495,7 +495,7 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
   continuation, plus eight direct-relay waves with mixed results and pending-owner shutdown.
   All recorded groups, relay children and configuration directories join. The test explicitly
   waits for three queued calls before delivery and uses one session per process. D136 retains
-  one gateway/manager/pool for 1,024 prepared three-call waves (213.686 seconds), with 3,072
+  one gateway/manager/pool for 1,024 prepared three-call waves (216.765 seconds), with 3,072
   joined groups/relays/policies, exact recovery preparation order and a fixed post-warm-up
   descriptor/goroutine/Go-heap envelope. Retained-resource controls must reject each observed
   resource increase and pass again after release. These invented prepared documents do not
