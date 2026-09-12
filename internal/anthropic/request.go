@@ -106,20 +106,39 @@ func DecodeRequest(body []byte) (*Request, error) {
 		}
 		for i := range message.Content {
 			block := &message.Content[i]
-			if block.Type != "image" && block.Type != "document" {
+			var media []Block
+			switch block.Type {
+			case "image", "document":
+				if message.Role != "user" {
+					return nil, ErrRequest
+				}
+				block.media, err = decodeMedia(*block)
+				if err != nil {
+					return nil, err
+				}
+				media = []Block{*block}
+			case "tool_result":
+				result, err := DecodeToolResult(block.Raw)
+				if err != nil {
+					return nil, err
+				}
+				media, err = result.PromptContent()
+				if err != nil {
+					return nil, err
+				}
+			default:
 				continue
 			}
-			if message.Role != "user" {
-				return nil, ErrRequest
-			}
-			block.media, err = decodeMedia(*block)
-			if err != nil {
-				return nil, err
-			}
-			mediaCount++
-			mediaBytes += block.media.Bytes
-			if mediaCount > MaxMediaParts || mediaBytes > MaxMediaTotalBytes {
-				return nil, ErrRequest
+			// Nested result images share the request budget without changing their stored JSON.
+			// Opaque result forms remain bounded by the HTTP body; no URL is fetched here.
+			for _, part := range media {
+				if m, ok := part.Media(); ok {
+					mediaCount++
+					mediaBytes += m.Bytes
+					if mediaCount > MaxRequestMediaParts || mediaBytes > MaxRequestMediaTotalBytes {
+						return nil, ErrRequest
+					}
+				}
 			}
 		}
 		if message.Role == "system" {

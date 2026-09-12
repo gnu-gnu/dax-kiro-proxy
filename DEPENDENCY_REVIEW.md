@@ -1239,3 +1239,32 @@ resolved installed and retained binaries each pass 144 checks independently, wit
 checks, embedded metadata and all 105 production inputs verified. The current package graph
 and dependency/notices records match. No production fix or refreeze is needed. Owner rights
 stay outside this repository under D121.
+
+## Media history artifact snapshot — D133, 2026-09-13
+
+`third_party/inventory/macos-arm64-media-history.json` records the rebuilt 13,694,946-byte
+development command, SHA-256
+`569ede34b509ea259f41ae843f1874504960b0a9d72463c70866359301cc988b`. It identifies Go 1.27.1,
+darwin/arm64, CGO_ENABLED=1 and clean revision `04eaad22d59fad672d31ba11bc65deccbf52bf0f` with
+vcs.modified=false. D132 schema-dialects is the hashed predecessor and remains retained.
+
+Only `internal/anthropic/media.go` and `internal/anthropic/request.go` change among the same
+105 production input records. All 267 ordered import paths, selected files, four external
+module versions/sums/package sets, native files, stdlib vendor packages and notices remain
+unchanged. No dependency is added or upgraded.
+
+```sh
+python3 tools/verify_dependency_inventory.py --gomodcache .cache/gomod --snapshot media-history --binary dist/dax-kiro-proxy
+```
+
+Candidate and strictly resolved installed binaries each pass all 144 byte checks
+(`d133-freeze.log`, `d133-installed-verify.log`); all 18 component checks pass
+(`d133-components.log`). Install --force succeeds (`d133-install.log`). The first doctor
+invocation verifies measured Kiro 2.21.3/Claude 2.1.269, login/policy and launch availability
+(`d133-installed-doctor.json`). Client initialization remains unverified; release clearance
+remains false. D125 advisory scans remain historical; no new scan or actual Kiro model turn ran.
+Independent review accepts `418988d` plus the corrected README installed-artifact label.
+Candidate, strictly resolved installed and retained binaries each pass 144 checks independently;
+all 18 component checks, embedded metadata, 105 committed/current inputs and current ordered
+package graph match. The post-document-fix verifier also passes. No production fix or refreeze
+is needed. Owner rights stay outside this repository under D121.

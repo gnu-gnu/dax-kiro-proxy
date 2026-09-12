@@ -413,6 +413,9 @@ match its recognized header; header decoding obtains dimensions without allocati
 PDF MIME is checked by signature. These checks do not fully decode/render a file or prove a provider
 can process every accepted payload. Kiro failures retain ordinary failure/cleanup semantics.
 
+D133 later separates the complete HTTP history envelope from this per-projection allowance.
+The original 20-part/6-MiB limit remains on actual ACP dispatch; see D133 for input admission.
+
 Images require negotiated `promptCapabilities.image`; PDFs require `embeddedContext`. Known
 capability fields require exact names and Boolean types, with absent capabilities disabled. Unknown
 future keys cannot enable a recognized feature by case-insensitive matching. Plain text documents
@@ -6679,3 +6682,110 @@ also exits 0. Candidate, strictly resolved installation and retained D132 copy e
 byte checks; all 18 component checks pass. Embedded metadata, all 105 committed/current inputs,
 267 ordered packages and dependency/notices records match the snapshot. Native and doctor
 logs are inspected without rerunning them. No production fix or refreeze is needed.
+
+## D133: Separate complete media history from the dispatched prompt
+
+Branch `d133-media-history`, based on `2566be2`, addresses HANDOFF item 1. The Messages decoder
+previously counted all top-level historical images/documents against one prompt's 20-part/6-MiB
+allowance before the history planner could select a proven delta. An independent tiny-PNG input
+observation shows a 5,744-byte history with 21 past images and a new text question rejected. More
+strongly, an independent ACP process completes twenty successive one-image prompts on one owner,
+then the decoder rejects the 21st request (41 messages, 13,866 bytes). Two successive 3-MiB plain
+text documents also complete before the third request rejects (9,438,517 bytes). These process
+controls precede the production edit (`d133-session-before.log`). The earlier harness compile
+error is retained separately and is not defect evidence (`d133-session-build-first.log`).
+
+Whole-request admission now permits 256 validated inline media parts and 12 MiB decoded media.
+This finite history envelope allows accumulation across prompts; the unchanged 16 MiB HTTP body
+bound still encloses it. The 12 MiB allowance aligns with the decoded payload range of bounded
+base64 input while giving plain-text documents the same aggregate allowance. The part count is
+a separate finite admission bound for small images. These are product resource limits, not
+provider context or billing claims. Individual media still requires at most 4 MiB, recognized
+source/MIME/header, bounded dimensions and existing citation rules. Admission combines top-level
+images/documents with inline images inside tool results. Nested results use the existing
+PromptContent validator in temporary parsed data, preserving their exact stored JSON and history
+hash inputs. Invalid nested inline images now fail admission even when old history would be
+omitted from a proven delta. Opaque result sources remain bounded raw content with no URL fetch;
+document/URL-result conversion is still separate HANDOFF item 5.
+
+The actual projection code and history planner are unchanged. A proven existing/loaded session
+gets its exact delta, which still must satisfy the 20-part/6-MiB allowance and negotiated
+capabilities. A full reconstruction still preserves all historical native media under D109 or
+rejects before a prompt if the allowance/frame cannot contain it. No image becomes a size marker,
+no history is truncated, and no hidden continuation is issued. The existing encoded-frame bound
+and affected-owner disposal behavior remain unchanged. A fresh process cannot claim the old
+context merely because its input passed the larger history gate.
+
+Independent request controls precede the edit (`d133-request-before.log`). Afterward, 256 parts
+and twelve decoded MiB pass at their boundaries; the next part/byte rejects. Top-level and nested
+images share count and byte accounting, including a mixed document/result-image boundary.
+A padded generated PNG is used only for the existing header/byte contract in that byte control;
+it does not establish full rendering. Per-part excess, malformed historical base64/header and
+other existing image/source/citation controls reject. Nested result JSON stays byte-identical.
+Projection's independent invalid-result controls deliberately construct the invalid result after
+input decoding, so its separate validation remains exercised despite the earlier HTTP rejection.
+The new oversized-document-count manager control also preserves an unrelated active sibling.
+
+The finite ACP peer has no proxy imports or tool effects. It accepts one session, forty prompts,
+128 frames of at most 8 MiB and sixty seconds; its bounded owner-only witness records only its
+own PID/prompt counts. Answers carry part kinds, lengths and digests, never prompt/media text.
+This avoids duplicating large media in synthetic assistant history. Focused race tests pass
+(`d133-media-after.log`: anthropic 28.936s, projection 7.725s, session 66.689s). Twenty-one image
+turns and three 3-MiB document turns each retain one owner and send one exact new media part per
+prompt; a following text question sends only its text. Separate fresh owners reject those
+excessive complete histories, with zero prompt events and joined recorded groups. The later
+mixed-byte and active-sibling cases are included in the full suite below.
+
+The unmodified client's streaming image input is documented in the
+[public streaming input guide](https://code.claude.com/docs/en/agent-sdk/streaming-vs-single-mode)
+and [CLI reference](https://code.claude.com/docs/en/cli-reference), checked 2026-09-13.
+An independent control uses those user messages and the previously observed initialization
+envelope, with owned HOME/project and a temporary product profile. It passes three inputs
+through the actual gateway
+and independent ACP peer: twenty images, one new image, then a text-only question. Claude 2.1.269
+retains complete HTTP image counts 20/21/21 while ACP receives 20/1/0 with exact encoded bytes,
+one PID and successive prompt counts 1/2/3. All completions succeed, source settings stay
+unchanged, and client/backend groups and profile are removed (`d133-client-media.log`, 2.072s).
+The responder supports no client tool or external inference. These finite direct-image and text
+document observations do not establish actual Kiro interpretation, unlimited history or a fresh
+resume of an oversized context. Within-bound native result reconstruction is verified separately
+below.
+
+The complete repository race suite passes all 27 tested packages with sequential package
+scheduling (`d133-all-race.log`, exit 0), including anthropic 46.082s, projection 7.330s,
+session 66.274s, interop 27.591s and launcher 35.317s. This includes the added mixed-byte and
+active-sibling cases. Full `go vet ./...` separately exits 0 (`d133-all-vet.log`).
+
+Four existing actual-Claude 2.1.269/local-fake controls pass sequentially in 27.293s
+(`d133-client-core.log`): joined launcher cancellation (163 ms), tool-result continuation, all
+six Read/Write/Bash approval/refusal/hook cases, and image-result/native-resume reconstruction.
+The image control observes the exact result encoding and one native image in both its initial
+turn and fresh resume, with Read hooks only once and complete source/ownership cleanup. No
+actual Kiro process, model request, login/logout or source-setting mutation is involved.
+Artifact and independent review results are recorded below.
+
+The clean `04eaad22d59fad672d31ba11bc65deccbf52bf0f` artifact is frozen as
+`third_party/inventory/macos-arm64-media-history.json`: 13,694,946 bytes, SHA-256
+`569ede34b509ea259f41ae843f1874504960b0a9d72463c70866359301cc988b`, Go 1.27.1,
+darwin/arm64, CGO_ENABLED=1 and vcs.modified=false. Only internal/anthropic/media.go and
+internal/anthropic/request.go change among the same 105 production inputs. All 267 ordered
+packages, selected/native/vendor files, four external modules and notices remain unchanged.
+Candidate and strictly resolved installed binaries pass all 144 byte checks, and all 18
+component checks pass (`d133-freeze.log`, `d133-installed-verify.log`, `d133-components.log`).
+Install --force succeeds (`d133-install.log`). The first installed doctor invocation verifies
+measured Kiro 2.21.3/Claude 2.1.269, login/policy and launch availability, with login_check
+2.217s (`d133-installed-doctor.json`, `d133-installed-doctor-timing.log`). Client initialization
+remains unverified and release clearance remains false. No new advisory scan or Kiro model
+request ran.
+
+Fresh-context independent review accepts `418988d` plus one documentation correction
+(`d133-independent-review.md`). README's current-phase paragraph still named D132 as the
+installed artifact; it now names D133. No production input changes. The reviewer independently
+passes focused race checks for anthropic 47.052s, projection 7.213s, session 31.247s and history
+1.441s, plus distinct positive reconstruction/history controls (1.230s/1.242s) and full vet.
+Candidate, strictly resolved installed and retained D133 binaries each pass all 144 byte checks;
+all 18 component checks pass. Embedded metadata, all 105 committed/current inputs, current
+267 ordered packages and dependency/notices records match. The post-document-fix verifier also
+passes (`d133-post-review-doc-verify.log`). Whole-result parsing before aggregate counting and
+finite native/loaded-session evidence limits are explicitly reviewed. No unresolved actionable
+finding, production fix or refreeze remains; native and doctor logs are inspected without reruns.

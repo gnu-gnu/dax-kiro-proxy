@@ -79,7 +79,7 @@ func TestMediaSourcesLimitsAndUnsupportedControls(t *testing.T) {
 	if !ok || part.Text != "synthetic document" || part.Title != "fixture" || part.Context != "ordered context" {
 		t.Fatal("document content metadata lost")
 	}
-	many := make([]any, MaxMediaParts+1)
+	many := make([]any, MaxRequestMediaParts+1)
 	for i := range many {
 		many[i] = doc
 	}
@@ -87,7 +87,7 @@ func TestMediaSourcesLimitsAndUnsupportedControls(t *testing.T) {
 		t.Fatal("media count limit ignored")
 	}
 	large := map[string]any{"type": "document", "source": map[string]any{"type": "text", "media_type": "text/plain", "data": strings.Repeat("x", MaxMediaPartBytes)}}
-	if _, err := DecodeRequest(mediaBody(t, []any{large, large})); err == nil {
+	if _, err := DecodeRequest(mediaBody(t, []any{large, large, large, doc})); err == nil {
 		t.Fatal("aggregate media bytes ignored")
 	}
 }
