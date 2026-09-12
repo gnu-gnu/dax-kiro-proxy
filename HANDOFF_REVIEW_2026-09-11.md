@@ -7,7 +7,7 @@ to keep, revert or re-measure. It is a brief, not a record: the decision records
 snapshots in `DEPENDENCY_REVIEW.md` and the header of `LIVE_KIRO_TEST_PLAN.md` remain the
 authoritative text, and this brief defers to them wherever they differ.
 
-Overtaken since this brief was written: D121–D130 (2026-09-11 to 2026-09-13) are recorded in the
+Overtaken since this brief was written: D121–D131 (2026-09-11 to 2026-09-13) are recorded in the
 authoritative documents. D126 moved `SupportedClientVersion` to 2.1.269 and installed that build on
 2026-09-12; D125 strengthened trust publication. D127 installs progress and relay-setup timeout
 corrections with independent review complete. D128 installs the resolved-call cancellation
@@ -15,6 +15,12 @@ correction, with review complete. D129 installs retained tool outcomes across fi
 known-deadline cause preservation, with independent review complete. D130 installs the public
 request-limit completion mapping, with independent review complete. The 2.1.267 statements
 in sections 3, 4 and 6 describe the state as of 2026-09-11.
+
+D131 fixes the account-command diagnostic/cleanup defect in the later handoff's
+item 9. Independent process controls, all 27 race-tested packages, full vet and the three native
+core controls pass. D131 is installed as `account-check`, with 144 byte checks, 18 component
+checks and doctor passing on its first invocation. Independent review accepts `ac71b58` with no
+actionable finding or refreeze; focused race and artifact checks pass independently.
 
 ## 1. Scope and branch state
 

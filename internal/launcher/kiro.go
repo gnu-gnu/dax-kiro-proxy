@@ -19,6 +19,14 @@ import (
 
 var ErrKiroVersion = errors.New("Kiro installation or version is not supported")
 var ErrLoginCheck = errors.New("Kiro login could not be verified; run kiro-cli login and retry")
+var ErrAccountCheck = errors.New("Kiro account check could not complete")
+
+// Account command failures keep their execution and cleanup causes without exposing arbitrary
+// runner text through Error. A completed nonzero exit retains the existing login-check class.
+type accountCheckFailure struct{ kind, cause error }
+
+func (e *accountCheckFailure) Error() string   { return e.kind.Error() }
+func (e *accountCheckFailure) Unwrap() []error { return []error{e.kind, e.cause} }
 
 // SupportedKiroVersion is the measured Kiro main/helper build behind the recorded evidence. D59
 // moved it to 2.21.2 and D114 to 2.21.3 after fresh finite account/catalog checks. D114 admits any
@@ -99,11 +107,25 @@ func CheckKiro(ctx context.Context, runner CommandRunner, cfg KiroConfig) (KiroI
 	}
 	command.Args = []string{"whoami", "--format", "json"}
 	result, err := runner.Run(ctx, command)
-	if ctx.Err() != nil {
-		return KiroInfo{}, ctx.Err()
+	if cause := errors.Join(ctx.Err(), err); cause != nil {
+		kind := ErrAccountCheck
+		if result.ExitCode > 0 && errors.Is(err, childproc.ErrExit) {
+			kind = ErrLoginCheck
+		}
+		// A command that also exceeded a bound or failed to execute/read did not establish
+		// login status, even if shutdown subsequently observed a nonzero exit.
+		for _, execution := range []error{context.Canceled, context.DeadlineExceeded, childproc.ErrStart, childproc.ErrOutputLimit, childproc.ErrIO, childproc.ErrClosed, childproc.ErrBusy, childproc.ErrParameters} {
+			if errors.Is(cause, execution) {
+				kind = ErrAccountCheck
+			}
+		}
+		return KiroInfo{}, &accountCheckFailure{kind: kind, cause: cause}
 	}
-	if err != nil || result.ExitCode != 0 {
+	if result.ExitCode > 0 {
 		return KiroInfo{}, ErrLoginCheck
+	}
+	if result.ExitCode < 0 {
+		return KiroInfo{}, ErrAccountCheck
 	}
 	identity, postamble, err := kiroIdentity(result.Stdout)
 	if err != nil {

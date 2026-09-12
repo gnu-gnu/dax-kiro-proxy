@@ -6518,3 +6518,71 @@ component checks, including the unchanged dependency graph and exact two product
 Native-client and doctor evidence is inspected without rerunning either; the empty vet log's
 separate successful exit remains parent-verified. No production fix, refreeze or additional
 installed-client/model run is needed for this review.
+
+## D131: preserve account-check execution and cleanup failures
+
+Branch `d131-account-check`, based on `14a0478`, addresses the account-command part of HANDOFF
+item 9. Previously CheckKiro replaced every whoami runner failure with ErrLoginCheck and replaced
+a caller cancellation with its context error alone, discarding a simultaneous cleanup failure.
+The CLI could therefore instruct login for a deadline or failed process launch and omit cleanup
+failure. D130's first doctor failure motivated inspection; its actual cause remains unestablished.
+The independent controls below, not that transient observation, establish the defects.
+
+The account command now retains caller and runner causes under a fixed-text error wrapper.
+Cancellation remains cancellation; an execution deadline reports that the account check timed out.
+Other execution failures report that the account check could not complete and suggest the existing
+doctor --timing command. A completed nonzero exit keeps the existing unverified-login diagnostic,
+including an accompanying cleanup marker. Known execution failures take precedence over a nonzero
+exit observed during shutdown. Invalid identity also retains the existing login-check result.
+No partial output establishes a profile scope. All failures stop before policy/runtime admission;
+cleanup failure remains visible alongside the primary CLI diagnostic. Arbitrary runner text is
+not printed by the wrapper or CLI. No authentication change, timeout increase, retry loop,
+dependency, catalog parsing change or other preflight-stage rewrite is introduced.
+
+The tests precede the production edit (`d131-account-before.log`). They reproduce lost deadline,
+cancellation, execution and cleanup causes, the wrong CLI classes, and two actual process
+deadlines reported as login failures. The independent CLI fixture emits a valid synthetic identity
+then either waits for five seconds or exits nonzero. A one-second command limit with an uncanceled
+startup caller proves the account deadline rather than a startup cancellation. Both inspect/run
+paths observe the fixed identity output, reject it, stop before policy, join the exact PID/group
+and runtime and preserve source settings. The normal production deadlines remain unchanged.
+
+Focused race checks pass (`d131-account-after.log`, launcher 9.672s, command 1.921s), including
+14 controlled runner failure cases, inspect/run propagation of combined deadline/cleanup failure,
+four independent process cases and 36 doctor/models/run error/cleanup combinations. Existing
+identity, supported/rejected version, preflight cancellation and CLI cleanup controls also pass.
+Cleanup-failure injection establishes error propagation; the actual process controls establish
+successful cleanup after their deadline/nonzero exit, not a real host cleanup failure. No actual
+Claude or Kiro runs in these focused controls. Full regression and artifact/review steps follow.
+
+The opt-ins-off race suite passes all 27 tested packages with sequential package scheduling
+(`d131-all-race.log`): launcher 33.535s, command 4.736s, interop 26.645s, session 38.391s and
+relay 8.508s. Existing internal concurrency controls remain unchanged. Full vet exits successfully
+as a separate command (`d131-all-vet.log`). Three actual-Claude 2.1.269/local-fake core controls
+pass sequentially (`d131-client-core.log`, package 25.363s): launcher cancellation 4.61s,
+tool-result continuation 2.02s and all six Read/Write/Bash allowance/refusal/hook cases 17.40s.
+Cancellation joins recorded ownership in 167ms; source settings remain unchanged and denied
+effects remain absent. No actual Kiro or external model is used in these controls.
+
+The clean `497e0e11e704ca5392f598578c80efb7f586621e` artifact is rebuilt, frozen and installed as
+`account-check`: 13,694,866 bytes, SHA-256
+`1490ac26e1363f59391b651acb1c06effa4534b6addb4df1893b15e653e02b9b`, vcs.modified=false. Only
+cmd/dax-kiro-proxy/main.go and internal/launcher/kiro.go change among 105 production inputs.
+All 267 ordered packages, four external modules, selected/native/vendor files and notices remain
+unchanged. Candidate and strictly resolved installed binaries each pass all 144 byte checks;
+all 18 component checks pass (`d131-freeze.log`, `d131-installed-verify.log`,
+`d131-components.log`). Install --force succeeds (`d131-install.log`). The first installed doctor
+invocation passes, with login_check 3.733s, measured Kiro 2.21.3/Claude 2.1.269, verified
+login/policy and launch available (`d131-installed-doctor.json`,
+`d131-installed-doctor-timing.log`). Client initialization remains unverified and release clearance
+stays false. No new advisory scan, login/logout or Kiro model request ran.
+
+Fresh-context independent review accepts `ac71b58` with no actionable finding
+(`d131-independent-review.md`). It checks classification and cause precedence, fixed diagnostics,
+startup admission/cleanup, fixture independence and bounds, non-vacuous partial-output rejection,
+CLI result classes, documentation limits and artifact identity. Focused fixture race checks pass
+for launcher 10.567s and command 1.463s. Candidate, strictly resolved installation and retained
+D131 copy each pass 144 byte checks; all 18 component checks pass. The reviewer also verifies
+embedded build metadata and all 105 input records against the clean code commit. Native/doctor
+logs are inspected without rerunning either; the empty vet log's successful exit remains
+parent-verified. No production fix, refreeze or additional installed-client/model run is needed.

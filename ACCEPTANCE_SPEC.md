@@ -523,6 +523,11 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
   cancellation joins
   catalog refresh before closing its command runner or removing private runtime files; replaced roots
   are preserved with a cleanup failure. Stable scope keys never regenerate from malformed state.
+- A failed account command must not publish an identity from partial output. Distinguish its
+  execution deadline from a completed nonzero exit; a timeout or launch/read failure must not
+  instruct login. Preserve caller cancellation and a simultaneous process cleanup failure through
+  startup and CLI reporting, without arbitrary runner text. Require independent finite process
+  controls with valid-looking partial output, no policy/runtime admission and joined cleanup (D131).
 
 ## H. Usage and diagnostics
 

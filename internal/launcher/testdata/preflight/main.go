@@ -51,6 +51,16 @@ func main() {
 		os.Exit(62)
 	}
 	fmt.Println(output)
+	if label == "identity" {
+		// Valid-looking partial output is not proof of a successful command. These finite modes
+		// exercise the caller's deadline and nonzero-exit paths without a real account or CLI.
+		if _, err := os.Stat(filepath.Join(os.Getenv("HOME"), "preflight-identity-hold")); err == nil {
+			time.Sleep(5 * time.Second)
+		}
+		if _, err := os.Stat(filepath.Join(os.Getenv("HOME"), "preflight-identity-exit")); err == nil {
+			os.Exit(1)
+		}
+	}
 }
 
 func launchACP(name string) {

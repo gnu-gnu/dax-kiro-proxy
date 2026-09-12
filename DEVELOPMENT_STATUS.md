@@ -6,6 +6,22 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D131 on d131-account-check (base 14a0478) fixes account-command deadlines and
+  execution failures being reported as login failures, with their cleanup causes lost. The error
+  keeps its causes behind fixed text; completed nonzero exits and malformed identity keep the
+  existing login-check failure. Four independent process cases reject valid-looking partial
+  output on deadline/nonzero exit, stop both inspection and run before policy and join the owned
+  group/runtime with unchanged settings. Fourteen controlled runner cases and 36 CLI combinations
+  also pass; focused race checks pass for launcher (9.672s) and command (1.921s). All 27 race-tested
+  packages and full vet pass. Three actual-Claude 2.1.269/local-fake core controls pass (25.363s),
+  including all six tool-policy cases, result continuation and joined cancellation. The clean
+  497e0e1 artifact is installed as account-check (144 byte checks, 18 component checks); doctor
+  verifies the measured pair and login/policy on its first invocation. Client initialization
+  remains unverified. Independent review accepts ac71b58 without an actionable finding; focused
+  race checks pass for launcher (10.567s) and command (1.463s), and candidate/installed/retained
+  binaries each pass 144 checks with all 18 component checks independently verified. No production
+  fix or refreeze is needed. No actual Kiro model ran.
+
 - D130 on d130-stop-reason (base 495a6e5) fixes the public ACP max_turn_requests
   completion being treated as a protocol failure. It maps to pause_turn, preserves text/history,
   and retains the normal explicit-next-question path without an automatic prompt. The corrected
