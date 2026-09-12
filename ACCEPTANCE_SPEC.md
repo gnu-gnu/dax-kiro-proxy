@@ -278,6 +278,9 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
   or divergent results reject on this all-denial/retired-outcome path without consuming recovery
   ownership; active D73 continuations follow the separate rule above.
 - Cancellation and timeout resolve all suspended relay calls and remove owner-only socket/config data.
+- A resolved relay call's late cancellation or timer cannot retire queued, sealed, delivered or
+  next-turn work (D128). Preserve its exact committed result. Cancellation of an unresolved call
+  still retires the complete prompt; no partial delivered result set or late result is accepted.
 - MCP starts only after authenticated supervisor/child PID checks and verified ACP group membership.
   A peer cannot supply its own PID/group, forge a join, replay an attachment or replace a valid child.
   After binding, a different process cannot submit a tool call using the child's control credentials.

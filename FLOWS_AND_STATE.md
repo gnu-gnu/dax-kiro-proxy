@@ -261,6 +261,11 @@ Client disconnect before turn completion cancels the Kiro session and discards i
 first event and timeout for the total turn are distinct diagnostics. A tool timeout completes the relay
 call with a tool error and prevents late result reuse.
 
+Relay cancellation checks the exact pending call under the same lock as result resolution
+(D128). Once its result is committed, late cancellation cannot change that result or retire newer
+work. Cancellation before resolution retains complete prompt retirement, including queued,
+sealed and delivered calls; it does not selectively remove a delivered tool ID.
+
 Validated progress from the active owned prompt satisfies only the first-event wait (D127). It
 does not advance conversation history, publish tools, count as visible output or extend the original
 turn deadline. Streaming heartbeat scheduling remains independent of silent progress notifications.

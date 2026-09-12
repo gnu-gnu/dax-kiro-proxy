@@ -273,7 +273,7 @@ func TestToolTimeoutAndRepeatedCancellation(t *testing.T) {
 	}
 }
 
-func TestResolvedCallCannotExpireANewerBatch(t *testing.T) {
+func TestResolvedCallCannotFailANewerBatch(t *testing.T) {
 	b, c, alias := fixtureBroker(t, nil)
 	one := callFixture(b, c, alias, "resolved")
 	waitQueued(t, b, 1)
@@ -288,9 +288,10 @@ func TestResolvedCallCannotExpireANewerBatch(t *testing.T) {
 	<-one
 	two := callFixture(b, c, alias, "newer")
 	waitQueued(t, b, 1)
+	b.failPending(batch.Calls[0].ID, expired, context.Canceled)
 	b.expire(batch.Calls[0].ID, expired)
 	if b.Err() != nil {
-		t.Fatal("a completed call's timer discarded a newer batch")
+		t.Fatal("a completed call's cancellation or timer discarded a newer batch")
 	}
 	noResult(t, two)
 }

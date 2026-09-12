@@ -1,10 +1,21 @@
 # Development status and acceptance evidence
 
-Last updated: 2026-09-12. Overall objective: complete the standalone Go Kiro ACP proxy and launcher
+Last updated: 2026-09-13. Overall objective: complete the standalone Go Kiro ACP proxy and launcher
 contract described in PRODUCT_SPEC.md, including the full acceptance/release gates. This document
 does not redefine completion around an intermediate phase.
 
 ## Current evidence
+
+- D128 in progress on d128-relay-cancellation (base c8c631c) fixes a reproduced race where a
+  resolved tool call's late cancellation retires queued, sealed, delivered or next-turn work.
+  The exact pending-call check shares the resolution lock; committed results stay exact and
+  unresolved cancellation still retires the whole prompt. All four regressions fail before the
+  fix and focused race controls pass in 2.051s. All 27 packages pass the full race suite with
+  sequential package scheduling, and vet passes. Two earlier parallel-package runs failed on
+  independent process startup failures, recorded separately in D128. The three applicable actual
+  Claude 2.1.269/fake-ACP controls pass sequentially (28.447s), including all six tool-policy
+  cases, continuation and joined cancellation. No actual Kiro model runs. Artifact installation
+  and independent review remain pending; the installed build remains D127.
 
 - D127 on d127-turn-relay (base ea49c87) fixes two reproduced timeout defects. Validated owned
   ACP progress satisfies only the first-event wait, preserves answer/history/usage boundaries
