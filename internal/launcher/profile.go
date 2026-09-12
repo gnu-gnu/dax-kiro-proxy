@@ -31,10 +31,10 @@ var (
 const MaxSettingsBytes = 2 << 20
 
 // SupportedClientVersion is the measured client build behind the recorded installed-client
-// evidence (D113 migrated it from 2.1.263 after a full regression pass). Launch admission
-// compares only its major component (D110); startup reports whether the detected build is this
-// measured one rather than treating it as verified.
-const SupportedClientVersion = "2.1.267"
+// evidence (D113 migrated it from 2.1.263 and D124 from 2.1.267, each after a full regression
+// pass). Launch admission compares only its major component (D110); startup reports whether the
+// detected build is this measured one rather than treating it as verified.
+const SupportedClientVersion = "2.1.268"
 
 // ClientVersionFromOutput parses the client's --version output and reports whether that
 // build is admitted. The output must be the bare version followed by the client's name.
@@ -366,7 +366,7 @@ func platformEnvironment(source []string) (map[string]string, error) {
 
 // Only the Bearer token is set (D115): the client asks for interactive approval of an
 // ANTHROPIC_API_KEY, which would recur on every launch because the token is fresh each time, and
-// the measured 2.1.267 build warns when both variables are present. The gateway accepts the
+// the measured builds since 2.1.267 warn when both variables are present. The gateway accepts the
 // Authorization header.
 func hostEnvironment(endpoint, token string) map[string]string {
 	return map[string]string{

@@ -121,9 +121,9 @@ context/visible output tokens.
 ## Compatibility posture
 
 The initial compatibility target is the Messages subset exercised by the measured Claude Code client
-(2.1.267 since D113; D110 admits same-major builds without new measurement), not full Anthropic API
-parity.
-D33 inventories implemented behavior; D52 records the delivery policy.
+(2.1.268 since D124, previously 2.1.267 from D113; D110 admits same-major builds without new
+measurement), not full Anthropic API parity. D33 inventories implemented behavior; D52 records the
+delivery policy.
 
 | Area | Initial contract |
 | --- | --- |
