@@ -7097,3 +7097,12 @@ verified login/policy and launch availability. Client initialization remains unv
 release clearance false. Logs: `d138-freeze.log`, `d138-candidate-verify.log`,
 `d138-installed-verify.log`, `d138-components.log`, `d138-install.log` and
 `d138-installed-doctor.json`. No dependency upgrade, advisory refresh or model prompt occurs.
+
+Fresh-context independent review accepts `77f7d19..295cfb1` without actionable findings
+(`d138-review-report.log`). Focused launcher/gateway race passes in 4.875s/1.333s, with
+related vet passing. Candidate and strictly resolved installed binaries each pass 144 checks;
+all 18 component checks pass. Independent comparison matches all 105 inputs against clean
+`b09bb9e` Git blobs, both binaries' metadata and the unchanged 267-package/four-module graph.
+An initial bootstrap toolchain check fails with its checksum database disabled, before testing;
+using the existing reviewed Go binary directly resolves that environment issue. No production
+correction, refreeze or reinstall is needed.
