@@ -67,8 +67,9 @@ one request per input; the real gateway/independent ACP control also reuses the 
 the new delta. All 27 race-tested packages, full vet and three existing native core controls pass
 (24.019s), including the six tool-policy cases. The clean `3d35c51` artifact is installed as
 `prompt-stop` (144 byte checks, 18 component checks). Doctor passes on an unchanged read-only
-retry after its first login check fails; both are recorded. Independent review remains pending.
-No actual Kiro model ran.
+retry after its first login check fails; both are recorded. Independent review accepts `037ef3a`
+without an actionable finding; focused race and artifact checks pass independently. No production
+fix or refreeze is needed. Other core candidates continue separately. No actual Kiro model ran.
 
 ## 1. State you inherit
 

@@ -1175,4 +1175,7 @@ JSON result; its cause is unestablished (`d130-installed-doctor-timing.log`). An
 read-only retry verifies the measured pair, login/policy and launch availability
 (`d130-installed-doctor-retry.json`). Doctor client initialization remains unverified and release
 clearance remains false. D125 advisory scans remain historical; no new scan or actual Kiro model
-turn ran. Independent review remains pending. Owner rights stay outside this repository under D121.
+turn ran. Independent review accepts `037ef3a` without an actionable finding and independently
+confirms both 144-check artifact results, all 18 component checks and unchanged dependency
+records. No production fix or refreeze is needed. Owner rights stay outside this repository
+under D121.

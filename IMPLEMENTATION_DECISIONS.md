@@ -6506,4 +6506,15 @@ Candidate and resolved installed binaries each pass all 144 byte checks; 18 comp
 established. An unchanged read-only retry passes, reporting measured Kiro 2.21.3/Claude 2.1.269,
 verified login/policy and launch available (`d130-installed-doctor-retry.json`, login_check
 2.073s). No login/logout ran. Doctor client initialization stays unverified, release clearance
-stays false, and no fresh advisory scan ran. Fresh-context independent review remains pending.
+stays false, and no fresh advisory scan ran.
+
+Fresh-context independent review accepts `037ef3a` with no actionable finding
+(`d130-independent-review.md`). It checks notification draining and distinct stop reasons,
+successful finalization/history, failed-delivery cancellation, pending-tool ownership, bounded
+independent fixtures, fixed-shape diagnostics, native observation limits and artifact consistency.
+Focused fixture race checks pass for session 7.833s and gateway 1.369s on the first approved
+invocation. The reviewer independently confirms both 144-check artifact results and all 18
+component checks, including the unchanged dependency graph and exact two production changes.
+Native-client and doctor evidence is inspected without rerunning either; the empty vet log's
+separate successful exit remains parent-verified. No production fix, refreeze or additional
+installed-client/model run is needed for this review.

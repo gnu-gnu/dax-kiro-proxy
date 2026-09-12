@@ -6,7 +6,7 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
-- D130 in progress on d130-stop-reason (base 495a6e5) fixes the public ACP max_turn_requests
+- D130 on d130-stop-reason (base 495a6e5) fixes the public ACP max_turn_requests
   completion being treated as a protocol failure. It maps to pause_turn, preserves text/history,
   and retains the normal explicit-next-question path without an automatic prompt. The corrected
   session/gateway controls pass, including same-process delta continuation and invalid completion
@@ -17,7 +17,10 @@ does not redefine completion around an intermediate phase.
   cases, result continuation and joined cancellation. The clean 3d35c51 artifact is installed as
   prompt-stop (144 byte checks, 18 component checks). Doctor verifies the measured pair and
   login/policy on a read-only retry after the first login check fails; both results are recorded
-  separately. Independent review remains pending. No Kiro model ran.
+  separately. Independent review accepts 037ef3a without an actionable finding; focused race
+  checks pass for session (7.833s) and gateway (1.369s), and both 144-check artifact results and
+  all 18 component checks pass independently. No production fix or refreeze is needed. No Kiro
+  model ran.
 
 - D129 on d129-tool-outcomes (base bbc4335) fixes reproduced tool outcome loss
   between response write and Finish, and deadline causes hidden by cleanup/late completion.
