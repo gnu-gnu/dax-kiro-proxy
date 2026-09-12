@@ -65,8 +65,10 @@ The max_turn_requests reason now maps to pause_turn with exact text and ordinary
 Controlled Claude 2.1.269 observations preserve that answer on an explicit next question, with
 one request per input; the real gateway/independent ACP control also reuses the owner with only
 the new delta. All 27 race-tested packages, full vet and three existing native core controls pass
-(24.019s), including the six tool-policy cases. Artifact installation and independent review
-remain pending. Installed source remains D129; no actual Kiro model ran.
+(24.019s), including the six tool-policy cases. The clean `3d35c51` artifact is installed as
+`prompt-stop` (144 byte checks, 18 component checks). Doctor passes on an unchanged read-only
+retry after its first login check fails; both are recorded. Independent review remains pending.
+No actual Kiro model ran.
 
 ## 1. State you inherit
 

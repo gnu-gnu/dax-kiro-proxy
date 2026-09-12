@@ -1149,3 +1149,30 @@ results remain historical; D129 performs no new scan or actual Kiro model turn. 
 review accepts `3065fd2` without an actionable finding and confirms the candidate/installed byte
 identity and component record. No refreeze is needed. The owner's rights determinations stay
 outside this repository under D121.
+
+
+## Prompt stop-reason artifact snapshot — D130, 2026-09-13
+
+`third_party/inventory/macos-arm64-prompt-stop.json` records the rebuilt 13,694,546-byte
+development command, SHA-256
+`6538b2e84bc6032d05235e2ff67eeca6eb7f36c3960954a73119eaad7527796c`. It identifies Go 1.27.1,
+darwin/arm64, CGO_ENABLED=1 and clean revision `3d35c515a3403f2fafb337540cadf734183506c1` with
+vcs.modified=false. D129 tool-outcomes is the hashed predecessor and remains retained.
+
+Only `internal/gateway/http.go` and `internal/session/turn.go` change among the same 105
+production input records. All 267 import paths, selected files, four external module versions/
+sums/package sets, native files, stdlib vendor packages and notices remain unchanged. No
+dependency is added or upgraded.
+
+```sh
+python3 tools/verify_dependency_inventory.py --gomodcache .cache/gomod --snapshot prompt-stop --binary dist/dax-kiro-proxy
+```
+
+Candidate and resolved installed binaries each pass all 144 byte checks (`d130-freeze.log`,
+`d130-installed-verify.log`); all 18 component checks pass (`d130-components.log`). Install
+--force succeeds (`d130-install.log`). The first doctor fails login_check after 5.137s without a
+JSON result; its cause is unestablished (`d130-installed-doctor-timing.log`). An unchanged
+read-only retry verifies the measured pair, login/policy and launch availability
+(`d130-installed-doctor-retry.json`). Doctor client initialization remains unverified and release
+clearance remains false. D125 advisory scans remain historical; no new scan or actual Kiro model
+turn ran. Independent review remains pending. Owner rights stay outside this repository under D121.

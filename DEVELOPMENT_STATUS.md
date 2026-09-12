@@ -14,8 +14,10 @@ does not redefine completion around an intermediate phase.
   independent ACP peer pass all six explicit questions (5.413s race package), preserving the
   original answer once and joining recorded ownership. All 27 race-tested packages and full vet
   pass. Three existing native core controls also pass (24.019s), including all six tool-policy
-  cases, result continuation and joined cancellation. Artifact installation and independent review
-  remain pending. The installed artifact remains D129; no Kiro model ran.
+  cases, result continuation and joined cancellation. The clean 3d35c51 artifact is installed as
+  prompt-stop (144 byte checks, 18 component checks). Doctor verifies the measured pair and
+  login/policy on a read-only retry after the first login check fails; both results are recorded
+  separately. Independent review remains pending. No Kiro model ran.
 
 - D129 on d129-tool-outcomes (base bbc4335) fixes reproduced tool outcome loss
   between response write and Finish, and deadline causes hidden by cleanup/late completion.

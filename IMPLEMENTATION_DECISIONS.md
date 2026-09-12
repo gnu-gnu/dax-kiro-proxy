@@ -6492,4 +6492,18 @@ The three applicable existing actual-Claude/local-fake controls pass sequentiall
 (`d130-client-core.log`, package 24.019s): launcher cancellation 3.94s, tool-result continuation
 2.02s and all six Read/Write/Bash allowance/refusal/hook cases 17.35s. Cancellation joins recorded
 ownership in 164ms; source settings and denied effects remain unchanged. No actual Kiro model
-ran. Artifact installation and fresh-context independent review remain pending.
+ran.
+
+The clean `3d35c515a3403f2fafb337540cadf734183506c1` build is frozen and installed as
+`prompt-stop`: 13,694,546 bytes, SHA-256
+`6538b2e84bc6032d05235e2ff67eeca6eb7f36c3960954a73119eaad7527796c`, vcs.modified=false. Only
+internal/gateway/http.go and internal/session/turn.go change among 105 production inputs. The
+267 packages, four external modules, selected/native/vendor files and notices remain unchanged.
+Candidate and resolved installed binaries each pass all 144 byte checks; 18 component checks pass
+(`d130-freeze.log`, `d130-installed-verify.log`, `d130-components.log`). Install --force succeeds
+(`d130-install.log`). The first installed doctor exits unsuccessfully at login_check after
+5.137s with no JSON result (`d130-installed-doctor-timing.log`); its underlying cause is not
+established. An unchanged read-only retry passes, reporting measured Kiro 2.21.3/Claude 2.1.269,
+verified login/policy and launch available (`d130-installed-doctor-retry.json`, login_check
+2.073s). No login/logout ran. Doctor client initialization stays unverified, release clearance
+stays false, and no fresh advisory scan ran. Fresh-context independent review remains pending.
