@@ -70,6 +70,10 @@ func main() {
 		pendingChurnFixture()
 		return
 	}
+	if mode == "batch-relay" {
+		batchRelayFixture()
+		return
+	}
 	if strings.HasPrefix(mode, "inventory-") {
 		inventoryFixture(mode)
 		return

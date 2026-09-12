@@ -118,6 +118,23 @@ Independent review accepts `329558c` plus the explicit local-coverage clarificat
 race/vet and the installed D133's 144 byte checks pass. The exact paired command is ready to
 request per-run approval; no production fix or refreeze is needed for this preparation.
 
+D134 preparation merged as `e8d64a9`. D135 on `d135-multi-call-relay` verifies concurrent
+three-call batches through independent ACP and real relay/HTTP/SSE processes. Eight direct
+waves join sixteen owners after mixed results and pending shutdown; eight HTTP waves join
+24 owners after exact full-denial reconstruction and sibling continuation. Final focused race
+controls and observer negatives pass. The first recovery failure was a single-session fixture
+using the default shared-session pool; explicit one-session-per-process configuration fixes it.
+No production change or new actual-client/Kiro evidence is involved. Combined resource/long
+soak, prepared policy and shared ACP remain separate; D134's model approval is still pending.
+The complete related race suites and final vet pass; an existing test-peer cancel closure is
+made explicit and its twelve progress controls pass. Installed D133/current inputs pass all
+144 byte checks. No rebuild or installation is required for these test-only changes.
+Independent review finds one SSE observer issue. Six counterexamples reproduce invalid
+lifecycle acceptance; explicit start/terminal ordering fixes it, with all observer controls,
+eight HTTP waves (6.813s) and session vet passing. Post-response cleanup evidence is clarified.
+Follow-up review accepts `0fdc8bc` with no remaining finding. Independent focused SSE/HTTP
+race passes (7.968s), and installed D133/current inputs pass all 144 byte checks after the fix.
+
 ## 1. State you inherit
 
 - `main` is at `e07e591` (merge of D124). The working tree is clean. There is no remote; never push

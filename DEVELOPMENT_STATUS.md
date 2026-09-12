@@ -6,6 +6,27 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D135 on d135-multi-call-relay (base e8d64a9) adds real-process checks for concurrent batches
+  of three tools. Eight direct-relay waves verify 96 completed/24 cancelled calls and sixteen
+  joined ACP/relay owners. Eight HTTP waves, evenly split between buffered and SSE responses,
+  verify 48 completed/24 abandoned calls and 24 joined owners. Foreign/partial results preserve
+  pending owners; full-denial recovery retains exact history while the sibling continues on
+  its existing process. Focused race controls and observer negatives pass (6.883s/12.268s).
+  The initial HTTP failure was a single-session fixture using a shared-session pool; explicit
+  one-session-per-process configuration fixes it. No production defect or behavior change is
+  established. These finite checks leave prepared/native policy, shared ACP and combined
+  long-duration/resource soak separate. No actual client/Kiro runs; D134 approval stays pending
+  and the installed D133 artifact remains unchanged.
+  Complete session/interop/ACP/fake-package race suites pass. Explicit fake-package vet finds
+  an existing indirect-cancel warning; a one-line explicit defer passes its twelve progress
+  controls and final related vet. Installed D133/current-input verification passes 144 checks.
+  Independent review finds an SSE observer accepting missing starts or content after an early
+  terminal. Six counterexamples reproduce it; explicit lifecycle checks, all observer controls
+  and the eight HTTP waves then pass (6.813s), with session vet passing. Old-owner disappearance
+  is observed after recovery, without an independent pre-dispatch timing witness.
+  Follow-up review accepts 0fdc8bc without further findings; focused SSE/HTTP race passes
+  independently (7.968s), and installed D133/current inputs still pass 144 byte checks.
+
 - D134 prepares one bounded MCP call-timeout comparison for HANDOFF item 13. Local protocol
   and observer race controls pass with Kiro opt-in off; no actual model run or new approval is
   recorded. Earlier no-prompt Kiro 2.21.3 observations establish configuration storage and
