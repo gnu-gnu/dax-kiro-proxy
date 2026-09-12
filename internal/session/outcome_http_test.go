@@ -92,8 +92,11 @@ func TestToolOutcomeSurvivesFinalHTTPWriteBeforeFinish(t *testing.T) {
 				t.Fatal("owned process witness missing")
 			}
 			next := followup(t, original, *blocks[0].Text, []anthropic.ToolUse{{ID: blocks[1].ID, Name: blocks[1].Name, Input: blocks[1].Input}})
-			if _, err := d.Start(t.Context(), next); !errors.Is(err, inference.ErrBusy) {
-				t.Fatal("result was admitted before successful response finalization")
+			waitCtx, stopWait := context.WithTimeout(t.Context(), 20*time.Millisecond)
+			_, waitErr := d.Start(waitCtx, next)
+			stopWait()
+			if !errors.Is(waitErr, context.DeadlineExceeded) || d.State() != session.Prompting {
+				t.Fatal("result was admitted before finalization or canceled its owner")
 			}
 			until := time.Now().Add(3 * time.Second)
 			for d.State() != session.Unstarted && time.Now().Before(until) {

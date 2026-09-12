@@ -283,6 +283,13 @@ terminal error. Result-only retries must prove the same compatible owner, comple
 extension/standing suffix as active continuation. The existing all-denial/new-question proof can
 start fresh work after joined retirement; a late old Finish cannot replace that new owner.
 
+D137 distinguishes an active response from a terminal response awaiting delivery bookkeeping.
+After exposing End, the driver permits one following Start to wait under its existing start gate.
+The wait ends on caller cancellation or after Finish/joined abort updates the preceding owner.
+It neither resolves tools early nor commits history; normal compatibility and result-set checks
+still follow successful delivery. An additional overlapping Start remains busy. Canceling only
+the waiter leaves the preceding response intact, and no new deadline extends its owned turn.
+
 Settlement captures known failure state before cleanup changes it: confirmed authentication wins,
 then an already-recorded tool deadline, then an expired owned-turn deadline, then the supplied
 failure. An authentication class confirmed during joined backend cleanup retains its precedence.

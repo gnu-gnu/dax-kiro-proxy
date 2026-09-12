@@ -165,5 +165,8 @@ func progressRound(t *testing.T, updates []string, late bool) *round {
 	if !late {
 		close(done)
 	}
-	return &round{turn: &turn{client: peer, id: "progress-owner", owned: t.Context(), done: done, result: json.RawMessage(`{"stopReason":"end_turn"}`)}}
+	d := &Driver{state: Prompting}
+	tr := &turn{driver: d, client: peer, id: "progress-owner", owned: t.Context(), done: done, result: json.RawMessage(`{"stopReason":"end_turn"}`)}
+	d.current = tr
+	return &round{turn: tr}
 }

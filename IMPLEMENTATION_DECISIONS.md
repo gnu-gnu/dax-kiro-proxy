@@ -6977,3 +6977,76 @@ unchanged socket-enabled rerun passes. The strictly resolved installed D133 and 
 pass all 144 byte checks (`d136-review-artifact.log`, also `d136-final-artifact.log`). The review
 confirms the prepared cleanup order, bounded observer and exact protocol checks, with the
 finite fixture scope retained. No production fix, refreeze or installation is required.
+
+## D137: Await terminal delivery before admitting an immediate continuation
+
+On `d137-terminal-delivery`, based on `d4ed7b8`, a real local HTTP reproduction reads the
+complete JSON or SSE tool response, then submits its exact result while the server's final
+flush is returning. Both cases receive 409 before the fix (`d137-before.log`, 4.484s package).
+The client already has the terminal response, but Driver remains Prompting until Finish.
+This is a continuation failure in the existing tool path, without an actual Kiro model run.
+
+A round now registers a delivery channel under the driver lock when it exposes a supported
+End event. The next Start may wait on that channel under the existing single start gate;
+additional simultaneous starts still return busy. Active generation has no delivery channel
+and retains immediate busy rejection. Caller cancellation releases only the waiting Start.
+The preceding turn's original tool/turn deadlines continue to apply; the wait creates no
+new goroutine, timer, queue or deadline extension.
+
+Successful tool Finish marks the broker delivered and enters WaitingTools before releasing
+the waiter. Text completion commits history and idle state first. Joined abort preserves
+its scoped failure outcome before releasing the waiter. The waiting request then follows
+the existing validation, compatibility, history, complete result-set and recovery paths.
+Waiting alone does not authorize tool effects, accept results or commit history. Late Finish
+and repeated cancellation retain the prior single-settlement rules. Only driver.go and
+turn.go change in production.
+
+The TCP reproduction uses an independent ACP process, actual relay/schema workers and a
+client that reads terminal JSON/SSE before the server flush returns. No effect executes in
+the proxy. Direct controls additionally hold text finalization and require the next question's
+exact delta on the same backend process. Tool controls verify one waiter, cancellation of
+that waiter without retiring the owner, then successful Finish, cancellation, tool expiry or
+Close. Existing D129 and registry controls now require a canceled delivery wait instead of immediate
+busy rejection after End; they retain the prohibition on resolving results before delivery.
+The notification-only fixture now supplies the driver ownership exercised by End.
+
+The first fix passes both TCP cases, the existing handoff control and all four D129 HTTP
+outcome/recovery cases (`d137-initial-fix.log`, 8.208s). Expanded direct delivery, admission,
+retirement, next-question, progress and stop-reason controls pass in 5.418s
+(`d137-delivery-controls.log`). The TCP test also covers the session-manager wrapper.
+The first full race run fails six registry/recreation cases at their shared pre-delivery helper
+(`d137-full-race.log`, session 116.146s). That helper still expects immediate busy after End;
+its expectation is updated to a bounded canceled wait with unchanged owner state. No additional
+production change is needed. All other packages in that run pass.
+
+Three actual Claude 2.1.269 controls run sequentially against independent ACP and pass
+(`d137-client-core.log`, package 25.828s). Tool-result continuation passes in 2.12s; all six
+Read/Write/Bash allow, denial and hook-veto cases pass in 18.27s. Launcher cancellation passes
+in 4.51s, with a 152-ms joined cancellation and all recorded client/hook/ACP/relay/profile
+ownership gone. Source settings remain unchanged. No actual Kiro model or per-run credit
+experiment is involved. These are core native-client regressions, not a native-client timing
+measurement of the held-terminal-flush reproduction.
+
+Final `go test -race -p 1 ./... -count=1 -timeout 20m` passes all 27 tested packages with
+native/model opt-ins off (`d137-final-race.log`), including session 74.754s, gateway 5.054s,
+launcher 33.774s and interop 35.106s. Final whole-repository vet passes with an empty log
+(`d137-final-vet.log`).
+
+Clean source commit `3a13775` is rebuilt and installed as `terminal-delivery`:
+13,695,074 bytes, SHA-256
+`3d386e521b29bd41bbded9f8255d789ebce8c91b887ec7a6b8174a2775d4cea7`. Candidate and strictly
+resolved installed inputs each pass 144 checks; all 18 component checks pass. Only the two
+session source files change among the same 105 inputs, 267 ordered packages and four external
+modules. Install --force and the first installed doctor pass, with measured Kiro 2.21.3/
+Claude 2.1.269, login/policy verified and launch available. Client initialization remains
+unverified and release clearance false. Logs are `d137-freeze.log`, `d137-candidate-verify.log`,
+`d137-installed-verify.log`, `d137-components.log`, `d137-install.log` and
+`d137-installed-doctor.json`. No model prompt, dependency upgrade or advisory refresh occurs.
+
+Fresh-context independent review accepts `d4ed7b8..4f767aa` without actionable findings
+(`d137-review-report.log`). Delivery/registry/outcome race checks pass independently in
+16.688s, additional progress/stop/deadline checks in 4.674s, and related vet passes. An initial
+sandbox loopback denial is followed by a passing unchanged socket-enabled invocation. Candidate
+and strictly resolved installed binaries each pass 144 checks, with 18 component checks and
+independent agreement on clean build metadata, all 105 committed inputs, the two production
+changes, 267 ordered packages and four modules. No production correction or refreeze is needed.

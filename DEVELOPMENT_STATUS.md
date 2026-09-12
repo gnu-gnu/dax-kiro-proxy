@@ -6,6 +6,26 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D137 on d137-terminal-delivery (base d4ed7b8) fixes an immediate continuation receiving 409
+  after the client reads terminal bytes but before the server finishes delivery bookkeeping.
+  Both real local HTTP JSON/SSE cases fail before the fix and pass afterward. One Start may
+  wait per session; cancellation leaves the prior owner intact, and result/history validation
+  still follows successful delivery. Direct controls cover the next ordinary question, waiter
+  admission, cancellation, tool expiry and close. Initial applicable race checks pass
+  (8.208s/5.418s). No actual Kiro model runs; D134 approval remains pending.
+  Three sequential Claude 2.1.269/fake-ACP controls pass (25.828s): result continuation, six
+  allow/deny/hook cases and joined launcher cancellation (152 ms), with unchanged sources.
+  The first full race run exposes six cases using an old immediate-busy expectation in their
+  shared registry helper; that expectation is updated without a further production change.
+  Final whole-repository race passes all 27 tested packages (session 74.754s), and final vet
+  passes. Clean code 3a13775 is rebuilt and installed as terminal-delivery; candidate and
+  strictly resolved installed/current inputs pass 144 checks, with all 18 components unchanged.
+  The first installed doctor verifies measured versions, login/policy and launch availability.
+  Independent review accepts 4f767aa without actionable findings. Focused race checks pass
+  separately in 16.688s/4.674s, with related vet, 144 candidate/installed checks, 18 component
+  checks and independent build/source/package comparison passing. No correction or refreeze
+  is required. Client initialization and full release clearance remain open.
+
 - D136 on d136-prepared-batch-churn (base c9f7ebc) retains one gateway/manager/pool across
   1,024 prepared three-call waves. All 6,144 exact MCP results, 3,072 abandoned denials and
   3,072 joined ACP/relay/policy owners are checked, including old cleanup before each recovery

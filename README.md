@@ -43,7 +43,7 @@ experiment design; the explicit language selection supersedes comparative experi
 gate. The dependency inventory is complete for the darwin/arm64 development artifact (D121); the
 owner's rights and project-license decisions are outside this repository, and live-release gates
 remain open. Implementation began with independent fixtures and fake-process transport tests and now
-reaches an installed development artifact (D133); consult DEVELOPMENT_STATUS.md for verified
+reaches an installed development artifact (D137); consult DEVELOPMENT_STATUS.md for verified
 progress, `HANDOFF_REVIEW_2026-09-11.md` for the D109–D120 review brief and
 `HANDOFF_AGENT_2026-09-12.md` for the agent handoff after D124.
 
@@ -87,6 +87,12 @@ D129 preserves a tool wait's failure when timeout or cancellation overlaps respo
 An exact retry must prove the same history and complete tool IDs; normal result delivery still
 requires successful finalization. Known deadlines keep their cause through cleanup, and a late
 finalization cannot alter a new turn after recovery.
+
+D137 lets an immediate tool result or next question wait for the previous response's final
+delivery bookkeeping. Terminal bytes can already be visible to the client while the server's
+final write is returning. One request may wait per session; further overlapping starts remain
+busy. Cancellation of that waiter leaves the previous turn intact. Results are still checked
+and released only after successful delivery; failed delivery retains its cancellation or timeout.
 
 D130 preserves the answer when ACP stops at its per-turn model-request limit. It emits
 `pause_turn`, retains the completed text and lets the next explicit question continue normally.
@@ -445,9 +451,9 @@ independent fixture) that samples the proxy's resident size, descriptors and pro
 after every turn; one authorized live soak against the actual Kiro also samples the backend process
 group's resident size under a first declared envelope.
 
-Phase 7 has frozen dependency inventories and retained scoped notices. For the installed D133
+Phase 7 has frozen dependency inventories and retained scoped notices. For the installed D137
 development artifact, run `python3 tools/verify_dependency_inventory.py
---gomodcache .cache/gomod --snapshot media-history --binary dist/dax-kiro-proxy`.
+--gomodcache .cache/gomod --snapshot terminal-delivery --binary dist/dax-kiro-proxy`.
 The default `development` snapshot identifies D78's earlier D77 binary; `installation` identifies D79.
 `native-history` identifies D87 and `relay-close` identifies D96; `effort` identifies D99, `usage`
 identifies D101, `output-styles` identifies D108, `tool-images` identifies D109, `client-version`
@@ -456,7 +462,8 @@ identifies D110–D112, `measured-client` identifies D113, `measured-kiro` ident
 `deferred-standing` identifies D123, `measured-client-268` identifies D124 and `trust-publication`
 identifies D125; `measured-client-269` identifies D126, `progress-setup` identifies D127 and
 `resolved-cancellation` identifies D128, `tool-outcomes` identifies D129 and `prompt-stop`
-identifies D130; `account-check` identifies D131 and `schema-dialects` identifies D132.
+identifies D130; `account-check` identifies D131, `schema-dialects` identifies D132 and
+`media-history` identifies D133.
 Those historical snapshots do not match this rebuild and its changed production source. These
 offline byte checks do not grant release clearance; see DEPENDENCY_REVIEW.md for the D121 component
 record, the three unattributed metaschema resources and the owner's external rights items.
