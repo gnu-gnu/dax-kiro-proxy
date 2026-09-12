@@ -6112,3 +6112,65 @@ the main checkout frozen at `83e9d52`. It passes 74 of 75 controls (648.560 s,
 yes selection, sends no model prompt and requires emergency cleanup after its deadline. This is
 not a successful trust-publication or version-migration result. The exact cause remains to be
 measured in a standalone UI control; 2.1.268 remains the tested pin.
+
+## D126: distinguish terminal controls and measure Claude Code 2.1.269
+
+The host's admitted 2.1.269 build passed 74/75 installed-client controls at the D125 checkpoint.
+The remaining trust control never confirmed its yes selection and sent no model prompt. Bounded
+standalone observations reproduced two copies of the menu in the reconstructed screen. Fixed
+control counts identified the keyboard-flags query `CSI ? u` and full-screen margin reset `CSI r`.
+The test observer incorrectly interpreted the former as ordinary cursor restore and ignored the
+latter's cursor reset. These are observer defects, not evidence of a failed production trust write.
+
+The independent terminal fixtures first fail for the keyboard query and three full-screen margin
+reset forms, while ordinary cursor save/restore and a private-mode control remain distinct
+(`d126-terminal-controls-before.log`). The observer now ignores private-prefix/intermediate
+commands instead of interpreting them as ordinary numeric cursor controls. It handles full-screen
+DECSTBM's cursor reset, including omitted and zero defaults; partial scrolling regions and origin
+mode are still outside this bounded observer. The command meanings follow the public
+[kitty keyboard protocol](https://sw.kovidgoyal.net/kitty/keyboard-protocol/),
+[XTerm control sequences](https://invisible-island.net/xterm/ctlseqs/ctlseqs.html), and the
+[Digital VT100 User Guide](https://oldmanprogrammer.net/webapps/vt100/doc/vt100-ug/chapter3.html).
+No client source or raw terminal capture is retained as a fixture.
+
+The owned trust navigator now requires both exact option rows and one unambiguous selection. It
+moves toward the yes row in its observed direction, then sends Enter only after observing yes
+selected. Duplicate options, multiple selections, partial rows, extra label text and unmeasured
+numbering do not authorize an action. Fifteen independent choice cases plus the cursor fixtures
+pass (`d126-terminal-controls-after.log`). Temporary raw-control diagnostics and the capture
+inspection callback were removed; retained diagnostics count only up/down/confirmation actions.
+The existing two-launch acceptance assertions remain: exactly the accepted project-trust fragment
+is stored, the next launch has no trust dialog, source settings otherwise remain exact, the answer
+is visible and all recorded owners and terminal state clean up.
+
+The two-launch control passes on 2.1.269 (17.88 s test, 18.113 s package,
+`d126-trust-screen-269.log`) and, after removing temporary diagnostics, on 2.1.268 (18.15 s test,
+19.313 s package, `d126-trust-screen-268.log`). The complete 2.1.269 installed-client regression
+then passes 75/75 (579.147 s,
+`d126-client-269-batch.log`), including the final trust navigator without temporary diagnostics
+(17.63 s test), selected output-style placement and all terminal controls. The final repository-wide
+race suite passes all 27 tested packages (`d126-all-race.log`, package parallelism limited to two,
+installed-client/Kiro opt-ins off); vet passes (`d126-all-vet.log`). The production change is only
+the measured client constant, now 2.1.269; Kiro stays 2.21.3 and same-major admission is unchanged.
+The D121 component record names the new client pin. Prior live model evidence remains on the
+2.21.3/2.1.267 pair; no credit-consuming test has run in this decision. The clean build and artifact
+snapshot follow this code commit and are recorded separately in DEPENDENCY_REVIEW.md.
+
+The clean `3302837` build is frozen as `measured-client-269` and installed. All 143 byte checks
+pass against the candidate and resolved installed executable; the component record passes its
+18 checks. Doctor reports both versions measured, login/policy verified and launch available.
+DEPENDENCY_REVIEW.md records the exact hash and scope.
+
+Independent review finds that the shared numeric parser defaults oversized or overflowing margin
+parameters, incorrectly homing the cursor for unsupported values (`d126-independent-review.md`).
+Three new negative fixtures fail before correction (`d126-review-margin-before.log`). The margin
+branch now compares canonical decimal values directly to the supported full-screen defaults;
+oversized values cannot become defaults. A padded-decimal positive control and all ten control
+cases pass within the complete interop race package (26.704 s, `d126-review-interop-race.log`),
+followed by interop vet. The native two-launch trust check passes again on 2.1.269 (18.76 s test,
+19.514 s package, `d126-review-native-trust.log`). The older review preface now names the installed
+D126 build, and the touched prose is wrapped. These fixes change tests and documents only: the
+installed `3302837` artifact still passes all 143 byte checks, so it needs no refreeze.
+Follow-up review accepts the fixes without another finding, including the final line wrapping
+(`d126-independent-review.md`). Its focused observer/choice race run passes in 1.299 s, and the
+143 snapshot checks pass. The D126 verification is complete; the remaining HANDOFF work is unchanged.

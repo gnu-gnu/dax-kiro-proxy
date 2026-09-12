@@ -31,10 +31,10 @@ var (
 const MaxSettingsBytes = 2 << 20
 
 // SupportedClientVersion is the measured client build behind the recorded installed-client
-// evidence (D113 migrated it from 2.1.263 and D124 from 2.1.267, each after a full regression
+// evidence (D124 migrated it to 2.1.268 and D126 to 2.1.269, each after a full regression
 // pass). Launch admission compares only its major component (D110); startup reports whether the
 // detected build is this measured one rather than treating it as verified.
-const SupportedClientVersion = "2.1.268"
+const SupportedClientVersion = "2.1.269"
 
 // ClientVersionFromOutput parses the client's --version output and reports whether that
 // build is admitted. The output must be the bare version followed by the client's name.

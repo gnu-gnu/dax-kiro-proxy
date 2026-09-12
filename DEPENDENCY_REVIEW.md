@@ -907,7 +907,7 @@ project license.
 | Apple system libraries | libSystem.B, libresolv.9, CoreFoundation, Security | dynamic links of the installed binary (`otool -L`) | Apple macOS; SDK and signing terms outside this review | not distributed |
 | Build environment | macOS 15.4, Command Line Tools, MacOSX 15.5 SDK, Apple clang 17.0.0, CGO_ENABLED=1, ad hoc linker signature | build host | outside this review | nothing from the SDK is bundled |
 | Test utilities | python3 3.11.14, expect 5.45, script, ps, lsof, pgrep, Apple Git 2.39.5 | test host executables | host-provided | neither linked nor bundled |
-| External executables | kiro-cli 2.21.3, Claude Code 2.1.268 (2.1.267 until D124) | black-box backend and client | service terms are the owner's external item | neither linked nor bundled |
+| External executables | kiro-cli 2.21.3, Claude Code 2.1.269 (D126; 2.1.268 from D124) | black-box backend and client | service terms are the owner's external item | neither linked nor bundled |
 | Advisory scanner | govulncheck v1.8.0 (`golang.org/x/vuln`, `h1:clG4qBU6…`) with x/mod v0.41.0, x/sync v0.23.0, x/telemetry 20260908, x/tools v0.50.0 | session scratch GOPATH only | BSD-3-Clause, LICENSE byte-identical to Go's | not a repository dependency |
 
 Advisory results (database `https://vuln.go.dev` updated 2026-09-10T14:48:42Z, Go 1.27.1): source
@@ -1032,7 +1032,8 @@ release clearance false (`d125-installed-verify-final.log`). `install --force` s
 (`d125-install-final.log`). The installed diagnostic
 reports Kiro 2.21.3 measured and Claude Code 2.1.269 unmeasured: the host updated its client again;
 the tested client pin remains 2.1.268. Login and the development execution policy pass, and launch
-availability is true (`d125-installed-doctor-final.json`). This is no verification claim for 2.1.269.
+availability is true (`d125-installed-doctor-final.json`). This is no verification claim for
+2.1.269.
 
 The D121-reviewed govulncheck v1.8.0 reports no vulnerabilities in binary, source and source-with-test
 modes on this artifact/source. Its database is updated 2026-09-10T14:48:42Z
@@ -1041,3 +1042,28 @@ modes on this artifact/source. Its database is updated 2026-09-10T14:48:42Z
 curated Go reports with symbol reachability
 as of that database date, not unknown vulnerabilities, system libraries or separately installed
 executables. The owner's rights determinations remain outside the repository under D121.
+
+## Measured-client-269 artifact snapshot — D126, 2026-09-12
+
+`third_party/inventory/macos-arm64-measured-client-269.json` records the rebuilt 13,677,298-byte
+command, SHA-256 `cb5cb96abc53ca9d31242263ac105b18ac4685eb9e39efe41e3c1f6626474485`. It identifies
+Go 1.27.1, darwin/arm64, CGO_ENABLED=1 and clean committed revision `3302837` with
+`vcs.modified=false`. The inventory commit follows that code commit.
+
+Only `internal/launcher/profile.go` changes among the 104 production input records: the measured
+client constant is 2.1.269. The 267 import paths, four external module versions/sums/package sets,
+selected native files, stdlib vendor packages and retained notices are unchanged. D125's
+trust-publication inventory is the hashed predecessor. No dependency is added or upgraded. The
+D121 component record names 2.1.269 as the measured client; its 18 file checks still pass.
+
+```sh
+python3 tools/verify_dependency_inventory.py --gomodcache .cache/gomod --snapshot measured-client-269 --binary dist/dax-kiro-proxy
+```
+
+All 143 byte checks pass against both the candidate and the resolved installed executable, with
+release clearance false (`d126-freeze.log`, `d126-installed-verify.log`). `install --force` succeeds
+(`d126-install.log`). The installed doctor reports Claude Code 2.1.269 and Kiro 2.21.3 measured,
+login and policy verified, and launch available (`d126-installed-doctor.json`). This is development
+admission; no actual Kiro model test ran for this client migration. D125's advisory scans remain
+historical evidence for their recorded artifact/source, not new scans of this executable. The
+owner's rights determinations remain outside the repository under D121.

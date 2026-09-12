@@ -720,6 +720,7 @@ func runTerminalScenario(t *testing.T, mode, kiro string, history *terminalHisto
 	groupsBeforeRecovery := make(map[int]bool)
 	loginMessages, recoveryAttempts := 0, 0
 	var trustDialogSeen, trustAnswered bool
+	var trustActions [3]int // up, down, confirmed yes
 	var trustKeyAt time.Time
 	soakIndex := 0
 	var soakAt time.Time
@@ -787,12 +788,21 @@ func runTerminalScenario(t *testing.T, mode, kiro string, history *terminalHisto
 				if time.Since(trustKeyAt) < 400*time.Millisecond {
 					return ""
 				}
-				trustKeyAt = time.Now()
-				if strings.Contains(strings.ReplaceAll(lower, " ", ""), "❯yes,itrustthisfolder") {
-					trustAnswered = true
-					return "\r"
+				key := terminalTrustChoiceKey(screen)
+				if key == "" {
+					return ""
 				}
-				return "\x1b[B"
+				trustKeyAt = time.Now()
+				switch key {
+				case "\x1b[A":
+					trustActions[0]++
+				case "\x1b[B":
+					trustActions[1]++
+				case "\r":
+					trustActions[2]++
+					trustAnswered = true
+				}
+				return key
 			}
 			if trace.Client > 1 && trace.Foreground == trace.Client && statusProjectVisible(lower, project) && strings.Contains(screen, "❯") && !strings.Contains(lower, "do you want") && !strings.Contains(lower, "enter to continue") {
 				if history != nil && history.Stage == 2 && history.Picker && !historyPicked {
@@ -1232,7 +1242,7 @@ func runTerminalScenario(t *testing.T, mode, kiro string, history *terminalHisto
 		if trustPlan.Stage == 1 {
 			sources = beforeSettings == fileFingerprint(t, settings) && trustWritten
 		}
-		t.Logf("trust_stage=%d trust_dialog_seen=%v trust_answered=%v trust_written=%v global_unchanged=%v", trustPlan.Stage, trustDialogSeen, trustAnswered, trustWritten, globalUnchanged)
+		t.Logf("trust_stage=%d trust_dialog_seen=%v trust_answered=%v trust_written=%v global_unchanged=%v trust_actions=%v", trustPlan.Stage, trustDialogSeen, trustAnswered, trustWritten, globalUnchanged, trustActions)
 	}
 	modelRestored := false
 	if modelCheck && modelObserved && groupsGone && pidsGone {
