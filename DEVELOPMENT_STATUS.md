@@ -6,7 +6,7 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
-- D125 is in progress on `d125-trust-concurrency`: trust write-back now stages before acquiring the
+- D125 on `d125-trust-concurrency`: trust write-back now stages before acquiring the
   client lock path and revalidates source/staged bytes, identities and publication age before rename.
   Three existing-lock regressions fail before the fix; the focused race controls pass, including
   eight simultaneous candidates with one unchanged winner. The actual-client two-launch trust
@@ -21,9 +21,12 @@ does not redefine completion around an intermediate phase.
   (143 byte checks; unchanged four-module dependency set); all three refreshed advisory scans
   report no vulnerabilities. Independent review found a missing final HOME check and an incomplete
   lock-identity witness. Both are fixed, with the HOME regressions and Trust race controls passing
-  (4.854s), followed by all 27 race-tested packages and vet. The stronger native witness and
-  refreeze are pending. The host client is now 2.1.269,
-  reported unmeasured by doctor; the regression evidence and tested pin remain 2.1.268.
+  (4.854s), followed by all 27 race-tested packages and vet. The stronger native lock and two-launch
+  trust controls pass together (28.665s), and the reviewed `c418f13` artifact is refrozen and
+  installed (143 checks and three advisory modes pass). A separate frozen-source full batch on
+  the host's new Claude 2.1.269 passes 74/75: the trust-dialog observer sees the dialog but cannot
+  confirm the yes selection, with no model prompt. Standalone diagnosis remains open; doctor
+  reports 2.1.269 unmeasured and the tested pin remains 2.1.268.
 - D124 measures the self-updated Claude Code 2.1.268 and moves the measured client pin from 2.1.267
   to it: the first user message is a plain string, the first request's standing message carries the
   environment block and the selected output style (D123 defers the rotation), and the output-style

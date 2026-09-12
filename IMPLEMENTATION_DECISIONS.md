@@ -6098,5 +6098,17 @@ one-second release observation establishes source bytes at that point, not that 
 had already attempted a write. Follow-up review accepts both fixes without a new finding. The
 review-fix checkout's whole-repository race suite passes all 27 tested packages
 (`d125-review-all-race.log`) and vet passes (`d125-review-all-vet.log`); no native client ran in
-parallel with the main checkout's version batch. The stronger native rerun and clean-commit
-artifact refreeze remain pending.
+parallel with the main checkout's version batch. The stronger native observation passes on
+2.1.268: both persistent arms change settings while retaining the original lock identity and mode
+(3,233 and 3,276 ms); the release arm retains the original source at its one-second removal point
+and then completes (1,295 ms). The compiled trust control again passes both launches (19.35 s).
+Both tests pass together in 28.665 s (`d125-review-native.log`). The clean `c418f13` revision is
+rebuilt, refrozen and installed; 143 installed-artifact checks and all three refreshed advisory
+scans pass. The final binary hash and scanner scope are recorded in DEPENDENCY_REVIEW.md.
+
+During review, a separate full native batch against the newly installed Claude 2.1.269 runs with
+the main checkout frozen at `83e9d52`. It passes 74 of 75 controls (648.560 s,
+`client-2.1.269-premeasure.log`). The trust-dialog observer sees the dialog but never confirms its
+yes selection, sends no model prompt and requires emergency cleanup after its deadline. This is
+not a successful trust-publication or version-migration result. The exact cause remains to be
+measured in a standalone UI control; 2.1.268 remains the tested pin.

@@ -10,11 +10,13 @@ implementation code; do that first.
 
 D125 continuation note (2026-09-12): the original candidate numbering in section 5 is retained for
 traceability, but the actual D125 decision addresses items 16 and 20 first: guarded trust publication
-and structural test diagnostics. Its code is committed at `c67627a` on `d125-trust-concurrency`,
+and structural test diagnostics. Its reviewed code is committed at `c418f13` on `d125-trust-concurrency`,
 based on the D124 handoff commit `095a5ca`. The D125 build is installed (`trust-publication`, SHA-256
-`5e387757…`), and independent review is pending. The host client has updated to 2.1.269, admitted
-unmeasured; 2.1.268 remains the tested pin. The D125 record and DEVELOPMENT_STATUS.md carry its
-verification state. The rest of section 1 describes the inherited
+`9088ebaf…`), with the independent findings resolved and the stronger native controls passing.
+The host client has updated to 2.1.269, admitted unmeasured; its frozen-source batch passes 74/75
+with a trust-dialog selection-observer failure before any model prompt. Diagnose that case
+standalone before claiming a version migration. 2.1.268 remains the tested pin. The D125 record
+and DEVELOPMENT_STATUS.md carry its verification state. The rest of section 1 describes the inherited
 D124 checkpoint. The reviewed execution order and corrections are recorded below; candidate
 solutions must not override the acceptance requirements.
 

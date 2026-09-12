@@ -1010,10 +1010,12 @@ change the reviewed dependency set.
 
 ## Guarded trust-publication artifact snapshot — D125, 2026-09-12
 
-`third_party/inventory/macos-arm64-trust-publication.json` records the rebuilt 13,677,154-byte
-development command, SHA-256 `5e387757f3b7a58e3e4c3aac9a9bba5b260c4961b0268b751192350533cf7d6c`. It
-identifies Go 1.27.1, darwin/arm64, CGO_ENABLED=1 and clean committed revision `c67627a` with
-`vcs.modified=false`. The inventory commit follows the code commit.
+`third_party/inventory/macos-arm64-trust-publication.json` records the rebuilt 13,677,298-byte
+development command, SHA-256 `9088ebaf799e3a844d0499e174e77f4ca17f52992bf22e3aa2267c7d7b248179`. It
+identifies Go 1.27.1, darwin/arm64, CGO_ENABLED=1 and clean committed revision `c418f13` with
+`vcs.modified=false`, including the independent review's final HOME check. The inventory commit
+follows the code commit. The original `c67627a` candidate (SHA-256 `5e387757…`) and its inventory
+are retained under `.cache/history-review/*d125-before-review*`.
 
 There are 104 repository input records: `internal/launcher/client_trust.go` changes and
 `internal/launcher/client_trust_write.go` is added relative to D124. The 267 import paths, four
@@ -1026,14 +1028,16 @@ python3 tools/verify_dependency_inventory.py --gomodcache .cache/gomod --snapsho
 ```
 
 All 143 byte checks pass against both the candidate and the resolved installed executable, with
-release clearance false. `install --force` succeeds (`d125-install.log`). The installed diagnostic
+release clearance false (`d125-installed-verify-final.log`). `install --force` succeeds
+(`d125-install-final.log`). The installed diagnostic
 reports Kiro 2.21.3 measured and Claude Code 2.1.269 unmeasured: the host updated its client again;
 the tested client pin remains 2.1.268. Login and the development execution policy pass, and launch
-availability is true (`d125-installed-doctor.json`). This is no verification claim for 2.1.269.
+availability is true (`d125-installed-doctor-final.json`). This is no verification claim for 2.1.269.
 
 The D121-reviewed govulncheck v1.8.0 reports no vulnerabilities in binary, source and source-with-test
 modes on this artifact/source. Its database is updated 2026-09-10T14:48:42Z
-(`d125-govulncheck-version.log`, `d125-govulncheck-binary.log`, `d125-govulncheck-source.log`,
-`d125-govulncheck-source-test.log`). These scans cover curated Go reports with symbol reachability
+(`d125-govulncheck-version.log`, `d125-govulncheck-binary-final.log`,
+`d125-govulncheck-source-final.log`, `d125-govulncheck-source-test-final.log`). These scans cover
+curated Go reports with symbol reachability
 as of that database date, not unknown vulnerabilities, system libraries or separately installed
 executables. The owner's rights determinations remain outside the repository under D121.
