@@ -8,6 +8,14 @@ earlier review brief for D109–D120 written for the previous maintainer; it is 
 this one. `AGENTS.md` still requires reading every document in the `README.md` order before touching
 implementation code; do that first.
 
+D125 continuation note (2026-09-12): the original candidate numbering in section 5 is retained for
+traceability, but the actual D125 decision addresses items 16 and 20 first: guarded trust publication
+and structural test diagnostics. It is in progress on `d125-trust-concurrency`, based on the D124
+handoff commit `095a5ca`; the tree is not clean and D124 remains installed. The D125 record and
+DEVELOPMENT_STATUS.md carry its verification state. The rest of section 1 describes the inherited
+D124 checkpoint. The reviewed execution order and corrections are recorded below; candidate
+solutions must not override the acceptance requirements.
+
 ## 1. State you inherit
 
 - `main` is at `e07e591` (merge of D124). The working tree is clean. There is no remote; never push
@@ -136,32 +144,37 @@ The numbering below continues from D124; each batch is one branch, one review, o
 file positions were checked against `main` at `e07e591`. Items marked LIVE need the user's approval
 for a credit-consuming run.
 
-### D125 — protocol compatibility (removes causes of a session dying or every request failing)
+### Original D125 candidate — protocol compatibility
 
 1. Media limits apply to the whole request, and Claude Code resends the whole history each turn:
    `internal/anthropic/request.go:121` rejects once accumulated images exceed
    `MaxMediaParts` (20) / `MaxMediaTotalBytes` (6 MiB) from `internal/anthropic/media.go:19-21`,
-   and `internal/projection/media.go:85` applies the same totals. Apply the limits to the new
-   content (the delta after the last projected position) and replace older media with a fixed-shape
-   marker. Keep the history canonicalizer's hash inputs stable (`internal/history`), or record why
-   they change.
+   and `internal/projection/media.go:85` applies the same totals. Separate bounded HTTP input
+   validation from the media actually dispatched in a proven delta. A fresh-session reconstruction
+   must still preserve historical native images under D109; replacing them with size markers is
+   not an accepted fix. Keep history hash inputs stable and explicitly handle full projections
+   that exceed the negotiated dispatch bounds.
 2. `internal/schemawire/input.go:35` rejects any MCP tool schema whose `$schema` is not the
-   2020-12 URI, with an error that does not name the tool. Accept the draft-07, 2019-09 and 2020-12
-   URIs by stripping them, and include the tool name in the 400 reason. Whether Claude Code forwards
+   2020-12 URI, with an error that does not name the tool. Measure draft-07 and 2019-09 declarations
+   before selecting dialect-aware support or an explicit unsupported-dialect diagnostic. Stripping
+   `$schema` alone changes validation semantics and does not establish compatibility. Any tool
+   identification in diagnostics must remain bounded and safe. Whether Claude Code forwards
    MCP servers' `$schema` verbatim is unmeasured (a fixture MCP server in the interop suite can
    measure it without credits).
 3. `internal/session/turn.go:183-208` treats only `agent_message_chunk` as visible output, so a
    backend that emits only thought chunks or `tool_call` updates for 90 s trips the first-event
-   deadline (`internal/gateway/http.go:294`, default at `:86`). Count every session-scoped update as
-   liveness while keeping text as the only visible output.
+   deadline (`internal/gateway/http.go:294`, default at `:86`). Define validated progress from the
+   owned prompt separately from visible text. Arbitrary metadata, unknown updates and SSE pings
+   must not bypass the first-event bound or extend the original turn deadline.
 4. `internal/session/turn.go:136-148`: `stopReason` values other than `end_turn`, `max_tokens`,
    `refusal` and the tool path fail the turn and discard the process; ACP's `max_turn_requests`
-   should end the turn with the streamed text preserved, and non-text agent chunks (image, resource)
-   should be ignored rather than fatal.
+   should have an explicit supported completion mapping with streamed text preserved. Define a
+   non-text output policy from the public protocol; silently discarding answer content is not
+   automatically a compatible alternative to the current rejection.
 5. Tool results with `document` or URL-sourced content are mapped as raw JSON text in
-   `internal/session/continuation.go:150-175`; replace them with a size marker and unify the nested
-   image size rule with the top-level one (`internal/relay/broker.go:447-452` decodes and checks
-   the nested form).
+   `internal/session/continuation.go:150-175`; review the bounded conversion without discarding
+   supported result content or fetching a URL. Unify nested image validation with the top-level
+   rule (`internal/relay/broker.go:447-452` decodes and checks the nested form).
 6. Expose a "Diverged" counter (session key replaced by a diverging history) in the turn metrics and
    the status line so context replays are visible; `internal/requestfamily/classify.go:24-44`
    classifies tool-less requests as Main unless they match the title shape exactly.
@@ -183,7 +196,7 @@ for a credit-consuming run.
    (`internal/launcher/catalog.go:21`) the way `whoami` already does.
 10. `models` should print the backend model id beside the client id; the cleanup-failure message
     should name the directory left behind.
-11. README: state the bounds (8 sessions / 4 processes, 90 s first event, 10 min turn default
+11. README: state the bounds (8 sessions / 4 processes, 90 s first event, 30 min run turn default,
     tool wait 15 m, 16 MiB body, 20 media parts / 6 MiB) and `MAX_RETRIES=0`.
     Risk: low.
 
@@ -194,7 +207,9 @@ for a credit-consuming run.
 13. The Kiro agent definition (`internal/launcher/agent.go:44-45`) sets no MCP `timeout` for the
     `dax_session` relay server; make it match `ToolTimeout`. LIVE: Kiro's default MCP timeout and
     cancel behavior are unmeasured.
-14. `internal/relay/broker.go:268` fails the whole relay on one cancelled call; fail only that call.
+14. `internal/relay/broker.go:268` fails the whole relay on one cancelled call. Test queued, sealed
+    and delivered batches before deciding where cancellation can stay local to one call. Preserve
+    the complete delivered-result set and session retirement when ownership becomes ambiguous.
 15. `internal/session/turn.go:311-331`: an abort in the Seal–Finish window records no outcome, the
     deadline reason depends on which error wins the race (`:271-279`), and
     `internal/relay/group_unix.go:20` treats a zombie as alive; make these deterministic.
@@ -203,7 +218,10 @@ for a credit-consuming run.
     the rename.
     Risk: medium. 13 needs approval.
 
-### D128 — quality (no production change, no artifact freeze)
+### D128 candidate — quality and later refactoring
+
+Test-only changes need no artifact freeze. Removing production dead code, changing errors or
+refactoring production helpers changes inventory inputs and requires a clean rebuild and freeze.
 
 17. `internal/acp/edge_test.go:63` couples a 50 ms `RequestTimeout` to the initialize handshake;
     separate a startup timeout or raise the bound.
@@ -220,7 +238,13 @@ for a credit-consuming run.
 21. Split `Handler.messages`, `Driver.Start`, `Driver.prepare`; unify the three process-group
     helpers and the raw-JSON string helpers. Last, because of regression risk.
 
-Recommended order: D125 → D128 items 17–18 and 20 (cheap) → D126 → D127 → the rest of D128.
+Reviewed order: finish the actual D125 (items 16 and 20, including permission-bit preservation),
+then turn/relay robustness (3, 4 and 12–15 with the relevant tests from 17 and 19), personal memory
+and rule-exclusion preservation (the still-open D77/D93/D97/D102 requirements), request compatibility
+(1, 2, 5 and D123's one-time standing-message deferral limitation), operational diagnostics (6–11),
+then the latest-pair live rerun and longer combined concurrent soak with refreshed artifact scans.
+Keep items 18 and 21 and optional native web work after the correctness changes. Assign final
+decision numbers when each bounded batch starts; the old candidate labels above are not commits.
 
 ## 6. Decisions waiting on the user
 

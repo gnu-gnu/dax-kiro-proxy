@@ -1,11 +1,23 @@
 # Development status and acceptance evidence
 
-Last updated: 2026-09-11. Overall objective: complete the standalone Go Kiro ACP proxy and launcher
+Last updated: 2026-09-12. Overall objective: complete the standalone Go Kiro ACP proxy and launcher
 contract described in PRODUCT_SPEC.md, including the full acceptance/release gates. This document
 does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D125 is in progress on `d125-trust-concurrency`: trust write-back now stages before acquiring the
+  client lock path and revalidates source/staged bytes, identities and publication age before rename.
+  Three existing-lock regressions fail before the fix; the focused race controls pass, including
+  eight simultaneous candidates with one unchanged winner. The actual-client two-launch trust
+  control passes (20.30s). A new black-box control establishes that Claude 2.1.268 respects a short
+  held directory lock but eventually writes through a persistently held lock; arbitrary unlocked
+  writers therefore remain outside the publication guarantee. Tool-restart failure diagnostics now
+  retain only counts, lengths, digests and status. The full installed-client batch passes 75/75
+  (602.114s). A subsequent permission regression shows umask narrowing and accepts a changed
+  staged mode; both are fixed, with the focused race controls and two-launch trust test passing
+  again (4.718s and 19.700s package time). The final whole-repository race suite passes 27 tested
+  packages and vet passes. Review and the new artifact are pending; D124 remains the installed build.
 - D124 measures the self-updated Claude Code 2.1.268 and moves the measured client pin from 2.1.267
   to it: the first user message is a plain string, the first request's standing message carries the
   environment block and the selected output style (D123 defers the rotation), and the output-style

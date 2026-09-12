@@ -2,6 +2,7 @@ package interop_test
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"net"
@@ -364,22 +365,22 @@ func observeToolHistory(t *testing.T, live bool, kind, holdMode, followPolicy st
 		gone = gone && dialErr != nil
 		effectOnce := toolRestartEffectsOnce(effect)
 		if !effectOnce {
-			// Owned fixture receipts only: fixed test-authored strings, never client or user content.
+			// Keep failure diagnostics structural even for independently authored tool effects.
 			pre, _ := readDenialArtifact(filepath.Dir(effect.pre), filepath.Base(effect.pre), 64)
 			post, _ := readDenialArtifact(filepath.Dir(effect.post), filepath.Base(effect.post), 64)
 			target, _ := readDenialArtifact(filepath.Dir(effect.path), filepath.Base(effect.path), 128)
 			guard.mu.Lock()
-			resultText := string(guard.pair.result)
+			resultBytes, resultDigest := len(guard.pair.result), sha256.Sum256(guard.pair.result)
+			resultFailed := guard.pair.failed
+			inputBytes, inputDigest := len(guard.issued.Input), sha256.Sum256(guard.issued.Input)
 			guard.mu.Unlock()
-			// The result is the owned printf command's output: fixed-class diagnostic, not user content.
-			t.Logf("effect_witness pre=%q post=%q target=%q result_failed=%v result=%q", pre, post, target, guard.pair.failed, resultText[:min(len(resultText), 200)])
+			t.Logf("effect_witness pre_bytes=%d pre_digest=%x post_bytes=%d post_digest=%x target_bytes=%d target_digest=%x result_failed=%v result_bytes=%d result_digest=%x", len(pre), sha256.Sum256(pre), len(post), sha256.Sum256(post), len(target), sha256.Sum256(target), resultFailed, resultBytes, resultDigest)
 			info, statErr := os.Lstat(effect.path)
 			exists, size := statErr == nil, int64(-1)
 			if exists {
 				size = info.Size()
 			}
-			// Our own requested command (test-authored), bounded.
-			t.Logf("effect_target exists=%v size=%d requested_input=%q", exists, size, string(guard.issued.Input)[:min(len(guard.issued.Input), 200)])
+			t.Logf("effect_target exists=%v size=%d requested_input_bytes=%d requested_input_digest=%x", exists, size, inputBytes, inputDigest)
 		}
 		if held != nil {
 			gone = gone && held.hookGone()

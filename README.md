@@ -43,7 +43,7 @@ experiment design; the explicit language selection supersedes comparative experi
 gate. The dependency inventory is complete for the darwin/arm64 development artifact (D121); the
 owner's rights and project-license decisions are outside this repository, and live-release gates
 remain open. Implementation began with independent fixtures and fake-process transport tests and now
-reaches an installed development artifact (D118); consult DEVELOPMENT_STATUS.md for verified
+reaches an installed development artifact (D124); consult DEVELOPMENT_STATUS.md for verified
 progress, `HANDOFF_REVIEW_2026-09-11.md` for the D109–D120 review brief and
 `HANDOFF_AGENT_2026-09-12.md` for the agent handoff after D124.
 
@@ -150,6 +150,10 @@ CLIs' finite version/account/catalog commands, without an ACP session or model p
 are removed when the command finishes. Source client settings are not modified, except that a yes
 answer to the client's workspace-trust dialog is recorded in `~/.claude.json` for that project
 exactly as native Claude Code records it, so the question is asked once per project (D118).
+The D125 write-back additionally respects an existing client lock and revalidates staged source
+bytes and identity before publication. A concurrent change makes it skip and the dialog can repeat.
+The measured client may eventually write through a held lock; this is not an atomic update guarantee
+against writers that disregard the lock.
 
 Development `run` is enabled on macOS arm64 for the measured Kiro 2.21.3/v2 and Claude Code 2.1.268
 combination. Run it from a foreground terminal: a pipe, a background job or an ssh session without a
@@ -404,14 +408,15 @@ independent fixture) that samples the proxy's resident size, descriptors and pro
 after every turn; one authorized live soak against the actual Kiro also samples the backend process
 group's resident size under a first declared envelope.
 
-Phase 7 has frozen dependency inventories and retained scoped notices. For the D123
-deferred-standing development artifact, run `python3 tools/verify_dependency_inventory.py
---gomodcache .cache/gomod --snapshot deferred-standing --binary dist/dax-kiro-proxy`. The default
+Phase 7 has frozen dependency inventories and retained scoped notices. For the installed D124
+development artifact, run `python3 tools/verify_dependency_inventory.py
+--gomodcache .cache/gomod --snapshot measured-client-268 --binary dist/dax-kiro-proxy`. The default
 `development` snapshot identifies D78's earlier D77 binary, `installation` identifies D79,
 `native-history` identifies D87 and `relay-close` identifies D96; `effort` identifies D99, `usage`
 identifies D101, `output-styles` identifies D108, `tool-images` identifies D109, `client-version`
 identifies D110–D112, `measured-client` identifies D113, `measured-kiro` identifies D114,
-`onboarding` identifies D115, `project-trust` identifies D118 and `run-diagnostics` identifies D122.
+`onboarding` identifies D115, `project-trust` identifies D118, `run-diagnostics` identifies D122
+and `deferred-standing` identifies D123.
 Those historical snapshots do not match this rebuild and its changed production source. These
 offline byte checks do not grant release clearance; see DEPENDENCY_REVIEW.md for the D121 component
 record, the three unattributed metaschema resources and the owner's external rights items.

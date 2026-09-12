@@ -1,10 +1,12 @@
 package launcher
 
 import (
+	"crypto/sha256"
 	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 
 	"dax-kiro-proxy/internal/gateway"
@@ -40,10 +42,10 @@ func TestInsertProjectTrustSplicesOneKeyIntoUnchangedBytes(t *testing.T) {
 			}
 			if c.fragment != "" {
 				if strings.Replace(string(out), c.fragment, "", 1) != c.raw || strings.Count(string(out), c.fragment) != 1 {
-					t.Fatalf("other bytes changed or fragment absent: %s", out)
+					t.Fatal("other bytes changed or trust fragment absent")
 				}
 			} else if strings.Replace(string(out), `"hasTrustDialogAccepted": true`, `"hasTrustDialogAccepted": false`, 1) != c.raw {
-				t.Fatalf("false was not replaced in place: %s", out)
+				t.Fatal("false was not replaced in place")
 			}
 			fields, err := ndjson.Object(out)
 			if err != nil {
@@ -64,7 +66,7 @@ func TestInsertProjectTrustSplicesOneKeyIntoUnchangedBytes(t *testing.T) {
 	}
 	for _, raw := range []string{`[]`, `{"projects": null}`, `{"projects": []}`, `{"projects": {"/owned/project": 5}}`, `{"projects": {"/owned/project": {"hasTrustDialogAccepted": "true"}}}`, `{"a": 1, "a": 2}`, `{"projects": {"/owned/project": {`} {
 		if _, _, err := insertProjectTrust([]byte(raw), key); err == nil {
-			t.Fatalf("malformed or unexpected document accepted: %s", raw)
+			t.Fatalf("malformed or unexpected document accepted: bytes=%d digest=%x", len(raw), sha256.Sum256([]byte(raw)))
 		}
 	}
 }
@@ -128,7 +130,7 @@ func TestPersistProjectTrustWritesOnlyTheAcceptedAnswer(t *testing.T) {
 	encoded, _ := json.Marshal(resolved)
 	fragment := string(encoded) + `:{"hasTrustDialogAccepted":true},`
 	if strings.Replace(string(after), fragment, "", 1) != original || strings.Count(string(after), fragment) != 1 {
-		t.Fatalf("source changed beyond the one accepted key: %s", after)
+		t.Fatal("source changed beyond the one accepted key")
 	}
 	if info, err := os.Lstat(source); err != nil || info.Mode().Perm() != 0600 || !info.Mode().IsRegular() {
 		t.Fatal("source mode or identity changed")
@@ -203,5 +205,212 @@ func TestPersistProjectTrustSkipsChangedAbsentOrClosedSources(t *testing.T) {
 	}
 	if written, err := p3.persistProjectTrust(); err != nil || written {
 		t.Fatal("a closed profile wrote the source")
+	}
+}
+
+func TestPersistProjectTrustDoesNotWriteThroughAnExistingClientLock(t *testing.T) {
+	for _, kind := range []string{"directory", "file", "symlink"} {
+		t.Run(kind, func(t *testing.T) {
+			cfg := trustConfig(t)
+			source := filepath.Join(cfg.Home, ".claude.json")
+			const seed = `{"numStartups":3}`
+			if os.WriteFile(source, []byte(seed), 0600) != nil {
+				t.Fatal("cannot seed settings")
+			}
+			p, err := PrepareClient(cfg)
+			if err != nil {
+				t.Fatal("cannot prepare profile")
+			}
+			defer p.Close()
+			acceptInPrivateProfile(t, p, cfg.Project)
+			lock := source + ".lock"
+			switch kind {
+			case "directory":
+				err = os.Mkdir(lock, 0700)
+			case "file":
+				err = os.WriteFile(lock, nil, 0600)
+			case "symlink":
+				err = os.Symlink(source, lock)
+			}
+			if err != nil {
+				t.Fatal("cannot prepare competing lock")
+			}
+			before, err := os.Lstat(lock)
+			if err != nil {
+				t.Fatal("cannot observe competing lock")
+			}
+			written, err := p.persistProjectTrust()
+			after, readErr := os.ReadFile(source)
+			lockAfter, lockErr := os.Lstat(lock)
+			if written || err != nil || readErr != nil || string(after) != seed {
+				t.Error("trust persistence wrote through an existing lock")
+			}
+			if lockErr != nil || !os.SameFile(before, lockAfter) {
+				t.Error("trust persistence changed another writer's lock")
+			}
+		})
+	}
+}
+
+func TestTrustPublicationRechecksStagedInputs(t *testing.T) {
+	for _, change := range []string{"source bytes", "source identity", "source absent", "source link", "source mode", "source readable mode", "staged bytes", "staged identity", "staged readable mode", "home replaced"} {
+		t.Run(change, func(t *testing.T) {
+			cfg := trustConfig(t)
+			source := filepath.Join(cfg.Home, trustFile)
+			const seed = `{"numStartups":3}`
+			if os.WriteFile(source, []byte(seed), 0600) != nil {
+				t.Fatal("cannot seed settings")
+			}
+			data, changed, err := insertProjectTrust([]byte(seed), cfg.Project)
+			if err != nil || !changed {
+				t.Fatal("cannot prepare accepted trust answer")
+			}
+			write, err := stageTrustWrite(cfg.Home, data, sha256.Sum256([]byte(seed)))
+			if err != nil {
+				t.Fatal("cannot stage settings")
+			}
+			defer write.close()
+			staged := filepath.Join(cfg.Home, write.temp)
+			// Interleave another writer after staging, while all decisions still refer to the old
+			// source. Each publication must reject without replacing the competing writer's state.
+			switch change {
+			case "source bytes":
+				err = os.WriteFile(source, []byte(`{"numStartups":4}`), 0600)
+			case "source identity":
+				err = os.Rename(source, source+".old")
+				if err == nil {
+					err = os.WriteFile(source, []byte(seed), 0600)
+				}
+			case "source absent":
+				err = os.Remove(source)
+			case "source link":
+				err = os.Rename(source, source+".old")
+				if err == nil {
+					err = os.Symlink(source+".old", source)
+				}
+			case "source mode":
+				err = os.Chmod(source, 0666)
+			case "source readable mode":
+				err = os.Chmod(source, 0640)
+			case "staged bytes":
+				err = os.WriteFile(staged, []byte(`{"unrelated":true}`), 0600)
+			case "staged identity":
+				err = os.Rename(staged, staged+".old")
+				if err == nil {
+					err = os.WriteFile(staged, data, 0600)
+				}
+			case "staged readable mode":
+				err = os.Chmod(staged, 0644)
+			case "home replaced":
+				err = os.Rename(cfg.Home, cfg.Home+"-old")
+				if err == nil {
+					err = os.Mkdir(cfg.Home, 0700)
+				}
+				if err == nil {
+					err = os.WriteFile(source, []byte(seed), 0600)
+				}
+			}
+			if err != nil {
+				t.Fatal("cannot interleave competing change")
+			}
+			before, beforeErr := os.ReadFile(source)
+			written, err := write.publish()
+			after, afterErr := os.ReadFile(source)
+			if err != nil || written || string(after) != string(before) || (beforeErr == nil) != (afterErr == nil) {
+				t.Fatal("publication did not preserve competing state")
+			}
+			if _, err := write.root.Lstat(trustLock); !os.IsNotExist(err) {
+				t.Fatal("publication left its lock")
+			}
+			if change == "staged identity" {
+				write.close()
+				if got, err := os.ReadFile(staged); err != nil || string(got) != string(data) {
+					t.Fatal("cleanup removed the replacement of its staged file")
+				}
+			}
+		})
+	}
+}
+
+func TestConcurrentTrustPublicationsPreserveTheWinningSource(t *testing.T) {
+	cfg := trustConfig(t)
+	source := filepath.Join(cfg.Home, trustFile)
+	const seed = `{"numStartups":3}`
+	if os.WriteFile(source, []byte(seed), 0600) != nil {
+		t.Fatal("cannot seed settings")
+	}
+	const writers = 8
+	writes := make([]*trustWrite, writers)
+	values := make([][]byte, writers)
+	for i := range writers {
+		data, changed, err := insertProjectTrust([]byte(seed), cfg.Project+strings.Repeat("x", i))
+		if err != nil || !changed {
+			t.Fatal("cannot prepare accepted answer")
+		}
+		writes[i], err = stageTrustWrite(cfg.Home, data, sha256.Sum256([]byte(seed)))
+		if err != nil {
+			t.Fatal("cannot stage competing answer")
+		}
+		defer writes[i].close()
+		values[i] = data
+	}
+	var joined sync.WaitGroup
+	start := make(chan struct{})
+	published := make([]bool, writers)
+	errors := make([]error, writers)
+	for i := range writers {
+		joined.Go(func() {
+			<-start
+			published[i], errors[i] = writes[i].publish()
+		})
+	}
+	close(start)
+	joined.Wait()
+	after, err := os.ReadFile(source)
+	if err != nil {
+		t.Fatal("cannot read published answer")
+	}
+	count := 0
+	for i := range writers {
+		if errors[i] != nil {
+			t.Fatal("publication failed unexpectedly")
+		}
+		if published[i] {
+			count++
+			if string(after) != string(values[i]) {
+				t.Fatal("a later publication overwrote the winning source")
+			}
+		}
+	}
+	if count != 1 {
+		t.Fatalf("want one published answer, got %d", count)
+	}
+	if _, err := os.Lstat(filepath.Join(cfg.Home, trustLock)); !os.IsNotExist(err) {
+		t.Fatal("competing publications left a lock")
+	}
+}
+
+func TestTrustWriteKeepsSourcePermissionBits(t *testing.T) {
+	for _, mode := range []os.FileMode{0600, 0640, 0644} {
+		cfg := trustConfig(t)
+		source := filepath.Join(cfg.Home, trustFile)
+		const seed = `{"numStartups":3}`
+		if os.WriteFile(source, []byte(seed), 0600) != nil || os.Chmod(source, mode) != nil {
+			t.Fatal("cannot seed source permissions")
+		}
+		p, err := PrepareClient(cfg)
+		if err != nil {
+			t.Fatal("cannot prepare profile")
+		}
+		defer p.Close()
+		acceptInPrivateProfile(t, p, cfg.Project)
+		written, err := p.persistProjectTrust()
+		after, statErr := os.Lstat(source)
+		if err != nil || !written || statErr != nil {
+			t.Fatal("could not publish accepted trust answer")
+		}
+		if after.Mode().Perm() != mode {
+			t.Errorf("permission bits changed: want=%#o got=%#o", mode, after.Mode().Perm())
+		}
 	}
 }

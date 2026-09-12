@@ -31,6 +31,9 @@ execute and return the result.
     workspace-trust dialog for the launch project while the user's `~/.claude.json` still matches
     the launch-time read and lacks that value, splice exactly
     `projects[<key>].hasTrustDialogAccepted: true` into it (D118); every doubt skips the write.
+    D125 stages that splice before acquiring the client lock path, then revalidates source bytes,
+    file and directory identities and publication age before rename. Existing locks are left
+    untouched. This coordinates cooperating writers but is not atomic against unlocked writes.
 
 Optional startup timing reports each phase separately. The login check has its own timeout and cannot
 hang the launcher indefinitely.
