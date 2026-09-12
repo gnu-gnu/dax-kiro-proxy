@@ -27,7 +27,9 @@ option rows and a confirmed yes selection. The full 2.1.269 batch passes 75/75, 
 packages and vet pass, and the source pin moves to 2.1.269. This is not new live Kiro evidence.
 The clean `3302837` artifact is installed (`measured-client-269`, SHA-256 `cb5cb96a…`), with
 143 byte checks, 18 component checks and doctor passing. Review findings are fixed and reverified;
-follow-up review and merge remain pending. See the D126 record; the original labels below are candidates.
+follow-up review accepts all fixes with no additional finding. D126 verification is complete.
+Next: turn/relay robustness, personal memory, request compatibility, diagnostics, then approved live
+reverification and combined soak. The original labels below are candidates, not completed decisions.
 
 ## 1. State you inherit
 

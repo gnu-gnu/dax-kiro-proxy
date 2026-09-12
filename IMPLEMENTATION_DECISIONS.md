@@ -6171,4 +6171,6 @@ followed by interop vet. The native two-launch trust check passes again on 2.1.2
 19.514 s package, `d126-review-native-trust.log`). The older review preface now names the installed
 D126 build, and the touched prose is wrapped. These fixes change tests and documents only: the
 installed `3302837` artifact still passes all 143 byte checks, so it needs no refreeze.
-Follow-up review and merge remain pending.
+Follow-up review accepts the fixes without another finding, including the final line wrapping
+(`d126-independent-review.md`). Its focused observer/choice race run passes in 1.299 s, and the
+143 snapshot checks pass. The D126 verification is complete; the remaining HANDOFF work is unchanged.
