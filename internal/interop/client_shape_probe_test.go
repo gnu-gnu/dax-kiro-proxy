@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -129,13 +130,7 @@ func textDigest(content json.RawMessage) string {
 	return hex.EncodeToString(sum[:4]) + "(" + itoa(len(text)) + ")"
 }
 
-func itoa(n int) string {
-	return strings.TrimSpace(strings.Repeat(" ", 0) + json.Number(intString(n)).String())
-}
-func intString(n int) string {
-	data, _ := json.Marshal(n)
-	return string(data)
-}
+func itoa(n int) string { return strconv.Itoa(n) }
 
 type statusRecorder struct {
 	http.ResponseWriter

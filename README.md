@@ -224,15 +224,16 @@ hook-denial round trip through the real gateway/validator/relay with fake ACP. E
 continuations can recreate after a validated tool registry change (D70) or successful tool results
 followed by client text (D73), with joined cleanup, one original deadline and a default limit of
 sixteen recreations per turn. Result-only continuations keep their prompt, including when the client
-rotates its one-message standing instruction: the rotated message is recorded for the next prompt
-instead of recreating the session (D123, which removes one recreation per conversation on Claude
-Code builds that rotate it, such as 2.1.263 and 2.1.268). Recreation adds provider work and loses
-hidden backend context. Actual Kiro also passes default-tool Read hook refusal and one joined
-recreation (D71), with all 25 client tools and ordinary thinking/context declarations. D72's actual
-registry experiment reaches the wait, expanded tools, one plugin call and joined cleanup, but fails
-its final-answer marker condition; D119 later closes the actual-Kiro plugin skill and hook gate,
-leaving remote marketplaces and mid-session plugin changes open. Other lifecycle paths remain alpha
-checks. No general Messages/API compatibility is implied.
+rotates its one-message standing instruction: the rotated message is recorded for history matching
+instead of recreating the session, and the backend sees the next prompt's own standing message
+(D123, which removes one recreation per conversation on Claude Code builds that rotate it, such as
+2.1.263 and 2.1.268). Recreation adds provider work and loses hidden backend context. Actual Kiro
+also passes default-tool Read hook refusal and one joined recreation (D71), with all 25 client tools
+and ordinary thinking/context declarations. D72's actual registry experiment reaches the wait,
+expanded tools, one plugin call and joined cleanup, but fails its final-answer marker condition;
+D119 later closes the actual-Kiro plugin skill and hook gate, leaving remote marketplaces and
+mid-session plugin changes open. Other lifecycle paths remain alpha checks. No general Messages/API
+compatibility is implied.
 
 Actual Kiro 2.21.2 and Claude 2.1.263 now also verify process loss before Read delivery, a client-visible
 error, joined old cleanup and a fresh text request in a new process (D81). Two requests produce one

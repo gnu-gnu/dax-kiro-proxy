@@ -16,8 +16,9 @@ import (
 )
 
 func TestNewQuestionAfterDeniedToolsRecreatesWithoutReplaying(t *testing.T) {
-	for _, expired := range []bool{false, true} {
-		t.Run(fmt.Sprintf("expired=%v", expired), func(t *testing.T) {
+	for _, tc := range []struct{ expired, rotated bool }{{false, false}, {true, false}, {false, true}, {true, true}} {
+		expired := tc.expired
+		t.Run(fmt.Sprintf("expired=%v/rotated=%v", expired, tc.rotated), func(t *testing.T) {
 			timeout := 3 * time.Second
 			if expired {
 				timeout = 100 * time.Millisecond
@@ -41,7 +42,12 @@ func TestNewQuestionAfterDeniedToolsRecreatesWithoutReplaying(t *testing.T) {
 			next.Messages[i].Content = append(next.Messages[i].Content,
 				anthropic.Block{Type: "text", Text: "The previous operation was declined."},
 				anthropic.Block{Type: "text", Text: "Next independent question."})
-			next.Messages = append(next.Messages, standing)
+			// A rotated one-message standing instruction is accepted on this fresh-prompt path (D123).
+			trailing := standing
+			if tc.rotated {
+				trailing = anthropic.Message{Role: "system", Content: []anthropic.Block{{Type: "text", Text: "Rotated standing after denial."}}}
+			}
+			next.Messages = append(next.Messages, trailing)
 			if expired {
 				until := time.Now().Add(2 * time.Second)
 				for d.State() != session.Unstarted && time.Now().Before(until) {
@@ -91,6 +97,9 @@ func TestNewQuestionAfterDeniedToolsRecreatesWithoutReplaying(t *testing.T) {
 			got, text := observedTurn(t, d, next)
 			if got.PID == oldPID || got.Count != 1 || len(got.Prompt) < 2 || !strings.Contains(text, "Next independent question.") || !strings.Contains(text, "synthetic tool result") || !strings.Contains(text, "request one synthetic tool") {
 				t.Fatal("recovery reused the old process, replayed a tool, or omitted full client history")
+			}
+			if tc.rotated && !strings.Contains(text, "Rotated standing after denial.") {
+				t.Fatal("rotated standing instruction was not carried by the fresh full prompt")
 			}
 			if !errors.Is(syscall.Kill(oldPID, 0), syscall.ESRCH) {
 				t.Fatal("old process survived recovery")

@@ -110,17 +110,18 @@ func TestChangedStandingInstructionDefersToTheNextPrompt(t *testing.T) {
 			if _, err := d.Start(t.Context(), next); !errors.Is(err, inference.ErrRequest) {
 				t.Fatal("completed result was replayed")
 			}
-			// The next ordinary question extends the recorded history, including the rotated
-			// message, and the same process receives the new standing instruction with that prompt.
+			// The next ordinary question extends the recorded history, including the rotated message,
+			// and the same process receives that request's own standing message with the prompt; neither
+			// the original nor the rotated text is replayed.
 			question := cloneInterruptionRequest(next)
 			raw, _ := json.Marshal(map[string]any{"type": "text", "text": text})
 			question.Messages = append(question.Messages, anthropic.Message{Role: "assistant", Content: []anthropic.Block{{Type: "text", Text: text, Raw: raw}}})
 			raw, _ = json.Marshal(map[string]any{"type": "text", "text": "Next independent question."})
 			question.Messages = append(question.Messages, anthropic.Message{Role: "user", Content: []anthropic.Block{{Type: "text", Text: "Next independent question.", Raw: raw}}})
-			question.Messages = append(question.Messages, anthropic.Message{Role: "system", Content: []anthropic.Block{{Type: "text", Text: "Updated fixture standing instruction."}}})
+			question.Messages = append(question.Messages, anthropic.Message{Role: "system", Content: []anthropic.Block{{Type: "text", Text: "Third fixture standing instruction."}}})
 			got, echoed := observedTurn(t, d, question)
-			if got.PID != oldPID || got.Count != 2 || !strings.Contains(echoed, "Updated fixture standing instruction.") || !strings.Contains(echoed, "Next independent question.") || strings.Contains(echoed, "Original fixture standing instruction.") {
-				t.Fatal("deferred standing instruction did not reach the next prompt on the same process", got.PID, got.Count)
+			if got.PID != oldPID || got.Count != 2 || !strings.Contains(echoed, "Third fixture standing instruction.") || !strings.Contains(echoed, "Next independent question.") || strings.Contains(echoed, "Original fixture standing instruction.") || strings.Contains(echoed, "Updated fixture standing instruction.") {
+				t.Fatal("next prompt after a deferred rotation did not stay on the same process with its own standing message", got.PID, got.Count)
 			}
 		})
 	}
@@ -179,11 +180,9 @@ func TestInstructionRecoveryBudgetCannotRestartEachToolHandoff(t *testing.T) {
 	if _, err := d.Start(t.Context(), last); !errors.Is(err, inference.ErrRequest) || d.State() != session.WaitingTools {
 		t.Fatal("restart budget did not preserve pending ownership")
 	}
-	// A result-only continuation never consumes the recreation budget: repeating or rotating the
-	// standing instruction alone resumes the same prompt.
+	// A result-only continuation never consumes the recreation budget: rotating the standing
+	// instruction alone resumes the same prompt even after the budget is exhausted.
 	last.Messages[i].Content = last.Messages[i].Content[:len(last.Messages[i].Content)-1]
-	// Repeating the instruction already in this replacement still resumes the same prompt.
-	last.Messages[len(last.Messages)-1] = next.Messages[len(next.Messages)-1]
 	resumed, err := d.Start(t.Context(), last)
 	if err != nil {
 		t.Fatal(err)

@@ -64,8 +64,11 @@ func (d *Driver) resume(ctx context.Context, r *anthropic.Request, registry *too
 		return nil, inference.ErrRequest
 	}
 	plan, err := d.hasher.Plan(t.pendingHistory, r)
+	if err != nil || plan.Mode != history.Extend || plan.Start != r.LatestUserIndex() || len(r.Messages[plan.Start].Content) != len(results) {
+		return nil, inference.ErrRequest
+	}
 	suffix := r.Messages[plan.Start+1:]
-	if err != nil || plan.Mode != history.Extend || plan.Start != r.LatestUserIndex() || len(r.Messages[plan.Start].Content) != len(results) || !d.repeatedSystem(t.pendingHistory, suffix) && !rotatedStanding(t.pendingHistory, suffix) {
+	if !d.repeatedSystem(t.pendingHistory, suffix) && !rotatedStanding(t.pendingHistory, suffix) {
 		return nil, inference.ErrRequest
 	}
 	if err := t.broker.Resolve(t.broker.Credentials().Owner, converted); err != nil {

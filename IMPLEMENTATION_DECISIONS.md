@@ -5919,16 +5919,23 @@ themselves. This decision therefore defers a rotated standing instruction instea
 the result-only continuation path (`resume`), a suffix of exactly one nonempty text-only system
 message that replaces a one-message standing sequence (the same shape D63's recreation rule
 accepted) is now treated like a repeated one: the results resolve into the pending relay call, the
-same process answers, and the rotated message is recorded in the history so the next prompt's delta
-carries it. `restartForContinuation` no longer starts a replacement for that shape, and the
+same process answers, and the rotated message is recorded in the history digest so later requests
+still match; the rotated text itself is not delivered to the backend, which next receives whatever
+standing message accompanies the next prompt, unless a later full projection replays the history.
+`restartForContinuation` no longer starts a replacement for that shape, and the
 all-denial/new-question recovery (`restartAfterDenial`) accepts it as well, since its fresh
 full-history prompt carries the standing suffix itself. Everything else is unchanged: results
 followed by client text (D73) and changed registries (D70) still recreate with the exact-prefix
 rule; stacked standing sequences, non-text standing blocks, changed owner/model/effort/registry,
 foreign or duplicate results and replay still reject without consuming pending ownership; the
-recreation budget is untouched by deferrals. The deferred message reaches the backend with the next
-ordinary prompt, not during the turn in which it changed; for the environment block, the budget line
-and an output-style body that is a chosen once per session, that is the intended timing.
+recreation budget is untouched by deferrals. A rotated message that the client keeps sending, such
+as the budget line, therefore reaches the backend with the next ordinary prompt; a message the
+client sends once and then absorbs into history is not delivered, which the earlier full replay
+would have done, and that is accepted for the measured shapes (the environment block and the
+output-style body are given to the backend as the first prompt's standing message, and the budget
+line recurs). The deferral path inherits the ordinary resume path's overlap rule rather than D63's
+exact-prefix proof: like a repeated standing instruction it re-projects nothing, so a truncated
+overlap is not rejected there.
 
 Witnesses: the session unit controls now pin, for error and successful results, that a rotated
 standing instruction resumes the same process with the pending relay result, that the completed
@@ -5955,4 +5962,8 @@ variant of the denial probe (`TestKiroLiveDefaultClientDenialRecreation`, D71) n
 deferral, and its user-authorized rerun on the actual Kiro 2.21.3 with the measured 2.1.267 passes
 at the first attempt: one launch, the denied result matched into the pending prompt, one final
 completion, the standing rotation observed at HTTP, relay and group gone (18.05s,
-`d123-live-default-denial.log`).
+`d123-live-default-denial.log`). That log records no client version; the build is known from the
+invocation. Limits: the request after a deferred continuation is shown to extend the same process by
+the session unit control and by the held-hook follow-up compiled control on 2.1.268, not by a
+real-client third request in one print session, which that client mode cannot issue; and the
+denial-recovery unit control now covers the rotated shape for both the live and the expired outcome.

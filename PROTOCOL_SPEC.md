@@ -180,20 +180,22 @@ the complete result set and final encoded result sizes before completing any sus
 A result-only request with an exact repeated standing system suffix and unchanged registry continues
 the same ACP prompt. So does a result-only request whose suffix is one nonempty text-only system
 message replacing a one-message standing sequence: the pending prompt keeps the instruction it
-received, the rotated message is recorded in the history, and the next prompt carries it (D123). D70
-extends D63's replacement path to a changed validated registry, with or without changed standing
-instructions. On the replacement paths a changed suffix must be one text-only system message after
-the eligible result/text message below, and the last standing sequence must also have exactly one
-message. This requires the entire prior history as an exact prefix, unchanged
-owner/model/effort/top-level system/metadata/tool-choice policy, and the complete delivered result
-set. Regrouped history and repeated prior results still reject. Validate the full replacement
-projection and result encoding before revoking the old relay. Join old ACP/relay cleanup, then
-create a fresh session with all supplied history, including the tool request, its result and the new
-instruction. Actual results never resolve into the retired prompt. Recreation is bounded to sixteen
-times per logical turn by default and retains the original absolute deadline, including replacement
-setup. Expired work, truncated history, multiple changed messages or an exhausted restart allowance
-reject. Full-history recreation loses unreported backend context and may add provider work; it is
-not equivalent to keeping the original backend conversation.
+received, the rotated message is recorded in the history digest so later requests still match, and
+the backend next receives whatever standing message accompanies the next prompt; the rotated text
+itself is not delivered unless a later full projection replays it (D123). D70 extends D63's
+replacement path to a changed validated registry, with or without changed standing instructions. On
+the replacement paths a changed suffix must be one text-only system message after the eligible
+result/text message below, and the last standing sequence must also have exactly one message. This
+requires the entire prior history as an exact prefix, unchanged owner/model/effort/top-level
+system/metadata/tool-choice policy, and the complete delivered result set. Regrouped history and
+repeated prior results still reject. Validate the full replacement projection and result encoding
+before revoking the old relay. Join old ACP/relay cleanup, then create a fresh session with all
+supplied history, including the tool request, its result and the new instruction. Actual results
+never resolve into the retired prompt. Recreation is bounded to sixteen times per logical turn by
+default and retains the original absolute deadline, including replacement setup. Expired work,
+truncated history, multiple changed messages or an exhausted restart allowance reject. Full-history
+recreation loses unreported backend context and may add provider work; it is not equivalent to
+keeping the original backend conversation.
 
 D73 also recreates when the complete delivered client-result batch contains at least one success
 and is followed by text in the same user message. All results must precede all text; the additional
