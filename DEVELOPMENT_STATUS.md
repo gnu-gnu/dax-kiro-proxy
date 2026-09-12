@@ -1,11 +1,32 @@
 # Development status and acceptance evidence
 
-Last updated: 2026-09-11. Overall objective: complete the standalone Go Kiro ACP proxy and launcher
+Last updated: 2026-09-12. Overall objective: complete the standalone Go Kiro ACP proxy and launcher
 contract described in PRODUCT_SPEC.md, including the full acceptance/release gates. This document
 does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D125 on `d125-trust-concurrency`: trust write-back now stages before acquiring the
+  client lock path and revalidates source/staged bytes, identities and publication age before rename.
+  Three existing-lock regressions fail before the fix; the focused race controls pass, including
+  eight simultaneous candidates with one unchanged winner. The actual-client two-launch trust
+  control passes (20.30s). A new black-box control observes unchanged source bytes at a one-second
+  directory-lock release, but eventual writes with a persistently held lock; arbitrary unlocked
+  writers therefore remain outside the publication guarantee. Tool-restart failure diagnostics now
+  retain only counts, lengths, digests and status. The full installed-client batch passes 75/75
+  (602.114s). A subsequent permission regression shows umask narrowing and accepts a changed
+  staged mode; both are fixed, with the focused race controls and two-launch trust test passing
+  again (4.718s and 19.700s package time). The final whole-repository race suite passes 27 tested
+  packages and vet passes. The clean D125 build is installed and frozen as `trust-publication`
+  (143 byte checks; unchanged four-module dependency set); all three refreshed advisory scans
+  report no vulnerabilities. Independent review found a missing final HOME check and an incomplete
+  lock-identity witness. Both are fixed, with the HOME regressions and Trust race controls passing
+  (4.854s), followed by all 27 race-tested packages and vet. The stronger native lock and two-launch
+  trust controls pass together (28.665s), and the reviewed `c418f13` artifact is refrozen and
+  installed (143 checks and three advisory modes pass). A separate frozen-source full batch on
+  the host's new Claude 2.1.269 passes 74/75: the trust-dialog observer sees the dialog but cannot
+  confirm the yes selection, with no model prompt. Standalone diagnosis remains open; doctor
+  reports 2.1.269 unmeasured and the tested pin remains 2.1.268.
 - D124 measures the self-updated Claude Code 2.1.268 and moves the measured client pin from 2.1.267
   to it: the first user message is a plain string, the first request's standing message carries the
   environment block and the selected output style (D123 defers the rotation), and the output-style

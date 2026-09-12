@@ -43,6 +43,14 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
   with every other byte preserved and the result validated for the next launch. Require unit
   controls for the splice and each guard, and a compiled-command control that answers the dialog,
   shows the file changed by that fragment alone and starts the next launch without the dialog.
+- Trust publication must respect any existing client lock, revalidate the source and staged bytes
+  and identities after staging, and skip a changed or unsafe source without overwriting it (D125).
+  Interleave source replacement/removal, permission and link changes, staged-file changes and HOME
+  replacement; cleanup must preserve replaced entries. Concurrent candidates from one source must
+  publish at most one answer and retain the winner's exact bytes. Preserve the source permission
+  bits under umask 077, and reject a staged mode that no longer matches them. Measure native lock
+  contention separately: the measured client can eventually write without acquiring a held lock,
+  so a lock and digest check cannot establish atomic compare-and-swap against every native write.
 - The private client runtime retains standard-HOME user/local MCP declarations and existing
   decisions at native scopes. Installed-client positive/negative controls verify project approval,
   server disable/re-enable, local/project/user name precedence, unchanged source bytes and complete

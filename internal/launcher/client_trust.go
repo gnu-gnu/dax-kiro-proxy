@@ -2,11 +2,8 @@ package launcher
 
 import (
 	"bytes"
-	"crypto/rand"
 	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
-	"os"
 	"path/filepath"
 
 	"dax-kiro-proxy/internal/ndjson"
@@ -226,36 +223,10 @@ func (p *ClientProfile) persistProjectTrust() (bool, error) {
 	if written, ok := acceptedProjectTrust(out, p.project); !ok || written != key {
 		return false, ErrSettings
 	}
-	return true, replaceSettingsFile(p.home, ".claude.json", out)
-}
-
-// replaceSettingsFile writes data beside the source with the source's permission bits and renames
-// it into place; a link or a changed file identity aborts the replacement.
-func replaceSettingsFile(dir, name string, data []byte) error {
-	root, err := os.OpenRoot(dir)
+	write, err := stageTrustWrite(p.home, out, p.source.digest)
 	if err != nil {
-		return ErrSettings
+		return false, err
 	}
-	defer root.Close()
-	info, err := root.Lstat(name)
-	if err != nil || !safeSettings(info) {
-		return ErrSettings
-	}
-	var suffix [8]byte
-	if _, err := rand.Read(suffix[:]); err != nil {
-		return ErrSettings
-	}
-	temp := name + ".dax-" + hex.EncodeToString(suffix[:])
-	file, err := root.OpenFile(temp, os.O_WRONLY|os.O_CREATE|os.O_EXCL, info.Mode().Perm())
-	if err != nil {
-		return ErrSettings
-	}
-	_, writeErr := file.Write(data)
-	syncErr := file.Sync()
-	closeErr := file.Close()
-	if writeErr != nil || syncErr != nil || closeErr != nil || root.Rename(temp, name) != nil {
-		_ = root.Remove(temp)
-		return ErrSettings
-	}
-	return nil
+	defer write.close()
+	return write.publish()
 }

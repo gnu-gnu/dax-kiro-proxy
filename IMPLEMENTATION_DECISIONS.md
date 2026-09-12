@@ -6011,3 +6011,104 @@ non-trailing placements as invalid, and on the measured build the control assert
 instead of only logging it (an admitted same-major build still records its form; the reruns after
 those fixes are `d124-review-style-2.1.268.log` and `d124-review-style-2.1.267.log`, both passing).
 The D121 component record's client entry names the new pin.
+
+## D125: coordinate trust publication and keep tool diagnostics structural
+
+D118 checked the source settings once, then staged and renamed the accepted trust answer without
+coordinating with another writer or rechecking the source. An independently authored regression
+holds the client's `.claude.json.lock` path as a directory, regular file or symlink: every case
+previously wrote through it (`d125-trust-lock-before.log`). The source can also change while the
+replacement is being staged. The launch-time digest check alone does not protect that interval.
+
+Publication now stages and syncs the exact D118 splice before trying to create an empty owner-only
+directory at `.claude.json.lock`. An existing entry of any type makes this invocation skip without
+waiting, reclaiming or altering it. Under the acquired lock, the publisher reopens the source and
+staged file without following links, validates their owner, modes, link counts and bounded lengths,
+and checks their content digests and file identities. Source bytes must still equal the launch-time
+digest; staged bytes must equal the validated splice. The opened HOME must still be the named
+directory. Source, staged file and lock metadata are checked again immediately before rename;
+publication skips if more than 250 ms elapsed since attempting the lock. There is no fsync inside
+that interval. Cleanup removes only entries retaining this invocation's recorded identity, leaving
+replaced entries intact. A successful result is reported only after a successful rename. The
+250 ms check is a publication-age guard, not a hard real-time filesystem deadline.
+
+The lock choice and its limitation have black-box evidence from the unmodified Claude Code 2.1.268.
+`TestClaudeGlobalSettingsLockObservation` uses a fresh synthetic HOME per arm, no credentials from
+the account and a local authenticated response server. Without a lock, the client changes its
+owned settings and completes in 581 ms. Holding either a directory or a regular file at the lock
+path does not prevent writes indefinitely: both arms change the source and complete while the
+held entry remains, in 3,316 and 3,285 ms. A separate directory arm releases the lock after one
+second, checks that the source is byte-identical at release, then observes the native write and
+successful completion (1,325 ms). All four arms pass in 9.856 s package time
+(`d125-settings-lock-release.log`). These elapsed times include startup and response delivery;
+they do not measure a native lock timeout constant or reveal its implementation.
+
+Consequently this decision does not claim atomic compare-and-swap against native unlocked writes.
+Cooperating proxy publications are serialized and stale snapshots reject; already-held native locks
+are respected, and changed source bytes or identity are caught before publication. A native writer
+that abandons its lock, or a writer or process pause between the final check and rename, remains
+outside that guarantee. An interrupted publisher can also leave a lock entry; the proxy never
+assumes an existing client lock is stale or deletes it. These are limitations of the source-file
+write-back path, not permission to weaken the D118 single-value rule or auto-trust a workspace.
+
+The new filesystem controls interleave changed bytes, same-byte replacement, removal, links,
+changed permissions, staged-file changes and HOME replacement between staging and publication.
+Each rejects without overwriting the competing source; cleanup preserves a replaced staged file.
+Eight simultaneously published candidates prepared from the same original yield exactly one
+winner, whose exact bytes remain. The focused race suite passes in 5.855 s
+(`d125-trust-unit.log`). The existing compiled-command control with Claude 2.1.268 and the
+independent Kiro fixture still observes the native yes answer, precisely the one persisted
+fragment, no trust dialog on the second launch and joined cleanup (20.30 s test, 23.884 s package,
+`d125-native-trust.log`). No Kiro model call is involved.
+
+The interrupted-tool observer also replaces its failure-only receipt, result and requested-input
+text with lengths and SHA-256 digests, keeping the result status and input observation under their
+existing mutex. Fixture provenance does not justify retaining command text or temporary paths in
+logs. This changes only diagnostics, not effect, result, history or cleanup assertions.
+
+A final permission control reproduces another inherited defect: with the required umask 077,
+creation narrows source modes 0640 and 0644 to 0600. A separate staged-file mode change also
+published a replacement whose permission bits differed from the source
+(`d125-trust-modes-before.log`). Staging now restores the accepted source permission bits through
+the owned file descriptor, and publication requires the staged mode to equal the unchanged source
+mode. The full trust race controls then pass (4.718 s, `d125-trust-final.log`), including both
+permission regressions. The compiled two-launch trust control passes again with Claude 2.1.268
+(18.88 s test, 19.700 s package, `d125-native-trust-final.log`).
+
+Before that final permission fix, the complete installed-client batch passes 75 of 75 controls
+(602.114 s, `d125-client-2.1.268-batch.log`), the whole-repository race suite passes 27 packages
+(`d125-all-race.log`) and vet passes (`d125-all-vet.log`). After the permission fix, the final
+whole-repository race suite passes all 27 tested packages (`d125-all-race-final.log`) and vet
+passes (`d125-all-vet-final.log`). The clean `c67627a` build is frozen as `trust-publication` and
+installed, with all 143 byte checks passing against both copies and the D121 component record's
+18 checks still passing. Binary/source/source-with-test advisory scans report no vulnerabilities
+against the database dated 2026-09-10T14:48:42Z. DEPENDENCY_REVIEW.md records the exact artifact and
+scan scope. The host client has meanwhile updated to 2.1.269; doctor reports it unmeasured under
+D110, while the tested pin remains 2.1.268.
+
+The independent review identifies two omissions (`d125-independent-review.md`). HOME identity and
+safety were checked before reading the publication files, leaving a larger unchecked interval than
+the final metadata checks; the final commit step now repeats that root check. Deterministic controls
+replace HOME or widen its permissions after valid source/staged digests have been read. Both fail
+before the fix (`d125-home-recheck-before.log`), and the complete Trust race controls pass afterward
+(4.854 s, `d125-review-trust.log`). The native lock observer also retains an open descriptor to the
+original lock and compares its identity and mode after execution, distinguishing an unchanged entry
+from replacement at the same path and preventing inode reuse from satisfying the witness. Its
+one-second release observation establishes source bytes at that point, not that a native writer
+had already attempted a write. Follow-up review accepts both fixes without a new finding. The
+review-fix checkout's whole-repository race suite passes all 27 tested packages
+(`d125-review-all-race.log`) and vet passes (`d125-review-all-vet.log`); no native client ran in
+parallel with the main checkout's version batch. The stronger native observation passes on
+2.1.268: both persistent arms change settings while retaining the original lock identity and mode
+(3,233 and 3,276 ms); the release arm retains the original source at its one-second removal point
+and then completes (1,295 ms). The compiled trust control again passes both launches (19.35 s).
+Both tests pass together in 28.665 s (`d125-review-native.log`). The clean `c418f13` revision is
+rebuilt, refrozen and installed; 143 installed-artifact checks and all three refreshed advisory
+scans pass. The final binary hash and scanner scope are recorded in DEPENDENCY_REVIEW.md.
+
+During review, a separate full native batch against the newly installed Claude 2.1.269 runs with
+the main checkout frozen at `83e9d52`. It passes 74 of 75 controls (648.560 s,
+`client-2.1.269-premeasure.log`). The trust-dialog observer sees the dialog but never confirms its
+yes selection, sends no model prompt and requires emergency cleanup after its deadline. This is
+not a successful trust-publication or version-migration result. The exact cause remains to be
+measured in a standalone UI control; 2.1.268 remains the tested pin.
