@@ -11,7 +11,7 @@ Overtaken since this brief was written: D121–D128 (2026-09-11 to 2026-09-13) a
 authoritative documents. D126 moved `SupportedClientVersion` to 2.1.269 and installed that build on
 2026-09-12; D125 strengthened trust publication. D127 installs progress and relay-setup timeout
 corrections with independent review complete. D128 installs the resolved-call cancellation
-correction, with review pending. The 2.1.267 statements in sections 3, 4 and 6 describe the state
+correction, with review complete. The 2.1.267 statements in sections 3, 4 and 6 describe the state
 as of 2026-09-11.
 
 ## 1. Scope and branch state

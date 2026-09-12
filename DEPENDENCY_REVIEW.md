@@ -1119,4 +1119,5 @@ All 144 byte checks pass for the candidate and resolved installation, and all 18
 pass. Install --force succeeds; doctor reports the measured Kiro 2.21.3/Claude 2.1.269 pair,
 verified login/policy and launch available. Release clearance remains false. D125's advisory
 results remain historical; D128 performs no new scan or actual Kiro model turn. Independent
-review remains pending.
+review accepts `7e28df7` without a finding and independently confirms candidate/installed byte
+identity and the component record. No refreeze is needed.

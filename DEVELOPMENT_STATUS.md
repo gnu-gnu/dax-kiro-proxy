@@ -17,7 +17,8 @@ does not redefine completion around an intermediate phase.
   cases, continuation and joined cancellation. No actual Kiro model runs. The clean 4494910
   artifact is frozen and installed as resolved-cancellation (144 byte checks, 18 component
   checks); doctor reports the measured pair and verified login/policy with launch available.
-  Independent review remains pending.
+  Independent review accepts 7e28df7 without an actionable finding, with focused race controls
+  and artifact checks passing independently. No review fix or refreeze is needed.
 
 - D127 on d127-turn-relay (base ea49c87) fixes two reproduced timeout defects. Validated owned
   ACP progress satisfies only the first-event wait, preserves answer/history/usage boundaries

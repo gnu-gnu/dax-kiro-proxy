@@ -46,8 +46,8 @@ all 27 race-tested packages with sequential package scheduling, vet and three ap
 core controls pass. The two earlier parallel-package runs had independent process startup failures;
 D128 records them separately. The clean `4494910` artifact is installed as
 `resolved-cancellation` (144 byte checks, 18 component checks, doctor verified). Independent
-review remains pending. Unresolved calls retain complete prompt retirement; the other core
-candidates are not included in this bounded correction. No actual Kiro model ran.
+review accepts `7e28df7` without an actionable finding or refreeze. Unresolved calls retain
+complete prompt retirement. Other core candidates continue separately. No actual Kiro model ran.
 
 ## 1. State you inherit
 

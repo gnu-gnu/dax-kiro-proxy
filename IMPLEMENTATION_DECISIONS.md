@@ -6340,5 +6340,10 @@ The clean `4494910a4f996b62b867cb12bcb4b2d6e12d04bf` artifact is installed as
 input records and unchanged 267 packages/four modules. Only `internal/relay/broker.go` changes its
 recorded source bytes. Candidate and resolved installation pass 144 byte checks; components pass
 18 checks. Doctor reports the measured Kiro 2.21.3/Claude 2.1.269 pair, verified login/policy
-and launch available. No new advisory scan or live inference is claimed. Independent review
-remains pending.
+and launch available. No new advisory scan or live inference is claimed.
+
+Independent review accepts `7e28df7` without an actionable finding
+(`d128-independent-review.md`). It independently verifies the cancellation/resolution lock and
+complete pending ownership, passes focused race controls in 1.770s, confirms 144 byte checks for
+both candidate and installation plus 18 component checks, and checks the retained evidence's
+stated limits. No source fix or refreeze is needed. The remaining core HANDOFF work is unchanged.
