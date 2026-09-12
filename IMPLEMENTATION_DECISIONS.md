@@ -7182,3 +7182,9 @@ of long-duration stability. It does not exercise actual Kiro inference/policy, i
 permission UI, multiple sessions sharing one ACP process, or installed-proxy/backend RSS.
 Those broader gates and personal-instruction preservation remain open; D134 remains
 unapproved and unrun. No dependency, provider behavior or public support scope changes.
+
+Follow-up independent review accepts `da54c95` with all three findings resolved and no remaining
+actionable finding. The reviewer confirms complete reading of all seventeen mandatory documents
+and the amended paragraphs/evidence. Its focused observer race passes in 1.426s/1.222s;
+changed-package vet, whitespace checks and the strictly resolved installed/current 144-byte-check
+inventory pass. No additional correction, production refreeze or installation is needed.

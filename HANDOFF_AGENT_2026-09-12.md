@@ -205,6 +205,8 @@ Independent review of 93fafeb finds three observer gaps, reproduced by failing c
 corrected: paired backend liveness, completed server cancellation before sibling release,
 and foreign-marker rejection at MCP. Focused race and the final native run pass; both changed
 packages pass full race again (36.817s/1.229s) and vet.
+Follow-up independent review accepts da54c95 with no remaining finding; focused race
+1.426s/1.222s, changed-package vet and 144 installed/current checks pass independently.
 Test-only; installed D138/current inputs pass 144 checks, with no rebuild or installation.
 This finite control does not complete actual Kiro, interactive permissions, shared ACP or
 long-duration combined soak. No new D134 credit approval exists.
