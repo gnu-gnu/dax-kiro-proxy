@@ -221,9 +221,10 @@ The extended 128-round fifteen-second-interval race control passes once in 1910.
 and private profiles clean up, and source settings/files stay unchanged. Descriptors/goroutines
 stay at 28/48 after warm-up; peak Go heap is 1,242,904 bytes and settled values are 5/2/733,920.
 Independent review of 1c47fae has no actionable code finding; focused race 1.526s/1.286s,
-vet and 144 installed/current checks pass independently. The final extended evidence remains
-subject to its follow-up documentation review. Total episode/client/ACP/peer allowance stays
-below forty minutes. Actual Kiro, interactive permissions, shared ACP and RSS remain separate.
+vet and 144 installed/current checks pass independently. Follow-up review accepts f9cf712,
+including the complete terminal log and final documents, with no actionable finding.
+Total episode/client/ACP/peer allowance stays below forty minutes. Actual Kiro, interactive
+permissions, shared ACP and RSS remain separate.
 Test-only; installed D138 remains unchanged, with 144 current-input checks passing. No new
 Kiro model approval or invocation; personal instructions and actual Kiro gates remain open.
 
