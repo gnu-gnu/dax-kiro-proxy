@@ -154,6 +154,15 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
 - Inline image/document shapes, MIME/header/dimension/count/byte limits and negotiated capabilities
   are enforced; historical images stay native and proven deltas do not resend them. URL/file sources
   cause no fetch. Unsupported citations and media reject before prompt dispatch.
+- Bound complete request history separately from the actual ACP projection: 256 inline media parts
+  and 12 MiB decoded per request, including native inline result images, versus 20 parts and
+  6 MiB per dispatched prompt (D133). Preserve per-part/HTTP/frame limits and history identity.
+  Independently verify exact deltas after committed image count or document bytes exceed the
+  dispatch allowance, a later text-only question on the same owner, and zero prompts on excessive
+  full reconstruction. Check mixed top-level/result accounting, malformed historical images,
+  exact boundaries and active sibling preservation. Actual-client controls must show complete
+  image history at HTTP while ACP receives only the new images, with joined ownership and
+  unchanged source settings. Reconstruction within bounds still preserves native result images.
 - Tool streaming produces a valid tool-use block and tool-use stop reason.
 - Server web search produces compatible use/result blocks and request count when supported.
 - Provider token usage remains zero when unreported; estimates appear only in labeled local metadata.

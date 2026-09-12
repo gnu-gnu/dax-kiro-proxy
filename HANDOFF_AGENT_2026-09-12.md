@@ -95,6 +95,16 @@ an actionable finding; focused race, full vet and artifact checks pass independe
 production fix or refreeze is needed. No actual Kiro model ran; personal memory and other core
 candidates remain separate.
 
+D132 merged as `2566be2`. D133 on `d133-media-history` addresses item 1's reproduced complete
+history admission failure. The input gate now uses 256 inline media parts/12 MiB, combining
+validated top-level and result media, while the unchanged actual projection keeps 20/6 MiB.
+Independent same-owner image/document deltas and excessive full-reconstruction rejection pass.
+Actual Claude 2.1.269 with the real gateway and fake ACP retains 20/21/21 historical images at
+HTTP and sends only 20/1/0 to the same backend. Focused race tests and this native control pass.
+All 27 race-tested packages and full vet pass. Four existing native core controls pass in
+27.293s, including all six tool-policy cases, joined cancellation, result continuation and
+image-result/native-resume reconstruction. Artifact/review verification follows. No Kiro model ran.
+
 ## 1. State you inherit
 
 - `main` is at `e07e591` (merge of D124). The working tree is clean. There is no remote; never push

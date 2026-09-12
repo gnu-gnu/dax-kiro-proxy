@@ -63,10 +63,13 @@ func TestNativeImageReachesFakeACPAndOnlyNewDeltaFollows(t *testing.T) {
 	}
 }
 func TestUnsupportedMediaAndEncodedPromptLimitPreserveActiveSibling(t *testing.T) {
-	for _, kind := range []string{"capability", "encoded-size"} {
+	for _, kind := range []string{"capability", "encoded-size", "media-count"} {
 		t.Run(kind, func(t *testing.T) {
 			cfg := managerConfig(t, "pool-hang")
 			cfg.Session.Process.Limits.FrameBytes = 2048
+			if kind == "media-count" {
+				cfg.Session.Process.Limits.FrameBytes = 8 << 20
+			}
 			m, err := session.NewManager(cfg)
 			if err != nil {
 				t.Fatal(err)
@@ -80,6 +83,12 @@ func TestUnsupportedMediaAndEncodedPromptLimitPreserveActiveSibling(t *testing.T
 			bad := mainRequest(t, "invalid")
 			if kind == "capability" {
 				bad.Messages = mediaRequest(t).Messages
+			} else if kind == "media-count" {
+				parts := make([]any, anthropic.MaxMediaParts+1)
+				for i := range parts {
+					parts[i] = map[string]any{"type": "document", "source": map[string]string{"type": "text", "media_type": "text/plain", "data": "owned document"}}
+				}
+				bad.Messages = decodeMediaHistory(t, []any{map[string]any{"role": "user", "content": parts}}).Messages
 			} else {
 				bad.Messages[0].Content[0].Text = strings.Repeat("<", 500)
 			}

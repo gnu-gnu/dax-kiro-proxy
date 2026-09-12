@@ -94,6 +94,12 @@ System content may be a string or an ordered array of text blocks. Message order
 order are preserved. The latest user message provides the current prompt and any tool results. Earlier
 messages provide reconciliation history rather than being blindly replayed on every turn.
 
+The complete request admits at most 256 validated inline media parts and 12 MiB decoded media,
+combining top-level images/documents with inline images in tool results (D133). Each part still
+has its 4 MiB limit and existing shape/header/dimension checks. Result validation preserves its
+stored JSON; unsupported result forms retain the existing opaque fallback within the 16 MiB
+HTTP bound. This history envelope is separate from the smaller actual prompt limits below.
+
 Claude Code may also send text-only per-message `system` entries, including after the latest user
 message. Preserve those role boundaries and ordering; they do not replace the latest user input.
 Assistant prefill remains unsupported. Authenticated `x-claude-code-session-id`,
@@ -331,7 +337,11 @@ The bounded admission fields and deliberately ignored informational forms are re
 The inline media subset and limits are defined in D19: base64 PNG/JPEG/GIF/WebP require image
 capability, base64 PDFs require embedded context, and plain-text documents can use text projection.
 URL/file-ID sources and enabled citation conversion are unsupported. Historical images remain native
-blocks. The final encoded prompt must fit the ACP frame before it can be dispatched.
+blocks. Each actual ACP projection admits at most 20 media parts and 6 MiB decoded media, whether
+it is a proven delta or a full reconstruction. The final encoded prompt must fit the ACP frame
+before dispatch. A history above the prompt bound may continue on a proven existing owner when
+its delta fits. If a fresh or reloaded owner needs an excessive full projection, reject before
+prompting; do not omit past images, replace them with size markers or truncate the conversation.
 
 Fresh context also preserves inline images nested in a historical client tool result (D109).
 Each such result uses JSON text markers for its original tool_use_id, is_error and content count,

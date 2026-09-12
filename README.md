@@ -99,6 +99,13 @@ declared version in the existing bounded worker, with external reference retriev
 Independent MCP controls reproduce Claude 2.1.269 forwarding the older declarations unchanged
 while the previous registry rejected them. This addresses existing MCP tool compatibility.
 
+D133 lets a proven conversation continue after its accumulated media exceeds one prompt's
+allowance. Complete requests allow 256 inline media parts and 12 MiB decoded media, while each
+actual ACP prompt keeps the 20-part/6-MiB bound. Old images stay in history and only the new delta
+is sent. If a fresh session needs to reconstruct more than a prompt can hold, it fails explicitly
+without dropping past images. Actual Claude 2.1.269 retains 20, then 21, then 21 images in three
+requests while the same independent ACP owner receives 20, then one, then none.
+
 D87 verifies explicit-ID text resume with fresh profiles, addresses, tokens and backend processes,
 using both an independent ACP peer and actual Kiro. D88 also verifies ordinary terminal `run`,
 keyboard exit and a new `run --resume UUID`: the previous answer appears before new input, followed

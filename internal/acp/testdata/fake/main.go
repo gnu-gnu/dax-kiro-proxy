@@ -50,6 +50,10 @@ func main() {
 		stopFixture(strings.TrimPrefix(mode, "stop-peer-"))
 		return
 	}
+	if mode == "media-history-peer" {
+		mediaHistoryFixture()
+		return
+	}
 	if mode == "native-tool-history" {
 		nativeToolHistory()
 		return

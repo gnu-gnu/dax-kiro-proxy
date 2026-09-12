@@ -16,6 +16,11 @@ import (
 )
 
 const (
+	// The complete client history is bounded separately from one projected ACP prompt. This
+	// permits proven deltas after earlier media has already been committed to the backend.
+	MaxRequestMediaParts      = 256
+	MaxRequestMediaTotalBytes = 12 << 20
+
 	MaxMediaParts      = 20
 	MaxMediaPartBytes  = 4 << 20
 	MaxMediaTotalBytes = 6 << 20

@@ -6,6 +6,20 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D133 on d133-media-history (base 2566be2) fixes the whole request applying a single ACP
+  prompt's media allowance before history reconciliation. Independent process controls reproduce
+  rejection of the 21st accumulated image and a third 3-MiB document. Complete input now admits
+  256 inline parts/12 MiB, including validated result images, while actual projections keep
+  20 parts/6 MiB. Focused race checks pass for anthropic (28.936s), projection (7.725s) and session
+  (66.689s), including exact same-owner deltas, the later text question and zero prompts for
+  excessive full reconstruction. An actual-Claude 2.1.269/real-gateway/fake-ACP control passes
+  (2.072s): HTTP histories retain 20/21/21 images, ACP receives 20/1/0, all three completions share
+  the owner, groups/profile clean up and source settings remain unchanged. All 27 race-tested
+  packages and full vet pass. Four existing native core controls pass sequentially (27.293s),
+  including all six tool-policy cases, joined cancellation, result continuation and exact
+  image-result/native-resume reconstruction. Artifact/review verification follows. No Kiro
+  model ran.
+
 - D132 on d132-mcp-schema-dialects (base cf3a162) reproduces Claude 2.1.269 forwarding
   Draft 7 and 2019-09 MCP input schemas unchanged and completing their effect-free calls, while
   the existing registry rejects both. Explicit support now preserves their declarations and

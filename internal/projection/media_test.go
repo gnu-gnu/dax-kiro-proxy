@@ -232,13 +232,20 @@ func TestToolImageHistoryRejectsInvalidMediaAndCombinedLimits(t *testing.T) {
 			if kind == "combined-count" {
 				first = append(first, picture)
 			}
+			// Construct the result after input decoding so projection's own validation remains
+			// exercised even though malformed inline result images now reject at HTTP admission.
 			r := projectedRequest(t, []any{
 				map[string]any{"role": "user", "content": first},
 				map[string]any{"role": "assistant", "content": []any{map[string]any{"type": "tool_use", "id": "bounded-image", "name": "Read", "input": map[string]string{"file_path": "/owned/image.png"}}}},
-				map[string]any{"role": "user", "content": []any{map[string]any{"type": "tool_result", "tool_use_id": "bounded-image", "content": content}}},
+				map[string]any{"role": "user", "content": "result placeholder"},
 				map[string]any{"role": "assistant", "content": "received"},
 				map[string]any{"role": "user", "content": "continue"},
 			})
+			result, err := json.Marshal(map[string]any{"type": "tool_result", "tool_use_id": "bounded-image", "content": content})
+			if err != nil {
+				t.Fatal("cannot prepare independent result")
+			}
+			r.Messages[2].Content = []anthropic.Block{{Type: "tool_result", Raw: result}}
 			before := append([]byte(nil), r.Messages[2].Content[0].Raw...)
 			if _, err := FullWithCapabilities(r, acp.PromptCapabilities{Image: true}); err == nil {
 				t.Fatal("invalid or excessive historical image accepted")
