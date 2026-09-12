@@ -5,11 +5,12 @@ below about blocked production launch describe their historical checkpoints. The
 recreation experiment at the end has now passed separately from the earlier single-tool cases.
 
 D110 admits a Claude Code build sharing the measured build's major version. D113 moved the measured
-build from 2.1.263 to 2.1.267 on 2026-09-11 after the full installed-client regression; experiments
-below that name Claude 2.1.263 record the build they measured. A later run on an admitted build must
-record its observed version and is not evidence for the measured build. Run every installed-client
-control under `umask 077`: private readers reject group/other-readable files, and a permissive umask
-fails owned fixtures for a reason unrelated to the client.
+build from 2.1.263 to 2.1.267 on 2026-09-11 and D124 from 2.1.267 to 2.1.268 on 2026-09-12, each
+after the full installed-client regression; experiments below that name Claude 2.1.263 or 2.1.267
+record the build they measured. A later run on an admitted build must record its observed version
+and is not evidence for the measured build. Run every installed-client control under `umask 077`:
+private readers reject group/other-readable files, and a permissive umask fails owned fixtures for a
+reason unrelated to the client.
 
 The installed Kiro main/helper now report 2.21.3; D114 moved the measured pin there on 2026-09-11
 after fresh finite checks and admits a same-major pair unmeasured, recording its observed version.

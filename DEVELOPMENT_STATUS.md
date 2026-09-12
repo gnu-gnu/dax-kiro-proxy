@@ -6,6 +6,11 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D124 measures the self-updated Claude Code 2.1.268 and moves the measured client pin from 2.1.267
+  to it: the first user message is a plain string, the first request's standing message carries the
+  environment block and the selected output style (D123 defers the rotation), and the output-style
+  control now records the style's location and passes on both builds. Production change (the
+  constant only); the artifact snapshot is recorded in DEPENDENCY_REVIEW.md.
 - D123 defers a rotated standing instruction on result-only continuations instead of recreating the
   session: a suffix of one nonempty text-only system message replacing a one-message standing
   sequence resolves the results into the pending relay call, the same process answers, and the

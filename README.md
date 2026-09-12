@@ -136,18 +136,18 @@ cleans up. These checks do not retry the abandoned operation. Actual Kiro intera
 and uncertain effect/acknowledgement windows remain open.
 
 The diagnostic checks support the measured Kiro CLI 2.21.3 (including its adjacent `kiro-cli-chat`
-helper; D114 moved the measured pin from 2.21.2) and the measured Claude Code 2.1.267 (D113 moved
-the measured build from 2.1.263 after a full regression pass). A Kiro main/helper pair reporting the
-same build with that major version, or a Claude Code build with the same major version, is admitted
-and reported as unmeasured (D114, D110). They use the installed CLIs' finite version/account/catalog
-commands, without an ACP session or model prompt. `--kiro` and `--client` accept absolute executable
-paths. Private scope/cache state defaults to `~/.dax-kiro-proxy`; `--state-dir` selects a different
-private directory. Temporary runtime files are removed when the command finishes. Source client
-settings are not modified, except that a yes answer to the client's workspace-trust dialog is
-recorded in `~/.claude.json` for that project exactly as native Claude Code records it, so the
-question is asked once per project (D118).
+helper; D114 moved the measured pin from 2.21.2) and the measured Claude Code 2.1.268 (D124 moved
+the measured build from 2.1.267, as D113 had from 2.1.263, each after a full regression pass). A
+Kiro main/helper pair reporting the same build with that major version, or a Claude Code build with
+the same major version, is admitted and reported as unmeasured (D114, D110). They use the installed
+CLIs' finite version/account/catalog commands, without an ACP session or model prompt. `--kiro` and
+`--client` accept absolute executable paths. Private scope/cache state defaults to
+`~/.dax-kiro-proxy`; `--state-dir` selects a different private directory. Temporary runtime files
+are removed when the command finishes. Source client settings are not modified, except that a yes
+answer to the client's workspace-trust dialog is recorded in `~/.claude.json` for that project
+exactly as native Claude Code records it, so the question is asked once per project (D118).
 
-Development `run` is enabled on macOS arm64 for the measured Kiro 2.21.3/v2 and Claude Code 2.1.267
+Development `run` is enabled on macOS arm64 for the measured Kiro 2.21.3/v2 and Claude Code 2.1.268
 combination. Run it from a foreground terminal: a pipe, a background job or an ssh session without a
 pty is refused with "run needs a foreground terminal" before any client starts (D122). Other Kiro
 major versions, mismatched main/helper pairs, other Claude Code major versions and unverified

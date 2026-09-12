@@ -5967,3 +5967,40 @@ invocation. Limits: the request after a deferred continuation is shown to extend
 the session unit control and by the held-hook follow-up compiled control on 2.1.268, not by a
 real-client third request in one print session, which that client mode cannot issue; and the
 denial-recovery unit control now covers the rotated shape for both the live and the expired outcome.
+
+## D124: measure Claude Code 2.1.268 and move the measured client pin
+
+The host's client updated itself from the measured 2.1.267 to 2.1.268 at 00:29 on 2026-09-12; D110
+admitted it unmeasured, and the first batch on it failed thirteen controls (D122). D123 traced
+twelve of those to the rotated standing instruction and removed the recreation they had asserted;
+this decision measures the build's remaining differences and performs the D113-style migration:
+`SupportedClientVersion` is 2.1.268, `doctor` reports the installed client as measured, and a
+2.1.267 client is now admitted as unmeasured under D110's rule. The only production change is the
+constant; the major-only admission rule, the measured Kiro 2.21.3 pin and the dependency set are
+unchanged.
+
+Differences from 2.1.267, measured with independent witnesses before the pin moved: the first user
+message of a request is a plain string rather than an array of text blocks (accepted by the decoder
+unchanged, hashed identically by the history canonicalizer); the first request's trailing standing
+message carries an environment block and, when a style is selected, the output-style body, and later
+requests send the token-budget line (D123 defers that rotation); and the selected output style
+therefore arrives as the trailing system-role message instead of a top-level system block. The
+output-style control's projection now records where the style body sits (`StyleLocation` "system" on
+2.1.267, "standing" on 2.1.268), accepts the marker only there, keeps rejecting it anywhere else (a
+self-check covers both forms, a history-position copy and the earlier invalid placements), and
+passes on both builds with the native and prepared projections equal in each. The request-shape
+probe of D123 records both builds' forms without content.
+
+Verification, run under `umask 077` with the pin already moved: with the installed 2.1.268 the full
+installed-client batch passes 74 of 74 controls (617.922s package, `d124-client-2.1.268-batch.log`;
+the output-style control reports style_location "standing" with 577–578 style bytes and equal
+native/prepared projections, the shape probe two backend starts and two requests); with the retained
+2.1.267 the output-style control and the shape probe pass on the same code (style_location "system",
+4001–4004 style bytes, two backend starts, `d124-client-2.1.267-style.log`), so the control
+distinguishes the builds' forms rather than depending on one. The race suite passes across all
+packages and `go vet` is clean (`d124-all-race.log`, `d124-all-vet.log`); the launcher version
+parser accepts "2.1.268 (Claude Code)" and the fixture client reports that build. The rebuilt
+executable's inventory is frozen as the measured-client-268 snapshot in DEPENDENCY_REVIEW.md. The
+live Kiro controls named in LIVE_KIRO_TEST_PLAN.md were measured on 2.1.263 and 2.1.267; rerunning
+them on 2.1.268 consumes credits and is left to a separately approved run, so until then the live
+evidence stands on the earlier builds and the owned-witness batch above is the 2.1.268 evidence.

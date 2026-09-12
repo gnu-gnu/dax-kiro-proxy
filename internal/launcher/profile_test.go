@@ -203,6 +203,7 @@ func TestClientVersionOutputAdmission(t *testing.T) {
 		ok      bool
 	}{
 		{launcher.SupportedClientVersion + " (Claude Code)\n", launcher.SupportedClientVersion, true},
+		{"2.1.268 (Claude Code)", "2.1.268", true},
 		{"2.1.267 (Claude Code)", "2.1.267", true},
 		{"1.0.0 (Claude Code)", "", false},
 		{"3.0.0 (Claude Code)", "", false},

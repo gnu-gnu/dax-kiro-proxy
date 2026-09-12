@@ -553,11 +553,11 @@ not inherit verification automatically. No trust override may stand in for this 
 records one directed exception: a Claude Code build sharing the measured build's major version is
 admitted without new measurement, reported as unmeasured, and evidence gathered on it is recorded
 with its observed version. Making a build measured requires the full installed-client regression on
-that build with the same witnesses (D113 did this for 2.1.267). D114 records the same directed
-exception for Kiro: a main/helper pair reporting one build whose major version equals the measured
-pin's is admitted, reported as unmeasured, and runs the measured development policy; other majors and
-mismatched pairs reject. Making a Kiro build measured requires fresh finite account/catalog and
-read-only isolation checks on that build (D114 did this for 2.21.3).
+that build with the same witnesses (D113 did this for 2.1.267, D124 for 2.1.268). D114 records the
+same directed exception for Kiro: a main/helper pair reporting one build whose major version equals
+the measured pin's is admitted, reported as unmeasured, and runs the measured development policy;
+other majors and mismatched pairs reject. Making a Kiro build measured requires fresh finite
+account/catalog and read-only isolation checks on that build (D114 did this for 2.21.3).
 
 Optional private metadata, account usage, native web support and full Anthropic option parity are
 not conditions for development run. Their absence must not interrupt supported ordinary turns.

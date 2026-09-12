@@ -31,6 +31,9 @@ type outputStyleProjection struct {
 	SystemBytes  int
 	SystemBlocks int
 	StyleDigest  [32]byte
+	// StyleLocation is "system" when the style body is a top-level system block (2.1.267) and
+	// "standing" when it is the trailing system-role message of the request (2.1.268).
+	StyleLocation string
 }
 
 // Retain only authored markers and a digest of their containing public system block.
@@ -68,18 +71,35 @@ func projectOutputStyle(r *anthropic.Request) (outputStyleProjection, error) {
 		}
 		if found {
 			styleBlocks++
-			p.StyleBytes, p.StyleDigest = len(block.Text), sha256.Sum256([]byte(block.Text))
+			p.StyleBytes, p.StyleDigest, p.StyleLocation = len(block.Text), sha256.Sum256([]byte(block.Text)), "system"
 		}
 	}
-	for _, message := range r.Messages {
+	// A client build may deliver the selected style as the request's trailing standing message
+	// (a system-role message after the last user message) instead of a top-level system block.
+	lastUser := -1
+	for i, message := range r.Messages {
+		if message.Role == "user" {
+			lastUser = i
+		}
+	}
+	for i, message := range r.Messages {
 		for _, block := range message.Content {
 			if block.Type != "text" || len(block.Text) > 128<<10 {
 				return p, inference.ErrRequest
 			}
-			for _, marker := range outputStyleMarkers {
-				if strings.Contains(block.Text, marker) {
+			standing := message.Role == "system" && i > lastUser
+			found := false
+			for index, marker := range outputStyleMarkers {
+				n := strings.Count(block.Text, marker)
+				if n != 0 && !standing {
 					return p, inference.ErrRequest
 				}
+				p.Counts[index] += n
+				found = found || n != 0
+			}
+			if found {
+				styleBlocks++
+				p.StyleBytes, p.StyleDigest, p.StyleLocation = len(block.Text), sha256.Sum256([]byte(block.Text)), "standing"
 			}
 			n := strings.Count(block.Text, "ProjectMemory_337")
 			if n != 0 && message.Role != "user" {
@@ -99,7 +119,7 @@ func projectOutputStyle(r *anthropic.Request) (outputStyleProjection, error) {
 }
 
 func TestOutputStyleProjectionRequiresSeparateInstructionRoles(t *testing.T) {
-	for _, kind := range []string{"style", "default", "user-style", "system-memory", "duplicate-style", "two-styles", "missing-memory", "assistant-memory"} {
+	for _, kind := range []string{"style", "default", "user-style", "standing-style", "history-style", "system-memory", "duplicate-style", "two-styles", "missing-memory", "assistant-memory"} {
 		t.Run(kind, func(t *testing.T) {
 			r := &anthropic.Request{System: []anthropic.Block{{Type: "text", Text: outputStyleMarkers[0]}}, Messages: []anthropic.Message{{Role: "user", Content: []anthropic.Block{{Type: "text", Text: "ProjectMemory_337"}}}}}
 			switch kind {
@@ -107,6 +127,14 @@ func TestOutputStyleProjectionRequiresSeparateInstructionRoles(t *testing.T) {
 				r.System = nil
 			case "user-style":
 				r.Messages[0].Content = append(r.Messages[0].Content, r.System[0])
+				r.System = nil
+			case "standing-style":
+				// The 2.1.268 form: the style body is the trailing system-role message.
+				r.Messages = append(r.Messages, anthropic.Message{Role: "system", Content: []anthropic.Block{r.System[0]}})
+				r.System = nil
+			case "history-style":
+				// A system-role message before the last user message is history, never the style.
+				r.Messages = append([]anthropic.Message{{Role: "system", Content: []anthropic.Block{r.System[0]}}}, r.Messages...)
 				r.System = nil
 			case "system-memory":
 				r.System[0].Text += " ProjectMemory_337"
@@ -120,8 +148,8 @@ func TestOutputStyleProjectionRequiresSeparateInstructionRoles(t *testing.T) {
 				r.Messages[0].Role = "assistant"
 			}
 			p, err := projectOutputStyle(r)
-			valid := kind == "style" || kind == "default"
-			if (err == nil) != valid || kind == "style" && (p.Counts[0] != 1 || p.StyleBytes == 0) {
+			valid := kind == "style" || kind == "default" || kind == "standing-style"
+			if (err == nil) != valid || kind == "style" && (p.Counts[0] != 1 || p.StyleBytes == 0 || p.StyleLocation != "system") || kind == "standing-style" && (p.Counts[0] != 1 || p.StyleBytes == 0 || p.StyleLocation != "standing") {
 				t.Fatal("output style provenance mismatch")
 			}
 		})
@@ -289,7 +317,7 @@ func TestClaudePersonalOutputStylePreservation(t *testing.T) {
 					}
 					gone = gone && dialErr != nil
 					equivalent := seen == reference
-					t.Logf("mode=%s requests=%d selected_markers=%v style_system_bytes=%d total_system_bytes=%d system_blocks=%d native_system_block_matches=%v complete=%v source_styles_settings_unchanged=%v home_tree_unchanged=%v global_unchanged=%v ownership_removed=%v", mode, starts, seen.Counts, seen.StyleBytes, seen.SystemBytes, seen.SystemBlocks, equivalent, complete, sources, homeUnchanged, globalUnchanged, gone)
+					t.Logf("mode=%s requests=%d selected_markers=%v style_location=%q style_system_bytes=%d total_system_bytes=%d system_blocks=%d native_system_block_matches=%v complete=%v source_styles_settings_unchanged=%v home_tree_unchanged=%v global_unchanged=%v ownership_removed=%v", mode, starts, seen.Counts, seen.StyleLocation, seen.StyleBytes, seen.SystemBytes, seen.SystemBlocks, equivalent, complete, sources, homeUnchanged, globalUnchanged, gone)
 					if !complete || starts != 1 || seen.Counts != want || !equivalent || !sources || !gone {
 						t.Fatal("native output style preservation failed")
 					}
