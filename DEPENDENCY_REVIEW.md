@@ -956,3 +956,27 @@ advisory/reachability, native/build/test attribution and clean-host distribution
 the owner's rights items are outside this repository (D121). Bounding the session lifetime, handling
 SIGHUP, naming failures and queuing schema checks grant no license or distribution right and do not
 change the reviewed dependency set.
+
+## Deferred-standing artifact snapshot — D123, 2026-09-12
+
+`third_party/inventory/macos-arm64-deferred-standing.json` records the rebuilt 13,676,354-byte
+development command, SHA-256 `6cdcfa27c9e5c49a7eb6a47ee593758d4cbc7242c368737d46c771889eca15b9`. It
+identifies Go 1.27.1, darwin/arm64, CGO_ENABLED=1 and the clean committed revision 1fa24e79c505 with
+vcs.modified=false; the inventory commit follows that revision rather than capturing uncommitted
+inputs.
+
+The 103 repository input records are unchanged in number: three production files change from D122,
+the session package's continuation.go, continuation_restart.go and interruption.go. The 267 import
+paths, the four external module versions/sums/package sets, selected native files, stdlib vendor
+packages and retained notices are unchanged. No dependency is added or upgraded. The D122
+run-diagnostics inventory is the hashed predecessor; the D122 and D123 executables are retained
+under the ignored history-review directory. The D121 component record needs no change.
+
+```sh
+python3 tools/verify_dependency_inventory.py --gomodcache .cache/gomod --snapshot deferred-standing --binary dist/dax-kiro-proxy
+```
+
+All 142 byte checks pass against the candidate with release clearance false. Existing
+advisory/reachability, native/build/test attribution and clean-host distribution work remain open;
+the owner's rights items are outside this repository (D121). Deferring a rotated standing
+instruction grants no license or distribution right and does not change the reviewed dependency set.

@@ -14,8 +14,11 @@ does not redefine completion around an intermediate phase.
   configuration) sends an environment block and any selected output style as the first request's
   standing message and the token-budget line afterwards, which cost every conversation one
   recreation at its first tool result and failed fourteen controls on 2.1.268. A structural
-  request-shape probe records roles, block kinds and digests only. Production change; the artifact
-  snapshot is recorded in DEPENDENCY_REVIEW.md.
+  request-shape probe records roles, block kinds and digests only. Verified with the measured
+  2.1.267 (74 of 74 installed-client controls) and, after adapting the three recreation-expecting
+  controls, with 2.1.268 (the output-style form remains for its own decision); the live D71 variant
+  awaits its authorized rerun. Production change; the artifact snapshot is recorded in
+  DEPENDENCY_REVIEW.md.
 - D122 raises the interactive client lifetime to the seven-day ceiling and classifies its expiry,
   handles SIGHUP like an interrupt, separates "run needs a foreground terminal" (exit 2, nothing
   started) from a failed terminal restore, names absent or rejected executables with their found
