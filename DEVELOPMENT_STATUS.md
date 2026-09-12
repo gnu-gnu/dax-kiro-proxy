@@ -6,6 +6,18 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D140 on d140-sustained-native-tools (base 1c6ec65) extends D139's same two native clients
+  and shared runtime with an optional schedule. Eight rounds at two-second intervals pass
+  with Claude 2.1.269 and fake ACP (20.359s package, 14.008s active). All seven allowed Read
+  results, eight hook refusals, final cancellation/sibling completion and cleanup checks pass.
+  Focused local schedule/lifetime and existing observer race controls pass in 2.901s/2.121s.
+  Both changed packages pass full race in 37.290s/1.214s; changed-package vet passes.
+  The new schedule is bounded at fifteen seconds; the episode budget adds its declared span
+  to the original eight minutes, never exceeding forty minutes. The planned 128-round run
+  at fifteen-second intervals has not yet completed; no long-duration result is claimed.
+  This changes only tests/fixtures/documents. Installed D138/current inputs pass 144 checks.
+  Personal instruction preservation, D134 model approval and actual Kiro gates remain open.
+
 - D139 on d139-concurrent-native-tools (base 9c9adbb) adds a finite combined native-client
   tool check on one gateway/manager/pool. The 128-round race run passes in 21.839s, including
   a 16.092-second active loop with two Claude 2.1.269 clients and exactly two independent ACP

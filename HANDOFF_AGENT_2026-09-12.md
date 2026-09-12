@@ -211,6 +211,15 @@ Test-only; installed D138/current inputs pass 144 checks, with no rebuild or ins
 This finite control does not complete actual Kiro, interactive permissions, shared ACP or
 long-duration combined soak. No new D134 credit approval exists.
 
+D139 merged as 1c6ec65. D140 on d140-sustained-native-tools adds bounded pacing to the same
+two native clients and shared runtime. The eight-round two-second-interval control passes
+in 20.359s (14.008s active); local schedule/lifetime/observer race passes in 2.901s/2.121s.
+Both changed packages pass full race in 37.290s/1.214s and vet.
+The planned 128-round fifteen-second-interval control needs at least 31m45s active; it has
+not completed yet. Total episode/client/ACP/peer allowance stays below forty minutes.
+Test-only; installed D138 remains unchanged, with 144 current-input checks passing. No new
+Kiro model approval or invocation; personal instructions and actual Kiro gates remain open.
+
 ## 1. State you inherit
 
 - `main` is at `e07e591` (merge of D124). The working tree is clean. There is no remote; never push

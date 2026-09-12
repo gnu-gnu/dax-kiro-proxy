@@ -13,13 +13,24 @@ import (
 
 type nativeSoakLane struct{ Seed, Directory string }
 type nativeSoakPlan struct {
-	Rounds  int
-	Witness string
-	Lanes   [2]nativeSoakLane
+	Rounds     int
+	LifetimeMS int64
+	Witness    string
+	Lanes      [2]nativeSoakLane
 }
 type nativeSoakWitness struct {
 	PID, Peer, Lane, Prompts, Calls, Results int
 	Config                                   string
+}
+
+func nativeSoakLifetime(ms int64) (time.Duration, bool) {
+	if ms == 0 {
+		return 8 * time.Minute, true
+	}
+	if ms < 480000 || ms > 2400000 {
+		return 0, false
+	}
+	return time.Duration(ms) * time.Millisecond, true
 }
 
 func validNativeSoakResult(raw []byte, id int, lane nativeSoakLane, foreign string, round int, denied bool) bool {
@@ -54,7 +65,8 @@ func validNativeSoakResult(raw []byte, id int, lane nativeSoakLane, foreign stri
 // This peer reads only its test plan and requests client Read operations through the supplied
 // MCP relay. It never opens a requested file, a native transcript or the relay configuration.
 func nativeToolSoakFixture() {
-	timer := time.AfterFunc(8*time.Minute, func() { os.Exit(88) })
+	started := time.Now()
+	timer := time.AfterFunc(40*time.Minute, func() { os.Exit(88) })
 	defer timer.Stop()
 	if len(os.Args) != 3 {
 		return
@@ -69,6 +81,11 @@ func nativeToolSoakFixture() {
 	if readErr != nil || closeErr != nil || len(data) > 64<<10 || json.Unmarshal(data, &plan) != nil || plan.Rounds < 8 || plan.Rounds > 128 || !filepath.IsAbs(plan.Witness) {
 		return
 	}
+	lifetime, ok := nativeSoakLifetime(plan.LifetimeMS)
+	if !ok || time.Since(started) >= lifetime {
+		return
+	}
+	timer.Reset(time.Until(started.Add(lifetime)))
 	for _, lane := range plan.Lanes {
 		if len(lane.Seed) < 8 || len(lane.Seed) > 128 || !filepath.IsAbs(lane.Directory) {
 			return

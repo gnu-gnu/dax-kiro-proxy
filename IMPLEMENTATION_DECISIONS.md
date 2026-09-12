@@ -7188,3 +7188,48 @@ actionable finding. The reviewer confirms complete reading of all seventeen mand
 and the amended paragraphs/evidence. Its focused observer race passes in 1.426s/1.222s;
 changed-package vet, whitespace checks and the strictly resolved installed/current 144-byte-check
 inventory pass. No additional correction, production refreeze or installation is needed.
+
+## D140: Sustain the same native tool conversations over a declared active span
+
+On `d140-sustained-native-tools`, based on `1c6ec65`, extend D139's existing combined native
+control toward HANDOFF's longer concurrent soak. Its rapid 128-round loop established exact
+ownership and cancellation over about sixteen seconds. A separate explicit schedule now
+keeps those same two native clients, gateway, manager, pool and two ACP prompts active across
+a longer span, without adding a product feature or invoking actual Kiro.
+
+`DAX_INTEROP_TOOL_SOAK_INTERVAL_MS` defaults to zero and accepts integer milliseconds from
+zero through 15,000. The first paired wait establishes a monotonic origin; each later tool
+arrival waits until its scheduled offset before entering the paired barrier. This wait
+releases the observer lock and honors request cancellation. Both client and ACP/relay pairs
+are then rechecked alive before delivery or the final cancellation signal. The last paired
+wait must occur at or after `(rounds-1)*interval`; a short burst followed by an idle tail
+cannot satisfy that observation. These are earliest scheduled offsets, not a throughput or
+exact per-call latency guarantee.
+
+The common episode allowance is eight minutes plus that declared span, at most 39m45s for
+128 rounds at fifteen seconds. ACP request/turn and native-client limits use the same finite
+allowance. The first-event budget adds one interval to its prior twenty seconds; the relay
+tool-result wait remains one minute. The independent peer accepts an optional bounded
+LifetimeMS plan field, defaulting to eight minutes and rejecting values outside eight to
+forty minutes. Its hard timer starts before reading the plan and is reset to the declared
+deadline measured from that same origin. Frame, reply, file, result, process and capture
+bounds remain in place. Every fourth scheduled pair logs only counts, elapsed time and
+resource totals; no prompt, tool content, credentials or temporary paths are retained.
+
+New schedule/lifetime tests first fail because the harness helpers do not exist
+(`d140-schedule-before.log`), not because of a product defect. Focused race then passes in
+2.901s/2.121s (`d140-schedule-after.log`), including bound/overflow rejection, a cancellation
+deadline that cannot admit a future pair, missing-origin rejection and prior D139 guards.
+The short actual Claude 2.1.269/fake-ACP rehearsal passes eight rounds at two-second offsets
+in 20.359s (14.008s active, `d140-paced-native-8.log`). Seven allowed results and eight hook
+refusals stay exact; final sibling isolation, all cleanup and unchanged sources pass.
+Both changed packages pass full race in 37.290s/1.214s (`d140-packages-race.log`), and
+changed-package vet passes (`d140-vet.log`).
+
+The intended extended command uses 128 rounds and 15,000ms offsets, with a 45-minute Go-test
+cap and no retry. It requires at least 31m45s between the first and final paired waits. It has
+not completed yet; the rehearsal is not long-duration evidence. Even a passing extended run
+does not establish actual Kiro inference/policy, interactive permission UI, shared ACP
+processes or installed-proxy/backend RSS. Personal instruction preservation and D134's
+separately pending model approval remain open. Installed D138/current production inputs pass
+144 checks (`d140-inventory.log`); no product/dependency change, rebuild or installation.

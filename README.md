@@ -462,6 +462,12 @@ recorded groups, HTTP ownership and private profiles clean up. This finite 16.09
 loop uses fake ACP; interactive permissions, actual Kiro and long-duration combined soak remain
 separate checks.
 
+D140 adds an optional schedule to this same native-client control. Set
+`DAX_INTEROP_TOOL_SOAK_INTERVAL_MS=15000` with `DAX_INTEROP_TOOL_SOAK_ROUNDS=128` for an
+active span of at least 31 minutes 45 seconds. Both client sessions and their shared runtime
+stay open throughout. The default remains the short unpaced control. This is a local fake-ACP
+experiment; consult DEVELOPMENT_STATUS.md for completed evidence and remaining live gates.
+
 Phase 7 has frozen dependency inventories and retained scoped notices. For the installed D138
 development artifact, run `python3 tools/verify_dependency_inventory.py
 --gomodcache .cache/gomod --snapshot paused-model --binary dist/dax-kiro-proxy`.

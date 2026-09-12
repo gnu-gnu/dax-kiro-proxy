@@ -523,6 +523,12 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
   Go-heap bounds, unchanged settings/files and joined HTTP/groups/relay/profile ownership.
   The finite 128-round Claude/fake-ACP control does not establish shared ACP, native Kiro policy,
   interactive approval or long-duration combined soak.
+  D140 extends that same control with an explicit 0..15-second schedule. Require the final
+  paired wait to occur no earlier than the declared active span, with all previous owners,
+  exact results, warm resource limits and cancellation joins preserved. Scheduled waits must
+  release the observer lock and honor cancellation. The episode, ACP requests, clients and
+  independent peer share a finite allowance capped at forty minutes. An extended fake-ACP
+  run does not establish actual Kiro or installed-proxy/backend RSS stability.
 - Prepared policy cleanup occurs once after ACP/router shutdown and before releasing capacity.
   Repeated idle release joins the same cleanup result. A retired cleanup failure remains visible to
   pool shutdown and prevents admission of further launch artifacts.

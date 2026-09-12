@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"testing"
+	"time"
 )
 
 func TestNativeSoakResultCorrelationAndRefusal(t *testing.T) {
@@ -41,5 +42,18 @@ func TestNativeSoakResultCorrelationAndRefusal(t *testing.T) {
 				t.Fatal("result correlation or refusal observer accepted an invalid outcome")
 			}
 		})
+	}
+}
+
+func TestNativeSoakLifetimeBounds(t *testing.T) {
+	for _, ms := range []int64{0, 480000, 2385000, 2400000, -1, 479999, 2400001, 9223372036854775807} {
+		got, ok := nativeSoakLifetime(ms)
+		valid := ms == 0 || ms >= 480000 && ms <= 2400000
+		if ok != valid || ok && (got < 8*time.Minute || got > 40*time.Minute) {
+			t.Fatal("native peer lifetime escaped its finite bounds")
+		}
+		if ok && ms != 0 && got != time.Duration(ms)*time.Millisecond {
+			t.Fatal("native peer lifetime did not preserve declared milliseconds")
+		}
 	}
 }
