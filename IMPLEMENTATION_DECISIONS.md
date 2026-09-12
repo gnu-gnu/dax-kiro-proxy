@@ -6406,4 +6406,15 @@ recorded owners in 167ms. The denial controls preserve absent effects and join g
 retires the old runtime before a fresh prompt and visible completion. Source settings remain
 unchanged. The native recovery control sends its question before expiry; the controlled HTTP
 fixtures above establish recovery after expiry and across the final-write window. No actual Kiro
-model or credits are used. Artifact installation and independent review remain pending.
+model or credits are used.
+
+The clean code commit `dc119e7d7ae2a479afde7e6f61f4687114d0f1ea` is rebuilt and installed as
+`tool-outcomes`: 13,694,546 bytes, SHA-256
+`d723495ec219dda7e2a465ccfd06adaed24fe5e95412290ac54dbd671b529b62`. The snapshot records
+vcs.modified=false and the same 105 production inputs, with only session/continuation.go and
+session/turn.go changed under internal/. All 144 byte checks pass for the candidate and resolved
+installation; all 18 component checks pass. Install --force succeeds, and doctor reports measured
+Kiro 2.21.3/Claude 2.1.269, verified login/policy and launch available. Client initialization
+remains unverified by doctor, and release clearance remains false. Artifact logs are
+`d129-freeze.log`, `d129-install.log`, `d129-installed-verify.log`, `d129-components.log` and
+`d129-installed-doctor.json`. No new advisory scan ran. Independent review remains pending.

@@ -15,8 +15,9 @@ does not redefine completion around an intermediate phase.
   scheduling, and full vet passes. Five actual-Claude 2.1.269/fake-ACP controls pass sequentially
   (79.650s): cancellation, result continuation, all six tool-policy cases, original-deadline bare
   denial retirement and fresh-question recovery. Source settings and denied effects stay intact,
-  with joined ownership. Artifact installation and independent review remain pending; the
-  installed build remains D128. No actual Kiro model ran.
+  with joined ownership. The clean dc119e7 artifact is frozen and installed as tool-outcomes
+  (144 byte checks, 18 component checks); doctor reports the measured pair, verified login/policy
+  and launch available. Independent review remains pending. No actual Kiro model ran.
 
 - D128 on d128-relay-cancellation (base c8c631c) fixes a reproduced race where a
   resolved tool call's late cancellation retires queued, sealed, delivered or next-turn work.

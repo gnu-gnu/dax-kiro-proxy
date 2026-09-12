@@ -54,9 +54,9 @@ and failure-reason races in item 15. Candidate history/IDs survive abort before 
 normal result admission remains gated on successful finalization. Retired result-only retries
 require history proof too. Focused controls, all 27 race-tested packages with sequential package
 scheduling and vet pass. Five applicable Claude 2.1.269 core controls also pass (79.650s),
-including original-deadline denial retirement and fresh-question recovery. Artifact installation
-and independent review remain pending. The installed artifact remains D128; no actual Kiro model
-ran.
+including original-deadline denial retirement and fresh-question recovery. The clean `dc119e7`
+artifact is frozen and installed as `tool-outcomes` (144 byte checks, 18 component checks,
+doctor verified). Independent review remains pending. No actual Kiro model ran.
 
 ## 1. State you inherit
 
