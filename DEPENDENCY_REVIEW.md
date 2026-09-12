@@ -960,10 +960,10 @@ change the reviewed dependency set.
 ## Deferred-standing artifact snapshot — D123, 2026-09-12
 
 `third_party/inventory/macos-arm64-deferred-standing.json` records the rebuilt 13,676,354-byte
-development command, SHA-256 `6cdcfa27c9e5c49a7eb6a47ee593758d4cbc7242c368737d46c771889eca15b9`. It
-identifies Go 1.27.1, darwin/arm64, CGO_ENABLED=1 and the clean committed revision 1fa24e79c505 with
-vcs.modified=false; the inventory commit follows that revision rather than capturing uncommitted
-inputs.
+development command, SHA-256 `20a814689b10b18a90f9e3fbb3971cec4fd49c2eb21f25a4adf8e6e4fc92b71d`. It
+identifies Go 1.27.1, darwin/arm64, CGO_ENABLED=1 and the clean committed revision c8b293dec0c7 (the
+D123 code commit plus its review fixes) with vcs.modified=false; the inventory commit follows that
+revision rather than capturing uncommitted inputs.
 
 The 103 repository input records are unchanged in number: three production files change from D122,
 the session package's continuation.go, continuation_restart.go and interruption.go. The 267 import

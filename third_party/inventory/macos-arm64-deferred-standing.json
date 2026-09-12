@@ -376,8 +376,8 @@
     },
     {
       "path": "internal/session/continuation.go",
-      "bytes": 7724,
-      "sha256": "9b369333abadb40735bd95d61aa6a6b4fdcac7721ab1e1dbcb9d4a14b368f568"
+      "bytes": 7765,
+      "sha256": "47ad6a8e8daebce044712fbdc022dc4b7bfdb883659917f72908e43f345ba73d"
     },
     {
       "path": "internal/session/continuation_restart.go",
@@ -685,11 +685,11 @@
   "binary": {
     "path": "dist/dax-kiro-proxy",
     "bytes": 13676354,
-    "sha256": "6cdcfa27c9e5c49a7eb6a47ee593758d4cbc7242c368737d46c771889eca15b9",
+    "sha256": "20a814689b10b18a90f9e3fbb3971cec4fd49c2eb21f25a4adf8e6e4fc92b71d",
     "build_path": "dax-kiro-proxy/cmd/dax-kiro-proxy",
     "main": {
       "Path": "dax-kiro-proxy",
-      "Version": "v0.0.0-20260912085141-1fa24e79c505"
+      "Version": "v0.0.0-20260912090630-c8b293dec0c7"
     },
     "settings": [
       {
@@ -734,11 +734,11 @@
       },
       {
         "Key": "vcs.revision",
-        "Value": "1fa24e79c505a858b896156e90405cf2d33b4b2d"
+        "Value": "c8b293dec0c707d153f2ca12b4635287cfee6d58"
       },
       {
         "Key": "vcs.time",
-        "Value": "2026-09-12T08:51:41Z"
+        "Value": "2026-09-12T09:06:30Z"
       },
       {
         "Key": "vcs.modified",
