@@ -6173,4 +6173,5 @@ D126 build, and the touched prose is wrapped. These fixes change tests and docum
 installed `3302837` artifact still passes all 143 byte checks, so it needs no refreeze.
 Follow-up review accepts the fixes without another finding, including the final line wrapping
 (`d126-independent-review.md`). Its focused observer/choice race run passes in 1.299 s, and the
-143 snapshot checks pass. The D126 verification is complete; the remaining HANDOFF work is unchanged.
+143 snapshot checks pass. The D126 verification is complete; the remaining HANDOFF work is
+unchanged.
