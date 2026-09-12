@@ -10,8 +10,8 @@ does not redefine completion around an intermediate phase.
   client lock path and revalidates source/staged bytes, identities and publication age before rename.
   Three existing-lock regressions fail before the fix; the focused race controls pass, including
   eight simultaneous candidates with one unchanged winner. The actual-client two-launch trust
-  control passes (20.30s). A new black-box control establishes that Claude 2.1.268 respects a short
-  held directory lock but eventually writes through a persistently held lock; arbitrary unlocked
+  control passes (20.30s). A new black-box control observes unchanged source bytes at a one-second
+  directory-lock release, but eventual writes with a persistently held lock; arbitrary unlocked
   writers therefore remain outside the publication guarantee. Tool-restart failure diagnostics now
   retain only counts, lengths, digests and status. The full installed-client batch passes 75/75
   (602.114s). A subsequent permission regression shows umask narrowing and accepts a changed
@@ -19,8 +19,11 @@ does not redefine completion around an intermediate phase.
   again (4.718s and 19.700s package time). The final whole-repository race suite passes 27 tested
   packages and vet passes. The clean D125 build is installed and frozen as `trust-publication`
   (143 byte checks; unchanged four-module dependency set); all three refreshed advisory scans
-  report no vulnerabilities. Review is pending. The host client is now 2.1.269, reported unmeasured
-  by doctor; the regression evidence and tested pin remain 2.1.268.
+  report no vulnerabilities. Independent review found a missing final HOME check and an incomplete
+  lock-identity witness. Both are fixed, with the HOME regressions and Trust race controls passing
+  (4.854s), followed by all 27 race-tested packages and vet. The stronger native witness and
+  refreeze are pending. The host client is now 2.1.269,
+  reported unmeasured by doctor; the regression evidence and tested pin remain 2.1.268.
 - D124 measures the self-updated Claude Code 2.1.268 and moves the measured client pin from 2.1.267
   to it: the first user message is a plain string, the first request's standing message carries the
   environment block and the selected output style (D123 defers the rotation), and the output-style

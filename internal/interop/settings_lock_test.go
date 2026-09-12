@@ -83,19 +83,27 @@ func TestClaudeGlobalSettingsLockObservation(t *testing.T) {
 			if (mode == "directory" || mode == "released_directory") && os.Mkdir(lock, 0700) != nil || mode == "file" && os.WriteFile(lock, nil, 0600) != nil {
 				t.Fatal("cannot prepare held lock")
 			}
+			var originalLock os.FileInfo
+			if mode != "unlocked" {
+				ownedLock, openErr := os.Open(lock)
+				if openErr != nil {
+					t.Fatal("cannot retain held lock identity")
+				}
+				defer ownedLock.Close()
+				originalLock, err = ownedLock.Stat()
+				if err != nil {
+					t.Fatal("cannot identify held lock")
+				}
+			}
 			var released chan bool
 			if mode == "released_directory" {
-				ownedLock, err := os.Lstat(lock)
-				if err != nil {
-					t.Fatal("cannot observe held lock")
-				}
 				released = make(chan bool, 1)
 				time.AfterFunc(time.Second, func() {
 					before, readErr := readDenialArtifact(home, ".claude.json", 2<<20)
 					current, lockErr := os.Lstat(lock)
-					preserved := readErr == nil && string(before) == seed && lockErr == nil && os.SameFile(ownedLock, current)
+					preserved := readErr == nil && string(before) == seed && lockErr == nil && os.SameFile(originalLock, current) && originalLock.Mode() == current.Mode()
 					removed := false
-					if lockErr == nil && os.SameFile(ownedLock, current) {
+					if lockErr == nil && os.SameFile(originalLock, current) {
 						removed = os.Remove(lock) == nil
 					}
 					released <- preserved && removed
@@ -108,10 +116,12 @@ func TestClaudeGlobalSettingsLockObservation(t *testing.T) {
 				Environment: []string{"HOME=" + home, "TMPDIR=" + scratch, "PATH=/usr/bin:/bin:/usr/sbin:/sbin", "LANG=en_US.UTF-8", "TERM=dumb", "ANTHROPIC_BASE_URL=" + server.URL, "ANTHROPIC_AUTH_TOKEN=" + tokens.Model, "CLAUDE_CODE_PROVIDER_MANAGED_BY_HOST=1", "CLAUDE_CODE_ENABLE_GATEWAY_MODEL_DISCOVERY=1", "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1", "CLAUDE_CODE_DISABLE_OFFICIAL_MARKETPLACE_AUTOINSTALL=1", "CLAUDE_CODE_DISABLE_NONSTREAMING_FALLBACK=1", "CLAUDE_CODE_MAX_RETRIES=0", "CLAUDE_CODE_DISABLE_UNKNOWN_MODEL_WINDOW_ENFORCEMENT=1", "DISABLE_AUTOUPDATER=1", "DISABLE_TELEMETRY=1", "DISABLE_ERROR_REPORTING=1", "NO_PROXY=127.0.0.1,localhost"},
 			})
 			after, readErr := readDenialArtifact(home, ".claude.json", 2<<20)
-			_, lockErr := os.Lstat(lock)
+			currentLock, lockErr := os.Lstat(lock)
+			persistentLock := mode == "directory" || mode == "file"
+			lockPreserved := originalLock != nil && lockErr == nil && os.SameFile(originalLock, currentLock) && originalLock.Mode() == currentLock.Mode()
 			changed := sha256.Sum256(after) != sha256.Sum256([]byte(seed))
 			completed := bytes.Contains(result.Stdout, []byte(answer))
-			t.Logf("version=%s mode=%s settings_changed=%v lock_present=%v completed=%v run_error=%v exit=%d elapsed_ms=%d", observed, mode, changed, lockErr == nil, completed, runErr != nil, result.ExitCode, time.Since(started).Milliseconds())
+			t.Logf("version=%s mode=%s settings_changed=%v lock_present=%v held_lock_preserved=%v completed=%v run_error=%v exit=%d elapsed_ms=%d", observed, mode, changed, lockErr == nil, lockPreserved, completed, runErr != nil, result.ExitCode, time.Since(started).Milliseconds())
 			if released != nil {
 				preserved := <-released
 				t.Logf("held_source_preserved_until_release=%v", preserved)
@@ -125,8 +135,8 @@ func TestClaudeGlobalSettingsLockObservation(t *testing.T) {
 			if !changed || !completed || runErr != nil || result.ExitCode != 0 {
 				t.Fatal("control did not demonstrate the observed successful native writer")
 			}
-			if (mode == "directory" || mode == "file") != (lockErr == nil) {
-				t.Fatal("native writer changed the held lock's presence")
+			if persistentLock != (lockErr == nil) || persistentLock && !lockPreserved {
+				t.Fatal("native writer changed the held lock's identity, mode or presence")
 			}
 		})
 	}

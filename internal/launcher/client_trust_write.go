@@ -88,9 +88,7 @@ func (w *trustWrite) publish() (bool, error) {
 		return false, ErrSettings
 	}
 	defer removeTrustEntry(w.root, trustLock, lock)
-	currentRoot, rootErr := os.Stat(w.dir)
-	openedRoot, openedErr := w.root.Stat(".")
-	if rootErr != nil || openedErr != nil || !safeClientAssetDirectory(openedRoot) || !os.SameFile(currentRoot, openedRoot) {
+	if !w.sameRoot() {
 		return false, nil
 	}
 	sourceDigest, source, sourceErr := trustFileDigest(w.root, trustFile)
@@ -98,13 +96,23 @@ func (w *trustWrite) publish() (bool, error) {
 	if sourceErr != nil || stagedErr != nil || sourceDigest != w.expected || stagedDigest != w.replacement || !os.SameFile(source, w.source) || !os.SameFile(staged, w.staged) || source.Mode() != w.source.Mode() || staged.Mode() != source.Mode() {
 		return false, nil
 	}
-	if !sameTrustEntry(w.root, trustFile, source) || !sameTrustEntry(w.root, w.temp, staged) || !sameTrustEntry(w.root, trustLock, lock) || time.Since(started) > trustPublishBudget {
+	return w.commit(source, staged, lock, started)
+}
+
+func (w *trustWrite) commit(source, staged, lock os.FileInfo, started time.Time) (bool, error) {
+	if !w.sameRoot() || !sameTrustEntry(w.root, trustFile, source) || !sameTrustEntry(w.root, w.temp, staged) || !sameTrustEntry(w.root, trustLock, lock) || time.Since(started) > trustPublishBudget {
 		return false, nil
 	}
 	if w.root.Rename(w.temp, trustFile) != nil {
 		return false, ErrSettings
 	}
 	return true, nil
+}
+
+func (w *trustWrite) sameRoot() bool {
+	current, currentErr := os.Stat(w.dir)
+	opened, openedErr := w.root.Stat(".")
+	return currentErr == nil && openedErr == nil && safeClientAssetDirectory(opened) && os.SameFile(current, opened)
 }
 
 func trustFileDigest(root *os.Root, name string) ([32]byte, os.FileInfo, error) {

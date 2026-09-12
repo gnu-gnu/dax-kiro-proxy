@@ -8,6 +8,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"dax-kiro-proxy/internal/gateway"
 	"dax-kiro-proxy/internal/ndjson"
@@ -412,5 +413,62 @@ func TestTrustWriteKeepsSourcePermissionBits(t *testing.T) {
 		if after.Mode().Perm() != mode {
 			t.Errorf("permission bits changed: want=%#o got=%#o", mode, after.Mode().Perm())
 		}
+	}
+}
+
+func TestTrustCommitRechecksHomeAfterDigestValidation(t *testing.T) {
+	for _, change := range []string{"replacement", "unsafe permissions"} {
+		t.Run(change, func(t *testing.T) {
+			cfg := trustConfig(t)
+			const seed = `{"numStartups":3}`
+			if os.WriteFile(filepath.Join(cfg.Home, trustFile), []byte(seed), 0600) != nil {
+				t.Fatal("cannot seed source")
+			}
+			data, changed, err := insertProjectTrust([]byte(seed), cfg.Project)
+			if err != nil || !changed {
+				t.Fatal("cannot prepare accepted answer")
+			}
+			write, err := stageTrustWrite(cfg.Home, data, sha256.Sum256([]byte(seed)))
+			if err != nil {
+				t.Fatal("cannot stage answer")
+			}
+			defer write.close()
+			if write.root.Mkdir(trustLock, 0700) != nil {
+				t.Fatal("cannot acquire owned lock")
+			}
+			lock, err := write.root.Lstat(trustLock)
+			if err != nil {
+				t.Fatal("cannot identify owned lock")
+			}
+			defer removeTrustEntry(write.root, trustLock, lock)
+			sourceDigest, source, sourceErr := trustFileDigest(write.root, trustFile)
+			stagedDigest, staged, stagedErr := trustFileDigest(write.root, write.temp)
+			if sourceErr != nil || stagedErr != nil || sourceDigest != write.expected || stagedDigest != write.replacement {
+				t.Fatal("cannot validate publication inputs")
+			}
+			// Change HOME after the reads have established valid publication inputs, immediately
+			// before the production commit step. Entry checks through the opened root still pass.
+			if change == "replacement" {
+				err = os.Rename(cfg.Home, cfg.Home+"-moved")
+				if err == nil {
+					err = os.Mkdir(cfg.Home, 0700)
+				}
+				if err == nil {
+					err = os.WriteFile(filepath.Join(cfg.Home, trustFile), []byte(seed), 0600)
+				}
+			} else {
+				err = os.Chmod(cfg.Home, 0777)
+				defer os.Chmod(cfg.Home, 0700)
+			}
+			if err != nil {
+				t.Fatal("cannot interleave HOME change")
+			}
+			published, err := write.commit(source, staged, lock, time.Now())
+			oldSource, oldErr := write.root.ReadFile(trustFile)
+			currentSource, currentErr := os.ReadFile(filepath.Join(cfg.Home, trustFile))
+			if published || err != nil || oldErr != nil || currentErr != nil || string(oldSource) != seed || string(currentSource) != seed {
+				t.Fatal("commit did not preserve sources after HOME changed")
+			}
+		})
 	}
 }

@@ -6038,7 +6038,7 @@ the account and a local authenticated response server. Without a lock, the clien
 owned settings and completes in 581 ms. Holding either a directory or a regular file at the lock
 path does not prevent writes indefinitely: both arms change the source and complete while the
 held entry remains, in 3,316 and 3,285 ms. A separate directory arm releases the lock after one
-second, checks the source stayed byte-identical until release, then observes the native write and
+second, checks that the source is byte-identical at release, then observes the native write and
 successful completion (1,325 ms). All four arms pass in 9.856 s package time
 (`d125-settings-lock-release.log`). These elapsed times include startup and response delivery;
 they do not measure a native lock timeout constant or reveal its implementation.
@@ -6084,4 +6084,19 @@ installed, with all 143 byte checks passing against both copies and the D121 com
 18 checks still passing. Binary/source/source-with-test advisory scans report no vulnerabilities
 against the database dated 2026-09-10T14:48:42Z. DEPENDENCY_REVIEW.md records the exact artifact and
 scan scope. The host client has meanwhile updated to 2.1.269; doctor reports it unmeasured under
-D110, while the tested pin remains 2.1.268. Independent review is pending on the working branch.
+D110, while the tested pin remains 2.1.268.
+
+The independent review identifies two omissions (`d125-independent-review.md`). HOME identity and
+safety were checked before reading the publication files, leaving a larger unchecked interval than
+the final metadata checks; the final commit step now repeats that root check. Deterministic controls
+replace HOME or widen its permissions after valid source/staged digests have been read. Both fail
+before the fix (`d125-home-recheck-before.log`), and the complete Trust race controls pass afterward
+(4.854 s, `d125-review-trust.log`). The native lock observer also retains an open descriptor to the
+original lock and compares its identity and mode after execution, distinguishing an unchanged entry
+from replacement at the same path and preventing inode reuse from satisfying the witness. Its
+one-second release observation establishes source bytes at that point, not that a native writer
+had already attempted a write. Follow-up review accepts both fixes without a new finding. The
+review-fix checkout's whole-repository race suite passes all 27 tested packages
+(`d125-review-all-race.log`) and vet passes (`d125-review-all-vet.log`); no native client ran in
+parallel with the main checkout's version batch. The stronger native rerun and clean-commit
+artifact refreeze remain pending.
