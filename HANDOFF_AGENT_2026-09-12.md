@@ -25,8 +25,9 @@ D126 continuation: the trust-dialog failure above is resolved by correcting the 
 private keyboard query and full-screen margin-reset handling. The final navigator requires unique
 option rows and a confirmed yes selection. The full 2.1.269 batch passes 75/75, all 27 race-tested
 packages and vet pass, and the source pin moves to 2.1.269. This is not new live Kiro evidence.
-The clean artifact, independent review and merge follow this code commit; see the authoritative
-D126 record for the current completion state. The original batch labels below remain candidates.
+The clean `3302837` artifact is installed (`measured-client-269`, SHA-256 `cb5cb96a…`), with
+143 byte checks, 18 component checks and doctor passing. Independent review and merge remain
+pending; see the authoritative D126 record for completion. The original labels below are candidates.
 
 ## 1. State you inherit
 

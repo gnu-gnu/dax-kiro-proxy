@@ -13,8 +13,10 @@ does not redefine completion around an intermediate phase.
   on 2.1.269 and 2.1.268. The full 2.1.269 installed-client batch passes 75/75 (579.147s),
   including the final trust control and measured output-style placement. All 27 race-tested
   packages and vet pass. The measured client pin moves to 2.1.269; Kiro stays 2.21.3. No actual
-  Kiro model test ran, and live evidence remains on the 2.21.3/2.1.267 pair. The artifact record
-  follows the clean code commit; D125 remains the installed artifact until that rebuild.
+  Kiro model test ran, and live evidence remains on the 2.21.3/2.1.267 pair. The clean `3302837`
+  build is frozen as `measured-client-269` and installed (143 byte checks; 18 component checks).
+  Doctor reports both versions measured, login/policy verified and launch available. Independent
+  review and merge remain pending.
 
 - D125 on `d125-trust-concurrency`: trust write-back now stages before acquiring the
   client lock path and revalidates source/staged bytes, identities and publication age before rename.

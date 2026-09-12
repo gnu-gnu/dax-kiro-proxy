@@ -1042,3 +1042,28 @@ modes on this artifact/source. Its database is updated 2026-09-10T14:48:42Z
 curated Go reports with symbol reachability
 as of that database date, not unknown vulnerabilities, system libraries or separately installed
 executables. The owner's rights determinations remain outside the repository under D121.
+
+## Measured-client-269 artifact snapshot — D126, 2026-09-12
+
+`third_party/inventory/macos-arm64-measured-client-269.json` records the rebuilt 13,677,298-byte
+command, SHA-256 `cb5cb96abc53ca9d31242263ac105b18ac4685eb9e39efe41e3c1f6626474485`. It identifies
+Go 1.27.1, darwin/arm64, CGO_ENABLED=1 and clean committed revision `3302837` with
+`vcs.modified=false`. The inventory commit follows that code commit.
+
+Only `internal/launcher/profile.go` changes among the 104 production input records: the measured
+client constant is 2.1.269. The 267 import paths, four external module versions/sums/package sets,
+selected native files, stdlib vendor packages and retained notices are unchanged. D125's
+trust-publication inventory is the hashed predecessor. No dependency is added or upgraded. The
+D121 component record names 2.1.269 as the measured client; its 18 file checks still pass.
+
+```sh
+python3 tools/verify_dependency_inventory.py --gomodcache .cache/gomod --snapshot measured-client-269 --binary dist/dax-kiro-proxy
+```
+
+All 143 byte checks pass against both the candidate and the resolved installed executable, with
+release clearance false (`d126-freeze.log`, `d126-installed-verify.log`). `install --force` succeeds
+(`d126-install.log`). The installed doctor reports Claude Code 2.1.269 and Kiro 2.21.3 measured,
+login and policy verified, and launch available (`d126-installed-doctor.json`). This is development
+admission; no actual Kiro model test ran for this client migration. D125's advisory scans remain
+historical evidence for their recorded artifact/source, not new scans of this executable. The
+owner's rights determinations remain outside the repository under D121.

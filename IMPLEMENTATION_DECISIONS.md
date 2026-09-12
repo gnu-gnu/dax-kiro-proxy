@@ -6155,3 +6155,8 @@ the measured client constant, now 2.1.269; Kiro stays 2.21.3 and same-major admi
 The D121 component record names the new client pin. Prior live model evidence remains on the
 2.21.3/2.1.267 pair; no credit-consuming test has run in this decision. The clean build and artifact
 snapshot follow this code commit and are recorded separately in DEPENDENCY_REVIEW.md.
+
+The clean `3302837` build is frozen as `measured-client-269` and installed. All 143 byte checks
+pass against the candidate and resolved installed executable; the component record passes its
+18 checks. Doctor reports both versions measured, login/policy verified and launch available.
+DEPENDENCY_REVIEW.md records the exact hash and scope. Independent review and merge remain pending.
