@@ -6,6 +6,16 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D123 defers a rotated standing instruction on result-only continuations instead of recreating the
+  session: a suffix of one nonempty text-only system message replacing a one-message standing
+  sequence resolves the results into the pending relay call, the same process answers, and the
+  rotated message is recorded so the next prompt carries it; the all-denial recovery accepts the
+  same shape. Measured cause: the self-updated Claude Code 2.1.268 (and 2.1.263 in D63's default
+  configuration) sends an environment block and any selected output style as the first request's
+  standing message and the token-budget line afterwards, which cost every conversation one
+  recreation at its first tool result and failed fourteen controls on 2.1.268. A structural
+  request-shape probe records roles, block kinds and digests only. Production change; the artifact
+  snapshot is recorded in DEPENDENCY_REVIEW.md.
 - D122 raises the interactive client lifetime to the seven-day ceiling and classifies its expiry,
   handles SIGHUP like an interrupt, separates "run needs a foreground terminal" (exit 2, nothing
   started) from a failed terminal restore, names absent or rejected executables with their found

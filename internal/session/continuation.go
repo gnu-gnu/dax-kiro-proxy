@@ -64,7 +64,8 @@ func (d *Driver) resume(ctx context.Context, r *anthropic.Request, registry *too
 		return nil, inference.ErrRequest
 	}
 	plan, err := d.hasher.Plan(t.pendingHistory, r)
-	if err != nil || plan.Mode != history.Extend || plan.Start != r.LatestUserIndex() || len(r.Messages[plan.Start].Content) != len(results) || !d.repeatedSystem(t.pendingHistory, r.Messages[plan.Start+1:]) {
+	suffix := r.Messages[plan.Start+1:]
+	if err != nil || plan.Mode != history.Extend || plan.Start != r.LatestUserIndex() || len(r.Messages[plan.Start].Content) != len(results) || !d.repeatedSystem(t.pendingHistory, suffix) && !rotatedStanding(t.pendingHistory, suffix) {
 		return nil, inference.ErrRequest
 	}
 	if err := t.broker.Resolve(t.broker.Credentials().Owner, converted); err != nil {
@@ -76,6 +77,23 @@ func (d *Driver) resume(ctx context.Context, r *anthropic.Request, registry *too
 	t.lastIDs = nil
 	d.state = Prompting
 	return &round{turn: t}, nil
+}
+
+// rotatedStanding reports a result-only continuation whose trailing standing message replaced a
+// one-message standing sequence with one nonempty text-only system message. The pending backend
+// turn keeps the instruction it was given; the new message is recorded in the history so the next
+// prompt carries it, instead of recreating the session for every rotated reminder (D123).
+func rotatedStanding(pending history.Snapshot, suffix []anthropic.Message) bool {
+	n := len(pending.Nodes)
+	if len(suffix) != 1 || suffix[0].Role != "system" || len(suffix[0].Content) == 0 || n < 2 || pending.Nodes[n-2].Role != "system" || n >= 3 && pending.Nodes[n-3].Role == "system" {
+		return false
+	}
+	for _, block := range suffix[0].Content {
+		if block.Type != "text" {
+			return false
+		}
+	}
+	return true
 }
 
 // A repeated, complete standing instruction sequence is already present in the owned ACP prompt.

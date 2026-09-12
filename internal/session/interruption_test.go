@@ -56,7 +56,12 @@ func TestNewQuestionAfterDeniedToolsRecreatesWithoutReplaying(t *testing.T) {
 				func(b *anthropic.Request) { b.Model = "claude-dax-absent" },
 				func(b *anthropic.Request) { b.Identity.Session = "unrelated-conversation" },
 				func(b *anthropic.Request) { b.Messages[0].Content[0].Text = "changed original request" },
-				func(b *anthropic.Request) { b.Messages[len(b.Messages)-1].Content[0].Text = "new standing instruction" },
+				// A rotated one-message standing instruction is accepted on this fresh-prompt path (D123);
+				// a stacked sequence or a non-text standing block still rejects.
+				func(b *anthropic.Request) { b.Messages = append(b.Messages, b.Messages[len(b.Messages)-1]) },
+				func(b *anthropic.Request) {
+					b.Messages[len(b.Messages)-1].Content = []anthropic.Block{{Type: "image", Raw: json.RawMessage(`{"type":"image"}`)}}
+				},
 				func(b *anthropic.Request) {
 					b.Messages[i].Content[0].Raw = json.RawMessage(`{"type":"tool_result","tool_use_id":"unrelated","is_error":true,"content":"denied"}`)
 				},

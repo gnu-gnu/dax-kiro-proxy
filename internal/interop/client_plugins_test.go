@@ -630,7 +630,13 @@ func observeClaudePluginSources(t *testing.T, mode string) {
 				t.Error("plugin backend cleanup failed")
 			}
 			pids := strings.Fields(string(boundedAssetFile(t, processLedger)))
-			if len(pids) != 2 {
+			// A plain tool round trip resolves into the pending prompt and defers the rotated standing
+			// instruction (D123); the wait flows still recreate through results followed by text (D73).
+			wantProcesses := 1
+			if waitMode {
+				wantProcesses = 2
+			}
+			if len(pids) != wantProcesses {
 				t.Error("unexpected bounded backend reconstruction count")
 			}
 			for _, raw := range pids {

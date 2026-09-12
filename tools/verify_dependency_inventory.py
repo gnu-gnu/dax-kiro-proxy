@@ -148,9 +148,9 @@ def main():
     parser.add_argument("--components", action="store_true",
                         help="verify the D121 component record instead of an artifact snapshot")
     parser.add_argument("--snapshot",
-                        choices=("development", "installation", "native-history", "relay-close", "effort", "usage", "output-styles", "tool-images", "client-version", "measured-client", "measured-kiro", "onboarding", "project-trust", "run-diagnostics"),
+                        choices=("development", "installation", "native-history", "relay-close", "effort", "usage", "output-styles", "tool-images", "client-version", "measured-client", "measured-kiro", "onboarding", "project-trust", "run-diagnostics", "deferred-standing"),
                         default="development",
-                        help="select the frozen D78, D79, D87, D96, D99, D101, D108, D109, D110–D112, D113, D114, D115, D118 or D122 artifact record")
+                        help="select the frozen D78, D79, D87, D96, D99, D101, D108, D109, D110–D112, D113, D114, D115, D118, D122 or D123 artifact record")
     args = parser.parse_args()
     try:
         if args.components:

@@ -202,72 +202,73 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
 
 ## E. Tool safety
 
-- Duplicate/empty tool names, invalid object schemas, oversized registries, and unsupported typed server
-  tools are rejected before prompting.
-- Alias mapping is deterministic, reversible within the session, and collision-safe.
-- Kiro sees only session-declared aliases and explicitly supported native tools.
-- Every relay description identifies its original client tool name and client execution authority,
-  preserves the complete source description and exact input schema, and retains the opaque wire name.
-  Metadata policy changes invalidate the registry fingerprint used for session compatibility.
-- Relay calls during setup/load or idle time never become client tool-use blocks. Prompt completion
-  cannot leave a suspended or validating call to be exposed by another turn.
-- Relay child exposes only initialize, ping, tools/list, and tools/call and performs no effect itself.
-- Wrong secret, unknown alias, duplicate relay call ID, non-object arguments, invalid schema, queue
-  overflow, and wrong-session result are rejected.
-- A valid tool call suspends until the exact client result arrives, preserves text/image/error status,
-  and completes once.
-- Duplicate, orphan, late, partial, extra, or cross-session tool results never reach Kiro.
-- Calls arriving after a sealed response stay in a later batch. No result is accepted before its
-  successful HTTP delivery, and a rejected set consumes no pending ID.
-- A successful tool handoff keeps the same ACP prompt alive across HTTP requests and does not reset
-  the original total deadline. Timeout/auth expiry while no response is open still cleans up the
-  session; a matching later request observes only the scoped terminal outcome, never tool replay.
-- A tool-result request may repeat the complete most recent standing system-message sequence without
-  starting another ACP prompt. Changed, partial, reordered or older instructions and extra user text
-  reject on that same-prompt path before any pending result is consumed, except the separately
-  validated recreation cases below.
-- A changed text-only standing system message may recreate after a result-only user message when
-  the preceding standing sequence also has exactly one message. Require an exact complete prior-
-  history prefix and unchanged owner/model/effort/top-level system/metadata/tool-choice policy.
-  A validated changed registry may also recreate, including without a changed system suffix. Validate
-  the complete delivered batch, encoded result bounds and full projection before revocation. Wrong,
-  missing, duplicate, undelivered or oversized results and truncated overlap reject without mutation.
-  Join the old group and relay before creating a replacement with the full request history. Neither
-  the supplied results nor new instructions enter the old prompt; no tool is automatically replayed.
-  Bound recreations per logical turn (default sixteen), preserve the absolute deadline through setup
-  and further tool handoffs, and reject replay after completion or failed replacement. Exact repeated
-  suffixes continue normally, including after the restart allowance is exhausted. Multi-message
-  changed sequences remain unsupported. Distinguish actual-client/fake-ACP evidence from live Kiro.
-- A complete delivered result batch containing at least one success may be followed by nonempty
-  client text in the same user message. Require all result blocks first and only text blocks after
-  them. Recreate from the complete immutable prefix and full supplied content, including when the
-  registry/standing instructions repeat. Preserve policy, original deadline and shared recreation
-  budget; validate the projection/result limits before joined revocation. Malformed, reordered,
-  empty-only, non-text, truncated or oversized candidates consume no pending ownership. Do not
-  revive expired successful work, replay tools or put client text inside a tool result (D73).
-- Use distinct message IDs for independent model responses. Compare fresh IDs with a duplicate-ID
-  counterfactual before attributing client history regrouping to ordinary tool use. Keep regrouped
-  history, prior results mixed into the new delivered batch and truncated replacement prefixes
-  rejected. Verify held MCP initialization followed by an advertised wait, a validated registry
-  replacement, exact allowed/refused plugin result and completion in the same replacement prompt.
-  Require effect counts one/zero, joined old/new groups and unchanged client sources (D70).
-  Keep actual backend progress, final model content and client-visible completion separate. A prompt
-  echo, early text, hidden control or erased terminal content cannot establish final display. If a
-  marker is used, independently prove its final-response provenance and current visibility. Partial
-  tool/cleanup evidence does not pass a failed end-to-end live experiment (D72).
-- A new user question following all matching client error results may abandon the old prompt only
-  with an exact compatible owner, proven history extension, results preceding text, and unchanged
-  repeated standing instructions. Join old process/relay cleanup before a fresh full-history prompt;
-  never resolve those results into the abandoned prompt, replay a tool or reuse canceled state. The
-  same proof may use the bounded five-minute retired outcome, which answers identical resubmissions
-  of the retired batch with the same terminal error until it expires or a new turn starts (D122).
-  Missing, duplicate, partial, successful, cross-owner or divergent results reject on this
-  all-denial/retired-outcome path without consuming recovery ownership; active D73 continuations
-  follow the separate rule above.
-- Cancellation and timeout resolve all suspended relay calls and remove owner-only socket/config data.
-- MCP starts only after authenticated supervisor/child PID checks and verified ACP group membership.
-  A peer cannot supply its own PID/group, forge a join, replay an attachment or replace a valid child.
-  After binding, a different process cannot submit a tool call using the child's control credentials.
+- Duplicate/empty tool names, invalid object schemas, oversized registries, and unsupported typed
+  server tools are rejected before prompting. - Alias mapping is deterministic, reversible within
+  the session, and collision-safe. - Kiro sees only session-declared aliases and explicitly
+  supported native tools. - Every relay description identifies its original client tool name and
+  client execution authority, preserves the complete source description and exact input schema, and
+  retains the opaque wire name. Metadata policy changes invalidate the registry fingerprint used for
+  session compatibility. - Relay calls during setup/load or idle time never become client tool-use
+  blocks. Prompt completion cannot leave a suspended or validating call to be exposed by another
+  turn. - Relay child exposes only initialize, ping, tools/list, and tools/call and performs no
+  effect itself. - Wrong secret, unknown alias, duplicate relay call ID, non-object arguments,
+  invalid schema, queue overflow, and wrong-session result are rejected. - A valid tool call
+  suspends until the exact client result arrives, preserves text/image/error status, and completes
+  once. - Duplicate, orphan, late, partial, extra, or cross-session tool results never reach Kiro. -
+  Calls arriving after a sealed response stay in a later batch. No result is accepted before its
+  successful HTTP delivery, and a rejected set consumes no pending ID. - A successful tool handoff
+  keeps the same ACP prompt alive across HTTP requests and does not reset the original total
+  deadline. Timeout/auth expiry while no response is open still cleans up the session; a matching
+  later request observes only the scoped terminal outcome, never tool replay. - A tool-result
+  request may repeat the complete most recent standing system-message sequence without starting
+  another ACP prompt, or replace a one-message standing sequence with one nonempty text-only system
+  message, which is recorded for the next prompt rather than delivered to the pending one (D123).
+  Partial, reordered, stacked or non-text instructions and extra user text reject on that
+  same-prompt path before any pending result is consumed, except the separately validated recreation
+  cases below. - A changed text-only standing system message recreates only together with client
+  text (D73) or a changed registry (D70); on a result-only user message it is deferred (D123). Where
+  recreation applies, the preceding standing sequence must also have exactly one message. Require an
+  exact complete prior- history prefix and unchanged owner/model/effort/top-level
+  system/metadata/tool-choice policy. A validated changed registry may also recreate, including
+  without a changed system suffix. Validate the complete delivered batch, encoded result bounds and
+  full projection before revocation. Wrong, missing, duplicate, undelivered or oversized results and
+  truncated overlap reject without mutation. Join the old group and relay before creating a
+  replacement with the full request history. Neither the supplied results nor new instructions enter
+  the old prompt; no tool is automatically replayed. Bound recreations per logical turn (default
+  sixteen), preserve the absolute deadline through setup and further tool handoffs, and reject
+  replay after completion or failed replacement. Exact repeated suffixes continue normally,
+  including after the restart allowance is exhausted. Multi-message changed sequences remain
+  unsupported. Distinguish actual-client/fake-ACP evidence from live Kiro. - A complete delivered
+  result batch containing at least one success may be followed by nonempty client text in the same
+  user message. Require all result blocks first and only text blocks after them. Recreate from the
+  complete immutable prefix and full supplied content, including when the registry/standing
+  instructions repeat. Preserve policy, original deadline and shared recreation budget; validate the
+  projection/result limits before joined revocation. Malformed, reordered, empty-only, non-text,
+  truncated or oversized candidates consume no pending ownership. Do not revive expired successful
+  work, replay tools or put client text inside a tool result (D73). - Use distinct message IDs for
+  independent model responses. Compare fresh IDs with a duplicate-ID counterfactual before
+  attributing client history regrouping to ordinary tool use. Keep regrouped history, prior results
+  mixed into the new delivered batch and truncated replacement prefixes rejected. Verify held MCP
+  initialization followed by an advertised wait, a validated registry replacement, exact
+  allowed/refused plugin result and completion in the same replacement prompt. Require effect counts
+  one/zero, joined old/new groups and unchanged client sources (D70). Keep actual backend progress,
+  final model content and client-visible completion separate. A prompt echo, early text, hidden
+  control or erased terminal content cannot establish final display. If a marker is used,
+  independently prove its final-response provenance and current visibility. Partial tool/cleanup
+  evidence does not pass a failed end-to-end live experiment (D72). - A new user question following
+  all matching client error results may abandon the old prompt only with an exact compatible owner,
+  proven history extension, results preceding text, and unchanged repeated standing instructions.
+  Join old process/relay cleanup before a fresh full-history prompt; never resolve those results
+  into the abandoned prompt, replay a tool or reuse canceled state. The same proof may use the
+  bounded five-minute retired outcome, which answers identical resubmissions of the retired batch
+  with the same terminal error until it expires or a new turn starts (D122). Missing, duplicate,
+  partial, successful, cross-owner or divergent results reject on this all-denial/retired-outcome
+  path without consuming recovery ownership; active D73 continuations follow the separate rule
+  above. - Cancellation and timeout resolve all suspended relay calls and remove owner-only
+  socket/config data. - MCP starts only after authenticated supervisor/child PID checks and verified
+  ACP group membership. A peer cannot supply its own PID/group, forge a join, replay an attachment
+  or replace a valid child. After binding, a different process cannot submit a tool call using the
+  child's control credentials.
 
 ## F. Session continuity
 
