@@ -6,6 +6,20 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D136 on d136-prepared-batch-churn (base c9f7ebc) retains one gateway/manager/pool across
+  1,024 prepared three-call waves. All 6,144 exact MCP results, 3,072 abandoned denials and
+  3,072 joined ACP/relay/policy owners are checked, including old cleanup before each recovery
+  preparation. The 213.686-second active loop passes under race (package 217.610s).
+  After four warm-up waves, descriptors/goroutines stay 22/30; post-GC heap peaks at
+  1,087,600 bytes from 745,176. Final values are 5/2/868,408. Real retained-resource controls
+  detect each resource class, then verify release. Default controls also pass (6.791s).
+  These are independent prepared-lifetime documents, not native Kiro agent-policy evidence.
+  Shared ACP, native combined soak and installed/backend RSS remain separate. D134 approval
+  stays pending. No production change; installed D133/current inputs still pass 144 checks.
+  Full related session/interop/ACP/pool/fake race suites and vet pass. A later observer change
+  releases its ledger lock during OS cleanup to avoid serializing the order being measured;
+  focused resource/prepared and held-cleanup controls pass. Its final extended rerun is pending.
+
 - D135 on d135-multi-call-relay (base e8d64a9) adds real-process checks for concurrent batches
   of three tools. Eight direct-relay waves verify 96 completed/24 cancelled calls and sixteen
   joined ACP/relay owners. Eight HTTP waves, evenly split between buffered and SSE responses,

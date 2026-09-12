@@ -494,10 +494,15 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
   three-call HTTP waves (four buffered/four SSE) with exact denial reconstruction and sibling
   continuation, plus eight direct-relay waves with mixed results and pending-owner shutdown.
   All recorded groups, relay children and configuration directories join. The test explicitly
-  waits for three queued calls before delivery and uses one session per process. Prepared policy,
-  shared ACP processes and a combined multi-call resource/long-duration soak remain separate;
-  D120 records the 32-wave single-call run, actual-client many-turn soak and one live soak that
-  samples the actual Kiro process group's resident size under a first declared envelope.
+  waits for three queued calls before delivery and uses one session per process. D136 retains
+  one gateway/manager/pool for 1,024 prepared three-call waves (213.686 seconds), with 3,072
+  joined groups/relays/policies, exact recovery preparation order and a fixed post-warm-up
+  descriptor/goroutine/Go-heap envelope. Retained-resource controls must reject each observed
+  resource increase and pass again after release. These invented prepared documents do not
+  establish native Kiro policy; shared ACP, backend/installed-proxy RSS and broader native
+  combined soak remain separate. D120 records the 32-wave single-call run, actual-client
+  many-turn soak and one live soak that samples the actual Kiro process group's resident size
+  under a first declared envelope.
 - Prepared policy cleanup occurs once after ACP/router shutdown and before releasing capacity.
   Repeated idle release joins the same cleanup result. A retired cleanup failure remains visible to
   pool shutdown and prevents admission of further launch artifacts.

@@ -6895,3 +6895,76 @@ actionable finding. The focused SSE/eight-wave HTTP race run passes independentl
 (`d135-review-sse-fixed.log`). Whitespace and clean-tree checks pass. The installed D133 and
 current production/dependency inputs still pass all 144 byte checks after the test-only fix
 (`d135-post-review-artifact.log`). No production fix, refreeze or installation is needed.
+
+## D136: Keep prepared multi-call ownership bounded across one persistent runtime
+
+D135's HTTP control creates a new server, manager and pool each wave. The required combined
+resource check must also retain those owners across repeated tool handoffs and fresh-session
+admission. D136 on `d136-prepared-batch-churn`, based on `c9f7ebc`, reuses the exact D135 HTTP
+wave in one persistent gateway/manager/pool with prepared launch resources. This extends tests;
+no production defect or behavior change is established.
+
+Each wave starts two three-call batches, rejects foreign history, recreates one owner after
+three denials plus a new question, and lets its sibling finish and accept another exact delta.
+Responses alternate buffered/SSE by wave. The same test-only consumer barrier waits for three
+real calls before delivery; arbitrary arrival-time batching is not measured. New HTTP session
+IDs evict prior idle owners. The original D135 control still creates and closes its runtime
+each wave, and its extracted helper now also matches recovery metadata to the actual binding.
+
+The independent ACP peer's prepared mode reads one invented launch document of at most 4 KiB.
+It requires one alias matching the sole relay tool discovered over MCP and rejects a second
+MCP descriptor in session/new. Only the supplied relay child is executed. The peer retains
+its one-session, three-prompt, sixteen-frame/64-KiB and forty-second bounds. These documents
+exercise PrepareLaunch/AcquirePrepared ownership; they are not Kiro agent configurations or
+evidence of native policy enforcement.
+
+A preparation ledger records actual group/relay ownership. Its cleanup callback requires both
+to have disappeared before removing the owned policy and checks one invocation. Before each
+denial recovery prepares a replacement, the exact prior group's relay/configuration and policy
+cleanup must also be complete. The ledger admits at most six records and prunes to two current
+owners each wave; HTTP observation keys are cleared after their verified responses. Repeated
+final close joins all recorded owners, prepared cleanups, schema workers and HTTP handlers.
+
+Resource bounds are declared before the extended run: four warm-up waves, then at most two
+additional descriptors, sixteen goroutines and 8 MiB of post-GC Go HeapAlloc. Descriptor
+enumeration itself caps at 4,096 entries. Independent controls retain eight descriptors,
+24 goroutines or 12 MiB of live heap, require the targeted increase and rejection, then join
+release and verify return within the envelope. The default is eight waves; the environment
+control accepts 8–1,024. Overall context is fifteen minutes and the extended test timeout is
+seventeen minutes. No bound is widened after observing results.
+
+With the HANDOFF toolchain/cache prefix and all native-client/model opt-ins disabled:
+
+```sh
+DAX_FIXTURE_BATCH_WAVES=1024 go test -race -p 1 ./internal/session \
+  -run '^TestPreparedConcurrentMultiCallResourceChurn$' -count=1 -v -timeout 17m
+```
+
+The initial helper extraction has a compile-only error from treating Runner.Close as returning
+a value (`d136-reuse-wave.log`); registering its actual void cleanup fixes it. The unchanged
+D135 scenario then passes (8.615s, `d136-reuse-wave-fixed.log`). Initial combined controls pass
+in 10.548s (`d136-initial-controls.log`). Final resource-release negatives, wave bounds and the
+eight-wave prepared case pass in 6.791s (`d136-final-controls.log`).
+
+The maximum 1,024-wave race run passes (`d136-prepared-1024.log`, package 217.610s). Its active
+loop lasts 213.686 seconds and completes 7,168 HTTP requests, 6,144 exact MCP results and
+3,072 abandoned denial calls. All 3,072 ACP groups, relay children and prepared policies join;
+all 1,024 recovery-order checks pass. Warm-up baseline is 22 descriptors, 30 goroutines
+and 745,176 heap bytes; peak is 22/30/1,087,600, final 5/2/868,408. Measurements remain
+inside the original envelope. They describe the Go test process containing the real gateway
+and manager; they do not measure installed-proxy or backend RSS, native client hooks or actual
+Kiro retention. Shared ACP processes and broader actual-client/Kiro combined soak remain
+separate. D134's model experiment still awaits its per-run approval.
+
+The strictly resolved installed D133 artifact and current production/dependency inputs pass
+all 144 byte checks (`d136-artifact-unchanged.log`). No rebuild or installation is required.
+
+The full related race suites pass with sequential package scheduling: session 73.408s,
+interop 36.535s, ACP 5.192s, pool 2.347s and the explicit fake package 1.768s
+(`d136-related-race.log`). Vet passes for those five packages (`d136-related-vet.log`).
+Subsequent observer inspection removes its ledger lock around OS cleanup: a new preparer must
+not wait behind the very cleanup order being measured. The prepared/default resource controls
+and existing held-cleanup/capacity control pass after this adjustment (6.698s/1.938s,
+`d136-cleanup-observer.log`), and session vet passes (`d136-cleanup-observer-vet.log`).
+The extended figures above precede this observer adjustment; the final 1,024-wave rerun is
+required before accepting the refined timing evidence.
