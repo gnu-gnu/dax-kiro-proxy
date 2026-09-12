@@ -52,6 +52,11 @@ type child struct {
 
 func launch(t *testing.T) (*child, *relay.Broker, *relay.Socket, string) {
 	t.Helper()
+	return launchWithBindingDelay(t, relay.SocketConfig{BaseDirectory: "/private/tmp"}, 0)
+}
+
+func launchWithBindingDelay(t *testing.T, socketConfig relay.SocketConfig, delay time.Duration) (*child, *relay.Broker, *relay.Socket, string) {
+	t.Helper()
 	r, err := toolregistry.Build(context.Background(), []json.RawMessage{json.RawMessage(`{"name":"synthetic_client_tool","description":"Only the fixture client completes this request.","input_schema":{"type":"object"}}`)}, nil, fixtureCheck{})
 	if err != nil {
 		t.Fatal(err)
@@ -64,7 +69,7 @@ func launch(t *testing.T) (*child, *relay.Broker, *relay.Socket, string) {
 	if err := b.BeginTurn(); err != nil {
 		t.Fatal(err)
 	}
-	s, err := relay.Listen(b, relay.SocketConfig{BaseDirectory: "/private/tmp"})
+	s, err := relay.Listen(b, socketConfig)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -96,10 +101,28 @@ func launch(t *testing.T) (*child, *relay.Broker, *relay.Socket, string) {
 			t.Error("relay child required forced cleanup")
 		}
 	})
+	if delay > 0 {
+		timer := time.NewTimer(delay)
+		<-timer.C
+	}
 	if s.BindProcess(cmd.Process.Pid) != nil {
 		t.Fatal("cannot bind the owned MCP fixture group")
 	}
 	return c, b, s, r.Tools()[0].Alias
+}
+
+func TestRelayChildWaitsForBoundOwnerWithinSetupWindow(t *testing.T) {
+	setup, cancel := context.WithTimeout(t.Context(), 8*time.Second)
+	defer cancel()
+	c, _, socket, _ := launchWithBindingDelay(t, relay.SocketConfig{ReadTimeout: 8 * time.Second, AttachTimeout: 8 * time.Second, SetupContext: setup}, 6*time.Second)
+	c.send(t, 1, "initialize", map[string]any{"protocolVersion": "2025-06-18", "capabilities": map[string]any{}, "clientInfo": map[string]any{"name": "bounded-setup-fixture", "version": "1"}})
+	response := c.receive(t)
+	if len(response["error"]) != 0 || len(response["result"]) == 0 {
+		t.Fatal("relay child did not survive its valid setup wait")
+	}
+	if pid, verified := socket.PeerPID(); !verified || pid != c.cmd.Process.Pid {
+		t.Fatal("delayed relay attachment did not verify ownership")
+	}
 }
 func (c *child) send(t *testing.T, id any, method string, params any) {
 	t.Helper()

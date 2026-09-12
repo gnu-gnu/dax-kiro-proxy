@@ -8,7 +8,7 @@
     "Standard library only; no product packages, previous implementation or captured conversation inputs",
     "Only private attachment frames are exchanged; no MCP tool effect or model prompt is performed",
     "Config input is bounded to 2 MiB and attachment frames to 4 KiB; fixture connection setup and reads have finite deadlines",
-    "Outputs only fixed owner, ready or rejected markers; no credentials or arbitrary response values are printed",
+    "Outputs only fixed owner, attaching, ready or rejected markers; no credentials or arbitrary response values are printed",
     "The deliberately lingering case exercises cleanup failure; the test owns and terminates all fixture processes"
   ]
 }

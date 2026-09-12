@@ -406,9 +406,21 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
   launcher exit still retire the suspended owner; no shorter heuristic deadline or invented result
   substitutes for a signal. A later request follows the exact new-turn proof in section E.
 - First-event and total-turn timeouts produce distinct diagnostics.
+- Validated owned-prompt progress can precede visible text beyond the first-event deadline without
+  failing the turn (D127). Test thoughts, plans and tool activity with an independent ACP process.
+  Unknown, empty and malformed informational updates cannot satisfy that wait; foreign ownership
+  fails closed. Progress must retain no answer/tool payload or visible usage, preserve final text
+  through the late notification drain, and remain bounded per turn. Frequent progress must not
+  starve pings or extend the total deadline. Caller cancellation and failed/successful completion
+  must still join the owned process and group in streaming and buffered modes.
 - SSE keepalives maintain a silent stream without satisfying or extending either model deadline;
   recognized authentication expiry after a keepalive still completes one normal assistant message.
 - Repeated caller cancellation cannot interrupt final cleanup or leak an ACP/relay child.
+- Relay attachment must wait within the session setup budget instead of expiring at the shorter
+  message-read limit (D127). Exercise delayed binding with the independent peer and actual relay
+  child, cancellation and expiry of the original setup context, late binding rejection, successful
+  attachment after an already-bound setup finishes, and unchanged incomplete-acknowledgement
+  retirement. Reject out-of-range attachment limits and legacy child configurations before use.
 - Shutdown can be called repeatedly and remains bounded.
 - Relay lifetime loss cancels blocked stdio and pending tools. A surviving relay produces a retained
   cleanup error; idle release retires the owned ACP group and repeated idle/final shutdown joins that

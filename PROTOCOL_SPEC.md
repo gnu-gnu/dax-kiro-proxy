@@ -307,6 +307,12 @@ text and the media/document forms advertised by negotiated capabilities. A norma
 its streamed notifications jointly determine the Anthropic response. First-event and total-turn
 timeouts are independent.
 
+D127 distinguishes validated progress from answer content. An owned active prompt's nonempty text
+thought, valid nonempty plan, or validated tool activity can satisfy the first-event wait. Progress
+is internal and carries no answer, tool execution request or usage. Unknown/empty updates, private
+metadata and transport keepalives do not qualify. The original total-turn deadline remains fixed.
+The bounded admission fields and deliberately ignored informational forms are recorded in D127.
+
 The inline media subset and limits are defined in D19: base64 PNG/JPEG/GIF/WebP require image
 capability, base64 PDFs require embedded context, and plain-text documents can use text projection.
 URL/file-ID sources and enabled citation conversion are unsupported. Historical images remain native
@@ -396,6 +402,15 @@ initialization lifecycle, and supports only initialize, ping, tools/list, and to
 methods. Lifecycle/cancellation notifications receive no replies. Real Kiro version negotiation must
 be verified before live enablement. It performs no tool effect. A tools/call is forwarded over an owner-only
 Unix-domain socket to the parent, authenticated by a random per-session secret.
+
+Before MCP starts, the child authenticates and joins the supervisor-bound ACP process group (D42).
+The private on-disk child configuration is version 3 with eight exact fields (D127): `version`,
+`supervisorPid`, `socket`, `owner`, `secret`, `timeoutMillis`, `attachTimeoutMillis` and `tools`.
+The new attachment limit is 1..60000 milliseconds and follows the configured session setup limit.
+The supervisor's original setup context also bounds waiting for its one-time local process binding;
+a canceled or expired setup rejects a new binding. A binding already completed successfully remains
+valid after setup finishes. Initial-frame and acknowledgement reads retain their separate limits.
+Legacy child configurations reject; private control frames and public MCP versions stay unchanged.
 
 The version-1 private control channel uses a four-byte unsigned big-endian payload length followed
 by a strict UTF-8 JSON object. Its call fields are `version`, `owner`, `secret`, `callId`, `alias` and

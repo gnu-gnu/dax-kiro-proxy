@@ -31,6 +31,14 @@ follow-up review accepts all fixes with no additional finding. D126 verification
 Next: turn/relay robustness, personal memory, request compatibility, diagnostics, then approved live
 reverification and combined soak. The original labels below are candidates, not completed decisions.
 
+D127 on `d127-turn-relay`, based on `ea49c87`, addresses two reproduced timeout defects: validated
+ACP progress now satisfies the first-event wait without becoming answer content, and relay binding
+and child attachment use the session setup allowance. Message-read and total-turn limits remain
+separate. Focused regressions, all 27 race-tested packages and vet pass. The three applicable
+Claude 2.1.269 core controls pass (26.026s), without Kiro inference. Review and installation are
+pending; the installed executable is still D126. Other core turn/relay
+candidates continue in the next batch. See the D127 record before continuing this branch.
+
 ## 1. State you inherit
 
 - `main` is at `e07e591` (merge of D124). The working tree is clean. There is no remote; never push
@@ -70,6 +78,11 @@ These were given during the sessions and are not all written elsewhere.
 - The user reads terse Korean, wants options with a recommendation, and then usually says "권장대로
   진행" (proceed as recommended) or "승인" (approved). "일단" means a pragmatic fix with the
   deviation recorded. Report outcomes with fixed facts; do not pad.
+- Latest scope instruction: strengthen the existing core product. Prioritize basic/continued
+  conversations, client tool approval/refusal/hooks, cancellation/recovery/cleanup and preservation
+  of existing user instructions. HANDOFF candidates require a demonstrated core failure or an
+  explicit mandatory specification gap before implementation. Defer optional features, cosmetic
+  work and broad refactoring; a client update alone is not a reason to start another migration.
 - Never run `kiro-cli login` or `kiro-cli logout`. Never kill the user's own `claude` or
   `kiro-cli --resume` processes (they may be running on this host). Synthetic ("pseudo")
   reproduction of a logged-out backend is preferred over touching the real login.
