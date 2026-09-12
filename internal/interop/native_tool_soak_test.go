@@ -55,6 +55,8 @@ type nativeToolBackend struct {
 	failure                       error
 	cancel                        context.CancelFunc
 	live                          func(int, int) bool
+	schedule                      nativeToolSchedule
+	progress                      func(int, time.Duration, nativeToolResources)
 }
 
 func (b *nativeToolBackend) Models(context.Context) ([]inference.Model, error) {
@@ -121,6 +123,12 @@ func (b *nativeToolBackend) tools(ctx context.Context, lane int, calls []anthrop
 		b.mu.Unlock()
 		return 0, b.fail(err)
 	}
+	start := b.started
+	b.mu.Unlock()
+	if err := b.schedule.wait(ctx, start, round); err != nil {
+		return 0, err
+	}
+	b.mu.Lock()
 	r := &b.rounds[round-1]
 	if r.Seen[lane] {
 		b.mu.Unlock()
@@ -145,6 +153,9 @@ func (b *nativeToolBackend) tools(ctx context.Context, lane int, calls []anthrop
 			}
 			if err == nil {
 				b.samples = append(b.samples, observed)
+				if b.progress != nil && round%4 == 0 {
+					b.progress(round, time.Since(b.started), observed)
+				}
 			}
 		}
 		if err == nil {
@@ -294,7 +305,11 @@ func TestClaudeConcurrentNativeToolSoak(t *testing.T) {
 	if err != nil {
 		t.Fatal("invalid native tool round bound")
 	}
-	ctx, cancel := context.WithTimeout(t.Context(), 8*time.Minute)
+	schedule, err := nativeToolScheduleFor(rounds, os.Getenv("DAX_INTEROP_TOOL_SOAK_INTERVAL_MS"))
+	if err != nil {
+		t.Fatal("invalid native tool schedule")
+	}
+	ctx, cancel := context.WithTimeout(t.Context(), schedule.Lifetime)
 	defer cancel()
 	root, err := os.MkdirTemp("/private/tmp", "dax-native-tool-soak-")
 	if err != nil {
@@ -332,6 +347,12 @@ func TestClaudeConcurrentNativeToolSoak(t *testing.T) {
 	}
 	model, _ := models.ClientID("fixture-backend")
 	b := &nativeToolBackend{models: models, path: filepath.Join(root, "witness"), finalReady: make(chan struct{}), cancel: cancel, live: nativeToolLive}
+	b.schedule = schedule
+	if schedule.Interval != 0 {
+		b.progress = func(round int, elapsed time.Duration, sample nativeToolResources) {
+			t.Logf("paced_round=%d/%d elapsed_ms=%d sample=%+v", round, rounds, elapsed.Milliseconds(), sample)
+		}
+	}
 	b.ledger.Rounds = rounds
 	project := filepath.Join(root, "project")
 	for _, dir := range []string{project, b.path} {
@@ -371,7 +392,7 @@ func TestClaudeConcurrentNativeToolSoak(t *testing.T) {
 		b.rounds = append(b.rounds, nativeToolRound{Release: make(chan struct{})})
 	}
 	manifest := filepath.Join(root, "plan.json")
-	plan, _ := json.Marshal(map[string]any{"Rounds": rounds, "Witness": b.path, "Lanes": b.ledger.Lanes})
+	plan, _ := json.Marshal(map[string]any{"Rounds": rounds, "LifetimeMS": schedule.Lifetime.Milliseconds(), "Witness": b.path, "Lanes": b.ledger.Lanes})
 	if os.WriteFile(manifest, plan, 0600) != nil {
 		t.Fatal("owned native peer plan")
 	}
@@ -380,7 +401,7 @@ func TestClaudeConcurrentNativeToolSoak(t *testing.T) {
 		t.Fatal("native schema worker")
 	}
 	defer validator.Close()
-	process := acp.Config{Executable: fake, Args: []string{"native-tool-soak", manifest}, Directory: project, ClientInfo: acp.Info{Name: "independent-native-soak", Version: "1"}, Limits: acp.Limits{RequestTimeout: 8 * time.Minute}}
+	process := acp.Config{Executable: fake, Args: []string{"native-tool-soak", manifest}, Directory: project, ClientInfo: acp.Info{Name: "independent-native-soak", Version: "1"}, Limits: acp.Limits{RequestTimeout: schedule.Lifetime}}
 	pool, err := acppool.New(acppool.Config{Process: process, MaxProcesses: 2, SessionsPerProcess: 1, MaxIdle: 2, SetupTimeout: 10 * time.Second})
 	if err != nil {
 		t.Fatal("native tool pool")
@@ -390,7 +411,7 @@ func TestClaudeConcurrentNativeToolSoak(t *testing.T) {
 			t.Error("native pool cleanup")
 		}
 	}()
-	b.manager, err = session.NewManager(session.ManagerConfig{ProfileScope: "independent-native-tool-soak", MaxSessions: 2, Session: session.Config{Process: process, Pool: pool, Validator: validator, RelayExecutable: executable, TurnTimeout: 8 * time.Minute, RelayLimits: relay.Limits{ToolTimeout: time.Minute}, SetupTimeout: 10 * time.Second}})
+	b.manager, err = session.NewManager(session.ManagerConfig{ProfileScope: "independent-native-tool-soak", MaxSessions: 2, Session: session.Config{Process: process, Pool: pool, Validator: validator, RelayExecutable: executable, TurnTimeout: schedule.Lifetime, RelayLimits: relay.Limits{ToolTimeout: time.Minute}, SetupTimeout: 10 * time.Second}})
 	if err != nil {
 		t.Fatal("native tool manager")
 	}
@@ -403,7 +424,7 @@ func TestClaudeConcurrentNativeToolSoak(t *testing.T) {
 	if err != nil {
 		t.Fatal("native gateway credentials")
 	}
-	server, err := gateway.StartServer(ctx, gateway.ServerConfig{Gateway: gateway.Config{Tokens: tokens, Backend: b, TurnTimeout: 8 * time.Minute, FirstEventTimeout: 20 * time.Second, MaxActiveRequests: 4, MaxOutputBytes: 128 << 10}, MaxConnections: 8, ShutdownTimeout: 3 * time.Second})
+	server, err := gateway.StartServer(ctx, gateway.ServerConfig{Gateway: gateway.Config{Tokens: tokens, Backend: b, TurnTimeout: schedule.Lifetime, FirstEventTimeout: 20*time.Second + schedule.Interval, MaxActiveRequests: 4, MaxOutputBytes: 128 << 10}, MaxConnections: 8, ShutdownTimeout: 3 * time.Second})
 	if err != nil {
 		t.Fatal("shared native gateway")
 	}
@@ -429,7 +450,7 @@ func TestClaudeConcurrentNativeToolSoak(t *testing.T) {
 		}
 		command := c.profile.Command()
 		command.Args = append(command.Args, "--print", "--output-format", "json", "--session-id", b.ledger.Lanes[lane].Identity, "--no-session-persistence", "--strict-mcp-config", "--mcp-config", `{"mcpServers":{}}`, "--tools", "Read", "--system-prompt", "Independent local protocol exercise.", "Follow the owned tool sequence for "+b.ledger.Lanes[lane].Seed+" and finish.")
-		c.owner, err = childproc.NewAttached(childproc.AttachedConfig{Lifetime: 8 * time.Minute})
+		c.owner, err = childproc.NewAttached(childproc.AttachedConfig{Lifetime: schedule.Lifetime})
 		if err != nil {
 			t.Fatal("native attached owner")
 		}
@@ -534,6 +555,9 @@ func TestClaudeConcurrentNativeToolSoak(t *testing.T) {
 	}
 	active := b.ended.Sub(b.started)
 	b.mu.Unlock()
+	if active < time.Duration(rounds-1)*schedule.Interval {
+		t.Fatal("native tool episode finished before its declared active duration")
+	}
 	for lane, c := range clients {
 		w, err := readNativeToolWitness(filepath.Join(b.path, fmt.Sprintf("owner-%d.json", lane)))
 		if err != nil || w.PID != owners[lane].PID || w.Peer != owners[lane].Peer || w.Calls != rounds || w.Results != rounds-1+lane || !errors.Is(syscall.Kill(-w.PID, 0), syscall.ESRCH) || !errors.Is(syscall.Kill(w.Peer, 0), syscall.ESRCH) {
