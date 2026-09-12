@@ -24,6 +24,8 @@ does not redefine completion around an intermediate phase.
   terminal. Six counterexamples reproduce it; explicit lifecycle checks, all observer controls
   and the eight HTTP waves then pass (6.813s), with session vet passing. Old-owner disappearance
   is observed after recovery, without an independent pre-dispatch timing witness.
+  Follow-up review accepts 0fdc8bc without further findings; focused SSE/HTTP race passes
+  independently (7.968s), and installed D133/current inputs still pass 144 byte checks.
 
 - D134 prepares one bounded MCP call-timeout comparison for HANDOFF item 13. Local protocol
   and observer race controls pass with Kiro opt-in off; no actual model run or new approval is

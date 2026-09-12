@@ -132,6 +132,8 @@ made explicit and its twelve progress controls pass. Installed D133/current inpu
 Independent review finds one SSE observer issue. Six counterexamples reproduce invalid
 lifecycle acceptance; explicit start/terminal ordering fixes it, with all observer controls,
 eight HTTP waves (6.813s) and session vet passing. Post-response cleanup evidence is clarified.
+Follow-up review accepts `0fdc8bc` with no remaining finding. Independent focused SSE/HTTP
+race passes (7.968s), and installed D133/current inputs pass all 144 byte checks after the fix.
 
 ## 1. State you inherit
 
