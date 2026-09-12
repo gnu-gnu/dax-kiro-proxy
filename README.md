@@ -140,8 +140,8 @@ cleans up. These checks do not retry the abandoned operation. Actual Kiro intera
 and uncertain effect/acknowledgement windows remain open.
 
 The diagnostic checks support the measured Kiro CLI 2.21.3 (including its adjacent `kiro-cli-chat`
-helper; D114 moved the measured pin from 2.21.2) and the measured Claude Code 2.1.268 (D124 moved
-the measured build from 2.1.267, as D113 had from 2.1.263, each after a full regression pass). A
+helper; D114 moved the measured pin from 2.21.2) and the measured Claude Code 2.1.269 (D126 moved
+the measured build from 2.1.268 after the full regression pass; D124 and D113 record prior moves). A
 Kiro main/helper pair reporting the same build with that major version, or a Claude Code build with
 the same major version, is admitted and reported as unmeasured (D114, D110). They use the installed
 CLIs' finite version/account/catalog commands, without an ACP session or model prompt. `--kiro` and
@@ -155,7 +155,7 @@ bytes and identity before publication. A concurrent change makes it skip and the
 The measured client may eventually write through a held lock; this is not an atomic update guarantee
 against writers that disregard the lock.
 
-Development `run` is enabled on macOS arm64 for the measured Kiro 2.21.3/v2 and Claude Code 2.1.268
+Development `run` is enabled on macOS arm64 for the measured Kiro 2.21.3/v2 and Claude Code 2.1.269
 combination. Run it from a foreground terminal: a pipe, a background job or an ssh session without a
 pty is refused with "run needs a foreground terminal" before any client starts (D122). Other Kiro
 major versions, mismatched main/helper pairs, other Claude Code major versions and unverified
@@ -200,9 +200,9 @@ release clearance is the owner's external decision.
 
 Every live control named in this section was re-verified on the measured Kiro 2.21.3 / Claude Code
 2.1.267 pair on 2026-09-11 (D113, D114); the version names below record the build each was first
-measured on. They have not been rerun on Claude Code 2.1.268, which D124 measured with the
-owned-witness batch only; until a separately approved live rerun, the live evidence stands on that
-2.1.267 pair.
+measured on. They have not been rerun on Claude Code 2.1.268 or 2.1.269, which D124 and D126
+measured with the owned-witness batches; until a separately approved live rerun, live evidence stays
+on that 2.1.267 pair.
 
 The initial-session native-effect challenge and real-client Read-hook refusal both pass freshly on
 Kiro 2.21.2, with unchanged files and joined process cleanup. Six actual Kiro 2.21.2 / Claude

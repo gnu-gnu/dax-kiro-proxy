@@ -907,7 +907,7 @@ project license.
 | Apple system libraries | libSystem.B, libresolv.9, CoreFoundation, Security | dynamic links of the installed binary (`otool -L`) | Apple macOS; SDK and signing terms outside this review | not distributed |
 | Build environment | macOS 15.4, Command Line Tools, MacOSX 15.5 SDK, Apple clang 17.0.0, CGO_ENABLED=1, ad hoc linker signature | build host | outside this review | nothing from the SDK is bundled |
 | Test utilities | python3 3.11.14, expect 5.45, script, ps, lsof, pgrep, Apple Git 2.39.5 | test host executables | host-provided | neither linked nor bundled |
-| External executables | kiro-cli 2.21.3, Claude Code 2.1.268 (2.1.267 until D124) | black-box backend and client | service terms are the owner's external item | neither linked nor bundled |
+| External executables | kiro-cli 2.21.3, Claude Code 2.1.269 (D126; 2.1.268 from D124) | black-box backend and client | service terms are the owner's external item | neither linked nor bundled |
 | Advisory scanner | govulncheck v1.8.0 (`golang.org/x/vuln`, `h1:clG4qBU6…`) with x/mod v0.41.0, x/sync v0.23.0, x/telemetry 20260908, x/tools v0.50.0 | session scratch GOPATH only | BSD-3-Clause, LICENSE byte-identical to Go's | not a repository dependency |
 
 Advisory results (database `https://vuln.go.dev` updated 2026-09-10T14:48:42Z, Go 1.27.1): source
@@ -1032,7 +1032,8 @@ release clearance false (`d125-installed-verify-final.log`). `install --force` s
 (`d125-install-final.log`). The installed diagnostic
 reports Kiro 2.21.3 measured and Claude Code 2.1.269 unmeasured: the host updated its client again;
 the tested client pin remains 2.1.268. Login and the development execution policy pass, and launch
-availability is true (`d125-installed-doctor-final.json`). This is no verification claim for 2.1.269.
+availability is true (`d125-installed-doctor-final.json`). This is no verification claim for
+2.1.269.
 
 The D121-reviewed govulncheck v1.8.0 reports no vulnerabilities in binary, source and source-with-test
 modes on this artifact/source. Its database is updated 2026-09-10T14:48:42Z

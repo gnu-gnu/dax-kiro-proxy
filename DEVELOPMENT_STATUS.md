@@ -6,6 +6,16 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D126 fixes two terminal-observer defects exposed by Claude Code 2.1.269: a keyboard-flags query
+  was interpreted as cursor restore, and full-screen margin reset did not reset the cursor. The
+  trust navigator now requires exact, unique option rows and an observed yes selection before
+  confirmation. Independent cursor/choice regressions pass; the two-launch trust control passes
+  on 2.1.269 and 2.1.268. The full 2.1.269 installed-client batch passes 75/75 (579.147s),
+  including the final trust control and measured output-style placement. All 27 race-tested
+  packages and vet pass. The measured client pin moves to 2.1.269; Kiro stays 2.21.3. No actual
+  Kiro model test ran, and live evidence remains on the 2.21.3/2.1.267 pair. The artifact record
+  follows the clean code commit; D125 remains the installed artifact until that rebuild.
+
 - D125 on `d125-trust-concurrency`: trust write-back now stages before acquiring the
   client lock path and revalidates source/staged bytes, identities and publication age before rename.
   Three existing-lock regressions fail before the fix; the focused race controls pass, including

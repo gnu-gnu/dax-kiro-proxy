@@ -10,15 +10,23 @@ implementation code; do that first.
 
 D125 continuation note (2026-09-12): the original candidate numbering in section 5 is retained for
 traceability, but the actual D125 decision addresses items 16 and 20 first: guarded trust publication
-and structural test diagnostics. Its reviewed code is committed at `c418f13` on `d125-trust-concurrency`,
+and structural test diagnostics. Its reviewed code is committed at `c418f13` on
+`d125-trust-concurrency`, merged into main as `07008df`,
 based on the D124 handoff commit `095a5ca`. The D125 build is installed (`trust-publication`, SHA-256
 `9088ebaf…`), with the independent findings resolved and the stronger native controls passing.
 The host client has updated to 2.1.269, admitted unmeasured; its frozen-source batch passes 74/75
 with a trust-dialog selection-observer failure before any model prompt. Diagnose that case
 standalone before claiming a version migration. 2.1.268 remains the tested pin. The D125 record
-and DEVELOPMENT_STATUS.md carry its verification state. The rest of section 1 describes the inherited
-D124 checkpoint. The reviewed execution order and corrections are recorded below; candidate
+and DEVELOPMENT_STATUS.md carry its verification state. The rest of section 1 describes the
+inherited D124 checkpoint. The reviewed execution order and corrections appear below; candidate
 solutions must not override the acceptance requirements.
+
+D126 continuation: the trust-dialog failure above is resolved by correcting the test observer's
+private keyboard query and full-screen margin-reset handling. The final navigator requires unique
+option rows and a confirmed yes selection. The full 2.1.269 batch passes 75/75, all 27 race-tested
+packages and vet pass, and the source pin moves to 2.1.269. This is not new live Kiro evidence.
+The clean artifact, independent review and merge follow this code commit; see the authoritative
+D126 record for the current completion state. The original batch labels below remain candidates.
 
 ## 1. State you inherit
 

@@ -56,7 +56,13 @@ func statusTerminalScreen(raw []byte) string {
 				if i-start > 64 {
 					continue
 				}
-				params := strings.Split(string(raw[start:i-1]), ";")
+				arguments := string(raw[start : i-1])
+				// Private prefixes and intermediates select other commands: CSI ? u queries
+				// keyboard flags; it must not act as the ordinary CSI u cursor restore.
+				if strings.Trim(arguments, "0123456789;") != "" {
+					continue
+				}
+				params := strings.Split(arguments, ";")
 				value := func(index, fallback int) int {
 					if index >= len(params) || params[index] == "" {
 						return fallback
@@ -125,6 +131,16 @@ func statusTerminalScreen(raw []byte) string {
 					savedX, savedY = x, y
 				case 'u':
 					x, y = savedX, savedY
+				case 'r':
+					// The observed full-screen DECSTBM resets the cursor as well as margins.
+					// This observer does not interpret partial scrolling regions or origin mode.
+					bottom := value(1, rows)
+					if bottom == 0 {
+						bottom = rows
+					}
+					if len(params) <= 2 && n == 1 && bottom == rows {
+						x, y = 0, 0
+					}
 				}
 				continue
 			}
@@ -213,5 +229,27 @@ func TestStatusScreenReconstructsCursorEditsWithoutInventingText(t *testing.T) {
 		if !strings.Contains(out, c.want) || strings.Contains(out, c.absent) || len(out) > 4*40*160+40 {
 			t.Fatal("terminal observation lost a cursor edit or retained erased/control text")
 		}
+	}
+}
+
+func TestStatusScreenDistinguishesPrivateQueriesAndMarginReset(t *testing.T) {
+	for _, tc := range []struct {
+		name, control string
+		row, col      int
+	}{
+		{"keyboard-query", "\x1b[?u", 4, 3},
+		{"private-mode-restore", "\x1b[?25r", 4, 3},
+		{"margin-reset", "\x1b[r", 0, 0},
+		{"full-margins", "\x1b[1;40r", 0, 0},
+		{"default-margins", "\x1b[0;0r", 0, 0},
+		{"ordinary-cursor-restore", "\x1b[s\x1b[2;2H\x1b[u", 4, 3},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			screen := statusTerminalScreen([]byte("\x1b[5;4H" + tc.control + "Z"))
+			lines := strings.Split(screen, "\n")
+			if strings.Count(screen, "Z") != 1 || []rune(lines[tc.row])[tc.col] != 'Z' {
+				t.Fatal("terminal control moved the cursor to an incorrect cell")
+			}
+		})
 	}
 }
