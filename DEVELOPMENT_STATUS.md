@@ -19,7 +19,9 @@ does not redefine completion around an intermediate phase.
   tool-policy cases pass separately (17.985s). The clean cc297b4 artifact is installed as
   schema-dialects (144 byte checks, 18 component checks). Doctor verifies the measured pair,
   login/policy and launch availability on its first invocation; initialization stays unverified.
-  Independent review follows. No actual Kiro model ran.
+  Independent review accepts 9ee8896 without an actionable finding. Focused race and full vet
+  pass independently, with all three binaries passing 144 checks each and all 18 component
+  checks passing. No production fix or refreeze is needed. No actual Kiro model ran.
 
 - D131 on d131-account-check (base 14a0478) fixes account-command deadlines and
   execution failures being reported as login failures, with their cleanup causes lost. The error

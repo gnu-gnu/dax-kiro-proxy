@@ -6669,3 +6669,13 @@ checks pass (`d132-freeze.log`, `d132-installed-verify.log`, `d132-components.lo
 Kiro 2.21.3/Claude 2.1.269, login/policy and launch availability, with login_check 3.776s
 (`d132-installed-doctor.json`, `d132-installed-doctor-timing.log`). Client initialization remains
 unverified and release clearance remains false. No new advisory scan or Kiro model request ran.
+
+Fresh-context independent review accepts `9ee8896` without an actionable finding
+(`d132-independent-review.md`). It verifies dialect selection and cache/registry identity,
+unchanged bounds and denied loading, independent fixture semantics, native call admission,
+source/ownership cleanup, fixed logging and the documented measurement limits. Focused race
+checks independently pass for schemacheck 5.090s, toolregistry 1.634s and peer 1.854s; full vet
+also exits 0. Candidate, strictly resolved installation and retained D132 copy each pass 144
+byte checks; all 18 component checks pass. Embedded metadata, all 105 committed/current inputs,
+267 ordered packages and dependency/notices records match the snapshot. Native and doctor
+logs are inspected without rerunning them. No production fix or refreeze is needed.

@@ -90,8 +90,10 @@ those declared drafts plus 2020-12 without rewriting them. Independent semantic/
 controls, all 27 race-tested packages and full vet pass. Four native dialect arms, cancellation,
 result continuation, default-client refusal and all six tool-policy cases pass sequentially.
 The clean cc297b4 artifact is installed as schema-dialects (144 byte checks, 18 component
-checks, doctor verified on its first invocation). Independent review follows. No actual Kiro
-model ran; personal memory and other core candidates remain separate.
+checks, doctor verified on its first invocation). Independent review accepts 9ee8896 without
+an actionable finding; focused race, full vet and artifact checks pass independently. No
+production fix or refreeze is needed. No actual Kiro model ran; personal memory and other core
+candidates remain separate.
 
 ## 1. State you inherit
 
