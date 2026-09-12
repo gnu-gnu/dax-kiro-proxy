@@ -6820,3 +6820,60 @@ have not run; earlier no-prompt observations used the separate prototype. The ex
 command is ready for per-run approval, without establishing production timeout semantics.
 The installed D133 artifact and current production/dependency inputs still pass all 144 byte
 checks (`d134-artifact-unchanged.log`). No production fix, installation or refreeze is needed.
+
+## D135: Verify concurrent three-call ownership and denial recovery
+
+The required concurrent delivered-batch gate still lacked a real-process composition with more
+than one call per batch. D135 on `d135-multi-call-relay`, based on `e8d64a9`, adds independent
+ACP/MCP and HTTP/SSE controls for that existing tool path. There is no production behavior change.
+
+The standard-library-only ACP peer launches only the supplied product relay and submits three
+distinct MCP calls before reading any result. It verifies exact request IDs, result text and
+the middle call's refusal, accepting reverse client result order. It has one session, at most
+three prompts, sixteen bounded ACP frames and a forty-second outer lifetime. Synthetic prompt
+and result content stays in memory; logs contain only fixed structural facts.
+
+The direct relay control runs eight waves with two independently observed ACP/relay owners.
+Foreign IDs, another owner's credential and partial result sets leave the original batch intact;
+completed result replay also rejects. Closing one owner with three delivered calls joins its
+process group and relay while the sibling completes and handles another prompt on the same
+process. All 96 completed and 24 cancelled calls have checked ownership, and all sixteen ACP
+groups, relay children and private configurations are removed after repeated shutdown.
+
+The HTTP control runs eight waves, four buffered and four streaming, through the real gateway,
+manager, schema worker and relay processes. A test-only Start wrapper delays the first consumer
+Next until three real calls are queued. It selects a deterministic batch boundary; it does not
+establish how arbitrary arrival timing groups calls. Both HTTP handlers/connections finish
+before result submission. Valid foreign-ID history rejects without consuming either owner.
+Three matching denials plus a new question recreate one owner with the exact old question,
+three tool inputs/IDs and three ordered result blocks. The sibling receives its exact mixed
+results, then accepts only the next question's delta on the same process. All 48 completed
+MCP round trips, 24 abandoned denials and 24 joined ACP/relay owners are checked. Negative
+observer controls reject a changed third call/result, reordered results, changed old question,
+extra/nontext prompt parts, replayed calls and incomplete SSE tool sequences.
+
+The first HTTP recovery failed with a setup timeout (`d135-multi-call-http-first.log`,
+`d135-http-recovery-shape.log`, `d135-http-recovery-stage.log`). The harness had allowed the
+default two sessions per process despite using a single-session peer. Recovery selected the
+healthy sibling's already-busy process, whose peer could not accept another session. An explicit
+one-session-per-process pool fixes this fixture mismatch; no product defect is established.
+The corrected eight-wave run passes (`d135-http-owned-pool.log`, session 6.859s). Final focused
+race controls, including the HTTP-release wait and observer negatives, pass in session 6.883s
+and interop 12.268s (`d135-final-controls.log`).
+
+The complete related race suites pass with sequential package scheduling: session 69.273s,
+interop 36.091s, ACP 5.234s and the independently included fake package 1.668s
+(`d135-related-race.log`). Explicit vet of the normally excluded testdata package reports an
+existing progress peer's indirect cancellation closure (`d135-related-vet.log`). An immediate
+defer at context creation makes that cleanup explicit; no runtime leak is established. The
+existing twelve HTTP progress/deadline/cleanup cases pass after this one-line test-peer change
+(session 10.217s, `d135-progress-cleanup.log`); that command's fake-package filter runs no tests.
+Vet then passes for all four related packages (`d135-related-vet-final.log`). The strictly
+resolved installed D133 artifact and current production/dependency inputs pass all 144 byte
+checks (`d135-artifact-unchanged.log`).
+
+This finite functional evidence does not complete the combined long-duration/resource soak,
+prepared Kiro policy or shared-ACP-process checks. It launches no actual Claude or Kiro and
+executes no client tool effects, so native approval/hooks and actual backend timing retain their
+separate evidence. D134's exact model experiment still awaits per-run approval. The installed
+D133 artifact and dependency inputs are unchanged; no rebuild or installation is required.

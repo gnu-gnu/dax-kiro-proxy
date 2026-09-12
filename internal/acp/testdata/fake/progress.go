@@ -41,6 +41,7 @@ func progressFixture(mode string) {
 			}
 			var ctx context.Context
 			ctx, cancel = context.WithCancel(context.Background())
+			defer cancel()
 			workers.Add(1)
 			go func(id json.RawMessage) {
 				defer workers.Done()
