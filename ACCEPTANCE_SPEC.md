@@ -513,6 +513,15 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
   combined soak remain separate. D120 records the 32-wave single-call run, actual-client
   many-turn soak and one live soak that samples the actual Kiro process group's resident size
   under a first declared envelope.
+- Combine actual native client tool continuations on one gateway/manager/pool (D139). Require
+  two distinct live clients and independent ACP/relay owners at every paired tool wait, exact
+  Read inputs/results and the configured hook refusal reason, no foreign session content or
+  repeated call IDs, and the same two ACP prompts throughout. Cancel one client before its final
+  tool delivery and
+  require the sibling to complete. Observe bounded output drains, post-warm-up FD/goroutine/
+  Go-heap bounds, unchanged settings/files and joined HTTP/groups/relay/profile ownership.
+  The finite 128-round Claude/fake-ACP control does not establish shared ACP, native Kiro policy,
+  interactive approval or long-duration combined soak.
 - Prepared policy cleanup occurs once after ACP/router shutdown and before releasing capacity.
   Repeated idle release joins the same cleanup result. A retired cleanup failure remains visible to
   pool shutdown and prevents admission of further launch artifacts.

@@ -192,6 +192,19 @@ Independent review accepts `295cfb1` without actionable findings. Focused race p
 4.875s/1.333s, with related vet, 144 candidate/installed checks, 18 component checks and
 independent clean-commit source/metadata comparison passing. No correction or refreeze is needed.
 
+D138 merged as `9c9adbb`. D139 on `d139-concurrent-native-tools` adds two actual Claude
+2.1.269 clients sharing one gateway/manager/pool with independent ACP. The 128-round check
+passes under race (21.043s package, 15.975-second active loop): 127 allowed Read results,
+128 hook refusals, exact ownership, cancellation before the final Read delivery and a
+successful sibling completion. FD/goroutine counts remain 30/50 after warm-up, post-GC heap
+peaks at 1,256,848 bytes, and final counts are 5/2. Settings/files are unchanged and recorded
+HTTP/process/relay/profile ownership joins. Guard and retained-resource controls pass;
+unrelated errors and round-prefix collisions cannot satisfy the final observers. All five
+related packages pass race and vet, with final focused race and vet after observer fixes.
+Test-only; installed D138/current inputs pass 144 checks, with no rebuild or installation.
+This finite control does not complete actual Kiro, interactive permissions, shared ACP or
+long-duration combined soak. No new D134 credit approval exists.
+
 ## 1. State you inherit
 
 - `main` is at `e07e591` (merge of D124). The working tree is clean. There is no remote; never push

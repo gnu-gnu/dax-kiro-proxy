@@ -6,6 +6,22 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D139 on d139-concurrent-native-tools (base 9c9adbb) adds a finite combined native-client
+  tool check on one gateway/manager/pool. The 128-round race run passes in 21.043s, including
+  a 15.975-second active loop with two Claude 2.1.269 clients and exactly two independent ACP
+  prompts. All 127 allowed Read results and 128 hook refusals retain exact owners. The final
+  Read is withheld before canceling one client; its ACP/relay join before the sibling finishes.
+  Descriptors/goroutines remain 30/50 after warm-up; post-GC heap grows from 775,472 to a peak
+  of 1,256,848 bytes. Final values are 5/2/706,296. HTTP ownership, recorded groups, relay
+  directories and private profiles join; source settings and all owned files stay unchanged.
+  Eight-round controls and independent bad-result/resource controls pass. The final observers
+  require the hook's refusal reason and distinct round markers; unrelated errors and round
+  prefix collisions cannot count as success. All five related packages pass race and vet;
+  the strengthened local observers and final vet pass after those test-only corrections.
+  No product code or installed D138 artifact changes; current inputs still pass 144 checks.
+  Actual Kiro, shared ACP, interactive permissions and long-duration combined soak remain
+  separate. D134 is still unapproved and unrun.
+
 - D138 on d138-paused-model-preference (base 77f7d19) reproduces a delivered pause_turn
   retaining the preceding model preference in both JSON and SSE handler controls. The other
   three final stop reasons already restore the actual model on the next launch. The one-line
