@@ -430,7 +430,7 @@ func (h *Handler) messages(ctx context.Context, w http.ResponseWriter, r *http.R
 			}
 			continue
 		}
-		if event.StopReason != "end_turn" && event.StopReason != "max_tokens" && event.StopReason != "refusal" && event.StopReason != "tool_use" || (event.StopReason == "tool_use") != (len(pendingTools) > 0) {
+		if event.StopReason != "end_turn" && event.StopReason != "max_tokens" && event.StopReason != "refusal" && event.StopReason != "pause_turn" && event.StopReason != "tool_use" || (event.StopReason == "tool_use") != (len(pendingTools) > 0) {
 			if stream != nil {
 				_ = stream.Fail("Kiro turn did not complete")
 			} else {

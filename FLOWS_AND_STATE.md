@@ -158,6 +158,12 @@ History is committed only after a successful completed Kiro turn. A request that
 invalidates the previously persisted idle snapshot so two processes cannot claim the same backend
 session.
 
+The public `max_turn_requests` completion is eligible for the same successful finalization (D130).
+It maps to `pause_turn`, retains the exact emitted text and returns to idle without issuing another
+ACP prompt. An explicit next user question uses the normal continuity proof and sends only its
+uncommitted delta. A failed HTTP delivery still retires the affected turn; a pending tool batch
+cannot be completed by this stop reason.
+
 Ordered assistant/user digest pairs are accompanied by message-role anchors, including per-message
 system updates. This detects changes that a pair alone would miss. A truncated overlap must include
 both user and assistant content and end at the last delivered assistant. Assistant-only overlap does

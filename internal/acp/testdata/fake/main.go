@@ -46,6 +46,10 @@ func main() {
 		progressFixture(strings.TrimPrefix(mode, "progress-peer-"))
 		return
 	}
+	if strings.HasPrefix(mode, "stop-peer-") {
+		stopFixture(strings.TrimPrefix(mode, "stop-peer-"))
+		return
+	}
 	if mode == "native-tool-history" {
 		nativeToolHistory()
 		return

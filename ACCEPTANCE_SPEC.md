@@ -145,6 +145,12 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
   are not proof of automatic capability recovery, and visible output is never truncated merely to
   claim enforcement of an unmapped token cap while retaining unseen backend history.
 - Streaming text produces the exact ordered event classes and reconstructs the non-streaming text.
+- Map ACP `max_turn_requests` to Messages `pause_turn`, preserving preceding text and successful
+  history commit in buffered and streaming responses (D130). Verify a subsequent explicit question
+  reuses the owned session with only its delta, and no automatic prompt is dispatched. Measure the
+  pinned client's actual follow-up behavior against a local fake response before claiming native
+  continuation. Token-limit/refusal classes stay distinct; malformed/unknown reasons, unfinished
+  client tools and unsupported non-text answers must not become successful text completions.
 - Inline image/document shapes, MIME/header/dimension/count/byte limits and negotiated capabilities
   are enforced; historical images stay native and proven deltas do not resend them. URL/file sources
   cause no fetch. Unsupported citations and media reject before prompt dispatch.
