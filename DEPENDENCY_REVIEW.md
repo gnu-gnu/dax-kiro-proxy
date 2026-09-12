@@ -980,3 +980,29 @@ All 142 byte checks pass against the candidate with release clearance false. Exi
 advisory/reachability, native/build/test attribution and clean-host distribution work remain open;
 the owner's rights items are outside this repository (D121). Deferring a rotated standing
 instruction grants no license or distribution right and does not change the reviewed dependency set.
+
+## Measured-client-268 artifact snapshot — D124, 2026-09-12
+
+`third_party/inventory/macos-arm64-measured-client-268.json` records the rebuilt 13,676,354-byte
+development command, SHA-256 `282b8556b6feb1dd5cf0d8082b67bbe8e470ac9644a30af14cf8f20e252eb9b6`. It
+identifies Go 1.27.1, darwin/arm64, CGO_ENABLED=1 and the clean committed revision e08ce8eb25af (the
+D124 commit) with vcs.modified=false; the inventory commit follows that revision rather than
+capturing uncommitted inputs. The byte count equals D123's because the only production change
+replaces the measured client version string with one of the same length.
+
+The 103 repository input records are unchanged in number: one production file changes from D123, the
+launcher package's profile.go (`SupportedClientVersion` 2.1.267 → 2.1.268). The 267 import paths,
+the four external module versions/sums/package sets, selected native files, stdlib vendor packages
+and retained notices are unchanged. No dependency is added or upgraded. The D123 deferred-standing
+inventory is the hashed predecessor; the D123 and D124 executables are retained under the ignored
+history-review directory. The D121 component record needs no change.
+
+```sh
+python3 tools/verify_dependency_inventory.py --gomodcache .cache/gomod --snapshot measured-client-268 --binary dist/dax-kiro-proxy
+```
+
+All 142 byte checks pass against the candidate with release clearance false, and the installed copy
+under `~/.local/bin` is byte-identical to it. Existing advisory/reachability, native/build/test
+attribution and clean-host distribution work remain open; the owner's rights items are outside this
+repository (D121). Measuring a client build grants no license or distribution right and does not
+change the reviewed dependency set.
