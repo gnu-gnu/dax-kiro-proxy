@@ -78,7 +78,7 @@ func TestDraft2020ArgumentSemanticsInWorker(t *testing.T) {
 
 func TestSchemaRetrievalRegexAndInputLimits(t *testing.T) {
 	p := pool(t, nil)
-	for _, schema := range []string{`true`, `{"type":"string"}`, `{"type":"object","$ref":"https://example.invalid/private-sentinel"}`, `{"type":"object","$ref":"file:///private/tmp/private-sentinel"}`, `{"type":"object","properties":{"x":{"pattern":"(?=x)x"}}}`, `{"type":"object","$schema":"https://json-schema.org/draft-07/schema"}`, `{"type":"object","minimum":1e100000}`, strings.Repeat("x", (64<<10)+1)} {
+	for _, schema := range []string{`true`, `{"type":"string"}`, `{"type":"object","$ref":"https://example.invalid/private-sentinel"}`, `{"type":"object","$ref":"file:///private/tmp/private-sentinel"}`, `{"type":"object","properties":{"x":{"pattern":"(?=x)x"}}}`, `{"type":"object","$schema":"https://json-schema.org/draft-04/schema"}`, `{"type":"object","minimum":1e100000}`, strings.Repeat("x", (64<<10)+1)} {
 		err := p.Check(context.Background(), []byte(schema))
 		if err == nil {
 			t.Fatal("unsupported or excessive schema accepted")

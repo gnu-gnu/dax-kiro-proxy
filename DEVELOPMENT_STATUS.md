@@ -6,6 +6,19 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D132 on d132-mcp-schema-dialects (base cf3a162) reproduces Claude 2.1.269 forwarding
+  Draft 7 and 2019-09 MCP input schemas unchanged and completing their effect-free calls, while
+  the existing registry rejects both. Explicit support now preserves their declarations and
+  validates under the declared dialect; omission stays 2020-12. Independent worker cases verify
+  tuple syntax, reference-sibling differences, exact integers, denied retrieval, distinct registry
+  identities and twelve URI aliases. Focused race checks pass for schemacheck (5.892s),
+  toolregistry (2.105s) and the bounded independent peer (2.435s). All 27 race-tested packages
+  and full vet pass. Actual-client dialect controls pass all four arms, with exact schemas,
+  registry/worker validation and one joined MCP call each. Cancellation, result continuation
+  and the default-client refusal control also pass (13.194s combined). All six existing native
+  tool-policy cases pass separately (17.985s). Artifact/review verification follows. No actual
+  Kiro model ran.
+
 - D131 on d131-account-check (base 14a0478) fixes account-command deadlines and
   execution failures being reported as login failures, with their cleanup causes lost. The error
   keeps its causes behind fixed text; completed nonzero exits and malformed identity keep the

@@ -29,7 +29,9 @@ path must work when every private extension is disabled.
 - Use cryptographic random generation for tokens, relay secrets, and client tool-call IDs.
 - Use cryptographic digests for model aliases, session keys, compatibility fingerprints, and history
   reconciliation.
-- Use JSON Schema Draft 2020-12 validation for tool arguments.
+- Use JSON Schema Draft 2020-12 for tool arguments when the schema omits `$schema`. Also support
+  explicitly declared Draft 7 and 2019-09 under D132, preserving each dialect's semantics and the
+  original declaration. Keep compilation in the bounded worker with resource retrieval disabled.
 - Reject duplicate tool names, duplicate model IDs, ambiguous aliases, malformed IDs, and oversized
   descriptions/schemas before launching a turn.
 - Write persistent files atomically and with owner-only permissions.

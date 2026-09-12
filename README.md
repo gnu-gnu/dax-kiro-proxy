@@ -93,6 +93,12 @@ D130 preserves the answer when ACP stops at its per-turn model-request limit. It
 The proxy does not issue an automatic continuation; the measured Claude 2.1.269 text/print
 control likewise sends one request per explicit question. This limit is distinct from max_tokens.
 
+D132 accepts tool input schemas explicitly declaring Draft 7 or 2019-09, as well as 2020-12.
+Schemas without a declaration still use 2020-12. The schema is preserved and validated under its
+declared version in the existing bounded worker, with external reference retrieval disabled.
+Independent MCP controls reproduce Claude 2.1.269 forwarding the older declarations unchanged
+while the previous registry rejected them. This addresses existing MCP tool compatibility.
+
 D87 verifies explicit-ID text resume with fresh profiles, addresses, tokens and backend processes,
 using both an independent ACP peer and actual Kiro. D88 also verifies ordinary terminal `run`,
 keyboard exit and a new `run --resume UUID`: the previous answer appears before new input, followed
