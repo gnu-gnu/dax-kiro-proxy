@@ -1146,4 +1146,6 @@ All 144 byte checks pass for the candidate and resolved installation (`d129-free
 pair, verified login/policy and launch available (`d129-installed-doctor.json`). Client
 initialization remains unverified by doctor. Release clearance remains false. D125's advisory
 results remain historical; D129 performs no new scan or actual Kiro model turn. Independent
-review remains pending. The owner's rights determinations stay outside this repository under D121.
+review accepts `3065fd2` without an actionable finding and confirms the candidate/installed byte
+identity and component record. No refreeze is needed. The owner's rights determinations stay
+outside this repository under D121.

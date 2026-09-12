@@ -6,7 +6,7 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
-- D129 in progress on d129-tool-outcomes (base bbc4335) fixes reproduced tool outcome loss
+- D129 on d129-tool-outcomes (base bbc4335) fixes reproduced tool outcome loss
   between response write and Finish, and deadline causes hidden by cleanup/late completion.
   Sealing retains uncommitted candidate digests/IDs; normal results still require successful
   response finalization. Retired retries now validate history as well as policy and complete IDs.
@@ -17,7 +17,9 @@ does not redefine completion around an intermediate phase.
   denial retirement and fresh-question recovery. Source settings and denied effects stay intact,
   with joined ownership. The clean dc119e7 artifact is frozen and installed as tool-outcomes
   (144 byte checks, 18 component checks); doctor reports the measured pair, verified login/policy
-  and launch available. Independent review remains pending. No actual Kiro model ran.
+  and launch available. Independent review accepts 3065fd2 without an actionable finding; focused
+  race and artifact checks pass independently, with an earlier sandbox fixture failure recorded
+  separately. No production fix or refreeze is needed. No actual Kiro model ran.
 
 - D128 on d128-relay-cancellation (base c8c631c) fixes a reproduced race where a
   resolved tool call's late cancellation retires queued, sealed, delivered or next-turn work.

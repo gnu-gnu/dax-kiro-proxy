@@ -6417,4 +6417,13 @@ installation; all 18 component checks pass. Install --force succeeds, and doctor
 Kiro 2.21.3/Claude 2.1.269, verified login/policy and launch available. Client initialization
 remains unverified by doctor, and release clearance remains false. Artifact logs are
 `d129-freeze.log`, `d129-install.log`, `d129-installed-verify.log`, `d129-components.log` and
-`d129-installed-doctor.json`. No new advisory scan ran. Independent review remains pending.
+`d129-installed-doctor.json`. No new advisory scan ran.
+
+Fresh-context independent review accepts `3065fd2` with no actionable finding
+(`d129-independent-review.md`). It checks publication/delivery boundaries, history/result proof,
+settlement precedence, joined recovery, safe test diagnostics and artifact consistency. Focused
+fixture race checks pass for session 8.955s, relay 1.550s and gateway 1.275s. An earlier sandbox
+attempt failed session fixtures before handoff; no concrete socket denial was observed, so its
+cause remains unestablished. The identical escalated command passes without source changes.
+The reviewer independently confirms both 144-check artifact results and all 18 component checks.
+No production fix, refreeze or additional installed-client/model run is needed for this review.

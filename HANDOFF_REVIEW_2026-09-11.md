@@ -12,8 +12,8 @@ authoritative documents. D126 moved `SupportedClientVersion` to 2.1.269 and inst
 2026-09-12; D125 strengthened trust publication. D127 installs progress and relay-setup timeout
 corrections with independent review complete. D128 installs the resolved-call cancellation
 correction, with review complete. D129 installs retained tool outcomes across finalization and
-known-deadline cause preservation; its independent review remains pending. The 2.1.267 statements
-in sections 3, 4 and 6 describe the state as of 2026-09-11.
+known-deadline cause preservation, with independent review complete. The 2.1.267 statements in
+sections 3, 4 and 6 describe the state as of 2026-09-11.
 
 ## 1. Scope and branch state
 

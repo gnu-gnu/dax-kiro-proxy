@@ -56,7 +56,9 @@ require history proof too. Focused controls, all 27 race-tested packages with se
 scheduling and vet pass. Five applicable Claude 2.1.269 core controls also pass (79.650s),
 including original-deadline denial retirement and fresh-question recovery. The clean `dc119e7`
 artifact is frozen and installed as `tool-outcomes` (144 byte checks, 18 component checks,
-doctor verified). Independent review remains pending. No actual Kiro model ran.
+doctor verified). Independent review accepts `3065fd2` without an actionable finding, with
+focused race and artifact checks passing. No production fix or refreeze is needed. Other core
+candidates continue separately. No actual Kiro model ran.
 
 ## 1. State you inherit
 
