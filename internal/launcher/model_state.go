@@ -190,7 +190,7 @@ func (t *modelTurn) Next(ctx context.Context) (inference.Event, error) {
 	event, err := t.inner.Next(ctx)
 	t.mu.Lock()
 	if !t.closed {
-		t.terminal = err == nil && event.Kind == inference.End && (event.StopReason == "end_turn" || event.StopReason == "max_tokens" || event.StopReason == "refusal")
+		t.terminal = err == nil && event.Kind == inference.End && (event.StopReason == "end_turn" || event.StopReason == "max_tokens" || event.StopReason == "refusal" || event.StopReason == "pause_turn")
 	}
 	t.mu.Unlock()
 	return event, err

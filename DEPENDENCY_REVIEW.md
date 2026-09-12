@@ -1300,3 +1300,34 @@ resolved installed binaries each pass 144 checks; all 18 component checks pass. 
 comparison confirms the clean binary metadata, all 105 committed inputs, exactly two production
 source changes and the current ordered 267-package graph. No correction or refreeze is needed
 (`d137-review-report.log`, `d137-review-artifact-metadata.log`).
+
+## Paused model preference artifact snapshot — D138, 2026-09-13
+
+`third_party/inventory/macos-arm64-paused-model.json` records the rebuilt 13,695,074-byte
+development command, SHA-256
+`bd0e3f3def1ad308171f48840db482a53f4754cfdb4e5e5adfa582f1c438e376`. It identifies Go 1.27.1,
+darwin/arm64, CGO_ENABLED=1 and clean revision `b09bb9e313d5351936f8f0d47455cbb16acf3b5e`,
+with vcs.modified=false. D137 terminal-delivery is the hashed and retained predecessor.
+
+Only `internal/launcher/model_state.go` changes among the same 105 production input records.
+All 267 ordered import paths, selected files, four external module versions/sums/package sets,
+native files, stdlib vendor packages and notices remain unchanged. No dependency is added
+or upgraded.
+
+```sh
+python3 tools/verify_dependency_inventory.py --gomodcache .cache/gomod \
+  --snapshot paused-model --binary dist/dax-kiro-proxy
+```
+
+Candidate and strictly resolved installed binaries each pass all 144 byte checks
+(`d138-freeze.log`, `d138-candidate-verify.log`, `d138-installed-verify.log`); all 18 component
+checks pass (`d138-components.log`). Install --force succeeds (`d138-install.log`). The first
+installed doctor verifies measured Kiro 2.21.3/Claude 2.1.269, login/policy and launch
+availability (`d138-installed-doctor.json`). Client initialization remains unverified; release
+clearance remains false. D125 advisory scans remain historical; no new scan or actual Kiro
+model turn ran. Owner rights remain outside this repository under D121.
+
+Independent review accepts `295cfb1` without actionable findings. Both binaries pass 144 checks,
+with all 18 components verified. All 105 inputs match clean `b09bb9e` Git blobs; build metadata,
+the sole source change, ordered packages and modules match. No correction or refreeze is needed
+(`d138-review-report.log`).

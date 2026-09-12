@@ -171,6 +171,27 @@ related vet, candidate/installed 144 checks, 18 component checks and independent
 package comparison also pass. No correction or refreeze is needed. No actual Kiro model run
 or new credit approval occurs.
 
+D137 merged as `77f7d19`. D138 on `d138-paused-model-preference` reproduces the last-model
+preference remaining stale after a delivered `pause_turn`. Both JSON and SSE handler controls
+restore the previous model on a fresh launch before the fix; the other three final reasons pass.
+The existing foreground-delivery condition now includes `pause_turn`. Focused launcher/gateway
+race checks pass (5.021s/1.750s), including cancellation/auth/agent exclusions. No Kiro model
+or D134 run is involved.
+Whole-repository race passes all 27 tested packages (launcher 36.048s, session 74.223s);
+whole-repository vet passes.
+Two actual-Claude 2.1.269/fake-local regression controls pass sequentially (16.186s): three
+stop/next-question cases and three compiled model-picker cases, with next-preflight restoration,
+unchanged sources and joined recorded ownership. Native pause plus preference restoration is
+not combined in these controls; the new combined check uses an HTTP recorder.
+Clean code `b09bb9e` is rebuilt and installed as `paused-model`, SHA-256
+`bd0e3f3def1ad308171f48840db482a53f4754cfdb4e5e5adfa582f1c438e376`. Candidate and strictly
+resolved installed/current inputs pass 144 checks; 18 component checks pass. Exactly one
+production file changes among the same 105 inputs, 267 packages and four modules. The first
+installed doctor verifies measured versions, login/policy and launch availability.
+Independent review accepts `295cfb1` without actionable findings. Focused race passes in
+4.875s/1.333s, with related vet, 144 candidate/installed checks, 18 component checks and
+independent clean-commit source/metadata comparison passing. No correction or refreeze is needed.
+
 ## 1. State you inherit
 
 - `main` is at `e07e591` (merge of D124). The working tree is clean. There is no remote; never push

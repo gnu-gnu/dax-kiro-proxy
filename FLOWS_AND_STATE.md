@@ -167,6 +167,8 @@ It maps to `pause_turn`, retains the exact emitted text and returns to idle with
 ACP prompt. An explicit next user question uses the normal continuity proof and sends only its
 uncommitted delta. A failed HTTP delivery still retires the affected turn; a pending tool batch
 cannot be completed by this stop reason.
+Its successfully delivered foreground response also records the actual model for the next
+interactive launch under the existing catalog and preference rules (D138).
 
 Ordered assistant/user digest pairs are accompanied by message-role anchors, including per-message
 system updates. This detects changes that a pair alone would miss. A truncated overlap must include

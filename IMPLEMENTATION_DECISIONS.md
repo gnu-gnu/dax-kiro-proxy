@@ -7050,3 +7050,59 @@ sandbox loopback denial is followed by a passing unchanged socket-enabled invoca
 and strictly resolved installed binaries each pass 144 checks, with 18 component checks and
 independent agreement on clean build metadata, all 105 committed inputs, the two production
 changes, 267 ordered packages and four modules. No production correction or refreeze is needed.
+
+## D138: Remember the actual model after a delivered paused turn
+
+On `d138-paused-model-preference`, based on `77f7d19`, independent HTTP-handler controls
+seed one model preference, deliver a response from a different catalog model, close the model
+owner and prepare the next launch. JSON and SSE `pause_turn` responses deliver successfully
+but restore the old model before the fix. Equivalent `end_turn`, `max_tokens` and `refusal`
+responses restore the actual model. Both pause cases fail in `d138-before.log` (5.572s package).
+
+D130 made a paused text response eligible for successful delivery and history finalization.
+The older D34 model-preference condition omitted that later-supported reason. The condition
+now includes `pause_turn`, with no other production change. Saving still requires successful
+delivery, interactive foreground work and an actual model resolvable through the prepared
+catalog. Cancellation, authentication fallback, title/agent work and unfinished tools cannot
+replace the preference. No discovery or model request is added to finalization.
+
+All eight JSON/SSE restart cases pass after the fix. Existing preference precedence, safe
+save failure and foreground-delivery exclusions also pass, with additional paused-cancel,
+paused-agent and paused-auth cases. Focused launcher/gateway race checks pass in 5.021s/1.750s
+(`d138-focused-race.log`), including the gateway's existing stop-reason/tool-ownership controls.
+The new controls use a synthetic backend and an HTTP response recorder; they do not claim
+native-client or actual Kiro pause-trigger behavior. No actual Kiro model runs or D134 approval
+occurs.
+
+Whole-repository `go test -race -p 1 ./... -count=1 -timeout 20m` passes all 27 tested packages
+with native/model opt-ins off (`d138-full-race.log`), including launcher 36.048s, gateway
+5.041s, session 74.223s and interop 38.972s. Whole-repository vet passes with an empty log
+(`d138-full-vet.log`).
+
+Two existing actual Claude 2.1.269 controls pass sequentially with fake/local backends
+(`d138-native-models.log`, package 16.186s). The three text stop/next-question cases pass
+in 2.68s, including independent ACP max_turn_requests and one request per explicit question.
+The compiled model-picker control passes unchanged, switch and wide-catalog switch cases
+in 12.77s, with next preflight restoring the used model without another client or ACP session,
+unchanged sources and joined recorded resources. These are regression controls; they do not
+combine a native paused response with preference restoration or use an actual Kiro model.
+
+Clean code `b09bb9e` is rebuilt and installed as `paused-model`: 13,695,074 bytes, SHA-256
+`bd0e3f3def1ad308171f48840db482a53f4754cfdb4e5e5adfa582f1c438e376`. The only changed
+production input is launcher/model_state.go among the same 105 records. All 267 ordered
+packages, four external modules, selected files and notices remain unchanged. Candidate and
+strictly resolved installed inputs pass 144 byte checks; all 18 component checks pass.
+Install --force and the first installed doctor pass, with measured Kiro 2.21.3/Claude 2.1.269,
+verified login/policy and launch availability. Client initialization remains unverified and
+release clearance false. Logs: `d138-freeze.log`, `d138-candidate-verify.log`,
+`d138-installed-verify.log`, `d138-components.log`, `d138-install.log` and
+`d138-installed-doctor.json`. No dependency upgrade, advisory refresh or model prompt occurs.
+
+Fresh-context independent review accepts `77f7d19..295cfb1` without actionable findings
+(`d138-review-report.log`). Focused launcher/gateway race passes in 4.875s/1.333s, with
+related vet passing. Candidate and strictly resolved installed binaries each pass 144 checks;
+all 18 component checks pass. Independent comparison matches all 105 inputs against clean
+`b09bb9e` Git blobs, both binaries' metadata and the unchanged 267-package/four-module graph.
+An initial bootstrap toolchain check fails with its checksum database disabled, before testing;
+using the existing reviewed Go binary directly resolves that environment issue. No production
+correction, refreeze or reinstall is needed.

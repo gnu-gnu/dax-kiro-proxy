@@ -6,6 +6,28 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D138 on d138-paused-model-preference (base 77f7d19) reproduces a delivered pause_turn
+  retaining the preceding model preference in both JSON and SSE handler controls. The other
+  three final stop reasons already restore the actual model on the next launch. The one-line
+  production correction admits pause_turn to the existing successful foreground-delivery rule.
+  Focused launcher/gateway race checks pass (5.021s/1.750s), including paused cancellation,
+  agent and authentication exclusions. These are independent HTTP-handler/model-owner controls;
+  no actual Kiro model runs and D134 approval remains pending.
+  Whole-repository race passes all 27 tested packages (launcher 36.048s, session 74.223s),
+  and whole-repository vet passes.
+  Two actual-Claude 2.1.269/fake-local controls pass sequentially (16.186s): three stop/next-
+  question cases and three compiled model-picker cases, including next-preflight restoration,
+  unchanged sources and joined recorded ownership. Native paused-model restoration remains
+  outside these separate regression controls.
+  Clean code b09bb9e is rebuilt and installed as paused-model, with 144 candidate/installed
+  byte checks and 18 component checks passing. Only launcher/model_state.go changes among
+  105 production inputs; all 267 packages and four modules remain unchanged. The first
+  installed doctor verifies measured versions, login/policy and launch availability.
+  Client initialization and full release clearance remain open.
+  Independent review accepts 295cfb1 without actionable findings. Focused race passes
+  (4.875s/1.333s), along with related vet, 144 candidate/installed checks, 18 components and
+  clean-commit source/metadata comparison. No correction or refreeze is required.
+
 - D137 on d137-terminal-delivery (base d4ed7b8) fixes an immediate continuation receiving 409
   after the client reads terminal bytes but before the server finishes delivery bookkeeping.
   Both real local HTTP JSON/SSE cases fail before the fix and pass afterward. One Start may

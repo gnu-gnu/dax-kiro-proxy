@@ -194,6 +194,10 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
   while changing profile/agent/version/capability identity still invalidates it. Unknown explicit
   models never fall back. Title/agent/canceled/auth-fallback/incomplete-tool work cannot overwrite
   the preference; a delivered final foreground turn records its actual model through the catalog.
+- A delivered foreground `pause_turn` updates that preference just like `end_turn`, `max_tokens`
+  and `refusal` (D138). Verify both HTTP response modes and a fresh model owner restoring the actual
+  response model instead of the preceding preference. Cancellation/auth/agent exclusions still
+  apply.
 - Prepared cached model discovery avoids an ACP session. Runtime shutdown preserves the model owner
   through response/backend cleanup, then cancels and joins refresh, including startup failure.
 - Model switch during an active/pending-tool turn is rejected.
