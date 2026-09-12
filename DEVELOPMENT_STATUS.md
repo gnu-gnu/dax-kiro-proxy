@@ -6,6 +6,21 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D129 on d129-tool-outcomes (base bbc4335) fixes reproduced tool outcome loss
+  between response write and Finish, and deadline causes hidden by cleanup/late completion.
+  Sealing retains uncommitted candidate digests/IDs; normal results still require successful
+  response finalization. Retired retries now validate history as well as policy and complete IDs.
+  Eight reason controls, a two-call cancellation/expiry control and four independent-process HTTP
+  retirement/recovery cases pass. All 27 race-tested packages pass with sequential package
+  scheduling, and full vet passes. Five actual-Claude 2.1.269/fake-ACP controls pass sequentially
+  (79.650s): cancellation, result continuation, all six tool-policy cases, original-deadline bare
+  denial retirement and fresh-question recovery. Source settings and denied effects stay intact,
+  with joined ownership. The clean dc119e7 artifact is frozen and installed as tool-outcomes
+  (144 byte checks, 18 component checks); doctor reports the measured pair, verified login/policy
+  and launch available. Independent review accepts 3065fd2 without an actionable finding; focused
+  race and artifact checks pass independently, with an earlier sandbox fixture failure recorded
+  separately. No production fix or refreeze is needed. No actual Kiro model ran.
+
 - D128 on d128-relay-cancellation (base c8c631c) fixes a reproduced race where a
   resolved tool call's late cancellation retires queued, sealed, delivered or next-turn work.
   The exact pending-call check shares the resolution lock; committed results stay exact and

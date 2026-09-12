@@ -52,6 +52,9 @@ func (d *Driver) resume(ctx context.Context, r *anthropic.Request, registry *too
 		// The retired outcome answers every identical resubmission the same way until it expires or a
 		// new turn starts; consuming it on first read turned a client retry into a request error.
 		if d.outcome != nil && d.outcome.compat == stamp && sameResultIDs(d.outcome.ids, results) {
+			if _, err := d.continuationPlan(d.outcome.pending, r, results); err != nil {
+				return nil, inference.ErrRequest
+			}
 			return nil, d.outcome.err
 		}
 		return nil, inference.ErrRequest
@@ -63,12 +66,8 @@ func (d *Driver) resume(ctx context.Context, r *anthropic.Request, registry *too
 	if t.compat != stamp {
 		return nil, inference.ErrRequest
 	}
-	plan, err := d.hasher.Plan(t.pendingHistory, r)
-	if err != nil || plan.Mode != history.Extend || plan.Start != r.LatestUserIndex() || len(r.Messages[plan.Start].Content) != len(results) {
-		return nil, inference.ErrRequest
-	}
-	suffix := r.Messages[plan.Start+1:]
-	if !d.repeatedSystem(t.pendingHistory, suffix) && !rotatedStanding(t.pendingHistory, suffix) {
+	plan, err := d.continuationPlan(t.pendingHistory, r, results)
+	if err != nil {
 		return nil, inference.ErrRequest
 	}
 	if err := t.broker.Resolve(t.broker.Credentials().Owner, converted); err != nil {
@@ -80,6 +79,18 @@ func (d *Driver) resume(ctx context.Context, r *anthropic.Request, registry *too
 	t.lastIDs = nil
 	d.state = Prompting
 	return &round{turn: t}, nil
+}
+
+func (d *Driver) continuationPlan(pending history.Snapshot, r *anthropic.Request, results []anthropic.ToolResult) (history.Plan, error) {
+	plan, err := d.hasher.Plan(pending, r)
+	if err != nil || plan.Mode != history.Extend || plan.Start != r.LatestUserIndex() || len(r.Messages[plan.Start].Content) != len(results) {
+		return history.Plan{}, inference.ErrRequest
+	}
+	suffix := r.Messages[plan.Start+1:]
+	if !d.repeatedSystem(pending, suffix) && !rotatedStanding(pending, suffix) {
+		return history.Plan{}, inference.ErrRequest
+	}
+	return plan, nil
 }
 
 // rotatedStanding reports a result-only continuation whose trailing standing message replaced a

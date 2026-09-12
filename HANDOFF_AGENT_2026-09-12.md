@@ -49,6 +49,17 @@ D128 records them separately. The clean `4494910` artifact is installed as
 review accepts `7e28df7` without an actionable finding or refreeze. Unresolved calls retain
 complete prompt retirement. Other core candidates continue separately. No actual Kiro model ran.
 
+D128 merged as `bbc4335`. D129 on `d129-tool-outcomes` addresses the reproduced outcome-window
+and failure-reason races in item 15. Candidate history/IDs survive abort before Finish, while
+normal result admission remains gated on successful finalization. Retired result-only retries
+require history proof too. Focused controls, all 27 race-tested packages with sequential package
+scheduling and vet pass. Five applicable Claude 2.1.269 core controls also pass (79.650s),
+including original-deadline denial retirement and fresh-question recovery. The clean `dc119e7`
+artifact is frozen and installed as `tool-outcomes` (144 byte checks, 18 component checks,
+doctor verified). Independent review accepts `3065fd2` without an actionable finding, with
+focused race and artifact checks passing. No production fix or refreeze is needed. Other core
+candidates continue separately. No actual Kiro model ran.
+
 ## 1. State you inherit
 
 - `main` is at `e07e591` (merge of D124). The working tree is clean. There is no remote; never push

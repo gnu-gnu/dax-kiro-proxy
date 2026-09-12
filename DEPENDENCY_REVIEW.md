@@ -1121,3 +1121,31 @@ verified login/policy and launch available. Release clearance remains false. D12
 results remain historical; D128 performs no new scan or actual Kiro model turn. Independent
 review accepts `7e28df7` without a finding and independently confirms candidate/installed byte
 identity and the component record. No refreeze is needed.
+
+
+## Retained tool outcome artifact snapshot — D129, 2026-09-13
+
+`third_party/inventory/macos-arm64-tool-outcomes.json` records the rebuilt 13,694,546-byte
+development command, SHA-256
+`d723495ec219dda7e2a465ccfd06adaed24fe5e95412290ac54dbd671b529b62`. It identifies Go 1.27.1,
+darwin/arm64, CGO_ENABLED=1 and clean revision `dc119e7d7ae2a479afde7e6f61f4687114d0f1ea` with
+vcs.modified=false. D128 resolved-cancellation is the hashed predecessor and remains retained.
+
+Only `internal/session/continuation.go` and `internal/session/turn.go` change among the same
+105 production input records. The 267 import paths, selected files, four external module
+versions/sums/package sets, native files, stdlib vendor packages and notices are unchanged.
+No dependency is added or upgraded.
+
+```sh
+python3 tools/verify_dependency_inventory.py --gomodcache .cache/gomod --snapshot tool-outcomes --binary dist/dax-kiro-proxy
+```
+
+All 144 byte checks pass for the candidate and resolved installation (`d129-freeze.log`,
+`d129-installed-verify.log`), and all 18 component checks pass (`d129-components.log`). Install
+--force succeeds (`d129-install.log`); doctor reports the measured Kiro 2.21.3/Claude 2.1.269
+pair, verified login/policy and launch available (`d129-installed-doctor.json`). Client
+initialization remains unverified by doctor. Release clearance remains false. D125's advisory
+results remain historical; D129 performs no new scan or actual Kiro model turn. Independent
+review accepts `3065fd2` without an actionable finding and confirms the candidate/installed byte
+identity and component record. No refreeze is needed. The owner's rights determinations stay
+outside this repository under D121.

@@ -6347,3 +6347,83 @@ Independent review accepts `7e28df7` without an actionable finding
 complete pending ownership, passes focused race controls in 1.770s, confirms 144 byte checks for
 both candidate and installation plus 18 component checks, and checks the retained evidence's
 stated limits. No source fix or refreeze is needed. The remaining core HANDOFF work is unchanged.
+
+
+## D129: retain tool outcomes across response finalization
+
+Branch `d129-tool-outcomes`, based on `bbc4335`, addresses the handoff-window and failure-reason
+parts of HANDOFF item 15. Both are reproduced core continuation defects. The process-observer
+candidate and other remaining core work are separate; this batch adds no dependency or feature.
+
+Previously pending history and IDs were saved only by Finish, after a successful HTTP write.
+Timeout after the final bytes but before that method left no retired outcome, so matching results
+became a request error. Sealing now records candidate keyed history digests and the complete IDs
+under the driver lock, shared with final retirement. The driver stays Prompting and the idle
+snapshot stays uncommitted. Only Finish marks the relay batch delivered and enters WaitingTools.
+An abort with a candidate retains its terminal error without forwarding results to the old prompt.
+
+Retired result-only requests now use the same history-extension and standing-suffix proof as
+active continuation, in addition to the existing compatibility and complete-ID checks. Invalid
+ownership/history leaves the record available. Ordinary supported overlap and standing-message
+rotation retain their semantics. The existing five-minute expiry and new-turn clearing remain;
+all-denial/new-question recovery still requires its separate complete proof and joined retirement.
+Late finalization of an old HTTP response cannot alter a fresh turn.
+
+The first settlement captures failure state before canceling the owner or closing the relay.
+Confirmed authentication takes precedence, including a class confirmed during joined cleanup;
+otherwise an already-recorded tool deadline wins, followed by an expired owned-turn deadline,
+then the supplied failure. This also covers a normal ACP completion arriving after relay expiry:
+the failed EndTurn would otherwise turn the known timeout into a protocol error. An ordinary
+cancellation and a protocol failure with no known deadline keep their original classes. The
+selected error remains stable across retries; the policy does not extend any deadline or infer
+failure from untrusted metadata.
+
+The corrected before-change controls fail in five cases: both HTTP response forms lose the
+retired outcome, and caller settlement hides owned, tool and combined deadlines
+(`d129-outcomes-before.log`). A further controlled prompt-end case reproduces the protocol-error
+masking (`d129-prompt-end-before.log`). Two intermediate fixture-observer mistakes used the wrong
+PID-emitting mode or expected text instead of the peer's JSON observation; their failed logs are
+not defect evidence. Corrected focused controls pass (`d129-outcomes-recovery.log`, 7.826s;
+`d129-outcomes-complete.log`, 6.958s).
+
+The controls cover eight settlement cases, two-call cancellation immediately after Seal, blocked
+pre-finalization results, full/partial retired IDs and five-minute expiry. Four independent
+ACP/relay HTTP cases cover streaming/buffered writes and fresh recovery before/after late Finish,
+with exact repeated errors, rejected foreign/altered history, one fresh prompt and joined old/new
+process groups. Logs retain fixed diagnostics rather than prompt/tool content. Full regression,
+installed-client controls, artifact installation and independent review follow these controls.
+
+The complete race suite passes all 27 tested packages with sequential package scheduling and
+unchanged internal concurrency controls (`d129-all-race.log`): session 38.873s, gateway 5.077s,
+relay 8.210s, interop 26.307s and launcher 30.452s. Full vet passes (`d129-all-vet.log`).
+Installed-client and Kiro opt-ins are disabled in those runs.
+
+Five actual-Claude 2.1.269 controls pass sequentially with independent ACP
+(`d129-client-core.log`, package 79.650s): launcher cancellation 4.01s, tool-result continuation
+2.02s, all six Read/Write/Bash policy cases 18.00s, bare denial retirement on the original
+deadline 47.27s, and a new question after bare denial 7.41s. The cancellation control joins all
+recorded owners in 167ms. The denial controls preserve absent effects and join groups; recovery
+retires the old runtime before a fresh prompt and visible completion. Source settings remain
+unchanged. The native recovery control sends its question before expiry; the controlled HTTP
+fixtures above establish recovery after expiry and across the final-write window. No actual Kiro
+model or credits are used.
+
+The clean code commit `dc119e7d7ae2a479afde7e6f61f4687114d0f1ea` is rebuilt and installed as
+`tool-outcomes`: 13,694,546 bytes, SHA-256
+`d723495ec219dda7e2a465ccfd06adaed24fe5e95412290ac54dbd671b529b62`. The snapshot records
+vcs.modified=false and the same 105 production inputs, with only session/continuation.go and
+session/turn.go changed under internal/. All 144 byte checks pass for the candidate and resolved
+installation; all 18 component checks pass. Install --force succeeds, and doctor reports measured
+Kiro 2.21.3/Claude 2.1.269, verified login/policy and launch available. Client initialization
+remains unverified by doctor, and release clearance remains false. Artifact logs are
+`d129-freeze.log`, `d129-install.log`, `d129-installed-verify.log`, `d129-components.log` and
+`d129-installed-doctor.json`. No new advisory scan ran.
+
+Fresh-context independent review accepts `3065fd2` with no actionable finding
+(`d129-independent-review.md`). It checks publication/delivery boundaries, history/result proof,
+settlement precedence, joined recovery, safe test diagnostics and artifact consistency. Focused
+fixture race checks pass for session 8.955s, relay 1.550s and gateway 1.275s. An earlier sandbox
+attempt failed session fixtures before handoff; no concrete socket denial was observed, so its
+cause remains unestablished. The identical escalated command passes without source changes.
+The reviewer independently confirms both 144-check artifact results and all 18 component checks.
+No production fix, refreeze or additional installed-client/model run is needed for this review.
