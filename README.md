@@ -465,8 +465,11 @@ separate checks.
 D140 adds an optional schedule to this same native-client control. Set
 `DAX_INTEROP_TOOL_SOAK_INTERVAL_MS=15000` with `DAX_INTEROP_TOOL_SOAK_ROUNDS=128` for an
 active span of at least 31 minutes 45 seconds. Both client sessions and their shared runtime
-stay open throughout. The default remains the short unpaced control. This is a local fake-ACP
-experiment; consult DEVELOPMENT_STATUS.md for completed evidence and remaining live gates.
+stay open throughout. The extended race run passes with 31m45.004s active, all 127 allowed
+Read results and 128 hook refusals correlated, and final cancellation/sibling completion and
+cleanup verified. Descriptors/goroutines stay at 28/48 after warm-up. The default remains the
+short unpaced control. This is a local fake-ACP experiment; consult DEVELOPMENT_STATUS.md
+for the measured resource limits and remaining live gates.
 
 Phase 7 has frozen dependency inventories and retained scoped notices. For the installed D138
 development artifact, run `python3 tools/verify_dependency_inventory.py

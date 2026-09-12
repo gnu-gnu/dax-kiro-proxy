@@ -215,8 +215,15 @@ D139 merged as 1c6ec65. D140 on d140-sustained-native-tools adds bounded pacing 
 two native clients and shared runtime. The eight-round two-second-interval control passes
 in 20.359s (14.008s active); local schedule/lifetime/observer race passes in 2.901s/2.121s.
 Both changed packages pass full race in 37.290s/1.214s and vet.
-The planned 128-round fifteen-second-interval control needs at least 31m45s active; it has
-not completed yet. Total episode/client/ACP/peer allowance stays below forty minutes.
+The extended 128-round fifteen-second-interval race control passes once in 1910.801s, with
+31m45.004s active. The same two clients and ACP prompts retain 127 allowed Read results and
+128 hook refusals; final cancellation joins before sibling completion. All recorded ownership
+and private profiles clean up, and source settings/files stay unchanged. Descriptors/goroutines
+stay at 28/48 after warm-up; peak Go heap is 1,242,904 bytes and settled values are 5/2/733,920.
+Independent review of 1c47fae has no actionable code finding; focused race 1.526s/1.286s,
+vet and 144 installed/current checks pass independently. The final extended evidence remains
+subject to its follow-up documentation review. Total episode/client/ACP/peer allowance stays
+below forty minutes. Actual Kiro, interactive permissions, shared ACP and RSS remain separate.
 Test-only; installed D138 remains unchanged, with 144 current-input checks passing. No new
 Kiro model approval or invocation; personal instructions and actual Kiro gates remain open.
 

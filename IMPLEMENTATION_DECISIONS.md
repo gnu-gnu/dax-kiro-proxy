@@ -7226,10 +7226,26 @@ refusals stay exact; final sibling isolation, all cleanup and unchanged sources 
 Both changed packages pass full race in 37.290s/1.214s (`d140-packages-race.log`), and
 changed-package vet passes (`d140-vet.log`).
 
-The intended extended command uses 128 rounds and 15,000ms offsets, with a 45-minute Go-test
-cap and no retry. It requires at least 31m45s between the first and final paired waits. It has
-not completed yet; the rehearsal is not long-duration evidence. Even a passing extended run
-does not establish actual Kiro inference/policy, interactive permission UI, shared ACP
-processes or installed-proxy/backend RSS. Personal instruction preservation and D134's
-separately pending model approval remain open. Installed D138/current production inputs pass
-144 checks (`d140-inventory.log`); no product/dependency change, rebuild or installation.
+The extended command uses 128 rounds and 15,000ms offsets, with a 45-minute Go-test cap and
+no retry. It passes once under race in 1910.801s (case 1909.47s), with 1905.004s between the
+first and final paired waits (`d140-paced-native-128.log`). The same two clients and two
+independent ACP prompts retain exact ownership across 127 allowed Read results and 128 hook
+refusals. Canceling the first client before its last tool is delivered joins its server
+cancellation callback, ACP/relay groups and configuration before the sibling is released and
+completes. The final witnesses also require all HTTP owners, groups and private profiles
+removed, and every source setting and owned file unchanged.
+
+The 125 post-warm-up samples keep descriptors/goroutines at 28/48. Go heap starts at 794,448
+bytes and peaks/ends at 1,242,904; settled values are 5/2/733,920. These are bounded local
+observations, not an indefinite stability or throughput claim. This completes the declared
+extended combined Claude/fake-ACP control. Actual Kiro inference/policy, interactive permission
+UI, shared ACP processes and installed-proxy/backend RSS remain separate. Personal instruction
+preservation and D134's separately pending model approval remain open.
+
+Independent review of `1c47fae` finds no actionable code issue. The reviewer independently
+passes focused race in 1.526s/1.286s, changed-package vet, diff whitespace and 144 strictly
+resolved installed D138/current-input checks (`d140-review-focused-race.log`,
+`d140-review-vet.log`, `d140-review-inventory.log`). Its code review was provisional while
+the extended run remained active; the terminal evidence and documentation are now available
+for follow-up review. Parent installed D138/current production inputs also pass 144 checks
+(`d140-inventory.log`); no product/dependency change, rebuild or installation.

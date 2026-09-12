@@ -13,8 +13,16 @@ does not redefine completion around an intermediate phase.
   Focused local schedule/lifetime and existing observer race controls pass in 2.901s/2.121s.
   Both changed packages pass full race in 37.290s/1.214s; changed-package vet passes.
   The new schedule is bounded at fifteen seconds; the episode budget adds its declared span
-  to the original eight minutes, never exceeding forty minutes. The planned 128-round run
-  at fifteen-second intervals has not yet completed; no long-duration result is claimed.
+  to the original eight minutes, never exceeding forty minutes. The extended 128-round race
+  run passes once in 1910.801s, with 1905.004s active (31m45.004s). The same two clients and
+  ACP prompts retain all 127 allowed Read results and 128 hook refusals with exact ownership.
+  Canceling one client before its final tool delivery joins its server/backend ownership
+  before the sibling completes. HTTP/process/relay/profile cleanup and unchanged sources pass.
+  Post-warm-up descriptors/goroutines stay at 28/48; Go heap rises from 794,448 to a peak of
+  1,242,904 bytes. Settled values are 5/2/733,920. This closes the declared extended local
+  combined control, not actual Kiro, interactive permissions, shared ACP or installed/backend RSS.
+  Independent code review of 1c47fae has no actionable finding; focused race passes in
+  1.526s/1.286s, with vet and 144 installed/current checks passing independently.
   This changes only tests/fixtures/documents. Installed D138/current inputs pass 144 checks.
   Personal instruction preservation, D134 model approval and actual Kiro gates remain open.
 
