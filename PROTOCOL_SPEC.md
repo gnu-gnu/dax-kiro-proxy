@@ -412,6 +412,15 @@ They may enrich logs but must not be required for correct text or tool-result de
 
 Each Kiro session gets a child MCP server plus a private parent-control channel.
 
+Tool input schemas must have an object root. An omitted `$schema` selects Draft 2020-12;
+explicit root declarations support Draft 7, 2019-09 and 2020-12 (D132). The fixed
+json-schema.org identifiers `draft-07/schema`, `draft/2019-09/schema` and
+`draft/2020-12/schema` accept HTTP or HTTPS and an optional empty fragment. Other root dialects
+reject before prompting. The declaration and all schema content remain part of the registry
+identity and relay schema; validation follows that declared dialect in the bounded worker.
+No schema or reference is fetched from a network or file location. Existing root-object, schema
+size, structure, numeric, regex and worker resource limits still apply.
+
 The child MCP server speaks newline-delimited JSON-RPC over stdio, implements the 2025-06-18
 initialization lifecycle, and supports only initialize, ping, tools/list, and tools/call request
 methods. Lifecycle/cancellation notifications receive no replies. Real Kiro version negotiation must

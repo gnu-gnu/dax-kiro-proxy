@@ -218,6 +218,13 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
 
 - Duplicate/empty tool names, invalid object schemas, oversized registries, and unsupported typed server
   tools are rejected before prompting.
+- Declared Draft 7, 2019-09 and 2020-12 tool schemas validate under their own dialect; omission
+  defaults to 2020-12. Fixed HTTP/HTTPS identifiers with an optional empty fragment are accepted.
+  Unsupported root declarations and external schema retrieval reject. Independent tuple and
+  reference-sibling cases must distinguish dialects without stripping `$schema`. The registry
+  retains exact schema content and changes identity when its dialect changes. Actual-client MCP
+  controls must preserve declarations, admit valid arguments, reject extra tuple items and return
+  exactly one matching client result with source preservation and joined cleanup (D132).
 - Alias mapping is deterministic, reversible within the session, and collision-safe.
 - Kiro sees only session-declared aliases and explicitly supported native tools.
 - Every relay description identifies its original client tool name and client execution authority,

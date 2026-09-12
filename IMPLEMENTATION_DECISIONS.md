@@ -6586,3 +6586,96 @@ D131 copy each pass 144 byte checks; all 18 component checks pass. The reviewer 
 embedded build metadata and all 105 input records against the clean code commit. Native/doctor
 logs are inspected without rerunning either; the empty vet log's successful exit remains
 parent-verified. No production fix, refreeze or additional installed-client/model run is needed.
+
+## D132: Preserve declared MCP tool schema dialects
+
+Branch `d132-mcp-schema-dialects`, based on `cf3a162`, addresses HANDOFF item 2. The independent
+MCP peer advertises an object with a one-item integer tuple. Four sequential Claude 2.1.269
+controls cover omitted `$schema`, explicit 2020-12, Draft 7 and 2019-09. The client forwards each
+schema unchanged in its Messages tool declaration and executes one owned, effect-free call,
+returning its exact result. The previous product registry admits only the first two. This is a
+reproduced rejection of a usable client tool, not a speculative API expansion. The initial
+observation deliberately records registry admission without using it to gate the synthetic call;
+that pre-change pass is measurement, not product acceptance (`d132-client-before.log`, 4.971s).
+
+The [public MCP dialect contract](https://modelcontextprotocol.io/specification/2025-11-25/basic)
+defaults undeclared schemas to 2020-12 and permits explicit other dialects with their own
+validation semantics. The
+[Draft 7 reference rules](https://json-schema.org/draft-07/draft-handrews-json-schema-01)
+and [2019-09 core semantics](https://json-schema.org/draft/2019-09/json-schema-core) distinguish
+reference siblings and tuple application. These documents were checked on 2026-09-13. The
+already-reviewed jsonschema/v6 v6.0.3 compiler selects an explicit dialect itself; its
+DefaultDraft setting only supplies the omitted-declaration default. No dependency is added.
+
+The bounded schema input gate now admits the fixed json-schema.org identifiers for Draft 7,
+2019-09 and 2020-12 under HTTP or HTTPS, with or without an empty fragment. It returns the
+original parsed object without deleting or rewriting `$schema`. The registry retains that
+content, including the dialect, in its fingerprint; alias names remain tied to the tool name.
+Other root dialects, non-string declarations, nonempty fragments, query-bearing identifiers and
+unversioned latest identifiers reject. The object-root rule, duplicate/depth/node/byte/numeric
+limits, restricted regular expressions, denied resource loader, worker deadlines and capacity
+remain unchanged. The compiler continues to interpret embedded resources and examples under
+its dialect rules; this patch does not introduce a recursive keyword scanner or fetch resources.
+Public relay MCP negotiation is unchanged; the independent peer uses 2025-11-25 for observation.
+
+Independent worker tests precede the production edit (`d132-dialects-before.log`): Draft 7 and
+2019-09 reject at registration and eleven additional URI forms reject. After the edit, each
+explicit draft checks its tuple syntax, exact integer and file/HTTP reference refusal. The same
+reference-plus-sibling content accepts an intermediate integer only under Draft 7, so removing
+the declaration or retaining a cached schema from another dialect cannot satisfy the controls.
+The three registry fingerprints differ while the alias stays constant. Twelve fixed URI forms
+pass; fourteen malformed/unsupported declarations reject with fixed errors. An undeclared legacy
+tuple still rejects under 2020-12. Unknown nested metaschemas reject and `$schema` inside example
+data is not misclassified. Existing worker deadlines, capacity, repeated close and 2020-12 cases
+also pass (`d132-dialects-after.log`: schemacheck 5.892s, toolregistry 2.105s, peer 2.435s; race).
+
+The new peer uses only the Go standard library, has a 20-second lifetime, a 64-frame/64-KiB-frame
+limit and exactly one list/call. It accepts only the fixed tuple and records four own-PID/lifecycle
+facts to an exclusive owned file. Independent guards reject missing initialization/listing,
+duplicate or wrong-argument calls, excessive frames and frame size. The actual-client responder
+is locally authenticated and bounded to four HTTP model requests, at most three main requests,
+one advertised MCP wait and one owned tool call. After the production fix, registry admission,
+valid argument validation and invalid tuple rejection are required before issuing that call.
+No shell, filesystem or other client tool is requested. Only fixed structural facts are logged.
+Full regression, native acceptance and artifact/review results follow separately.
+
+The opt-ins-off race suite passes all 27 tested packages with sequential package scheduling
+(`d132-all-race.log`): schemacheck 3.089s, session 38.835s, launcher 35.552s and interop 26.379s.
+Full vet exits 0 as a separate command (`d132-all-vet.log`). Actual Claude 2.1.269 passes all four
+post-change schema arms: two requests and one owned MCP call each, exact input schemas, valid
+arguments admitted and extra tuple items rejected by the actual registry/worker. Each arm
+preserves its four source inputs and joins the client group, peer, worker and profile. The
+optional native MCP-wait path is not taken in these measurements. Cancellation (180ms join),
+tool-result continuation and default-client configured refusal also pass in that sequential
+batch (`d132-client-after.log`, package 13.194s, dialect control 3.41s). This synthetic HTTP
+observation proves client forwarding plus actual registry/worker handling, not an actual Kiro
+model turn with the declared drafts. It does not replace remaining live gates.
+
+All six existing native Read/Write/Bash allowance, Write/Bash refusal and Bash hook-veto cases
+also pass sequentially (`d132-client-policies.log`, 17.985s). Denied effects remain absent and
+recorded process/config ownership is joined. This completes the applicable existing core checks;
+no actual Kiro, login/logout or credit-consuming request runs. The four-arm schema observation
+and these unchanged relay controls provide distinct evidence; no new full backend-dialect
+measurement is claimed. Artifact and independent review follow.
+
+The clean `cc297b40a23d8ed4b5287a696cff5513feb780b1` artifact is rebuilt, frozen and installed as
+`schema-dialects`: 13,694,946 bytes, SHA-256
+`a101bd21d1a68e17b7f04f5207ea04109a021c4ff0be15aaf1a2bb018ca3736f`, vcs.modified=false.
+Only internal/schemawire/input.go changes among the same 105 production inputs. All 267 ordered
+packages, selected/native/vendor files, four external modules and notices remain unchanged.
+Candidate and strictly resolved installed binaries pass all 144 byte checks; all 18 component
+checks pass (`d132-freeze.log`, `d132-installed-verify.log`, `d132-components.log`). Install
+--force succeeds (`d132-install.log`). The first installed doctor invocation verifies measured
+Kiro 2.21.3/Claude 2.1.269, login/policy and launch availability, with login_check 3.776s
+(`d132-installed-doctor.json`, `d132-installed-doctor-timing.log`). Client initialization remains
+unverified and release clearance remains false. No new advisory scan or Kiro model request ran.
+
+Fresh-context independent review accepts `9ee8896` without an actionable finding
+(`d132-independent-review.md`). It verifies dialect selection and cache/registry identity,
+unchanged bounds and denied loading, independent fixture semantics, native call admission,
+source/ownership cleanup, fixed logging and the documented measurement limits. Focused race
+checks independently pass for schemacheck 5.090s, toolregistry 1.634s and peer 1.854s; full vet
+also exits 0. Candidate, strictly resolved installation and retained D132 copy each pass 144
+byte checks; all 18 component checks pass. Embedded metadata, all 105 committed/current inputs,
+267 ordered packages and dependency/notices records match the snapshot. Native and doctor
+logs are inspected without rerunning them. No production fix or refreeze is needed.

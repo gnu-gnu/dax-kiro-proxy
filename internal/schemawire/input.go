@@ -32,11 +32,36 @@ func Schema(raw []byte) (any, error) {
 	if fields["type"] != "object" {
 		return nil, ErrInput
 	}
-	if draft, ok := fields["$schema"]; ok && draft != "https://json-schema.org/draft/2020-12/schema" {
+	if draft, ok := fields["$schema"]; ok && !supportedDialect(draft) {
 		return nil, ErrInput
 	}
 	return value, nil
 }
+
+// Admit fixed draft identifiers without rewriting the document. The worker selects the declared
+// dialect; only an absent declaration defaults to 2020-12. Empty fragments and HTTP/HTTPS aliases
+// are understood by the reviewed compiler. Other metaschemas cannot trigger resource retrieval.
+func supportedDialect(value any) bool {
+	uri, ok := value.(string)
+	if !ok {
+		return false
+	}
+	uri = strings.TrimSuffix(uri, "#")
+	if rest, ok := strings.CutPrefix(uri, "https://"); ok {
+		uri = rest
+	} else if rest, ok := strings.CutPrefix(uri, "http://"); ok {
+		uri = rest
+	} else {
+		return false
+	}
+	switch uri {
+	case "json-schema.org/draft-07/schema", "json-schema.org/draft/2019-09/schema", "json-schema.org/draft/2020-12/schema":
+		return true
+	default:
+		return false
+	}
+}
+
 func Arguments(raw []byte) (any, error) { return object(raw, MaxArgumentBytes, 65536) }
 func object(raw []byte, limit, nodes int) (any, error) {
 	if len(raw) > limit {

@@ -1208,3 +1208,34 @@ independently verifies candidate, installed and retained binaries (144 checks ea
 component checks, embedded build metadata and all 105 committed production inputs. Dependency
 records remain unchanged. No production fix or refreeze is needed. Owner rights stay outside
 this repository under D121.
+
+## Declared tool schema artifact snapshot — D132, 2026-09-13
+
+`third_party/inventory/macos-arm64-schema-dialects.json` records the rebuilt 13,694,946-byte
+development command, SHA-256
+`a101bd21d1a68e17b7f04f5207ea04109a021c4ff0be15aaf1a2bb018ca3736f`. It identifies Go 1.27.1,
+darwin/arm64, CGO_ENABLED=1 and clean revision `cc297b40a23d8ed4b5287a696cff5513feb780b1` with
+vcs.modified=false. D131 account-check is the hashed predecessor and remains retained.
+
+Only `internal/schemawire/input.go` changes among the same 105 production input records. All
+267 ordered import paths, selected files, four external module versions/sums/package sets,
+native files, stdlib vendor packages and notices remain unchanged. No dependency is added or
+upgraded. The existing reviewed validator now receives explicitly declared Draft 7 and 2019-09
+schemas through the input gate as well as 2020-12; it keeps dialect selection and denied loading
+inside the existing bounded worker. Its already-included resource inventory is unchanged.
+
+```sh
+python3 tools/verify_dependency_inventory.py --gomodcache .cache/gomod --snapshot schema-dialects --binary dist/dax-kiro-proxy
+```
+
+Candidate and strictly resolved installed binaries each pass all 144 byte checks
+(`d132-freeze.log`, `d132-installed-verify.log`); all 18 component checks pass
+(`d132-components.log`). Install --force succeeds (`d132-install.log`). The first doctor
+invocation verifies measured Kiro 2.21.3/Claude 2.1.269, login/policy and launch availability
+(`d132-installed-doctor.json`). Client initialization remains unverified; release clearance
+remains false. D125 advisory scans remain historical; no new scan or actual Kiro model turn ran.
+Independent review accepts `9ee8896` without an actionable finding. Candidate, strictly
+resolved installed and retained binaries each pass 144 checks independently, with 18 component
+checks, embedded metadata and all 105 production inputs verified. The current package graph
+and dependency/notices records match. No production fix or refreeze is needed. Owner rights
+stay outside this repository under D121.

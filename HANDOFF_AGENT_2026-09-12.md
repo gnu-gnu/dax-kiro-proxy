@@ -83,6 +83,18 @@ accepts `ac71b58` without an actionable finding. Focused race and artifact check
 independently; no production fix or refreeze is needed. Other preflight stages and the
 catalog-postamble candidate are separate. No actual Kiro model ran.
 
+D131 merged as `cf3a162`. D132 on `d132-mcp-schema-dialects` addresses item 2's reproduced
+MCP dialect rejection. Claude 2.1.269 forwards Draft 7/2019-09 schemas unchanged and can call
+those owned tools, while the former registry rejects them. The bounded input gate now admits
+those declared drafts plus 2020-12 without rewriting them. Independent semantic/identity/limit
+controls, all 27 race-tested packages and full vet pass. Four native dialect arms, cancellation,
+result continuation, default-client refusal and all six tool-policy cases pass sequentially.
+The clean cc297b4 artifact is installed as schema-dialects (144 byte checks, 18 component
+checks, doctor verified on its first invocation). Independent review accepts 9ee8896 without
+an actionable finding; focused race, full vet and artifact checks pass independently. No
+production fix or refreeze is needed. No actual Kiro model ran; personal memory and other core
+candidates remain separate.
+
 ## 1. State you inherit
 
 - `main` is at `e07e591` (merge of D124). The working tree is clean. There is no remote; never push
