@@ -6,25 +6,22 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
-- D127 is in progress on `d127-turn-relay`, based on `ea49c87`; it is not reviewed or installed.
-  Validated owned ACP progress now satisfies the first-event wait without becoming answer content
-  or extending the original total deadline. Absolute heartbeat scheduling survives frequent silent
-  notifications. Initial gateway/session regressions fail before the change; ordered late drain,
-  bounded per-turn tracking and payload exclusion pass after it. An independent ACP process covers
-  12 streaming/buffered progress, timeout and cancellation cases with joined owned PID/group.
-  The first broader run exposed a test that conflated caller cancellation with its inherited turn
-  deadline; explicit cancellation now separates those cases. The corrected full ACP/session/gateway
-  race suites pass (5.027s, 34.770s, 4.872s), as does vet. Remaining core turn/relay candidates,
-  The relay binding wait and actual child handshake now follow the configured setup allowance;
-  the original setup context rejects a late binding, while a completed binding survives setup
-  completion. Delayed binding and cancellation regressions fail before the fix, including an actual
-  relay child waiting six seconds. Authentication, acknowledgement deadlines and cleanup pass
-  afterwards. Child configuration v3 carries the bounded attachment timeout and rejects old forms.
-  The final full repository race suite passes all 27 tested packages, and full vet passes. Batch
-  review and artifact work remain open; other core turn/relay candidates continue in the next batch.
-  Three applicable Claude 2.1.269/fake-ACP controls also pass sequentially (26.026s): launcher
-  cancellation, tool-result continuation and all six client tool allow/deny/hook cases. Sources
-  remain unchanged and owned resources are joined. Actual Kiro model calls remain disabled.
+- D127 on d127-turn-relay (base ea49c87) fixes two reproduced timeout defects. Validated owned
+  ACP progress satisfies only the first-event wait, preserves answer/history/usage boundaries
+  and does not starve streaming pings or extend the original total deadline. Relay binding and
+  the actual child handshake use the configured session setup allowance; initial-frame and
+  acknowledgement reads remain separate. The original setup context rejects a late binding,
+  while a completed binding survives setup completion. Private child configuration v3 carries
+  the bounded attachment limit.
+  Initial regressions fail before the fixes. The final full repository race suite passes all 27
+  tested packages, and full vet passes. Three applicable Claude 2.1.269/fake-ACP controls pass
+  sequentially (26.026s): cancellation, tool-result continuation and all six client tool
+  allow/deny/hook cases. Sources remain unchanged and owned resources are joined. No actual Kiro
+  model was invoked.
+  The clean 7ce5a58 build is frozen and installed as progress-setup (144 byte checks, 18
+  component checks). Doctor reports both versions measured, login/policy verified and launch
+  available. Independent review remains pending. Other core turn/relay candidates continue in
+  the next batch.
 
 - D126 fixes two terminal-observer defects exposed by Claude Code 2.1.269: a keyboard-flags query
   was interpreted as cursor restore, and full-screen margin reset did not reset the cursor. The

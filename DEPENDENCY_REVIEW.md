@@ -1067,3 +1067,30 @@ login and policy verified, and launch available (`d126-installed-doctor.json`). 
 admission; no actual Kiro model test ran for this client migration. D125's advisory scans remain
 historical evidence for their recorded artifact/source, not new scans of this executable. The
 owner's rights determinations remain outside the repository under D121.
+
+
+## Progress and relay-setup artifact snapshot — D127, 2026-09-12
+
+`third_party/inventory/macos-arm64-progress-setup.json` records the rebuilt 13,694,242-byte
+development command, SHA-256 `1d9e080e63bd880917def5d2f429b7e1da840afce12ebfc23ad36ec3cec104af`.
+It identifies Go 1.27.1, darwin/arm64, CGO_ENABLED=1 and clean committed revision
+`7ce5a58dab37bb33d26ff233749a8827a020c764` with vcs.modified=false. The inventory commit follows
+the code commit.
+
+There are 105 repository input records. Seven production files change from D126:
+gateway/http.go, inference/contract.go, relay/attachment.go, relay/attachment_child.go,
+relay/socket.go, session/setup.go and session/turn.go, all under internal/. The new
+internal/session/progress.go is the only added production input. The 267 import paths, four
+external module versions/sums/package sets, selected native files, stdlib vendor packages and
+notices are unchanged. D126 measured-client-269 is the hashed predecessor; its artifact remains
+retained. No dependency is added or upgraded.
+
+```sh
+python3 tools/verify_dependency_inventory.py --gomodcache .cache/gomod --snapshot progress-setup --binary dist/dax-kiro-proxy
+```
+
+All 144 byte checks pass for the candidate and resolved installed executable; the 18 component
+checks pass too. Install --force succeeds, and doctor reports measured Kiro 2.21.3/Claude
+2.1.269, verified login/policy and launch_available true. The snapshot retains release_clearance
+false. D125 advisory results remain historical; this batch performs no fresh advisory scan or
+actual Kiro model turn. Independent code review remains pending.

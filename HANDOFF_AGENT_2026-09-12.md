@@ -31,13 +31,13 @@ follow-up review accepts all fixes with no additional finding. D126 verification
 Next: turn/relay robustness, personal memory, request compatibility, diagnostics, then approved live
 reverification and combined soak. The original labels below are candidates, not completed decisions.
 
-D127 on `d127-turn-relay`, based on `ea49c87`, addresses two reproduced timeout defects: validated
-ACP progress now satisfies the first-event wait without becoming answer content, and relay binding
-and child attachment use the session setup allowance. Message-read and total-turn limits remain
-separate. Focused regressions, all 27 race-tested packages and vet pass. The three applicable
-Claude 2.1.269 core controls pass (26.026s), without Kiro inference. Review and installation are
-pending; the installed executable is still D126. Other core turn/relay
-candidates continue in the next batch. See the D127 record before continuing this branch.
+D127 on `d127-turn-relay`, based on `ea49c87`, addresses two reproduced timeout defects:
+validated ACP progress satisfies the first-event wait without becoming answer content, and relay
+binding/child attachment use the session setup allowance. All 27 race-tested packages, vet and
+the three applicable Claude 2.1.269 core controls pass. The clean `7ce5a58` artifact is frozen
+and installed as `progress-setup` (144 byte checks, 18 component checks, doctor verified).
+Independent review remains pending. Other core turn/relay candidates continue in the next batch;
+no Kiro inference ran.
 
 ## 1. State you inherit
 

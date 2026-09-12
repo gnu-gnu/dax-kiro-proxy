@@ -6179,10 +6179,10 @@ unchanged.
 
 ## D127: validated progress and relay setup deadlines
 
-Working branch d127-turn-relay, based on ea49c87. This batch addresses the two reproduced
-timeout defects in HANDOFF items 3 and 12. Implementation is ready for final verification,
-independent review and artifact installation; the current installed artifact remains D126. Other
-turn/relay candidates continue in the next batch, with the same overall core-product objective.
+Branch d127-turn-relay, based on ea49c87, addresses the two reproduced timeout defects in
+HANDOFF items 3 and 12. Code is committed at 7ce5a58, verified, frozen and installed.
+Independent review remains pending. Other core turn/relay candidates continue in the next batch;
+the overall core-product objective remains open.
 
 An active owned prompt now emits an internal payload-free Progress event for usable public
 activity. It satisfies the first-event wait after dispatch, without extending the original HTTP
@@ -6276,3 +6276,10 @@ and artifacts in 157ms after one delivered handoff, with unchanged sources. Each
 occurs under the client policy, denied effects stay absent, and matching results reach a
 completed continuation. No Kiro model calls or credits were used. This is a focused core
 regression, not a new client migration or a full live-release claim.
+
+The clean `7ce5a58` artifact is installed as progress-setup: 13,694,242 bytes, SHA-256
+`1d9e080e63bd880917def5d2f429b7e1da840afce12ebfc23ad36ec3cec104af`, 105 production input records
+and unchanged 267 packages/four modules. Candidate and resolved installation pass all 144 byte
+checks; the component record passes 18 checks. Doctor reports both pinned versions measured,
+login/policy verified and launch_available true. These checks consume no model credits.
+Independent review remains pending.
