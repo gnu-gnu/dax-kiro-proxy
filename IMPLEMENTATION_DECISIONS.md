@@ -5993,7 +5993,8 @@ probe of D123 records both builds' forms without content.
 
 Verification, run under `umask 077` with the pin already moved: with the installed 2.1.268 the full
 installed-client batch passes 74 of 74 controls (617.922s package, `d124-client-2.1.268-batch.log`;
-the output-style control reports style_location "standing" with 577–578 style bytes and equal
+the output-style control reports style_location "standing" with 577–580 bytes in the style-carrying
+standing block, which on this build also holds the run-varying environment block, and equal
 native/prepared projections, the shape probe two backend starts and two requests); with the retained
 2.1.267 the output-style control and the shape probe pass on the same code (style_location "system",
 4001–4004 style bytes, two backend starts, `d124-client-2.1.267-style.log`), so the control
@@ -6003,4 +6004,10 @@ parser accepts "2.1.268 (Claude Code)" and the fixture client reports that build
 executable's inventory is frozen as the measured-client-268 snapshot in DEPENDENCY_REVIEW.md. The
 live Kiro controls named in LIVE_KIRO_TEST_PLAN.md were measured on 2.1.263 and 2.1.267; rerunning
 them on 2.1.268 consumes credits and is left to a separately approved run, so until then the live
-evidence stands on the earlier builds and the owned-witness batch above is the 2.1.268 evidence.
+evidence stands on the earlier builds and the owned-witness batch above is the 2.1.268 evidence. The
+independent review before the merge tightened the control in three ways: only the request's trailing
+message counts as the standing message, the self-check adds the both-places, assistant-copy and
+non-trailing placements as invalid, and on the measured build the control asserts the standing form
+instead of only logging it (an admitted same-major build still records its form; the reruns after
+those fixes are `d124-review-style-2.1.268.log` and `d124-review-style-2.1.267.log`, both passing).
+The D121 component record's client entry names the new pin.

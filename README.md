@@ -192,7 +192,9 @@ release clearance is the owner's external decision.
 
 Every live control named in this section was re-verified on the measured Kiro 2.21.3 / Claude Code
 2.1.267 pair on 2026-09-11 (D113, D114); the version names below record the build each was first
-measured on.
+measured on. They have not been rerun on Claude Code 2.1.268, which D124 measured with the
+owned-witness batch only; until a separately approved live rerun, the live evidence stands on that
+2.1.267 pair.
 
 The initial-session native-effect challenge and real-client Read-hook refusal both pass freshly on
 Kiro 2.21.2, with unchanged files and joined process cleanup. Six actual Kiro 2.21.2 / Claude

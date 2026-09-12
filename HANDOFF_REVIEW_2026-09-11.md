@@ -7,6 +7,11 @@ to keep, revert or re-measure. It is a brief, not a record: the decision records
 snapshots in `DEPENDENCY_REVIEW.md` and the header of `LIVE_KIRO_TEST_PLAN.md` remain the
 authoritative text, and this brief defers to them wherever they differ.
 
+Overtaken since this brief was written: D121–D124 (2026-09-11 to 2026-09-12) are recorded in the
+authoritative documents. In particular, D124 moved `SupportedClientVersion` to 2.1.268 on 2026-09-12
+and the installed executable is now the D124 build, so the 2.1.267 statements in sections 3, 4 and 6
+describe the state as of 2026-09-11.
+
 ## 1. Scope and branch state
 
 - Commit range: `3464d12` (D109, 2026-09-10) through `c577dcf` (D120 live soak, 2026-09-11), 23

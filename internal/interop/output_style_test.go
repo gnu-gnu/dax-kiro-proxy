@@ -32,7 +32,9 @@ type outputStyleProjection struct {
 	SystemBlocks int
 	StyleDigest  [32]byte
 	// StyleLocation is "system" when the style body is a top-level system block (2.1.267) and
-	// "standing" when it is the trailing system-role message of the request (2.1.268).
+	// "standing" when it is the trailing system-role message of the request (2.1.268). On 2.1.268
+	// that message also carries the run-varying environment block, so StyleBytes and StyleDigest
+	// cover the whole style-carrying block rather than the style body alone.
 	StyleLocation string
 }
 
@@ -76,6 +78,8 @@ func projectOutputStyle(r *anthropic.Request) (outputStyleProjection, error) {
 	}
 	// A client build may deliver the selected style as the request's trailing standing message
 	// (a system-role message after the last user message) instead of a top-level system block.
+	// Only the trailing message qualifies, and the projection covers a single-request control: a
+	// later request moves the earlier standing message into history (D123), where it is rejected.
 	lastUser := -1
 	for i, message := range r.Messages {
 		if message.Role == "user" {
@@ -87,7 +91,7 @@ func projectOutputStyle(r *anthropic.Request) (outputStyleProjection, error) {
 			if block.Type != "text" || len(block.Text) > 128<<10 {
 				return p, inference.ErrRequest
 			}
-			standing := message.Role == "system" && i > lastUser
+			standing := message.Role == "system" && i > lastUser && i == len(r.Messages)-1
 			found := false
 			for index, marker := range outputStyleMarkers {
 				n := strings.Count(block.Text, marker)
@@ -119,7 +123,7 @@ func projectOutputStyle(r *anthropic.Request) (outputStyleProjection, error) {
 }
 
 func TestOutputStyleProjectionRequiresSeparateInstructionRoles(t *testing.T) {
-	for _, kind := range []string{"style", "default", "user-style", "standing-style", "history-style", "system-memory", "duplicate-style", "two-styles", "missing-memory", "assistant-memory"} {
+	for _, kind := range []string{"style", "default", "user-style", "standing-style", "history-style", "both-style", "assistant-style", "standing-then-assistant", "system-memory", "duplicate-style", "two-styles", "missing-memory", "assistant-memory"} {
 		t.Run(kind, func(t *testing.T) {
 			r := &anthropic.Request{System: []anthropic.Block{{Type: "text", Text: outputStyleMarkers[0]}}, Messages: []anthropic.Message{{Role: "user", Content: []anthropic.Block{{Type: "text", Text: "ProjectMemory_337"}}}}}
 			switch kind {
@@ -133,8 +137,20 @@ func TestOutputStyleProjectionRequiresSeparateInstructionRoles(t *testing.T) {
 				r.Messages = append(r.Messages, anthropic.Message{Role: "system", Content: []anthropic.Block{r.System[0]}})
 				r.System = nil
 			case "history-style":
-				// A system-role message before the last user message is history, never the style.
+				// A system-role message before the last user message is history (a later 2.1.268
+				// request moves the earlier standing message there, D123), never the style.
 				r.Messages = append([]anthropic.Message{{Role: "system", Content: []anthropic.Block{r.System[0]}}}, r.Messages...)
+				r.System = nil
+			case "both-style":
+				// The style in a system block and in the standing message at once is two copies.
+				r.Messages = append(r.Messages, anthropic.Message{Role: "system", Content: []anthropic.Block{r.System[0]}})
+			case "assistant-style":
+				r.Messages = append(r.Messages, anthropic.Message{Role: "assistant", Content: []anthropic.Block{r.System[0]}})
+				r.System = nil
+			case "standing-then-assistant":
+				// A system-role message after the last user message that is not trailing is not the
+				// standing message.
+				r.Messages = append(r.Messages, anthropic.Message{Role: "system", Content: []anthropic.Block{r.System[0]}}, anthropic.Message{Role: "assistant", Content: []anthropic.Block{{Type: "text", Text: "fixture reply"}}})
 				r.System = nil
 			case "system-memory":
 				r.System[0].Text += " ProjectMemory_337"
@@ -219,6 +235,10 @@ func TestClaudePersonalOutputStylePreservation(t *testing.T) {
 	if err != nil || !launcher.CompatibleClientOutput(version.Stdout) {
 		t.Fatal("unverified style client")
 	}
+	// The measured build must deliver the selected style in its measured form; an admitted
+	// same-major build (D110) only records the form it uses.
+	clientVersion, _ := launcher.ClientVersionFromOutput(version.Stdout)
+	measured := clientVersion == launcher.SupportedClientVersion
 	var normal, keep outputStyleProjection
 	for _, tc := range []struct {
 		name, user, project, local string
@@ -317,8 +337,12 @@ func TestClaudePersonalOutputStylePreservation(t *testing.T) {
 					}
 					gone = gone && dialErr != nil
 					equivalent := seen == reference
-					t.Logf("mode=%s requests=%d selected_markers=%v style_location=%q style_system_bytes=%d total_system_bytes=%d system_blocks=%d native_system_block_matches=%v complete=%v source_styles_settings_unchanged=%v home_tree_unchanged=%v global_unchanged=%v ownership_removed=%v", mode, starts, seen.Counts, seen.StyleLocation, seen.StyleBytes, seen.SystemBytes, seen.SystemBlocks, equivalent, complete, sources, homeUnchanged, globalUnchanged, gone)
-					if !complete || starts != 1 || seen.Counts != want || !equivalent || !sources || !gone {
+					t.Logf("mode=%s requests=%d selected_markers=%v style_location=%q style_block_bytes=%d total_system_bytes=%d system_blocks=%d native_system_block_matches=%v complete=%v source_styles_settings_unchanged=%v home_tree_unchanged=%v global_unchanged=%v ownership_removed=%v", mode, starts, seen.Counts, seen.StyleLocation, seen.StyleBytes, seen.SystemBytes, seen.SystemBlocks, equivalent, complete, sources, homeUnchanged, globalUnchanged, gone)
+					wantLocation := ""
+					if tc.selected >= 0 {
+						wantLocation = "standing"
+					}
+					if !complete || starts != 1 || seen.Counts != want || !equivalent || !sources || !gone || measured && seen.StyleLocation != wantLocation {
 						t.Fatal("native output style preservation failed")
 					}
 					if mode == "natural" && tc.name == "personal" {

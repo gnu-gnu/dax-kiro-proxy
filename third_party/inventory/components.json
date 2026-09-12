@@ -451,7 +451,7 @@
   {
    "name": "claude",
    "path": "/Users/geunwooshim/.local/bin/claude",
-   "version": "2.1.267 (measured pin, D113)",
+   "version": "2.1.268 (measured pin, D124; 2.1.267 from D113)",
    "role": "separately installed black-box client",
    "bundled": false,
    "terms": "account/service terms are the owner's external matter (D121 scope)"

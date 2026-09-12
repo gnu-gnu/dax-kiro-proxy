@@ -907,7 +907,7 @@ project license.
 | Apple system libraries | libSystem.B, libresolv.9, CoreFoundation, Security | dynamic links of the installed binary (`otool -L`) | Apple macOS; SDK and signing terms outside this review | not distributed |
 | Build environment | macOS 15.4, Command Line Tools, MacOSX 15.5 SDK, Apple clang 17.0.0, CGO_ENABLED=1, ad hoc linker signature | build host | outside this review | nothing from the SDK is bundled |
 | Test utilities | python3 3.11.14, expect 5.45, script, ps, lsof, pgrep, Apple Git 2.39.5 | test host executables | host-provided | neither linked nor bundled |
-| External executables | kiro-cli 2.21.3, Claude Code 2.1.267 | black-box backend and client | service terms are the owner's external item | neither linked nor bundled |
+| External executables | kiro-cli 2.21.3, Claude Code 2.1.268 (2.1.267 until D124) | black-box backend and client | service terms are the owner's external item | neither linked nor bundled |
 | Advisory scanner | govulncheck v1.8.0 (`golang.org/x/vuln`, `h1:clG4qBU6…`) with x/mod v0.41.0, x/sync v0.23.0, x/telemetry 20260908, x/tools v0.50.0 | session scratch GOPATH only | BSD-3-Clause, LICENSE byte-identical to Go's | not a repository dependency |
 
 Advisory results (database `https://vuln.go.dev` updated 2026-09-10T14:48:42Z, Go 1.27.1): source
@@ -995,7 +995,8 @@ launcher package's profile.go (`SupportedClientVersion` 2.1.267 → 2.1.268). Th
 the four external module versions/sums/package sets, selected native files, stdlib vendor packages
 and retained notices are unchanged. No dependency is added or upgraded. The D123 deferred-standing
 inventory is the hashed predecessor; the D123 and D124 executables are retained under the ignored
-history-review directory. The D121 component record needs no change.
+history-review directory. The D121 component record's client entry and the table row above now name
+2.1.268 as the measured pin; nothing else in that record changes.
 
 ```sh
 python3 tools/verify_dependency_inventory.py --gomodcache .cache/gomod --snapshot measured-client-268 --binary dist/dax-kiro-proxy
