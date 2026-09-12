@@ -6289,3 +6289,61 @@ unresolved D127 findings (`d127-independent-review.md`). The reviewer independen
 progress and attachment race controls, confirmed all 144 candidate/installed byte checks and 18
 component checks, and inspected the retained full-suite and actual-Claude evidence. Production
 inputs are unchanged by these corrections, so the installed artifact needs no refreeze.
+
+
+## D128: resolved relay calls cannot cancel newer work
+
+Branch `d128-relay-cancellation`, based on `c8c631c`, addresses the reproduced late-cancellation
+race in HANDOFF item 14. The result wait can select caller cancellation after Resolve has already
+committed the complete result batch. Previously that path unconditionally retired the broker,
+including unrelated calls or a newly admitted turn.
+
+Cancellation now checks the exact pending call under the resolution lock before retiring the
+broker. The existing timer guard uses the same helper. A committed result remains authoritative,
+while an unresolved call still retires the whole prompt. This deliberately keeps the complete
+delivered-result requirement: no queued, sealed or delivered cancellation becomes a partial
+result set. No new dependency, public wire form or client effect path is introduced. The separate
+session outcome/deadline races and other core HANDOFF candidates remain open.
+
+The first test harness paused at a validation reservation instead of an admitted call and failed
+before handoff; it supplies no defect evidence. With that observer corrected, all four regressions
+fail on the old code: late cancellation destroys queued, sealed, delivered and next-turn work
+(`d128-cancel-before-fixed-witness.log`). The corrected product passes 32 contested waits per
+stage, exact old/new result completion, and unresolved cancellation at all three batch stages.
+A direct state test also forces a resolved call's cancellation and timer guard against newer work,
+independent of select scheduling. Focused race tests pass in 2.051s (`d128-cancel-after.log`).
+Logs stay under the ignored `.cache/history-review` directory and contain fixed structural
+diagnostics. These focused controls precede the full-suite and native-client evidence below.
+
+Two whole-repository race runs with `-p 2` did not pass. The first failed the independent
+read-only inventory peer's initialize deadline; its unchanged standalone control then passed
+in 3.087s. The second failed another independent peer's startup and the schema worker's startup
+deadline. None reached the relay cancellation path. These logs (`d128-all-race.log` and
+`d128-all-race-final.log`) remain failures, not successful verification. Their underlying startup
+cause is not established. The final full suite passes all 27 tested packages with `-p 1`,
+unchanged test cases, limits and assertions (`d128-all-race-serial.log`): relay 9.013s, session
+35.374s, gateway 4.893s, interop 24.782s and schema workers 3.213s. This changes only package
+scheduling; the suites' internal concurrency controls remain enabled. Full vet passes
+(`d128-all-vet.log`).
+
+Three applicable actual-Claude controls pass sequentially on the retained 2.1.269 client with
+independent ACP (`d128-client-core.log`, package 28.447s): launcher cancellation 7.23s,
+tool-result continuation 2.22s and all six Read/Write/Bash allow/deny/hook cases 18.18s.
+Cancellation joins the recorded client/hook/backend/relay and private artifacts in 155ms after
+one delivered handoff. Source settings remain unchanged, denied effects stay absent and matching
+results complete. No actual Kiro or model credits are used. These controls precede the artifact
+checks below.
+
+The clean `4494910a4f996b62b867cb12bcb4b2d6e12d04bf` artifact is installed as
+`resolved-cancellation`: 13,694,242 bytes, SHA-256
+`3f4d9841458407612395bbc06fa2aa113ed0b7e1602447e890f0213c72a81d6d`, with 105 production
+input records and unchanged 267 packages/four modules. Only `internal/relay/broker.go` changes its
+recorded source bytes. Candidate and resolved installation pass 144 byte checks; components pass
+18 checks. Doctor reports the measured Kiro 2.21.3/Claude 2.1.269 pair, verified login/policy
+and launch available. No new advisory scan or live inference is claimed.
+
+Independent review accepts `7e28df7` without an actionable finding
+(`d128-independent-review.md`). It independently verifies the cancellation/resolution lock and
+complete pending ownership, passes focused race controls in 1.770s, confirms 144 byte checks for
+both candidate and installation plus 18 component checks, and checks the retained evidence's
+stated limits. No source fix or refreeze is needed. The remaining core HANDOFF work is unchanged.

@@ -43,7 +43,7 @@ experiment design; the explicit language selection supersedes comparative experi
 gate. The dependency inventory is complete for the darwin/arm64 development artifact (D121); the
 owner's rights and project-license decisions are outside this repository, and live-release gates
 remain open. Implementation began with independent fixtures and fake-process transport tests and now
-reaches an installed development artifact (D127); consult DEVELOPMENT_STATUS.md for verified
+reaches an installed development artifact (D128); consult DEVELOPMENT_STATUS.md for verified
 progress, `HANDOFF_REVIEW_2026-09-11.md` for the D109–D120 review brief and
 `HANDOFF_AGENT_2026-09-12.md` for the agent handoff after D124.
 
@@ -78,6 +78,10 @@ showing their content as an answer or extending the total turn deadline. Silent 
 preserves SSE keepalives. Relay attachment also follows the configured session setup allowance
 (default 30s) instead of expiring after five seconds; message-read and acknowledgement limits
 remain separate.
+
+D128 preserves a committed client tool result when its relay caller is canceled just afterward.
+That late cancellation cannot discard later queued or delivered work. Cancellation of a tool
+whose result is still unresolved continues to retire the whole prompt.
 
 D87 verifies explicit-ID text resume with fresh profiles, addresses, tokens and backend processes,
 using both an independent ACP peer and actual Kiro. D88 also verifies ordinary terminal `run`,
@@ -414,16 +418,16 @@ independent fixture) that samples the proxy's resident size, descriptors and pro
 after every turn; one authorized live soak against the actual Kiro also samples the backend process
 group's resident size under a first declared envelope.
 
-Phase 7 has frozen dependency inventories and retained scoped notices. For the installed D127
+Phase 7 has frozen dependency inventories and retained scoped notices. For the installed D128
 development artifact, run `python3 tools/verify_dependency_inventory.py
---gomodcache .cache/gomod --snapshot progress-setup --binary dist/dax-kiro-proxy`. The default
-`development` snapshot identifies D78's earlier D77 binary, `installation` identifies D79,
+--gomodcache .cache/gomod --snapshot resolved-cancellation --binary dist/dax-kiro-proxy`.
+The default `development` snapshot identifies D78's earlier D77 binary; `installation` identifies D79.
 `native-history` identifies D87 and `relay-close` identifies D96; `effort` identifies D99, `usage`
 identifies D101, `output-styles` identifies D108, `tool-images` identifies D109, `client-version`
 identifies D110–D112, `measured-client` identifies D113, `measured-kiro` identifies D114,
 `onboarding` identifies D115, `project-trust` identifies D118, `run-diagnostics` identifies D122
 `deferred-standing` identifies D123, `measured-client-268` identifies D124 and `trust-publication`
-identifies D125; `measured-client-269` identifies D126.
+identifies D125; `measured-client-269` identifies D126 and `progress-setup` identifies D127.
 Those historical snapshots do not match this rebuild and its changed production source. These
 offline byte checks do not grant release clearance; see DEPENDENCY_REVIEW.md for the D121 component
 record, the three unattributed metaschema resources and the owner's external rights items.

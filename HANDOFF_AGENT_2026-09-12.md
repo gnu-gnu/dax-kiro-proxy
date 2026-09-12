@@ -40,6 +40,15 @@ Independent review accepts both record corrections at `220f094`, with no unresol
 findings and unchanged production inputs. Other core turn/relay candidates continue next;
 no Kiro inference ran. The branch is retained after the required no-fast-forward merge.
 
+D127 merged into `main` as `c8c631c`. D128 on `d128-relay-cancellation` starts from that merge
+and addresses the reproduced resolved-call cancellation race in item 14. Its focused regressions,
+all 27 race-tested packages with sequential package scheduling, vet and three applicable Claude
+core controls pass. The two earlier parallel-package runs had independent process startup failures;
+D128 records them separately. The clean `4494910` artifact is installed as
+`resolved-cancellation` (144 byte checks, 18 component checks, doctor verified). Independent
+review accepts `7e28df7` without an actionable finding or refreeze. Unresolved calls retain
+complete prompt retirement. Other core candidates continue separately. No actual Kiro model ran.
+
 ## 1. State you inherit
 
 - `main` is at `e07e591` (merge of D124). The working tree is clean. There is no remote; never push

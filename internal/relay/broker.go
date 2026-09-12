@@ -265,7 +265,7 @@ func (b *Broker) Call(ctx context.Context, call Call) (ToolResult, error) {
 	select {
 	case value = <-p.done:
 	case <-ctx.Done():
-		b.fail(context.Canceled)
+		b.failPending(use.ID, p, context.Canceled)
 		value = <-p.done
 	}
 	b.mu.Lock()
@@ -395,11 +395,15 @@ func (b *Broker) matchesDelivered(prepared map[string]ToolResult) bool {
 func (b *Broker) Close() { b.fail(ErrClosed) }
 
 func (b *Broker) expire(id string, call *pendingCall) {
+	b.failPending(id, call, ErrTimeout)
+}
+func (b *Broker) failPending(id string, call *pendingCall, reason error) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	// Stop does not join a timer callback that already started. Only its still-pending call can expire.
+	// Resolution can precede a selected cancellation or a timer callback already in progress.
+	// Only the same still-pending call can retire the relay; committed results remain authoritative.
 	if b.pending[id] == call {
-		b.failLocked(ErrTimeout)
+		b.failLocked(reason)
 	}
 }
 func (b *Broker) fail(reason error) {

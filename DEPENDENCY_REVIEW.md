@@ -1097,3 +1097,27 @@ actual Kiro model turn. Independent review accepts D127 after the two record cor
 `220f094`, with no production input changes. The reviewer independently confirms the 144 byte
 checks for both candidate and installed executables and all 18 component checks; no refreeze is
 needed.
+
+
+## Resolved relay cancellation artifact snapshot — D128, 2026-09-13
+
+`third_party/inventory/macos-arm64-resolved-cancellation.json` records the rebuilt
+13,694,242-byte development command, SHA-256
+`3f4d9841458407612395bbc06fa2aa113ed0b7e1602447e890f0213c72a81d6d`. It identifies Go 1.27.1,
+darwin/arm64, CGO_ENABLED=1 and clean revision `4494910a4f996b62b867cb12bcb4b2d6e12d04bf` with
+vcs.modified=false. D127 progress-setup is the hashed predecessor and remains retained.
+
+Only `internal/relay/broker.go` changes among the same 105 production input records. The 267
+import paths, selected files, four external module versions/sums/package sets, native files,
+stdlib vendor packages and notices are unchanged. No dependency is added or upgraded.
+
+```sh
+python3 tools/verify_dependency_inventory.py --gomodcache .cache/gomod --snapshot resolved-cancellation --binary dist/dax-kiro-proxy
+```
+
+All 144 byte checks pass for the candidate and resolved installation, and all 18 component checks
+pass. Install --force succeeds; doctor reports the measured Kiro 2.21.3/Claude 2.1.269 pair,
+verified login/policy and launch available. Release clearance remains false. D125's advisory
+results remain historical; D128 performs no new scan or actual Kiro model turn. Independent
+review accepts `7e28df7` without a finding and independently confirms candidate/installed byte
+identity and the component record. No refreeze is needed.
