@@ -6563,3 +6563,17 @@ pass sequentially (`d131-client-core.log`, package 25.363s): launcher cancellati
 tool-result continuation 2.02s and all six Read/Write/Bash allowance/refusal/hook cases 17.40s.
 Cancellation joins recorded ownership in 167ms; source settings remain unchanged and denied
 effects remain absent. No actual Kiro or external model is used in these controls.
+
+The clean `497e0e11e704ca5392f598578c80efb7f586621e` artifact is rebuilt, frozen and installed as
+`account-check`: 13,694,866 bytes, SHA-256
+`1490ac26e1363f59391b651acb1c06effa4534b6addb4df1893b15e653e02b9b`, vcs.modified=false. Only
+cmd/dax-kiro-proxy/main.go and internal/launcher/kiro.go change among 105 production inputs.
+All 267 ordered packages, four external modules, selected/native/vendor files and notices remain
+unchanged. Candidate and strictly resolved installed binaries each pass all 144 byte checks;
+all 18 component checks pass (`d131-freeze.log`, `d131-installed-verify.log`,
+`d131-components.log`). Install --force succeeds (`d131-install.log`). The first installed doctor
+invocation passes, with login_check 3.733s, measured Kiro 2.21.3/Claude 2.1.269, verified
+login/policy and launch available (`d131-installed-doctor.json`,
+`d131-installed-doctor-timing.log`). Client initialization remains unverified and release clearance
+stays false. No new advisory scan, login/logout or Kiro model request ran. Independent review
+remains pending.

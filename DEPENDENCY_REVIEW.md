@@ -1179,3 +1179,29 @@ turn ran. Independent review accepts `037ef3a` without an actionable finding and
 confirms both 144-check artifact results, all 18 component checks and unchanged dependency
 records. No production fix or refreeze is needed. Owner rights stay outside this repository
 under D121.
+
+## Account-check failure artifact snapshot — D131, 2026-09-13
+
+`third_party/inventory/macos-arm64-account-check.json` records the rebuilt 13,694,866-byte
+development command, SHA-256
+`1490ac26e1363f59391b651acb1c06effa4534b6addb4df1893b15e653e02b9b`. It identifies Go 1.27.1,
+darwin/arm64, CGO_ENABLED=1 and clean revision `497e0e11e704ca5392f598578c80efb7f586621e` with
+vcs.modified=false. D130 prompt-stop is the hashed predecessor and remains retained.
+
+Only `cmd/dax-kiro-proxy/main.go` and `internal/launcher/kiro.go` change among the same 105
+production input records. All 267 ordered import paths, selected files, four external module
+versions/sums/package sets, native files, stdlib vendor packages and notices remain unchanged.
+No dependency is added or upgraded.
+
+```sh
+python3 tools/verify_dependency_inventory.py --gomodcache .cache/gomod --snapshot account-check --binary dist/dax-kiro-proxy
+```
+
+Candidate and strictly resolved installed binaries each pass all 144 byte checks
+(`d131-freeze.log`, `d131-installed-verify.log`); all 18 component checks pass
+(`d131-components.log`). Install --force succeeds (`d131-install.log`). Doctor passes on its
+first invocation, verifying measured Kiro 2.21.3/Claude 2.1.269, login/policy and launch
+availability (`d131-installed-doctor.json`). Client initialization remains unverified and
+release clearance remains false. D125 advisory scans remain historical; no new scan or actual
+Kiro model turn ran. Independent review remains pending. Owner rights stay outside this
+repository under D121.

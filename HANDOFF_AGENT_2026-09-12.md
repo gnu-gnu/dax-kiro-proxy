@@ -77,8 +77,10 @@ and dropped cleanup; the focused race checks now pass. Account command execution
 startup without instructing login, while completed nonzero exits and invalid identity keep the
 existing login-check failure. The four finite process controls join ownership and preserve source
 settings. All 27 race-tested packages, full vet and the three actual-Claude/local-fake core
-controls pass (25.363s). Installation and independent review remain pending. Other preflight
-stages and the catalog-postamble candidate are separate. No actual Kiro model ran.
+controls pass (25.363s). The clean `497e0e1` artifact is installed as `account-check`, with 144
+byte checks, 18 component checks and doctor passing on its first invocation. Independent review
+remains pending. Other preflight stages and the catalog-postamble candidate are separate. No actual
+Kiro model ran.
 
 ## 1. State you inherit
 
