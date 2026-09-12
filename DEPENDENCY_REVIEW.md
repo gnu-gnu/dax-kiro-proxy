@@ -1203,5 +1203,8 @@ Candidate and strictly resolved installed binaries each pass all 144 byte checks
 first invocation, verifying measured Kiro 2.21.3/Claude 2.1.269, login/policy and launch
 availability (`d131-installed-doctor.json`). Client initialization remains unverified and
 release clearance remains false. D125 advisory scans remain historical; no new scan or actual
-Kiro model turn ran. Independent review remains pending. Owner rights stay outside this
-repository under D121.
+Kiro model turn ran. Independent review accepts `ac71b58` without an actionable finding and
+independently verifies candidate, installed and retained binaries (144 checks each), all 18
+component checks, embedded build metadata and all 105 committed production inputs. Dependency
+records remain unchanged. No production fix or refreeze is needed. Owner rights stay outside
+this repository under D121.

@@ -6575,5 +6575,14 @@ all 18 component checks pass (`d131-freeze.log`, `d131-installed-verify.log`,
 invocation passes, with login_check 3.733s, measured Kiro 2.21.3/Claude 2.1.269, verified
 login/policy and launch available (`d131-installed-doctor.json`,
 `d131-installed-doctor-timing.log`). Client initialization remains unverified and release clearance
-stays false. No new advisory scan, login/logout or Kiro model request ran. Independent review
-remains pending.
+stays false. No new advisory scan, login/logout or Kiro model request ran.
+
+Fresh-context independent review accepts `ac71b58` with no actionable finding
+(`d131-independent-review.md`). It checks classification and cause precedence, fixed diagnostics,
+startup admission/cleanup, fixture independence and bounds, non-vacuous partial-output rejection,
+CLI result classes, documentation limits and artifact identity. Focused fixture race checks pass
+for launcher 10.567s and command 1.463s. Candidate, strictly resolved installation and retained
+D131 copy each pass 144 byte checks; all 18 component checks pass. The reviewer also verifies
+embedded build metadata and all 105 input records against the clean code commit. Native/doctor
+logs are inspected without rerunning either; the empty vet log's successful exit remains
+parent-verified. No production fix, refreeze or additional installed-client/model run is needed.

@@ -16,10 +16,11 @@ known-deadline cause preservation, with independent review complete. D130 instal
 request-limit completion mapping, with independent review complete. The 2.1.267 statements
 in sections 3, 4 and 6 describe the state as of 2026-09-11.
 
-D131 is in progress on the account-command diagnostic/cleanup defect in the later handoff's
+D131 fixes the account-command diagnostic/cleanup defect in the later handoff's
 item 9. Independent process controls, all 27 race-tested packages, full vet and the three native
 core controls pass. D131 is installed as `account-check`, with 144 byte checks, 18 component
-checks and doctor passing on its first invocation. Independent review remains pending.
+checks and doctor passing on its first invocation. Independent review accepts `ac71b58` with no
+actionable finding or refreeze; focused race and artifact checks pass independently.
 
 ## 1. Scope and branch state
 
