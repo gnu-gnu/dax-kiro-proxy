@@ -136,7 +136,7 @@ func (r *round) Next(ctx context.Context) (inference.Event, error) {
 		var relayReady, relayDone <-chan struct{}
 		if t.broker != nil {
 			if t.broker.Stats().Queued > 0 {
-				batch, err := t.broker.Seal()
+				batch, err := r.sealTools()
 				if err != nil {
 					return inference.Event{}, err
 				}
@@ -165,6 +165,34 @@ func (r *round) Next(ctx context.Context) (inference.Event, error) {
 		}
 	}
 }
+
+func (r *round) sealTools() (relay.Batch, error) {
+	t := r.turn
+	d := t.driver
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if d.current != t || d.closed || d.state != Prompting {
+		return relay.Batch{}, context.Canceled
+	}
+	batch, err := t.broker.Seal()
+	if err != nil {
+		return relay.Batch{}, err
+	}
+	content, ids, err := assistantContent(r.text.String(), batch.Calls)
+	if err != nil {
+		return relay.Batch{}, acp.ErrProtocol
+	}
+	pending, err := d.hasher.Complete(t.plan, content)
+	if err != nil {
+		return relay.Batch{}, acp.ErrProtocol
+	}
+	// Retain only a candidate until Finish confirms delivery. An intervening abort can report its
+	// terminal error to the exact history/IDs without admitting results or committing idle history.
+	t.pendingHistory = pending
+	t.lastIDs = ids
+	return batch, nil
+}
+
 func (r *round) notification(event acp.Notification) (inference.Event, error) {
 	t := r.turn
 	if event.SessionID != "" && event.SessionID != t.id {
@@ -228,16 +256,6 @@ func (r *round) Finish() {
 			t.complete(text)
 			return
 		}
-		content, ids, err := assistantContent(text, batch.Calls)
-		if err != nil {
-			t.abort(acp.ErrProtocol)
-			return
-		}
-		pending, err := t.driver.hasher.Complete(t.plan, content)
-		if err != nil {
-			t.abort(acp.ErrProtocol)
-			return
-		}
 		d := t.driver
 		d.mu.Lock()
 		if d.current != t || d.closed {
@@ -245,10 +263,8 @@ func (r *round) Finish() {
 			t.abort(context.Canceled)
 			return
 		}
-		t.pendingHistory = pending
-		t.lastIDs = ids
 		d.state = WaitingTools
-		err = t.broker.Delivered(batch.Number)
+		err := t.broker.Delivered(batch.Number)
 		d.mu.Unlock()
 		if err != nil {
 			t.abort(err)
@@ -307,6 +323,7 @@ func (t *turn) complete(text string) {
 }
 func (t *turn) abort(reason error) {
 	t.settle.Do(func() {
+		reason = t.abortReason(reason)
 		close(t.released)
 		t.cancelOwned()
 		cleanupErr := closeRelay(t.socket, t.broker)
@@ -324,7 +341,7 @@ func (t *turn) abort(reason error) {
 		if d.current != t {
 			return
 		}
-		if d.state == WaitingTools {
+		if !d.closed && len(t.lastIDs) > 0 {
 			d.outcome = &terminalOutcome{compat: t.compat, ids: append([]string(nil), t.lastIDs...), pending: t.pendingHistory, err: reason, expires: time.Now().Add(5 * time.Minute)}
 		}
 		d.current = nil
@@ -336,4 +353,20 @@ func (t *turn) abort(reason error) {
 			d.state = Unstarted
 		}
 	})
+}
+
+func (t *turn) abortReason(reason error) error {
+	if errors.Is(reason, acp.ErrAuthentication) {
+		return reason
+	}
+	// A recorded tool deadline is the more specific failure; otherwise preserve an expired turn.
+	// Prompt completion after relay expiry may already have been reclassified as a protocol error.
+	// Inspect before cleanup cancels the owner and closes a still-healthy relay.
+	if t.broker != nil && errors.Is(t.broker.Err(), relay.ErrTimeout) {
+		return relay.ErrTimeout
+	}
+	if errors.Is(t.owned.Err(), context.DeadlineExceeded) {
+		return context.DeadlineExceeded
+	}
+	return reason
 }

@@ -177,6 +177,12 @@ The next client request must return all and only the tool-result IDs in that res
 successfully delivered batch. Later relay calls remain queued for a subsequent response. Validate
 the complete result set and final encoded result sizes before completing any suspended call.
 
+If retirement races response finalization, a result-only retry may instead observe the scoped
+terminal failure for the sealed candidate (D129). It must match the complete IDs, compatible
+owner/policy and the same history-extension/standing-suffix proof as normal continuation. This
+never resolves a retired relay call or establishes successful tool execution. The existing
+all-denial/new-question recovery proof remains available after joined retirement.
+
 A result-only request with an exact repeated standing system suffix and unchanged registry continues
 the same ACP prompt. So does a result-only request whose suffix is one nonempty text-only system
 message replacing a one-message standing sequence: the pending prompt keeps the instruction it

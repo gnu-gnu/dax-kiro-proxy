@@ -266,6 +266,19 @@ Relay cancellation checks the exact pending call under the same lock as result r
 work. Cancellation before resolution retains complete prompt retirement, including queued,
 sealed and delivered calls; it does not selectively remove a delivered tool ID.
 
+D129 records the sealed batch's candidate history digests and IDs under the retirement lock before
+exposing it. This does not commit idle history or enter waiting-for-tools; successful response
+finalization still authorizes normal result delivery. An intervening abort retains the candidate's
+terminal error. Result-only retries must prove the same compatible owner, complete IDs and history
+extension/standing suffix as active continuation. The existing all-denial/new-question proof can
+start fresh work after joined retirement; a late old Finish cannot replace that new owner.
+
+Settlement captures known failure state before cleanup changes it: confirmed authentication wins,
+then an already-recorded tool deadline, then an expired owned-turn deadline, then the supplied
+failure. An authentication class confirmed during joined backend cleanup retains its precedence.
+Once recorded, matching retries see the same outcome until the existing five-minute expiry or
+a new turn. An ordinary cancellation with no prior deadline stays cancellation.
+
 Validated progress from the active owned prompt satisfies only the first-event wait (D127). It
 does not advance conversation history, publish tools, count as visible output or extend the original
 turn deadline. Streaming heartbeat scheduling remains independent of silent progress notifications.

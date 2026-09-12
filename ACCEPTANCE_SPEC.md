@@ -277,6 +277,15 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
   until it expires or a new turn starts (D122). Missing, duplicate, partial, successful, cross-owner
   or divergent results reject on this all-denial/retired-outcome path without consuming recovery
   ownership; active D73 continuations follow the separate rule above.
+- Retain the scoped terminal outcome when a sealed tool response is canceled before Finish,
+  including after the final HTTP bytes are written (D129). Results stay busy before successful
+  finalization. After retirement, require compatible owner/policy, complete IDs and the same
+  history-extension/standing-suffix proof as active continuation; altered or assistant-only
+  history rejects without consuming the outcome. Verify repeated matching retries, multiple
+  calls, five-minute expiry, fresh all-denial/new-question recovery and late Finish isolation.
+  At settlement, confirmed authentication takes precedence over an already-recorded tool deadline,
+  then an expired owned-turn deadline, then the supplied failure. Cleanup cannot create a new
+  primary deadline or overwrite the retained outcome.
 - Cancellation and timeout resolve all suspended relay calls and remove owner-only socket/config data.
 - A resolved relay call's late cancellation or timer cannot retire queued, sealed, delivered or
   next-turn work (D128). Preserve its exact committed result. Cancellation of an unresolved call
