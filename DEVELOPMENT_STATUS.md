@@ -16,8 +16,10 @@ does not redefine completion around an intermediate phase.
   and full vet pass. Actual-client dialect controls pass all four arms, with exact schemas,
   registry/worker validation and one joined MCP call each. Cancellation, result continuation
   and the default-client refusal control also pass (13.194s combined). All six existing native
-  tool-policy cases pass separately (17.985s). Artifact/review verification follows. No actual
-  Kiro model ran.
+  tool-policy cases pass separately (17.985s). The clean cc297b4 artifact is installed as
+  schema-dialects (144 byte checks, 18 component checks). Doctor verifies the measured pair,
+  login/policy and launch availability on its first invocation; initialization stays unverified.
+  Independent review follows. No actual Kiro model ran.
 
 - D131 on d131-account-check (base 14a0478) fixes account-command deadlines and
   execution failures being reported as login failures, with their cleanup causes lost. The error

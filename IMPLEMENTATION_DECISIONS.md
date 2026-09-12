@@ -6657,3 +6657,15 @@ recorded process/config ownership is joined. This completes the applicable exist
 no actual Kiro, login/logout or credit-consuming request runs. The four-arm schema observation
 and these unchanged relay controls provide distinct evidence; no new full backend-dialect
 measurement is claimed. Artifact and independent review follow.
+
+The clean `cc297b40a23d8ed4b5287a696cff5513feb780b1` artifact is rebuilt, frozen and installed as
+`schema-dialects`: 13,694,946 bytes, SHA-256
+`a101bd21d1a68e17b7f04f5207ea04109a021c4ff0be15aaf1a2bb018ca3736f`, vcs.modified=false.
+Only internal/schemawire/input.go changes among the same 105 production inputs. All 267 ordered
+packages, selected/native/vendor files, four external modules and notices remain unchanged.
+Candidate and strictly resolved installed binaries pass all 144 byte checks; all 18 component
+checks pass (`d132-freeze.log`, `d132-installed-verify.log`, `d132-components.log`). Install
+--force succeeds (`d132-install.log`). The first installed doctor invocation verifies measured
+Kiro 2.21.3/Claude 2.1.269, login/policy and launch availability, with login_check 3.776s
+(`d132-installed-doctor.json`, `d132-installed-doctor-timing.log`). Client initialization remains
+unverified and release clearance remains false. No new advisory scan or Kiro model request ran.

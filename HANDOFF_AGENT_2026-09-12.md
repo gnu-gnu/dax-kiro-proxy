@@ -89,8 +89,9 @@ those owned tools, while the former registry rejects them. The bounded input gat
 those declared drafts plus 2020-12 without rewriting them. Independent semantic/identity/limit
 controls, all 27 race-tested packages and full vet pass. Four native dialect arms, cancellation,
 result continuation, default-client refusal and all six tool-policy cases pass sequentially.
-Artifact freeze and independent review follow. No actual Kiro model ran; personal memory and
-other core candidates remain separate.
+The clean cc297b4 artifact is installed as schema-dialects (144 byte checks, 18 component
+checks, doctor verified on its first invocation). Independent review follows. No actual Kiro
+model ran; personal memory and other core candidates remain separate.
 
 ## 1. State you inherit
 
