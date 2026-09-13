@@ -18,6 +18,9 @@ does not redefine completion around an intermediate phase.
   the earlier startup failure's cause and actual client approval-wait behavior remain unknown.
   The approval is consumed and the result log is preserved. No implementation, dependency or
   installed D138 change, additional native run or new model invocation is made.
+  Fresh-context independent review accepts 4e56ff6 without an actionable finding. Exact log
+  facts, scope, approval state, private log permissions and diff whitespace are verified;
+  no already-passed test or native invocation is repeated for this document-only batch.
 
 - D141 on d141-mcp-timeout-observation (base f87688a) records the user's approval and the
   first D134 invocation. It stops at ACP initialization before session/new or session/prompt
