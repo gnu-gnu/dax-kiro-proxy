@@ -7267,11 +7267,13 @@ record that it succeeded. The invocation is not silently retried.
 One existing no-prompt baseline, TestKiroPinnedACPInitializationOnly, stops earlier at account
 preflight (case 2.28s, package 2.541s, `d141-initialize-only-baseline.log`). A subsequently
 authored read-only observer calls whoami once and ACP initialize once, without session/new or
-session/prompt. Its short-root observation initializes in 2138ms; its long-layout observation
-initializes in 2026ms with a 112-byte scratch path. Both use an unused /usr/bin/false MCP
-command instead of the prepared timing peer. Both record zero sessions/prompts, unchanged
-owned sources, joined account/ACP ownership and removed private artifacts. They do not rerun
-the exact failed harness, prove its startup will succeed next time or identify its cause.
+session/prompt. Both the short-root and long-layout observations initialize successfully;
+their recorded spans are 2138ms and 2026ms, with a 112-byte scratch path in the latter.
+The log's initialize_ms field includes initialization, process shutdown, source checks and
+artifact removal; it is not an isolated initialization latency. Both use an unused
+/usr/bin/false MCP command instead of the prepared timing peer. Both record zero sessions/prompts,
+unchanged owned sources, joined account/ACP ownership and removed private artifacts. They do
+not rerun the exact failed harness, prove its startup will succeed next time or identify its cause.
 The long-layout account output has a first JSON object with the four known string fields
 and a 99-byte/five-newline tail; whole-output JSON decoding is false because of that tail.
 This does not recover the earlier preflight's output. Neither an expired account nor a

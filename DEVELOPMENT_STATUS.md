@@ -10,8 +10,9 @@ does not redefine completion around an intermediate phase.
   first D134 invocation. It stops at ACP initialization before session/new or session/prompt
   (3.34s case, 4.171s package); the second case does not run. No timeout hypothesis is established.
   A separate existing initialize-only control fails at account preflight (2.541s package).
-  Subsequent read-only observations initialize successfully in short and long owned layouts
-  (2138ms/2026ms), with zero sessions/prompts, unchanged owned sources and joined cleanup.
+  Subsequent read-only observations initialize successfully in short and long owned layouts,
+  with zero sessions/prompts, unchanged owned sources and joined cleanup. Their recorded
+  2138ms/2026ms spans include initialization, process shutdown and artifact/source checks.
   Their unused MCP command is /usr/bin/false; they do not execute the D134 peer or establish
   the original failure's cause. The long-layout account output has a first JSON object with
   the four known string fields and a trailing postamble; it does not prove the earlier

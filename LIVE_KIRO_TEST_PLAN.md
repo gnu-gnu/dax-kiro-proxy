@@ -2341,7 +2341,9 @@ timeout arm reaches a tools/call observation. Do not interpret this as evidence 
 MCP timeout field works or fails, or as authorization for another invocation.
 
 A separate existing initialize-only control stops at account preflight in 2.541s. Two later
-bounded read-only observations initialize successfully in 2138ms and 2026ms, respectively.
+bounded read-only observations initialize successfully. Their recorded 2138ms and 2026ms
+spans include initialization, process shutdown, source checks and artifact removal; the
+log's initialize_ms field does not measure initialization latency alone.
 They use short and long owned layouts (the latter has a 112-byte scratch path), the same
 agent name/alias and environment shape, and an unused /usr/bin/false MCP entry. Neither
 creates a session, starts the prepared timing peer or calls the model. Both join their
