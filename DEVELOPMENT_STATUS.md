@@ -18,6 +18,9 @@ does not redefine completion around an intermediate phase.
   default timeout value, the full 15-minute client allowance, one-hour maximum or actual
   client approval/refusal/hook behavior. No premature failure is reproduced in this call.
   Production/dependencies/installed D138 remain unchanged. No further model run is authorized.
+  Independent review accepts fa1e661 after correcting the byte count to params payload,
+  excluding JSON-RPC envelopes. Exact log facts, scope, private permissions and diff whitespace
+  pass review; no test rerun or implementation change is needed for this document-only batch.
 
 - D143 on d143-mcp-timeout-contract (base eda3c66) narrows the timeout configuration contract
   through non-model inspection. The 2.21.3 helper advertises --timeout in milliseconds but

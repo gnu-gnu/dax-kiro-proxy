@@ -7446,3 +7446,9 @@ This single-run approval is consumed. No retry, second model prompt, additional 
 diagnostic, account command, login/logout or user-process operation follows it. Only the
 four evidence documents change; previously passing local tests are not repeated and no
 production, dependency, build, freeze or installation change is required.
+
+Fresh-context independent review accepts fa1e661 after one documentation correction: the
+2989-byte counter measures notification params payload, not JSON-RPC envelopes. All four
+records now state that scope. The reviewer confirms the full structural log, relevant code,
+finite conclusions, consumed approval, unchanged production inputs and mode 0600. Diff
+whitespace passes. No further finding, test rerun or production correction is required.

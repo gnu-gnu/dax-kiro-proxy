@@ -289,6 +289,8 @@ This one 135-second wait does not reproduce early native failure. It does not de
 default or prove the entire 15-minute client wait, one-hour maximum or actual permissions UI.
 Keep production unchanged; no timeout defect is established by this result. Personal root
 memory/rule-exclusion preservation and the remaining actual Kiro gates remain open.
+Independent review accepts fa1e661 after clarifying that notification bytes count only
+params payload. No further finding, test rerun, code change or artifact refreeze is needed.
 
 ## 1. State you inherit
 
