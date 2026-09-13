@@ -11,7 +11,7 @@ does not redefine completion around an intermediate phase.
   no --request-timeout. Its validator reports invalid types for a string timeout and malformed
   command, despite exit zero; requestTimeout accepts both tested types like an unknown field.
   Its owned-agent rewrite preserves timeout 1500 and drops requestTimeout and the unknown
-  control. The settings catalog lists initialization options, not a per-call timeout option.
+  control. The settings catalog's three mcp.* identifiers expose no per-call timeout option.
   These are parser/writer/help facts, not proof of the ACP engine's effective call limit.
   Current CLI 3 documentation does not establish that limit on engine v2. No product setting
   or installed D138 artifact changes. All sixteen finite native commands join and remove their
@@ -24,6 +24,9 @@ does not redefine completion around an intermediate phase.
   Focused local race passes in 1.874s/1.365s after correcting a test compile error; related
   vet passes. No native invocation or model approval is inferred from these local checks.
   The complete interop and peer race suites pass in 39.477s/1.346s with native opt-ins off.
+  Fresh-context review accepts b0a8710 without an actionable finding; independent focused race
+  passes in 1.358s/1.366s, related vet and 144 installed/current byte checks also pass. Parent
+  installed/current checks likewise pass 144; release clearance remains false.
 
 - D142 on d142-mcp-timeout-retry (base 7b809a5) records the user's explicit retry approval
   after reporting login. The prepared D141 follow-up runs once (16.68s case, 17.623s package).

@@ -274,6 +274,9 @@ the user's request to continue non-model investigation does not approve this new
 Local race controls pass in 1.874s/1.365s after a test compile correction; related vet passes.
 Production/dependencies/installed D138 stay unchanged. Personal instruction preservation and
 the other actual Kiro gates remain open.
+Complete interop/peer race passes in 39.477s/1.346s. Independent review accepts b0a8710 with
+no actionable finding; focused race 1.358s/1.366s, related vet and 144 installed/current checks
+pass independently. Parent inventory also passes 144. The prepared model test remains unrun.
 
 ## 1. State you inherit
 

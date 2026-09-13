@@ -7356,7 +7356,7 @@ All exit zero. String timeout and the malformed command emit invalid-type diagno
 the other five emit no output. Exit zero alone therefore does not establish configuration
 validity. All seven input files remain unchanged. The settings list is valid JSON and its
 MCP identifiers are mcp.initTimeout, mcp.noInteractiveTimeout and mcp.loadedBefore. This
-advertised catalog exposes no per-call option; it is not proof that no other interface exists.
+set of mcp.* identifiers exposes no per-call option; it does not rule out another interface.
 
 One native mcp add rewrite of an owned agent retains timeout 1500 while dropping requestTimeout
 1500 and the arbitrary field. Both MCP entries remain disabled /usr/bin/false commands.
@@ -7407,3 +7407,10 @@ Only test/fixture/documents change, so the installed D138 artifact requires no r
 The complete interop and peer race suites also pass in 39.477s/1.346s with all actual-client
 and Kiro opt-ins disabled (d143-interop-race.log); focused results are in
 d143-local-controls-fixed.log and related vet exits zero in d143-vet.log.
+
+Fresh-context independent review accepts b0a8710 without an actionable finding. It checks
+all changed code, the complete four native logs, three observers, local failure/pass logs and
+the public-version caveat. Focused race passes independently in 1.358s/1.366s, related vet and
+diff whitespace pass, and strictly resolved installed/current inputs pass all 144 byte checks.
+Parent installed/current inputs also pass 144 (d143-inventory.log), with release clearance
+false. No model/native invocation, code correction or artifact refreeze follows review.
