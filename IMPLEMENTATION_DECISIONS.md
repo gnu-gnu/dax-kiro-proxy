@@ -7427,7 +7427,8 @@ configured_ms=0 is a placeholder accompanying timeout_present=false, not a confi
 
 One independent MCP call returns after its planned 135-second delay and receives correlated
 ACP completed status at 135006ms after receipt. The prompt completes with end_turn. Seventeen
-notifications total 2989 bytes. Peer started, initialize_sent, initialized_notice, list_sent,
+notifications contain 2989 bytes of params payload, excluding JSON-RPC envelope bytes.
+Peer started, initialize_sent, initialized_notice, list_sent,
 call_received, call_sent and input_closed each occur once. No cancellation or late-reply
 event is recorded. The owned ACP group and recorded peer join, owned configuration is
 unchanged and temporary artifacts are removed; established=true. Full structural evidence

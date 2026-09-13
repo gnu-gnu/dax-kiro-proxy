@@ -281,7 +281,7 @@ pass independently. Parent inventory also passes 144. No model test ran during D
 D143 merged as 9db4035. D144 on d144-mcp-default-wait-result runs the exact prepared command
 once on explicit user approval. The sole owned MCP call, with both timeout fields omitted,
 receives correlated completed status at 135006ms. The case passes in 148.88s, package in
-149.730s, exit zero. Seventeen notifications total 2989 bytes; the seven expected peer
+149.730s, exit zero. Seventeen notifications contain 2989 bytes of params payload; the seven peer
 events occur once, with no cancellation or late reply. Recorded groups join, owned sources
 are unchanged and private artifacts are removed. Preserve d143-live-mcp-default-wait.log;
 the approval is consumed and no further model invocation is authorized.

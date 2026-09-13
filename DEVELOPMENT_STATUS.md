@@ -9,8 +9,8 @@ does not redefine completion around an intermediate phase.
 - D144 on d144-mcp-default-wait-result (base 9db4035) records one explicitly approved
   TestKiroLiveMCPDefaultWaitObservation invocation. The 2.21.3 main/helper gate, restricted
   inventory and auto selection pass. With both timeout fields omitted, the sole MCP call
-  completes at correlated ACP status 135006ms after receipt. Seventeen notifications total
-  2989 bytes; all seven expected peer lifecycle events occur once, with no cancellation or
+  completes at correlated ACP status 135006ms after receipt. Seventeen notifications contain
+  2989 bytes of params payload; all seven expected peer events occur once, with no cancellation or
   late reply. Recorded groups join, owned configuration stays unchanged and artifacts are
   removed. The case passes in 148.88s, package in 149.730s, exit zero; no retry occurs.
   This executes the extended peer entry point and delayed response, but does not trigger its

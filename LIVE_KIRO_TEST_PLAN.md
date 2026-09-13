@@ -2472,7 +2472,8 @@ one prompt and observes one tool call. Both timeout fields are omitted; configur
 in the log is an absent-value placeholder, not a server configured with zero timeout.
 
 The owned peer responds after 135 seconds. Correlated ACP completed status arrives 135006ms
-after MCP receipt, and the prompt ends normally. Seventeen notifications total 2989 bytes.
+after MCP receipt, and the prompt ends normally. Seventeen notifications contain 2989 bytes
+of params payload, excluding JSON-RPC envelopes.
 The seven expected peer events each occur once; no cancellation or late reply is recorded.
 Recorded groups join, owned sources are unchanged and private artifacts are removed.
 The case passes in 148.88s, package in 149.730s, exit zero. Preserve the 0600 structural log
