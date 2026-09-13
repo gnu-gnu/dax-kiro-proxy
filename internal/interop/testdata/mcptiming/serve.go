@@ -29,7 +29,11 @@ func requestKey(raw json.RawMessage) (string, bool) {
 }
 
 func serve(ctx context.Context, input io.ReadCloser, output io.Writer, tool string, delay time.Duration, mark func(string) bool) bool {
-	if !member(tool) || delay <= 0 || delay > 10*time.Second {
+	return serveWithin(ctx, input, output, tool, delay, 10*time.Second, mark)
+}
+
+func serveWithin(ctx context.Context, input io.ReadCloser, output io.Writer, tool string, delay, maximum time.Duration, mark func(string) bool) bool {
+	if !member(tool) || delay <= 0 || delay > maximum || maximum != 10*time.Second && maximum != 135*time.Second {
 		return false
 	}
 	ctx, cancel := context.WithCancel(ctx)

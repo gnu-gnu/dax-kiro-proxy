@@ -2404,3 +2404,61 @@ repeat the same pair on this evidence. First identify the supported configuratio
 through permitted documentation or bounded non-model black-box inspection. Any future model
 experiment needs a concrete design and fresh per-run approval; none is authorized or prepared
 by this record. No implementation or installed artifact changes are needed for this result.
+
+## D143: One default MCP wait, prepared but not approved or run
+
+Non-model helper observations describe --timeout in milliseconds but do not establish a
+per-call limit. The native writer preserves timeout and drops requestTimeout like an unknown
+field; the current CLI 3 configuration documentation cannot supply engine-v2 semantics.
+Do not retry the D134 pair or apply an unverified field to production. IMPLEMENTATION_DECISIONS.md
+D143 records the full helper/validator/catalog/writer evidence, including failed commands.
+
+TestKiroLiveMCPDefaultWaitObservation instead admits exactly one fresh ACP prompt with timeout
+and requestTimeout omitted, matching production's server configuration. The sole owned MCP
+tool waits 135 seconds before returning fixed text. This is a bounded observation window,
+not an assumed default. The exact prompt remains:
+
+> Independent protocol timing exercise. Call owned_wait exactly once with an empty object.
+> Do not use another tool, inspect files or configuration, or retry.
+> After the call succeeds or fails, finish with a short statement of its status.
+
+Both binaries must report 2.21.3; only advertised auto is selected. The owned workspace,
+isolated KIRO_HOME, empty resources/hooks, includeMcpJson=false, sole allowed alias,
+unadvertised client execution capabilities and denied permission requests are unchanged.
+The MCP tool has no client file, shell or network effect. No user project, Claude process
+or conversation data is supplied. One prompt is not a provider-billed call or cost bound.
+
+The peer build is bounded at 60 seconds; the single episode at 230 seconds. Version checks
+each allow five seconds, setup twenty, inventory five and model selection five. The original
+prompt has 180 seconds including four seconds of observation after its response. The explicit
+default-wait-135s profile gives the peer a 230-second context and 235-second outer exit timer.
+It still admits 32 frames of 64 KiB, sixteen request IDs, one tool call and 96 witness records.
+ACP observation still allows 256 notifications, 64 KiB each and 1 MiB total. Witness parsing
+retains the 100ms clock-drift check. The Go test outer limit is six minutes. No retries occur.
+
+Pass requires the sole correlated completed status after the peer's measured 135-second reply,
+with no cancellation, changed source or incomplete cleanup. A failed status at least 200ms
+before the planned reply is early_failure; no default timeout or failure cause is inferred.
+Other missing/foreign/excess evidence is inconclusive. Both outcomes fail the test. If failure
+ends the prompt early, cleanup may precede the scheduled reply; this does not establish late
+reply behavior. A pass measures only one 135-second call, not all waits up to the product's
+15-minute default or one-hour maximum, and not actual approval/refusal/hook behavior.
+
+Focused local race controls pass in 1.874s/1.365s and related vet passes. They cover independent
+correlated/invalid event sequences, extended lifetime admission, one-shot dispatch and pending
+timer cleanup. They do not execute the new profile with actual Kiro or its process entry point.
+
+This exact single invocation is **unapproved and unrun**. Fresh per-run user approval is required
+by HANDOFF_AGENT_2026-09-12.md. Preserve all earlier logs and do not automatically retry it.
+
+```sh
+umask 077
+set -o noclobber
+GOTOOLCHAIN=go1.27.1 GOMODCACHE="$PWD/.cache/gomod" GOCACHE="$PWD/.cache/gobuild" \
+  DAX_INTEROP_CLAUDE_BINARY= \
+  DAX_INTEROP_KIRO_BINARY=/Users/geunwooshim/.local/bin/kiro-cli \
+  DAX_INTEROP_KIRO_CREDIT_OPT_IN=1 \
+  DAX_FIXTURE_BATCH_WAVES= DAX_INTEROP_TOOL_SOAK_ROUNDS= DAX_INTEROP_TOOL_SOAK_INTERVAL_MS= \
+  go test ./internal/interop -run '^TestKiroLiveMCPDefaultWaitObservation$' \
+  -count=1 -v -timeout 6m > .cache/history-review/d143-live-mcp-default-wait.log 2>&1
+```

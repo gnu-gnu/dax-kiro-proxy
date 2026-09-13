@@ -218,3 +218,46 @@ func TestPeerRejectsWireAndLedgerExcess(t *testing.T) {
 		})
 	}
 }
+
+func TestDefaultWaitPeerReleasesPendingLongCallOnShutdown(t *testing.T) {
+	client, server := net.Pipe()
+	ctx, cancel := context.WithTimeout(t.Context(), 2*time.Second)
+	w := &wireControl{conn: client, reader: bufio.NewReader(client), done: make(chan bool, 1), cancel: cancel}
+	go func() {
+		w.done <- serveWithin(ctx, server, server, "owned_wait", 135*time.Second, 135*time.Second, func(kind string) bool { w.events = append(w.events, kind); return true })
+	}()
+	t.Cleanup(func() { w.finish(t) })
+	w.prepare(t)
+	w.send(t, request("call-request", "tools/call", map[string]any{"name": "owned_wait", "arguments": map[string]any{}}))
+	w.send(t, request("barrier", "ping", map[string]any{}))
+	w.read(t, "barrier")
+	if !w.finish(t) {
+		t.Fatal("long wait did not join on shutdown")
+	}
+	counts := map[string]int{}
+	for _, kind := range w.events {
+		counts[kind]++
+	}
+	if counts["call_received"] != 1 || counts["call_sent"] != 0 || counts["late_call_sent"] != 0 {
+		t.Fatal("pending long call was not preserved until shutdown")
+	}
+}
+
+func TestDefaultWaitPeerRequiresExactObservationProfile(t *testing.T) {
+	for _, cfg := range []configuration{
+		{DelayMilliseconds: 135000},
+		{DelayMilliseconds: 135000, Observation: "unknown"},
+		{DelayMilliseconds: 3000, Observation: "default-wait-135s"},
+		{DelayMilliseconds: 135001, Observation: "default-wait-135s"},
+	} {
+		if _, _, _, ok := peerBounds(cfg); ok {
+			t.Fatal("unapproved peer lifetime admitted")
+		}
+	}
+	for _, cfg := range []configuration{{DelayMilliseconds: 3000}, {DelayMilliseconds: 135000, Observation: "default-wait-135s"}} {
+		limit, outer, delay, ok := peerBounds(cfg)
+		if !ok || outer <= limit || delay >= limit || outer > 235*time.Second {
+			t.Fatal("invalid peer observation envelope")
+		}
+	}
+}

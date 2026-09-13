@@ -35,7 +35,11 @@ type mcpTimingProbe struct {
 
 // The same single-use dispatcher is used by live observation and independent guard controls.
 func (p *mcpTimingProbe) exercise(ctx context.Context, client timingACP, session string, limit, tail time.Duration) error {
-	if !p.attempted.CompareAndSwap(false, true) || session == "" || limit <= 0 || limit > 45*time.Second || tail < 0 || tail > 4*time.Second || tail >= limit {
+	return p.exerciseWithin(ctx, client, session, limit, tail, 45*time.Second)
+}
+
+func (p *mcpTimingProbe) exerciseWithin(ctx context.Context, client timingACP, session string, limit, tail, maximum time.Duration) error {
+	if !p.attempted.CompareAndSwap(false, true) || session == "" || limit <= 0 || limit > maximum || maximum != 45*time.Second && maximum != 180*time.Second || tail < 0 || tail > 4*time.Second || tail >= limit {
 		return errMCPTiming
 	}
 	selection, stop := context.WithTimeout(ctx, 5*time.Second)
@@ -176,7 +180,11 @@ type mcpTimingMark struct {
 }
 
 func timingMarks(data []byte, group int) ([]mcpTimingMark, error) {
-	if len(data) == 0 || len(data) > 32<<10 {
+	return timingMarksWithin(data, group, 75*time.Second)
+}
+
+func timingMarksWithin(data []byte, group int, lifetime time.Duration) ([]mcpTimingMark, error) {
+	if len(data) == 0 || len(data) > 32<<10 || lifetime != 75*time.Second && lifetime != 235*time.Second {
 		return nil, errMCPTiming
 	}
 	lines := bytes.Split(bytes.TrimSpace(data), []byte("\n"))
@@ -186,7 +194,7 @@ func timingMarks(data []byte, group int) ([]mcpTimingMark, error) {
 	marks := make([]mcpTimingMark, 0, len(lines))
 	for i, line := range lines {
 		var m mcpTimingMark
-		if json.Unmarshal(line, &m) != nil || m.PID <= 1 || group <= 1 || m.Group != group || m.Seq != i+1 || m.Nanos < 0 || m.Nanos > int64(75*time.Second) || m.UnixNano <= 0 {
+		if json.Unmarshal(line, &m) != nil || m.PID <= 1 || group <= 1 || m.Group != group || m.Seq != i+1 || m.Nanos < 0 || m.Nanos > int64(lifetime) || m.UnixNano <= 0 {
 			return nil, errMCPTiming
 		}
 		switch m.Kind {
@@ -204,6 +212,35 @@ func timingMarks(data []byte, group int) ([]mcpTimingMark, error) {
 		marks = append(marks, m)
 	}
 	return marks, nil
+}
+
+// An early failure identifies a native terminal before the planned reply, not its cause.
+func defaultWaitEvidence(marks []mcpTimingMark, p *mcpTimingProbe) (int64, string) {
+	counts := map[string]int{}
+	var received, sent mcpTimingMark
+	for _, m := range marks {
+		counts[m.Kind]++
+		if m.Kind == "call_received" {
+			received = m
+		}
+		if m.Kind == "call_sent" || m.Kind == "late_call_sent" {
+			sent = m
+		}
+	}
+	if !p.Completed || p.Calls != 1 || p.terminalAt.IsZero() || counts["started"] != 1 || counts["initialize_sent"] != 1 || counts["initialized_notice"] != 1 || counts["list_sent"] != 1 || counts["call_received"] != 1 || counts["input_closed"] != 1 || counts["call_sent"]+counts["late_call_sent"] > 1 || counts["call_rejected"] != 0 || counts["lifetime_closed"] != 0 || counts["foreign_cancel"] != 0 || counts["repeated_cancel"] != 0 || counts["after_result_cancel"] != 0 || counts["call_cancelled"] > 1 {
+		return 0, "inconclusive"
+	}
+	if sent.Seq != 0 && (sent.Seq <= received.Seq || sent.Nanos-received.Nanos < int64(135*time.Second)) {
+		return 0, "inconclusive"
+	}
+	elapsed := (p.terminalAt.UnixNano() - received.UnixNano) / int64(time.Millisecond)
+	if p.Terminal == "failed" && elapsed >= 0 && elapsed < 134800 && (sent.Seq == 0 || p.terminalAt.UnixNano() < sent.UnixNano-int64(200*time.Millisecond)) {
+		return elapsed, "early_failure"
+	}
+	if p.Terminal == "completed" && counts["call_sent"] == 1 && counts["late_call_sent"] == 0 && counts["call_cancelled"] == 0 && elapsed >= 134900 && p.terminalAt.UnixNano() >= sent.UnixNano-int64(100*time.Millisecond) {
+		return elapsed, "completed"
+	}
+	return elapsed, "inconclusive"
 }
 
 // A model's prose is never evidence. Only the sole owned MCP call and correlated ACP status count.

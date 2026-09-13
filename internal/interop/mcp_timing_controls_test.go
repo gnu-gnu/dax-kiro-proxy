@@ -181,3 +181,79 @@ func TestMCPTimingEvidenceRejectsAmbiguity(t *testing.T) {
 		})
 	}
 }
+
+func TestMCPDefaultWaitDistinguishesCompletionEarlyFailureAndMissingEvidence(t *testing.T) {
+	for _, mode := range []string{"completed", "early-failure", "late-failure", "missing-call", "early-reply", "foreign-cancel", "clock-shift", "no-completion"} {
+		t.Run(mode, func(t *testing.T) {
+			base := time.Now().Add(-140 * time.Second)
+			marks := []mcpTimingMark{}
+			for i, kind := range []string{"started", "initialize_sent", "initialized_notice", "list_sent", "call_received", "call_sent", "input_closed"} {
+				nanos := time.Duration(i) * time.Millisecond
+				if i >= 5 {
+					nanos += 135 * time.Second
+				}
+				marks = append(marks, mcpTimingMark{PID: 12345, Group: 12344, Seq: i + 1, Kind: kind, UnixNano: base.Add(nanos).UnixNano(), Nanos: int64(nanos)})
+			}
+			p := &mcpTimingProbe{Completed: true, Calls: 1, Terminal: "completed", terminalAt: base.Add(135010 * time.Millisecond)}
+			want := "completed"
+			switch mode {
+			case "early-failure":
+				p.Terminal, p.terminalAt = "failed", base.Add(120*time.Second)
+				marks[5].Kind = "call_cancelled"
+				want = "early_failure"
+			case "late-failure":
+				p.Terminal = "failed"
+				want = "inconclusive"
+			case "missing-call":
+				marks[4].Kind = "ping_sent"
+				want = "inconclusive"
+			case "early-reply":
+				marks[5].Nanos -= int64(time.Second)
+				marks[5].UnixNano -= int64(time.Second)
+				want = "inconclusive"
+			case "foreign-cancel":
+				marks[2].Kind = "foreign_cancel"
+				want = "inconclusive"
+			case "clock-shift":
+				marks[5].UnixNano += int64(time.Second)
+				want = "inconclusive"
+			case "no-completion":
+				p.Completed = false
+				want = "inconclusive"
+			}
+			var data strings.Builder
+			for _, m := range marks {
+				json.NewEncoder(&data).Encode(m)
+			}
+			parsed, err := timingMarksWithin([]byte(data.String()), 12344, 235*time.Second)
+			_, outcome := defaultWaitEvidence(parsed, p)
+			if err != nil {
+				outcome = "inconclusive"
+			}
+			if outcome != want {
+				t.Fatalf("outcome=%s want=%s", outcome, want)
+			}
+			if _, err := timingMarks([]byte(data.String()), 12344); err == nil {
+				t.Fatal("extended witness escaped the original short lifetime")
+			}
+		})
+	}
+}
+
+func TestMCPDefaultWaitDispatchRemainsSingleUseAndBounded(t *testing.T) {
+	c := &timingControl{events: make(chan acp.Notification, 1), input: []acp.Notification{
+		timingEvent("owned-session", "tool_call", "owned-call", "in_progress"),
+		timingEvent("owned-session", "tool_call_update", "owned-call", "completed"),
+	}}
+	p := new(mcpTimingProbe)
+	if p.exerciseWithin(t.Context(), c, "owned-session", 181*time.Second, 0, 180*time.Second) == nil || c.prompts.Load() != 0 {
+		t.Fatal("overlong observation sent a prompt")
+	}
+	p = new(mcpTimingProbe)
+	if p.exerciseWithin(t.Context(), c, "owned-session", time.Second, 0, 180*time.Second) != nil {
+		t.Fatal("bounded observation did not complete")
+	}
+	if p.exerciseWithin(t.Context(), c, "owned-session", time.Second, 0, 180*time.Second) == nil || c.prompts.Load() != 1 {
+		t.Fatal("default wait retried")
+	}
+}
