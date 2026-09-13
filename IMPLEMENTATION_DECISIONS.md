@@ -7294,8 +7294,9 @@ controls pass in 1.893s/1.799s (`d141-timing-local-controls.log`), and related v
 (`d141-vet.log`). Actual-client/Kiro opt-ins are disabled for these local checks.
 
 LIVE_KIRO_TEST_PLAN.md retains the consumed original command and prepares a distinct-log
-follow-up with the same D134 bounds. It is not yet approved or run; explicit per-run credit
-approval is still required. The first zero-prompt failure does not transfer its approval.
+follow-up with the same D134 bounds. At D141 it requires explicit per-run credit approval;
+D142 below records the later approval and execution. The first zero-prompt failure does
+not transfer its approval.
 Personal instruction preservation and actual Kiro tool timing remain open. No production
 input, dependency or installed D138 artifact changes; no rebuild or installation is needed.
 Strictly resolved installed D138/current inputs pass all 144 checks (`d141-inventory.log`).
@@ -7305,3 +7306,37 @@ the complete retained evidence, corrected elapsed-span wording, privacy, unchang
 inputs and separately pending follow-up approval. Focused race passes independently in
 1.491s/1.769s; related vet, diff whitespace and 144 strictly resolved installed/current checks
 also pass. No correction, new model invocation or artifact refreeze is required.
+
+## D142: Record the MCP short-timeout hypothesis mismatch without changing production policy
+
+On d142-mcp-timeout-retry, based on 7b809a5, the user reports login and explicitly approves
+the prepared D141 follow-up once. The unchanged test reaches initialization, restricted
+inventory, advertised auto selection and one completed session/prompt. The sole independent
+MCP tools/call with numeric timeout 1500 completes at ACP 3002ms after peer call receipt;
+the peer delays its response three seconds. All seven expected lifecycle events occur once,
+with no recorded cancellation or late reply. Twenty notifications total 3365 bytes. Owned
+groups join, configuration is unchanged and artifacts are removed.
+
+The short-arm assertion expects failed status at 1000–2200ms before the response, so it
+reports established=false. The case ends at 16.68s, package at 17.623s, exit one; the 8000
+arm does not run. The full structural log is d141-live-mcp-timeout-followup.log under
+.cache/history-review. The per-run approval is consumed. No further model, installed-client,
+doctor or separate native diagnostic invocation is made in this batch.
+
+This is a completed tool call that does not meet the proposed cutoff, not a repeated startup
+failure. The earlier initialization cause remains unproven even though the user reports login
+before the successful retry. The measured numeric setting does not yield a 1.5-second cutoff
+for this call; field units, default, operation scope and whether the field was ignored remain
+undetermined. This does not validate the production relay's actual client approval-wait bound.
+Keep the production policy unchanged and resolve the supported configuration contract using
+permitted inputs before proposing a different model experiment. Do not repeat the same pair.
+
+This batch records evidence only. No implementation, test or dependency input changes, so
+previously passed local race/vet checks are not repeated and no rebuild, refreeze or install
+is needed. The installed D138 artifact remains unchanged. Personal instruction preservation
+and broader actual Kiro acceptance gates remain open.
+
+Fresh-context independent review accepts 4e56ff6 with no actionable finding. The reviewer
+checks the complete result log, the relevant observer/peer code and all four evidence-document
+changes. It confirms the recorded facts, limits, consumed approval and preserved 0600 logs;
+diff whitespace passes. No files, native processes or prior test results are changed by review.

@@ -237,12 +237,28 @@ An existing initialize-only control also stops at account preflight. Later one-s
 observations initialize in short and long owned layouts, with no session/prompt and with
 joined cleanup; they use an unused /usr/bin/false MCP entry and do not rerun the live harness.
 Neither a path-length cause nor authentication expiry is established. No login/logout occurs.
-The first D134 log must be preserved. Its approval is consumed; the proposed D141 follow-up
-command in LIVE_KIRO_TEST_PLAN.md needs new per-run approval. Personal instructions and actual
+The first D134 log must be preserved. Its approval is consumed; D142 below records separate
+approval and execution of the D141 follow-up. Personal instructions and actual
 tool timeout/cancellation remain unresolved. Installed D138 is unchanged.
 Focused local race passes in 1.893s/1.799s; related vet and 144 installed/current checks pass.
 Independent review accepts 0fa7fd2 without an actionable finding. Independent focused race
 passes in 1.491s/1.769s; related vet and 144 installed/current checks pass. No refreeze is needed.
+
+D141 merged as 7b809a5. On d142-mcp-timeout-retry, the user reports logging in and explicitly
+approves the prepared follow-up once. It reaches one model prompt and one MCP call, with
+normal ACP completion at 3002ms after call receipt despite numeric timeout 1500. The
+three-second peer response succeeds; the required short-arm failed status at 1000–2200ms
+does not occur. The test therefore fails (16.68s case, 17.623s package) and the 8000 arm
+does not run. Recorded groups join, owned configuration is unchanged and artifacts are removed.
+No cancellation or late-reply event is recorded. Initialization succeeds this time, but the
+original startup failure's cause is still unproven; do not attribute it to login retrospectively.
+Preserve d141-live-mcp-timeout-followup.log. This approval is consumed; no further model run
+is authorized. Determine the supported timeout field and units before proposing another timing
+experiment; do not repeat this failed hypothesis or set production timeout from an assumption.
+No production, test or dependency change is made, and installed D138 stays unchanged.
+Independent review accepts 4e56ff6 with no actionable finding after checking the full log,
+relevant observer/peer code, evidence limits and approval state. Diff whitespace passes;
+both timing result logs retain mode 0600. No additional test or native process is launched.
 
 ## 1. State you inherit
 

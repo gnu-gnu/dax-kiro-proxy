@@ -2361,11 +2361,11 @@ The first invocation log is d134-live-mcp-timeout.log; read-only evidence is in
 d141-initialize-only-baseline.log, d141-account-initialize-observation.log and
 d141-long-layout-initialize.log under .cache/history-review.
 
-The following proposed single invocation is **not yet approved or run**. It requires a new
-explicit per-run approval under the standing instructions, even though the first invocation
-sent zero prompts. It uses the exact D134 prompt and the same 1500/8000ms pair, fixed 3000ms
-tool response, no retry, and stops before the second prompt if the first is inconclusive.
-The command retains the four-minute Go-test bound and writes a distinct result log.
+The following single invocation was separately approved after the user reported login and
+executed once in D142 below. It used the exact D134 prompt, numeric 1500/8000 pair under the
+milliseconds hypothesis, fixed 3000ms tool response and no retry. The first case did not
+establish the hypothesis, so the second was not run. This historical command is not permission
+to retry or overwrite its distinct result log. The four-minute Go-test bound was unchanged.
 
 ```sh
 umask 077
@@ -2376,3 +2376,31 @@ GOTOOLCHAIN=go1.27.1 GOMODCACHE="$PWD/.cache/gomod" GOCACHE="$PWD/.cache/gobuild
   go test ./internal/interop -run '^TestKiroLiveMCPRequestTimeoutObservation$' \
   -count=1 -v -timeout 4m > .cache/history-review/d141-live-mcp-timeout-followup.log 2>&1
 ```
+
+## D142: Login-reported retry completes the tool without the proposed short cutoff
+
+On explicit per-run user approval, the D141 follow-up executes once on the unchanged test.
+The installed main/helper pair passes the exact 2.21.3 gate. Initialization and the restricted
+inventory succeed; the advertised auto selection and one session/prompt complete. Numeric
+timeout 1500 is present in the owned configuration, but the sole three-second MCP call receives
+correlated ACP completed status 3002ms after receipt. There are twenty notifications totaling
+3365 bytes. Each recorded peer event occurs once: started, initialize_sent, initialized_notice,
+list_sent, call_received, call_sent and input_closed. No cancellation or late-reply event appears.
+Recorded groups are joined, owned configuration is unchanged and temporary artifacts are removed.
+
+The short-arm hypothesis requires failed status between 1000 and 2200ms, before the delayed
+response. That condition is false, so established=false and the test exits one (16.68s case,
+17.623s package). The second 8000 arm never runs. The model prompt and tool complete normally;
+the failed test reports a hypothesis mismatch, not another ACP initialization failure.
+Evidence is .cache/history-review/d141-live-mcp-timeout-followup.log. No model prose, tool
+output, account value, credential or raw stderr is logged. No login/logout is performed by
+the agent. The user's reported login precedes success but does not prove the earlier cause.
+
+This one observation rejects a 1.5-second tools/call cutoff for this numeric configuration
+and measured invocation. It does not determine the field's supported units, default, other
+operation scope or whether Kiro ignored it. The missing long arm and actual client approval,
+hook and cancellation waits remain unmeasured. Do not change production timeout policy or
+repeat the same pair on this evidence. First identify the supported configuration contract
+through permitted documentation or bounded non-model black-box inspection. Any future model
+experiment needs a concrete design and fresh per-run approval; none is authorized or prepared
+by this record. No implementation or installed artifact changes are needed for this result.
