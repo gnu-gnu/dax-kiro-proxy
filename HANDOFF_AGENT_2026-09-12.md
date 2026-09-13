@@ -228,6 +228,20 @@ permissions, shared ACP and RSS remain separate.
 Test-only; installed D138 remains unchanged, with 144 current-input checks passing. No new
 Kiro model approval or invocation; personal instructions and actual Kiro gates remain open.
 
+D140 merged as f87688a. On d141-mcp-timeout-observation the user authorizes the prepared
+D134 command once. It fails before session/new or any prompt, at ACP initialization
+(4.171s package); its second case does not run. The original generic error does not classify
+the cause or separately report cleanup, so the test now records its existing fixed error
+class and cleanup-failure flag. No production code changes.
+An existing initialize-only control also stops at account preflight. Later one-shot read-only
+observations initialize in short and long owned layouts, with no session/prompt and with
+joined cleanup; they use an unused /usr/bin/false MCP entry and do not rerun the live harness.
+Neither a path-length cause nor authentication expiry is established. No login/logout occurs.
+The first D134 log must be preserved. Its approval is consumed; the proposed D141 follow-up
+command in LIVE_KIRO_TEST_PLAN.md needs new per-run approval. Personal instructions and actual
+tool timeout/cancellation remain unresolved. Installed D138 is unchanged.
+Focused local race passes in 1.893s/1.799s; related vet and 144 installed/current checks pass.
+
 ## 1. State you inherit
 
 - `main` is at `e07e591` (merge of D124). The working tree is clean. There is no remote; never push

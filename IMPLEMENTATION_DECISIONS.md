@@ -7252,3 +7252,48 @@ The reviewer confirms the recorded figures and limits without repeating tests or
 launches. Parent installed D138/current production inputs also pass all 144 checks after
 the extended run (`d140-final-inventory.log`); no product/dependency change, rebuild or
 installation.
+
+## D141: Preserve an inconclusive MCP timing invocation and classify future startup failures
+
+On `d141-mcp-timeout-observation`, based on `f87688a`, the user authorizes the exact prepared
+D134 paired command once. Its first case stops during ACP initialization (case 3.34s,
+package 4.171s, `d134-live-mcp-timeout.log`). The observed control flow never reaches
+session/new or session/prompt; the second case does not run. No MCP tools/call timing or
+default/unit/cancellation conclusion follows. The original generic diagnostic also does not
+recover the underlying error class or separately establish the initialization cleanup result.
+The transport attempts bounded cleanup internally; the log alone is not an independent
+record that it succeeded. The invocation is not silently retried.
+
+One existing no-prompt baseline, TestKiroPinnedACPInitializationOnly, stops earlier at account
+preflight (case 2.28s, package 2.541s, `d141-initialize-only-baseline.log`). A subsequently
+authored read-only observer calls whoami once and ACP initialize once, without session/new or
+session/prompt. Its short-root observation initializes in 2138ms; its long-layout observation
+initializes in 2026ms with a 112-byte scratch path. Both use an unused /usr/bin/false MCP
+command instead of the prepared timing peer. Both record zero sessions/prompts, unchanged
+owned sources, joined account/ACP ownership and removed private artifacts. They do not rerun
+the exact failed harness, prove its startup will succeed next time or identify its cause.
+The long-layout account output has a first JSON object with the four known string fields
+and a 99-byte/five-newline tail; whole-output JSON decoding is false because of that tail.
+This does not recover the earlier preflight's output. Neither an expired account nor a
+path-length cause is established, and no login/logout or user-process action is taken.
+
+The independent observer is retained at
+`.cache/history-review/d141-account-initialize-observer.go`; evidence is
+`d141-account-initialize-observation.log` and `d141-long-layout-initialize.log`. It logs
+fixed categories, field-presence facts, counts, sizes and timings only. No account value,
+credential, full stderr, tool content or prompt text is retained. It first ran with only
+the short layout; later it added the long layout and account-line shape observations.
+
+The one-line test change reports the existing kiroSetupFailure classification plus a
+cleanup_failed flag if future ACP initialization fails. It does not change the production
+transport, timeout policy, prompt count, retry policy, agent, frame or lifetime limits.
+No new behavior test mirrors this formatting change. Existing independent MCP/observer race
+controls pass in 1.893s/1.799s (`d141-timing-local-controls.log`), and related vet exits zero
+(`d141-vet.log`). Actual-client/Kiro opt-ins are disabled for these local checks.
+
+LIVE_KIRO_TEST_PLAN.md retains the consumed original command and prepares a distinct-log
+follow-up with the same D134 bounds. It is not yet approved or run; explicit per-run credit
+approval is still required. The first zero-prompt failure does not transfer its approval.
+Personal instruction preservation and actual Kiro tool timing remain open. No production
+input, dependency or installed D138 artifact changes; no rebuild or installation is needed.
+Strictly resolved installed D138/current inputs pass all 144 checks (`d141-inventory.log`).

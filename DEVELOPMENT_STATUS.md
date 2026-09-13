@@ -6,6 +6,22 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D141 on d141-mcp-timeout-observation (base f87688a) records the user's approval and the
+  first D134 invocation. It stops at ACP initialization before session/new or session/prompt
+  (3.34s case, 4.171s package); the second case does not run. No timeout hypothesis is established.
+  A separate existing initialize-only control fails at account preflight (2.541s package).
+  Subsequent read-only observations initialize successfully in short and long owned layouts
+  (2138ms/2026ms), with zero sessions/prompts, unchanged owned sources and joined cleanup.
+  Their unused MCP command is /usr/bin/false; they do not execute the D134 peer or establish
+  the original failure's cause. The long-layout account output has a first JSON object with
+  the four known string fields and a trailing postamble; it does not prove the earlier
+  account command's cause. No login/logout or new model invocation is performed.
+  The only code change adds the existing fixed initialization-error class and cleanup-failure
+  flag to the test diagnostic. Production timeout policy and installed D138 stay unchanged.
+  Focused local race passes in 1.893s/1.799s; related vet and 144 installed/current checks pass.
+  LIVE_KIRO_TEST_PLAN.md records one proposed follow-up invocation, awaiting fresh per-run
+  approval. Personal instruction preservation and actual Kiro tool timing remain open.
+
 - D140 on d140-sustained-native-tools (base 1c6ec65) extends D139's same two native clients
   and shared runtime with an optional schedule. Eight rounds at two-second intervals pass
   with Claude 2.1.269 and fake ACP (20.359s package, 14.008s active). All seven allowed Read
