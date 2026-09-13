@@ -6,6 +6,25 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D143 on d143-mcp-timeout-contract (base eda3c66) narrows the timeout configuration contract
+  through non-model inspection. The 2.21.3 helper advertises --timeout in milliseconds but
+  no --request-timeout. Its validator reports invalid types for a string timeout and malformed
+  command, despite exit zero; requestTimeout accepts both tested types like an unknown field.
+  Its owned-agent rewrite preserves timeout 1500 and drops requestTimeout and the unknown
+  control. The settings catalog lists initialization options, not a per-call timeout option.
+  These are parser/writer/help facts, not proof of the ACP engine's effective call limit.
+  Current CLI 3 documentation does not establish that limit on engine v2. No product setting
+  or installed D138 artifact changes. All sixteen finite native commands join and remove their
+  owned roots; none creates an ACP session or model prompt. The first main help command fails;
+  the subsequent helper-only observation and configuration controls complete.
+  A new separately gated test prepares one omitted-timeout, 135-second effect-free MCP call.
+  It distinguishes completed, early_failure and inconclusive evidence; no retry is possible.
+  A pass would bound only this one wait, not the default 15-minute client allowance. The live
+  command and exact limits are in LIVE_KIRO_TEST_PLAN.md; it is not approved or executed.
+  Focused local race passes in 1.874s/1.365s after correcting a test compile error; related
+  vet passes. No native invocation or model approval is inferred from these local checks.
+  The complete interop and peer race suites pass in 39.477s/1.346s with native opt-ins off.
+
 - D142 on d142-mcp-timeout-retry (base 7b809a5) records the user's explicit retry approval
   after reporting login. The prepared D141 follow-up runs once (16.68s case, 17.623s package).
   Initialization, inventory and one prompt complete. With numeric timeout 1500, the sole

@@ -260,6 +260,21 @@ Independent review accepts 4e56ff6 with no actionable finding after checking the
 relevant observer/peer code, evidence limits and approval state. Diff whitespace passes;
 both timing result logs retain mode 0600. No additional test or native process is launched.
 
+D142 merged as eda3c66. D143 on d143-mcp-timeout-contract uses sixteen finite, isolated
+native help/validation/writer/catalog commands without sessions or prompts. The measured helper
+describes timeout in milliseconds. Its validator treats requestTimeout like the unknown-field
+control; its writer drops both while preserving timeout 1500. A wrong timeout type produces
+a diagnostic even though validation exits zero. This does not prove the engine's effective
+timeout or authorize importing the CLI 3 requestTimeout setting into production.
+The next prepared test observes one 135-second MCP reply with timeout omitted, like production.
+It can expose early native failure or establish that one call lasts through 135 seconds; it
+does not establish a default, the full 15-minute client wait or actual approval/hook behavior.
+See LIVE_KIRO_TEST_PLAN.md for the exact one-prompt command. It is UNAPPROVED and UNRUN;
+the user's request to continue non-model investigation does not approve this new credit run.
+Local race controls pass in 1.874s/1.365s after a test compile correction; related vet passes.
+Production/dependencies/installed D138 stay unchanged. Personal instruction preservation and
+the other actual Kiro gates remain open.
+
 ## 1. State you inherit
 
 - `main` is at `e07e591` (merge of D124). The working tree is clean. There is no remote; never push

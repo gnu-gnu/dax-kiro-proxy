@@ -7340,3 +7340,70 @@ Fresh-context independent review accepts 4e56ff6 with no actionable finding. The
 checks the complete result log, the relevant observer/peer code and all four evidence-document
 changes. It confirms the recorded facts, limits, consumed approval and preserved 0600 logs;
 diff whitespace passes. No files, native processes or prior test results are changed by review.
+
+## D143: Separate native configuration evidence from a prepared default-wait observation
+
+On d143-mcp-timeout-contract, based on eda3c66, non-model inspection follows D142's rejected
+short-cutoff hypothesis. The installed main/helper pair reports 2.21.3. The main mcp add help
+command exits one; a separate helper-only observation completes. The helper advertises
+--timeout with milliseconds and no --request-timeout. The helper help log's seconds predicate
+also matches the substring in milliseconds; it is not evidence for seconds as another unit.
+No observed help description establishes which ACP engine operation uses the value.
+
+Seven owned-file validator cases distinguish the baseline, numeric/string timeout,
+numeric/string requestTimeout, an arbitrary unknown-field control and a malformed command.
+All exit zero. String timeout and the malformed command emit invalid-type diagnostics;
+the other five emit no output. Exit zero alone therefore does not establish configuration
+validity. All seven input files remain unchanged. The settings list is valid JSON and its
+MCP identifiers are mcp.initTimeout, mcp.noInteractiveTimeout and mcp.loadedBefore. This
+advertised catalog exposes no per-call option; it is not proof that no other interface exists.
+
+One native mcp add rewrite of an owned agent retains timeout 1500 while dropping requestTimeout
+1500 and the arbitrary field. Both MCP entries remain disabled /usr/bin/false commands.
+This rejects relying on that writer to preserve requestTimeout; it does not prove every ACP
+loader ignores the field. Sixteen commands total run sequentially in empty owned HOME,
+KIRO_HOME, workspace and temporary directories, with 10-second command bounds and finite
+observation bounds. All recorded groups join and all four owned roots are removed. No
+account command, login/logout, ACP session, model prompt or user-process operation occurs.
+
+The [current configuration reference](https://kiro.dev/docs/custom-agents/configuration-reference/)
+explicitly covers CLI 3.0 and separates handshake timeout from per-call requestTimeout, both
+in milliseconds. The [CLI command reference](https://kiro.dev/docs/cli/reference/cli-commands/)
+describes --timeout as a launch limit. The
+[2.x reference](https://kiro.dev/docs/cli/2x-reference/) does not specify MCP timeout semantics.
+These references were checked on 2026-09-13; their current-version descriptions do not establish
+2.21.3 engine-v2 behavior. No setting or production policy is changed from this evidence.
+
+Four structural logs and three independently authored observers are retained under
+.cache/history-review: d143-timeout-help.log, d143-helper-timeout-help.log,
+d143-timeout-validation.log and d143-timeout-roundtrip.log, with matching Go observer names
+(both help logs use d143-timeout-help.go). After the first help attempt that source removes
+the already-measured main version and failing main help command, leaving four helper commands.
+Only sizes, digests, fixed predicates, option identifiers and cleanup facts are logged.
+
+The next prepared test, TestKiroLiveMCPDefaultWaitObservation, observes the product's omission
+of timeout with one independently delayed 135-second reply. The duration is a finite
+diagnostic window within the advertised 15-minute client wait, not a guessed Kiro default.
+It uses the existing empty-input effect-free tool and single-use prompt observer. Only the
+explicit default-wait-135s peer profile permits this delay and the 230/235-second peer bounds;
+the original paired test retains its previous delay/lifetime/prompt limits. The new episode
+has 230 seconds and its sole prompt 180 seconds, including the four-second post-response
+observation. Wire/event/identity/configuration/cleanup checks remain bounded as before.
+
+Completion requires one correlated completed ACP tool status after the observed 135-second
+peer response. A failed native status more than 200ms before that planned reply is recorded
+as early_failure; its cause is not inferred. Missing/foreign/excess evidence is inconclusive.
+Both fail the test. It never retries. Early failure can close the peer before its planned
+reply, so this control does not independently prove late-reply handling. A pass establishes
+only this one wait, not the 15-minute default, one-hour maximum or actual client permission UI.
+
+Local controls cover outcome distinctions, invalid evidence, exact profile limits, one-shot
+dispatch and shutdown of a pending 135-second timer without waiting for it to fire. Focused
+race passes in 1.874s/1.365s after a compile error in the test cleanup callback is corrected;
+related vet passes. These do not execute the peer's process entry point or prove its blocked
+output exit timer. LIVE_KIRO_TEST_PLAN.md records the exact proposed invocation and its
+six-minute outer test bound. It is not approved or run; no credit approval carries over.
+Only test/fixture/documents change, so the installed D138 artifact requires no rebuild or freeze.
+The complete interop and peer race suites also pass in 39.477s/1.346s with all actual-client
+and Kiro opt-ins disabled (d143-interop-race.log); focused results are in
+d143-local-controls-fixed.log and related vet exits zero in d143-vet.log.

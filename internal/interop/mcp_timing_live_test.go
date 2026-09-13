@@ -21,6 +21,24 @@ import (
 )
 
 func TestKiroLiveMCPRequestTimeoutObservation(t *testing.T) {
+	runner, root, executable, peer := prepareMCPTiming(t)
+	// Two sequential episodes, no retries. A failed or inconclusive first case stops the pair.
+	for _, timeout := range []int{1500, 8000} {
+		if !runMCPTimingEpisode(t, runner, root, executable, peer, timeout, false) {
+			t.Fatal("MCP timing hypothesis was not established; no subsequent prompt is authorized by this invocation")
+		}
+	}
+}
+
+func TestKiroLiveMCPDefaultWaitObservation(t *testing.T) {
+	runner, root, executable, peer := prepareMCPTiming(t)
+	if !runMCPTimingEpisode(t, runner, root, executable, peer, 0, true) {
+		t.Fatal("the owned 135-second MCP wait did not complete; this invocation never retries")
+	}
+}
+
+func prepareMCPTiming(t *testing.T) (*childproc.Runner, string, string, string) {
+	t.Helper()
 	if os.Getenv("DAX_INTEROP_KIRO_CREDIT_OPT_IN") != "1" {
 		t.Skip("MCP timing model work requires explicit per-run credit approval")
 	}
@@ -36,7 +54,7 @@ func TestKiroLiveMCPRequestTimeoutObservation(t *testing.T) {
 	if err != nil {
 		t.Fatal("cannot prepare bounded timing builder")
 	}
-	defer runner.Close()
+	t.Cleanup(runner.Close)
 	cwd, err := os.Getwd()
 	if err != nil {
 		t.Fatal("cannot identify timing build root")
@@ -52,16 +70,15 @@ func TestKiroLiveMCPRequestTimeoutObservation(t *testing.T) {
 	if err != nil || result.ExitCode != 0 || runner.Active() != 0 {
 		t.Fatal("cannot build independent MCP timing peer")
 	}
-	// Two sequential episodes, no retries. A failed or inconclusive first case stops the pair.
-	for _, timeout := range []int{1500, 8000} {
-		if !runMCPTimingEpisode(t, runner, root, executable, peer, timeout) {
-			t.Fatal("MCP timing hypothesis was not established; no subsequent prompt is authorized by this invocation")
-		}
-	}
+	return runner, root, executable, peer
 }
 
-func runMCPTimingEpisode(t *testing.T, runner *childproc.Runner, root, executable, peer string, timeout int) (passed bool) {
+func runMCPTimingEpisode(t *testing.T, runner *childproc.Runner, root, executable, peer string, timeout int, defaultWait bool) (passed bool) {
 	t.Helper()
+	delayMS, episodeLimit, promptLimit, peerLifetime := 3000, 70*time.Second, 45*time.Second, 75*time.Second
+	if defaultWait {
+		delayMS, episodeLimit, promptLimit, peerLifetime = 135000, 230*time.Second, 180*time.Second, 235*time.Second
+	}
 	base := filepath.Join(root, strconv.Itoa(timeout))
 	work, configuration, scratch := filepath.Join(base, "work"), filepath.Join(base, "config"), filepath.Join(base, "tmp")
 	for _, path := range []string{filepath.Join(work, ".kiro", "agents"), filepath.Join(configuration, "settings"), scratch} {
@@ -71,9 +88,16 @@ func runMCPTimingEpisode(t *testing.T, runner *childproc.Runner, root, executabl
 		}
 	}
 	alias := "@owned_timing/owned_wait"
-	peerConfig, _ := json.Marshal(map[string]any{"GroupFile": filepath.Join(base, "group"), "Witness": filepath.Join(base, "witness"), "Tool": "owned_wait", "DelayMilliseconds": 3000})
+	peerFields := map[string]any{"GroupFile": filepath.Join(base, "group"), "Witness": filepath.Join(base, "witness"), "Tool": "owned_wait", "DelayMilliseconds": delayMS}
+	server := map[string]any{"command": peer, "args": []string{filepath.Join(base, "peer.json")}, "env": map[string]string{}}
+	if defaultWait {
+		peerFields["Observation"] = "default-wait-135s"
+	} else {
+		server["timeout"] = timeout
+	}
+	peerConfig, _ := json.Marshal(peerFields)
 	agent, _ := json.Marshal(map[string]any{"name": "owned-mcp-timing", "tools": []string{alias}, "allowedTools": []string{alias}, "resources": []string{}, "hooks": map[string]any{}, "includeMcpJson": false,
-		"mcpServers": map[string]any{"owned_timing": map[string]any{"command": peer, "args": []string{filepath.Join(base, "peer.json")}, "env": map[string]string{}, "timeout": timeout}}})
+		"mcpServers": map[string]any{"owned_timing": server}})
 	sources := map[string][]byte{"peer.json": peerConfig, "work/.kiro/agents/owned-mcp-timing.json": agent, "config/settings/cli.json": []byte(`{"chat.disableInheritingDefaultResources":true}`)}
 	for name, data := range sources {
 		if os.WriteFile(filepath.Join(base, name), data, 0600) != nil {
@@ -82,7 +106,7 @@ func runMCPTimingEpisode(t *testing.T, runner *childproc.Runner, root, executabl
 		}
 	}
 	environment := []string{"HOME=" + os.Getenv("HOME"), "KIRO_HOME=" + configuration, "PATH=" + filepath.Dir(executable) + ":/usr/bin:/bin:/usr/sbin:/sbin", "TMPDIR=" + scratch, "LANG=en_US.UTF-8", "TERM=dumb"}
-	ctx, cancel := context.WithTimeout(t.Context(), 70*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), episodeLimit)
 	defer cancel()
 	for _, name := range []string{"kiro-cli", "kiro-cli-chat"} {
 		limit, stop := context.WithTimeout(ctx, 5*time.Second)
@@ -97,7 +121,7 @@ func runMCPTimingEpisode(t *testing.T, runner *childproc.Runner, root, executabl
 	setup, stopSetup := context.WithTimeout(ctx, 20*time.Second)
 	defer stopSetup()
 	client, err := acp.Start(setup, acp.Config{Executable: executable, Directory: work, Args: []string{"acp", "--agent", "owned-mcp-timing", "--agent-engine", "v2"}, Environment: environment,
-		ClientInfo: acp.Info{Name: "independent-mcp-timing", Version: "1"}, Auth: kiroauth.Classifier{}, Limits: acp.Limits{FrameBytes: 256 << 10, EventBytes: 2 << 20, RequestTimeout: 45 * time.Second}})
+		ClientInfo: acp.Info{Name: "independent-mcp-timing", Version: "1"}, Auth: kiroauth.Classifier{}, Limits: acp.Limits{FrameBytes: 256 << 10, EventBytes: 2 << 20, RequestTimeout: promptLimit}})
 	if err != nil {
 		t.Errorf("timing ACP initialization failed before model work: failure=%s cleanup_failed=%v", kiroSetupFailure(err), errors.Is(err, acp.ErrCleanup))
 		return false
@@ -121,13 +145,18 @@ func runMCPTimingEpisode(t *testing.T, runner *childproc.Runner, root, executabl
 			}
 			data, readErr := store.Read("witness", 32<<10)
 			if readErr == nil {
-				marks, _ = timingMarks(data, client.PID())
+				marks, _ = timingMarksWithin(data, client.PID(), peerLifetime)
 			}
 		}
 		for _, mark := range marks {
 			joined = joined && errors.Is(syscall.Kill(mark.PID, 0), syscall.ESRCH)
 		}
 		elapsed, established := timingEstablished(marks, probe, timeout == 1500)
+		outcome := "paired_hypothesis"
+		if defaultWait {
+			elapsed, outcome = defaultWaitEvidence(marks, probe)
+			established = outcome == "completed"
+		}
 		counts := map[string]int{}
 		for _, m := range marks {
 			counts[m.Kind]++
@@ -138,7 +167,7 @@ func runMCPTimingEpisode(t *testing.T, runner *childproc.Runner, root, executabl
 			removed = errors.Is(statErr, os.ErrNotExist)
 		}
 		passed = passed && joined && unchanged && established && removed
-		t.Logf("configured_ms=%d peer_delay_ms=3000 stage=%s prompt_sent=%v completed=%v acp_calls=%d terminal=%s terminal_after_call_ms=%d notifications=%d notification_bytes=%d peer_events=%v joined=%v config_unchanged=%v artifacts_removed=%v established=%v", timeout, stage, probe.PromptSent, probe.Completed, probe.Calls, probe.Terminal, elapsed, probe.Notifications, probe.Bytes, counts, joined, unchanged, removed, passed)
+		t.Logf("configured_ms=%d timeout_present=%v peer_delay_ms=%d outcome=%s stage=%s prompt_sent=%v completed=%v acp_calls=%d terminal=%s terminal_after_call_ms=%d notifications=%d notification_bytes=%d peer_events=%v joined=%v config_unchanged=%v artifacts_removed=%v established=%v", timeout, !defaultWait, delayMS, outcome, stage, probe.PromptSent, probe.Completed, probe.Calls, probe.Terminal, elapsed, probe.Notifications, probe.Bytes, counts, joined, unchanged, removed, passed)
 	}()
 	sources["group"] = []byte(strconv.Itoa(client.PID()))
 	if os.WriteFile(filepath.Join(base, "group"), sources["group"], 0600) != nil {
@@ -162,7 +191,7 @@ func runMCPTimingEpisode(t *testing.T, runner *childproc.Runner, root, executabl
 		return false
 	}
 	stage = "prompt"
-	if probe.exercise(ctx, client, inventory.session, 45*time.Second, 4*time.Second) != nil {
+	if probe.exerciseWithin(ctx, client, inventory.session, promptLimit, 4*time.Second, promptLimit) != nil {
 		return false
 	}
 	stage = "observation"
