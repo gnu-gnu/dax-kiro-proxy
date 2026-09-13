@@ -6,6 +6,19 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D142 on d142-mcp-timeout-retry (base 7b809a5) records the user's explicit retry approval
+  after reporting login. The prepared D141 follow-up runs once (16.68s case, 17.623s package).
+  Initialization, inventory and one prompt complete. With numeric timeout 1500, the sole
+  three-second MCP call has correlated ACP status completed at 3002ms after call receipt.
+  No cancellation or late-reply event is recorded. Owned groups join, configuration stays
+  unchanged and temporary artifacts are removed. The short-arm hypothesis requires failed
+  status at 1000–2200ms, so the test fails and the 8000 arm is not run. This is a completed
+  tool call that contradicts the proposed 1.5-second cutoff, not another startup failure.
+  It establishes neither the field's units/default nor that the field is ignored generally;
+  the earlier startup failure's cause and actual client approval-wait behavior remain unknown.
+  The approval is consumed and the result log is preserved. No implementation, dependency or
+  installed D138 change, additional native run or new model invocation is made.
+
 - D141 on d141-mcp-timeout-observation (base f87688a) records the user's approval and the
   first D134 invocation. It stops at ACP initialization before session/new or session/prompt
   (3.34s case, 4.171s package); the second case does not run. No timeout hypothesis is established.
@@ -22,8 +35,8 @@ does not redefine completion around an intermediate phase.
   Focused local race passes in 1.893s/1.799s; related vet and 144 installed/current checks pass.
   Independent review accepts 0fa7fd2 with no actionable finding; independent focused race
   passes in 1.491s/1.769s, with related vet and 144 installed/current checks passing.
-  LIVE_KIRO_TEST_PLAN.md records one proposed follow-up invocation, awaiting fresh per-run
-  approval. Personal instruction preservation and actual Kiro tool timing remain open.
+  LIVE_KIRO_TEST_PLAN.md records the proposed follow-up, subsequently approved and run in D142.
+  Personal instruction preservation and actual client tool-wait semantics remain open.
 
 - D140 on d140-sustained-native-tools (base 1c6ec65) extends D139's same two native clients
   and shared runtime with an optional schedule. Eight rounds at two-second intervals pass
