@@ -2405,7 +2405,7 @@ through permitted documentation or bounded non-model black-box inspection. Any f
 experiment needs a concrete design and fresh per-run approval; none is authorized or prepared
 by this record. No implementation or installed artifact changes are needed for this result.
 
-## D143: One default MCP wait, prepared but not approved or run
+## D143: One default MCP wait (first invocation recorded by D144)
 
 Non-model helper observations describe --timeout in milliseconds but do not establish a
 per-call limit. The native writer preserves timeout and drops requestTimeout like an unknown
@@ -2448,8 +2448,9 @@ Focused local race controls pass in 1.874s/1.365s and related vet passes. They c
 correlated/invalid event sequences, extended lifetime admission, one-shot dispatch and pending
 timer cleanup. They do not execute the new profile with actual Kiro or its process entry point.
 
-This exact single invocation is **unapproved and unrun**. Fresh per-run user approval is required
-by HANDOFF_AGENT_2026-09-12.md. Preserve all earlier logs and do not automatically retry it.
+The user explicitly approved this exact single invocation once; D144 below records its pass.
+This historical command is not approval to retry or overwrite its log. Further credit-consuming
+invocations require fresh per-run approval under HANDOFF_AGENT_2026-09-12.md.
 
 ```sh
 umask 077
@@ -2462,3 +2463,25 @@ GOTOOLCHAIN=go1.27.1 GOMODCACHE="$PWD/.cache/gomod" GOCACHE="$PWD/.cache/gobuild
   go test ./internal/interop -run '^TestKiroLiveMCPDefaultWaitObservation$' \
   -count=1 -v -timeout 6m > .cache/history-review/d143-live-mcp-default-wait.log 2>&1
 ```
+
+## D144: The sole default-configured 135-second MCP call completes
+
+The separately approved D143 invocation runs once, without test or production changes. It
+passes the exact 2.21.3 pair, restricted inventory and advertised auto gates, then sends
+one prompt and observes one tool call. Both timeout fields are omitted; configured_ms=0
+in the log is an absent-value placeholder, not a server configured with zero timeout.
+
+The owned peer responds after 135 seconds. Correlated ACP completed status arrives 135006ms
+after MCP receipt, and the prompt ends normally. Seventeen notifications contain 2989 bytes
+of params payload, excluding JSON-RPC envelopes.
+The seven expected peer events each occur once; no cancellation or late reply is recorded.
+Recorded groups join, owned sources are unchanged and private artifacts are removed.
+The case passes in 148.88s, package in 149.730s, exit zero. Preserve the 0600 structural log
+.cache/history-review/d143-live-mcp-default-wait.log. No retry or additional model run occurs.
+
+This executes the extended peer entry point and delayed response, not its blocked-output
+exit timer. It establishes only this finite 135-second call. The full 15-minute client
+allowance, one-hour maximum, actual client approval/refusal/hooks, late-reply behavior and
+provider default value remain unverified. An early timeout is not reproduced in this call;
+do not change product timeout policy on this evidence. The original startup failure remains
+of unproven cause. No further model invocation is approved or prepared by this record.

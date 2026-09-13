@@ -269,14 +269,28 @@ timeout or authorize importing the CLI 3 requestTimeout setting into production.
 The next prepared test observes one 135-second MCP reply with timeout omitted, like production.
 It can expose early native failure or establish that one call lasts through 135 seconds; it
 does not establish a default, the full 15-minute client wait or actual approval/hook behavior.
-See LIVE_KIRO_TEST_PLAN.md for the exact one-prompt command. It is UNAPPROVED and UNRUN;
-the user's request to continue non-model investigation does not approve this new credit run.
+See LIVE_KIRO_TEST_PLAN.md for the exact one-prompt command. It was unapproved and unrun
+at preparation; D144 below records separate approval and execution.
 Local race controls pass in 1.874s/1.365s after a test compile correction; related vet passes.
 Production/dependencies/installed D138 stay unchanged. Personal instruction preservation and
 the other actual Kiro gates remain open.
 Complete interop/peer race passes in 39.477s/1.346s. Independent review accepts b0a8710 with
 no actionable finding; focused race 1.358s/1.366s, related vet and 144 installed/current checks
-pass independently. Parent inventory also passes 144. The prepared model test remains unrun.
+pass independently. Parent inventory also passes 144. No model test ran during D143 preparation.
+
+D143 merged as 9db4035. D144 on d144-mcp-default-wait-result runs the exact prepared command
+once on explicit user approval. The sole owned MCP call, with both timeout fields omitted,
+receives correlated completed status at 135006ms. The case passes in 148.88s, package in
+149.730s, exit zero. Seventeen notifications contain 2989 bytes of params payload; the seven peer
+events occur once, with no cancellation or late reply. Recorded groups join, owned sources
+are unchanged and private artifacts are removed. Preserve d143-live-mcp-default-wait.log;
+the approval is consumed and no further model invocation is authorized.
+This one 135-second wait does not reproduce early native failure. It does not determine a
+default or prove the entire 15-minute client wait, one-hour maximum or actual permissions UI.
+Keep production unchanged; no timeout defect is established by this result. Personal root
+memory/rule-exclusion preservation and the remaining actual Kiro gates remain open.
+Independent review accepts fa1e661 after clarifying that notification bytes count only
+params payload. No further finding, test rerun, code change or artifact refreeze is needed.
 
 ## 1. State you inherit
 
