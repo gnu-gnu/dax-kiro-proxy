@@ -111,6 +111,8 @@ tool round trips, client-environment preservation, then the declared request com
 Optional media/web/account metadata and release soak/packaging work follow. ACCEPTANCE_SPEC.md
 defines separate development, internal-alpha and release gates. Core safety and bounded cleanup
 requirements apply at every stage; unverified launch/load capabilities cannot be enabled by a flag.
+The two personal-memory gaps accepted in D145 are documented limitations, outside the required
+implementation sequence and completion/release gates unless the user reopens them.
 
 ### Phase 0 — language and provenance gate
 

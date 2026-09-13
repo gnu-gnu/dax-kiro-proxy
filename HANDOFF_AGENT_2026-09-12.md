@@ -292,6 +292,13 @@ memory/rule-exclusion preservation and the remaining actual Kiro gates remain op
 Independent review accepts fa1e661 after clarifying that notification bytes count only
 params payload. No further finding, test rerun, code change or artifact refreeze is needed.
 
+D144 merged as `61046fd`. D145 records the user's decision to keep personal CLAUDE.md omission
+and unintended rules-alias exclusions as known limitations. Neither is required for ordinary use,
+product completion or release acceptance. Their implementation is deferred; earlier references in
+this brief to these two gaps as mandatory/open gates are historical and superseded. Do not resume
+their investigation or re-run rejected adapters unless the user reopens the item. Other client
+instruction, source-preservation, permission/hook and lifecycle requirements remain in force.
+
 ## 1. State you inherit
 
 - `main` is at `e07e591` (merge of D124). The working tree is clean. There is no remote; never push
@@ -336,6 +343,8 @@ These were given during the sessions and are not all written elsewhere.
   of existing user instructions. HANDOFF candidates require a demonstrated core failure or an
   explicit mandatory specification gap before implementation. Defer optional features, cosmetic
   work and broad refactoring; a client update alone is not a reason to start another migration.
+- D145: personal CLAUDE.md omission and rules-alias exclusions are accepted limitations. Keep
+  them visible, but exclude their fixes from required remaining work and completion/release gates.
 - Never run `kiro-cli login` or `kiro-cli logout`. Never kill the user's own `claude` or
   `kiro-cli --resume` processes (they may be running on this host). Synthetic ("pseudo")
   reproduction of a logged-out backend is preferred over touching the real login.
@@ -520,10 +529,11 @@ refactoring production helpers changes inventory inputs and requires a clean reb
     helpers and the raw-JSON string helpers. Last, because of regression risk.
 
 Reviewed order: finish the actual D125 (items 16 and 20, including permission-bit preservation),
-then turn/relay robustness (3, 4 and 12–15 with the relevant tests from 17 and 19), personal memory
-and rule-exclusion preservation (the still-open D77/D93/D97/D102 requirements), request compatibility
+then turn/relay robustness (3, 4 and 12–15 with the relevant tests from 17 and 19), request compatibility
 (1, 2, 5 and D123's one-time standing-message deferral limitation), operational diagnostics (6–11),
 then the latest-pair live rerun and longer combined concurrent soak with refreshed artifact scans.
+D145 removes the two deferred personal-memory fixes from this sequence; it does not waive the
+remaining supported client-environment requirements.
 Keep items 18 and 21 and optional native web work after the correctness changes. Assign final
 decision numbers when each bounded batch starts; the old candidate labels above are not commits.
 

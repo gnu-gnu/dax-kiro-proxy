@@ -178,6 +178,12 @@ existing status command prevent a compatible overlay. Mandatory local routing an
 separation must still hold. Replacing the current private profile requires independent
 installed-client precedence and preservation tests first.
 
+D145 records two user-accepted limitations of that profile: personal `~/.claude/CLAUDE.md`
+is not loaded, and an exclusion matching only the private rules alias can suppress a personal
+rule and its imports. Fixing these is deferred and is not required for ordinary use, product
+completion or release acceptance. This exception does not waive preservation of source settings,
+client permission/hook authority or any other acceptance requirement.
+
 Native client conversation retention is optional and distinct from the text-free proxy session
 records (D87). `run --client-history` permits Claude to use its ordinary `~/.claude/projects` data
 through a reference in the temporary profile. `run --resume <UUID>` implies retention and passes the
