@@ -99,7 +99,7 @@ func runMCPTimingEpisode(t *testing.T, runner *childproc.Runner, root, executabl
 	client, err := acp.Start(setup, acp.Config{Executable: executable, Directory: work, Args: []string{"acp", "--agent", "owned-mcp-timing", "--agent-engine", "v2"}, Environment: environment,
 		ClientInfo: acp.Info{Name: "independent-mcp-timing", Version: "1"}, Auth: kiroauth.Classifier{}, Limits: acp.Limits{FrameBytes: 256 << 10, EventBytes: 2 << 20, RequestTimeout: 45 * time.Second}})
 	if err != nil {
-		t.Error("timing ACP initialization failed before model work")
+		t.Errorf("timing ACP initialization failed before model work: failure=%s cleanup_failed=%v", kiroSetupFailure(err), errors.Is(err, acp.ErrCleanup))
 		return false
 	}
 	probe := new(mcpTimingProbe)

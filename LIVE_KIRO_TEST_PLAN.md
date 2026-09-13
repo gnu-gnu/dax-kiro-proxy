@@ -2258,7 +2258,7 @@ falls to a third by the end (`d120-live-soak-20.log`). Limits: one session of tw
 live soak and a combined concurrency-plus-soak run remain open. Test-only; the D118 artifact remains
 current.
 
-## D134: explicit MCP request timeout (prepared, not yet run)
+## D134: explicit MCP request timeout (first invocation recorded by D141)
 
 HANDOFF item 13 requires the relay's Kiro wait to match the configured client tool wait. The
 agent currently omits MCP `timeout`; premature expiry during actual client approval has not been
@@ -2316,9 +2316,11 @@ event sequences. They do not execute the new peer's process entry point, its blo
 outer exit timer or the complete native ACP/MCP call combination. Earlier no-prompt process
 observations used the separate prototype; they are not an execution of this prepared harness.
 
-The following single command requires new explicit per-run approval. It may send up to two ACP
-prompts to the Kiro service and consume credits; ACP prompt count is not a billed-call or cost
-bound. No approval or actual model result is recorded for D134 yet.
+The user authorized the following single command once after D140. It stopped during ACP
+initialization before session/new or session/prompt; the second case did not run (D141).
+This is the historical invocation, not permission to retry or overwrite its result log.
+Timeout semantics are still unmeasured. Any future invocation may send up to two ACP prompts
+and consume credits; prompt count is not a billed-call or cost bound.
 
 ```sh
 umask 077
@@ -2328,4 +2330,49 @@ GOTOOLCHAIN=go1.27.1 GOMODCACHE="$PWD/.cache/gomod" GOCACHE="$PWD/.cache/gobuild
   DAX_INTEROP_KIRO_CREDIT_OPT_IN=1 \
   go test ./internal/interop -run '^TestKiroLiveMCPRequestTimeoutObservation$' \
   -count=1 -v -timeout 4m > .cache/history-review/d134-live-mcp-timeout.log 2>&1
+```
+
+## D141: MCP timing follow-up after a pre-prompt initialization failure
+
+The first authorized D134 invocation fails in 4.171s (case 3.34s) at ACP initialization.
+The diagnostic proves the observer never creates a session or sends a model prompt; it does
+not preserve the underlying error category or separately expose cleanup failure. Neither
+timeout arm reaches a tools/call observation. Do not interpret this as evidence that the
+MCP timeout field works or fails, or as authorization for another invocation.
+
+A separate existing initialize-only control stops at account preflight in 2.541s. Two later
+bounded read-only observations initialize successfully. Their recorded 2138ms and 2026ms
+spans include initialization, process shutdown, source checks and artifact removal; the
+log's initialize_ms field does not measure initialization latency alone.
+They use short and long owned layouts (the latter has a 112-byte scratch path), the same
+agent name/alias and environment shape, and an unused /usr/bin/false MCP entry. Neither
+creates a session, starts the prepared timing peer or calls the model. Both join their
+recorded ownership, preserve their owned source files and remove temporary artifacts.
+The later long-layout account command exits zero and has a first JSON object containing
+the four known string fields plus a 99-byte/five-newline postamble; no identity or text is
+retained. These later facts do not recover the earlier account output or original ACP
+error. The original failure is not reproduced; authentication expiry and path length are
+not established causes. No login/logout or user-process operation occurs.
+
+The live test now adds the existing kiroSetupFailure category and a separate cleanup_failed
+boolean to its initialization failure. It still emits no arbitrary error, stderr or prompt
+text. All original D134 protocol, process, request, prompt and timing bounds stay unchanged.
+The first invocation log is d134-live-mcp-timeout.log; read-only evidence is in
+d141-initialize-only-baseline.log, d141-account-initialize-observation.log and
+d141-long-layout-initialize.log under .cache/history-review.
+
+The following proposed single invocation is **not yet approved or run**. It requires a new
+explicit per-run approval under the standing instructions, even though the first invocation
+sent zero prompts. It uses the exact D134 prompt and the same 1500/8000ms pair, fixed 3000ms
+tool response, no retry, and stops before the second prompt if the first is inconclusive.
+The command retains the four-minute Go-test bound and writes a distinct result log.
+
+```sh
+umask 077
+GOTOOLCHAIN=go1.27.1 GOMODCACHE="$PWD/.cache/gomod" GOCACHE="$PWD/.cache/gobuild" \
+  DAX_INTEROP_CLAUDE_BINARY= \
+  DAX_INTEROP_KIRO_BINARY=/Users/geunwooshim/.local/bin/kiro-cli \
+  DAX_INTEROP_KIRO_CREDIT_OPT_IN=1 \
+  go test ./internal/interop -run '^TestKiroLiveMCPRequestTimeoutObservation$' \
+  -count=1 -v -timeout 4m > .cache/history-review/d141-live-mcp-timeout-followup.log 2>&1
 ```
