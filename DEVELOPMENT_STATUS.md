@@ -6,6 +6,19 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D144 on d144-mcp-default-wait-result (base 9db4035) records one explicitly approved
+  TestKiroLiveMCPDefaultWaitObservation invocation. The 2.21.3 main/helper gate, restricted
+  inventory and auto selection pass. With both timeout fields omitted, the sole MCP call
+  completes at correlated ACP status 135006ms after receipt. Seventeen notifications total
+  2989 bytes; all seven expected peer lifecycle events occur once, with no cancellation or
+  late reply. Recorded groups join, owned configuration stays unchanged and artifacts are
+  removed. The case passes in 148.88s, package in 149.730s, exit zero; no retry occurs.
+  This executes the extended peer entry point and delayed response, but does not trigger its
+  blocked-output exit timer. The finite result establishes this one 135-second wait, not a
+  default timeout value, the full 15-minute client allowance, one-hour maximum or actual
+  client approval/refusal/hook behavior. No premature failure is reproduced in this call.
+  Production/dependencies/installed D138 remain unchanged. No further model run is authorized.
+
 - D143 on d143-mcp-timeout-contract (base eda3c66) narrows the timeout configuration contract
   through non-model inspection. The 2.21.3 helper advertises --timeout in milliseconds but
   no --request-timeout. Its validator reports invalid types for a string timeout and malformed
@@ -20,7 +33,7 @@ does not redefine completion around an intermediate phase.
   A new separately gated test prepares one omitted-timeout, 135-second effect-free MCP call.
   It distinguishes completed, early_failure and inconclusive evidence; no retry is possible.
   A pass would bound only this one wait, not the default 15-minute client allowance. The live
-  command and exact limits are in LIVE_KIRO_TEST_PLAN.md; it is not approved or executed.
+  command and exact limits are in LIVE_KIRO_TEST_PLAN.md; D144 records later approval and execution.
   Focused local race passes in 1.874s/1.365s after correcting a test compile error; related
   vet passes. No native invocation or model approval is inferred from these local checks.
   The complete interop and peer race suites pass in 39.477s/1.346s with native opt-ins off.

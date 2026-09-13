@@ -7402,7 +7402,8 @@ dispatch and shutdown of a pending 135-second timer without waiting for it to fi
 race passes in 1.874s/1.365s after a compile error in the test cleanup callback is corrected;
 related vet passes. These do not execute the peer's process entry point or prove its blocked
 output exit timer. LIVE_KIRO_TEST_PLAN.md records the exact proposed invocation and its
-six-minute outer test bound. It is not approved or run; no credit approval carries over.
+six-minute outer test bound. At D143 it is not approved or run; D144 records the later
+single approval and invocation. No credit approval carries over.
 Only test/fixture/documents change, so the installed D138 artifact requires no rebuild or freeze.
 The complete interop and peer race suites also pass in 39.477s/1.346s with all actual-client
 and Kiro opt-ins disabled (d143-interop-race.log); focused results are in
@@ -7414,3 +7415,33 @@ the public-version caveat. Focused race passes independently in 1.358s/1.366s, r
 diff whitespace pass, and strictly resolved installed/current inputs pass all 144 byte checks.
 Parent installed/current inputs also pass 144 (d143-inventory.log), with release clearance
 false. No model/native invocation, code correction or artifact refreeze follows review.
+
+## D144: Retain the successful finite default MCP wait without inferring a general timeout
+
+On d144-mcp-default-wait-result, based on 9db4035, the user explicitly approves the exact
+D143 command once. TestKiroLiveMCPDefaultWaitObservation passes on the unchanged prepared
+harness in 148.88s (package 149.730s, exit zero). The main/helper version gate requires
+2.21.3; restricted inventory and advertised auto selection succeed before the sole prompt.
+Neither timeout nor requestTimeout is present in the server configuration. The log's
+configured_ms=0 is a placeholder accompanying timeout_present=false, not a configured zero.
+
+One independent MCP call returns after its planned 135-second delay and receives correlated
+ACP completed status at 135006ms after receipt. The prompt completes with end_turn. Seventeen
+notifications total 2989 bytes. Peer started, initialize_sent, initialized_notice, list_sent,
+call_received, call_sent and input_closed each occur once. No cancellation or late-reply
+event is recorded. The owned ACP group and recorded peer join, owned configuration is
+unchanged and temporary artifacts are removed; established=true. Full structural evidence
+is .cache/history-review/d143-live-mcp-default-wait.log, retained with mode 0600.
+
+The invocation runs the extended peer process entry point and its delayed-response path.
+It does not trigger the blocked-output outer exit timer or exercise early-failure cleanup.
+The observation demonstrates this one wait through 135 seconds, not a provider default,
+all waits up to the product's 15-minute client allowance or one-hour maximum, actual client
+approval/refusal/hooks, or late-reply handling. No premature native failure occurs in this
+call. No product timeout change is justified by this result, and prior startup-failure
+causes remain unproven. Personal instruction preservation and other live gates stay open.
+
+This single-run approval is consumed. No retry, second model prompt, additional native
+diagnostic, account command, login/logout or user-process operation follows it. Only the
+four evidence documents change; previously passing local tests are not repeated and no
+production, dependency, build, freeze or installation change is required.
