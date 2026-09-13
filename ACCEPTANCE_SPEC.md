@@ -109,27 +109,30 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
   use observed native behavior, not assumed default coding prose. D108 passes these initial-turn
   controls with actual Claude and a local text backend. UI switching, plugin/managed styles, later
   turns and actual Kiro behavior remain separate checks; this does not satisfy personal memory.
-- Personal rules must retain native user scope, original relative-import bases and path exclusions.
+- Supported personal rules retain native user scope and original relative-import bases, with the
+  alias-only exclusion limitation accepted in D145. Original-path exclusions must still work.
   Compare natural/prepared/stripped startup, full four-hop chains with an absent fifth hop and
   conditionally activated rules before and after exactly one successful client Read. Check original
   source trees/import files, groups and private cleanup, including unusual HOME path characters.
   Validate rules with the shared asset bounds before creating runtime artifacts; a native rules
   reference is not an immutable snapshot and is not a filesystem sandbox (D77).
-  Full exclusion fidelity also requires a pattern matching only the private rules alias to leave
+  Future full exclusion fidelity would require a pattern matching only the private rules alias to leave
   naturally included source rules active. D102 reproduces a current failure for user/project/local
   settings: the prepared client drops the rule and its four import hops. Original-path exclusions
-  still work. Passing this counterfactual does not satisfy preservation; the compatibility gap
-  remains open alongside personal-root memory.
-- Personal CLAUDE.md compatibility additionally requires unconditional root-body loading, original
+  still work. Passing this counterfactual does not establish full preservation. D145 accepts this
+  gap as a documented limitation, not a required fix or completion/release gate.
+- Personal `~/.claude/CLAUDE.md` is currently omitted. D145 accepts that omission as a documented
+  limitation, not a required fix or completion/release gate. Any future claim of personal
+  CLAUDE.md compatibility requires unconditional root-body loading, original
   path exclusions, all four import hops and native ordering without duplicated content. D77's
   explicit counterfactuals demonstrate rejected adapters, not successful product support. This
-  acceptance item remains open; the private profile currently omits personal CLAUDE.md.
+  future acceptance criterion is retained without scheduling the deferred implementation.
   D93 also rejects the measured additional-directory candidate: it omits the original root's
   imports and places its body after project instructions. Its passing counterfactual test records
   this incompatibility and matching exclusions, not successful personal-scope preservation.
   Any replacement must also preserve original settings and plugin registrations through interactive
   startup and native plugin management. A no-history print pass is insufficient (D80). Tests named
-  counterfactual deliberately reproduce rejected adapter defects and do not satisfy this gate.
+  counterfactual deliberately reproduce rejected adapter defects and do not prove compatibility.
   A replacement must handle both original-path exclusion and unintended exclusion of its relocated
   path. Local context-list absence cannot identify exclusion: empty/comment-only roots are also
   absent without a policy match. D97's controls reproduce these distinctions without enabling an
@@ -639,6 +642,10 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
 | Development run | Applicable independent transport/security/tool/cleanup checks; pinned Kiro restricted inventory and attempted native-effect denial; effective exclusion of inherited configuration; client-approved file/shell effects, client denials and hook vetoes; source settings preserved (apart from the D118 trust answer) and owned processes/artifacts removed |
 | Internal alpha | Development evidence plus live cancellation, process-loss recovery, authentication expiry, model selection and safe restart/resume for each enabled path |
 | Release candidate | Full acceptance for the supported product, parallel soak and FD/process/memory checks, dependency review (the D121 component record and advisory scan; the owner's rights checklist is outside the repository), and clean macOS install/uninstall |
+
+D145's omitted personal CLAUDE.md and unintended rules-alias exclusions are accepted limitations
+at all three stages and do not block product completion. Their fixes are deferred, not passed
+acceptance tests. All other staged requirements remain in force.
 
 An inactive inheritance positive control cannot establish effective exclusion. A client-hook denial
 alone does not establish native-tool restrictions or approved execution. Bind evidence to the tested

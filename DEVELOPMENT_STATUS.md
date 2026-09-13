@@ -6,6 +6,17 @@ does not redefine completion around an intermediate phase.
 
 ## Current evidence
 
+- D145 records the user's acceptance of two personal-memory limitations: the temporary profile
+  omits personal `~/.claude/CLAUDE.md`, and an exclusion matching only its private rules alias
+  can omit a personal rule and its imports. These are deferred fixes, outside required work and
+  ordinary-use, completion and release gates. They are not resolved defects or passing fidelity
+  tests. Earlier entries calling these two items unmet requirements or open gates describe the
+  historical status and are superseded by D145. Existing supported rules, source preservation,
+  client permissions/hooks and other lifecycle/release requirements remain unchanged.
+  Only documentation changes; no native/model call, production change or artifact rebuild is needed.
+  Independent review accepts `97644e7` without a finding; the exact two-item scope and retained
+  safeguards are consistent across all seven changed documents, and diff whitespace passes.
+
 - D144 on d144-mcp-default-wait-result (base 9db4035) records one explicitly approved
   TestKiroLiveMCPDefaultWaitObservation invocation. The 2.21.3 main/helper gate, restricted
   inventory and auto selection pass. With both timeout fields omitted, the sole MCP call

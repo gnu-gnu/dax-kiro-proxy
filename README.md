@@ -400,7 +400,13 @@ runs leave source settings and assets unchanged. Style metadata is copied withou
 The `keep-coding-instructions` declaration matches the native reference, but these synthetic turns
 show no corresponding system-size change in that reference; no broader coding-behavior claim is
 made. Mid-session switching, plugin/managed styles and actual Kiro behavior remain separate checks.
-Personal CLAUDE.md and rule-exclusion issues below are still open.
+Personal CLAUDE.md and rule-exclusion behavior below are accepted limitations (D145).
+
+The temporary profile does not load personal `~/.claude/CLAUDE.md`. A `claudeMdExcludes`
+pattern matching only the temporary rules path can also omit a personal rule and its imports.
+The user accepts these two limitations: they do not block ordinary use or product completion,
+including release acceptance. Their fixes are deferred; full personal-instruction fidelity is
+not claimed. Other permission, hook, source-preservation and lifecycle requirements still apply.
 
 Personal `~/.claude/rules` now remains available at its native scope through a validated source
 reference (D77). Installed-client checks cover relative imports, original-path exclusions,
@@ -431,8 +437,8 @@ the client. Installed UI checks verify precedence, unchanged sources, no extra p
 and process cleanup (D67). Dynamic changes and managed/custom source coverage remain separate work.
 
 Development launch and release readiness are separate milestones in ACCEPTANCE_SPEC.md. The next
-priority is client-environment preservation, broader client request compatibility and the
-live alpha lifecycle checks. Optional web/account-usage
+priority is the remaining client tool-wait and live alpha lifecycle checks, followed by combined
+concurrency and resource verification. D145's two personal-memory fixes are deferred. Optional web/account-usage
 features, full Anthropic API coverage and release soak tests are not development-launch prerequisites.
 
 A bounded independent-process concurrency test now covers 1,024 local HTTP requests across 64 waves

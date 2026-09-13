@@ -7452,3 +7452,40 @@ Fresh-context independent review accepts fa1e661 after one documentation correct
 records now state that scope. The reviewer confirms the full structural log, relevant code,
 finite conclusions, consumed approval, unchanged production inputs and mode 0600. Diff
 whitespace passes. No further finding, test rerun or production correction is required.
+
+## D145: Accept personal-root omission and rules-alias exclusions as known limitations
+
+On 2026-09-13, after reviewing the unresolved personal-memory investigation, the user asks
+to retain the gaps as limitations because they do not prevent using the product. This is an
+explicit scope decision, not a successful adapter or a new native-client observation.
+
+The accepted limitations are exactly:
+
+- The temporary client profile does not load personal `~/.claude/CLAUDE.md`.
+- A `claudeMdExcludes` pattern matching only the temporary personal-rules alias can suppress
+  a rule and its imports that natural Claude startup includes (D102).
+
+Their fixes are deferred and removed from required remaining work and ordinary-use, product
+completion and release gates. README and acceptance text must keep the behavior visible;
+full personal-instruction fidelity must not be claimed. Prior D77/D80/D93/D97/D102 findings
+remain valid evidence of rejected adapters and incomplete fidelity. Historical statements
+that these two gaps are mandatory unfinished work are superseded by this decision.
+
+Supported personal rules, original-path exclusions, source/settings preservation, client
+permission and hook authority, restricted Kiro execution, cancellation and joined cleanup
+keep their existing requirements. This decision authorizes no original-setting writes, new
+memory adapter, custom import/glob parser or wider client-environment exception. Existing
+counterfactual tests stay available and must not be relabeled as compatibility passes.
+The retained fidelity criteria apply if a future adapter is proposed and the user reopens
+the item; do not keep investigating or rerunning the rejected candidates in the meantime.
+
+The batch starts from main `61046fd` on `d145-personal-memory-limitation`. It changes only
+the product/acceptance scope and related documentation. No code, dependency, native/model
+invocation, build, inventory freeze or installation is needed. Remaining client tool-wait,
+live lifecycle and combined resource checks retain their existing scope and approval rules.
+
+Fresh-context independent review accepts `97644e7` with no actionable finding. It verifies
+the two-item scope, retained safeguards and future fidelity criteria, explicit supersession of
+historical gates, and consistent current status. Only seven Markdown files change; diff
+whitespace passes and no code, test, dependency or artifact input changes. No test or native
+invocation is needed for this documentation-only decision.
