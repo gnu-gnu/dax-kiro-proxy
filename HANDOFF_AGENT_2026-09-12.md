@@ -688,3 +688,11 @@ admission/model assertion in the actual Claude 2.1.270 local consumer passes (0.
 with three requests/one nested search, URL-bearing completion, unchanged sources and cleanup.
 Logs d146-enabled-all-race.log, d146-enabled-vet.log and d146-enabled-client-admission.log.
 Activation review has no findings; no extra Kiro/model call occurs.
+
+D146 is now installed from clean 00f40d3116149826920c42c1c2a7e6faf4b8af1f: 13,833,202 bytes,
+SHA-256 4e66871356cf9129813909def9d27fe33a46051aa74050722fc5ca9c7869dea4, Go 1.27.1 darwin/arm64,
+CGO_ENABLED=1, vcs.modified=false. Snapshot web-search has 116 source inputs/268 packages and
+unchanged external dependencies; candidate and installed checks pass 155, components pass 18.
+Install succeeds. Doctor verifies login/policy/launch, login_check 2008ms, current 2.21.4/2.1.270
+versions admitted unmeasured. Client initialization remains unverified by doctor. No further
+model call occurs. Inventory commit, independent artifact review and no-ff merge follow.

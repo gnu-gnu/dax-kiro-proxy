@@ -7810,3 +7810,15 @@ agreement assertions. Current Claude 2.1.270 passes in 0.67s/package 1.497s, wit
 true, three requests/one nested search, a successful URL-bearing result, completion, joined
 cleanup and unchanged source settings (d146-enabled-client-admission.log). This is a local fake
 responder and uses no Kiro/model credits. Independent activation review has no findings.
+
+Clean commit 00f40d3116149826920c42c1c2a7e6faf4b8af1f builds the 13,833,202-byte D146 artifact,
+SHA-256 4e66871356cf9129813909def9d27fe33a46051aa74050722fc5ca9c7869dea4, with Go 1.27.1,
+darwin/arm64, CGO_ENABLED=1 and vcs.modified=false. The web-search inventory hashes the D138
+predecessor and records 116 production inputs (eight changed, eleven added, none removed),
+268 packages (only internal/websearch added) and unchanged external dependency sets/notices.
+Both candidate and installed binaries pass 155 byte checks; all 18 component checks pass.
+Install --force succeeds. Installed doctor verifies login/policy and launch availability, with
+login_check 2008ms and Kiro 2.21.4/Claude 2.1.270 admitted unmeasured. Client initialization
+and release clearance remain unverified. Logs: d146-freeze.log, d146-candidate-verify.log,
+d146-components.log, d146-install.log, d146-installed-verify.log and d146-installed-doctor.json.
+No model prompt is issued by build/install/doctor. Final inventory review follows publication.

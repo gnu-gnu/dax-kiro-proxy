@@ -43,7 +43,7 @@ experiment design; the explicit language selection supersedes comparative experi
 gate. The dependency inventory is complete for the darwin/arm64 development artifact (D121); the
 owner's rights and project-license decisions are outside this repository, and live-release gates
 remain open. Implementation began with independent fixtures and fake-process transport tests and now
-reaches an installed development artifact (D138); consult DEVELOPMENT_STATUS.md for verified
+reaches an installed development artifact (D146); consult DEVELOPMENT_STATUS.md for verified
 progress, `HANDOFF_REVIEW_2026-09-11.md` for the D109–D120 review brief and
 `HANDOFF_AGENT_2026-09-12.md` for the agent handoff after D124.
 
@@ -486,9 +486,9 @@ cleanup verified. Descriptors/goroutines stay at 28/48 after warm-up. The defaul
 short unpaced control. This is a local fake-ACP experiment; consult DEVELOPMENT_STATUS.md
 for the measured resource limits and remaining live gates.
 
-Phase 7 has frozen dependency inventories and retained scoped notices. For the installed D138
+Phase 7 has frozen dependency inventories and retained scoped notices. For the installed D146
 development artifact, run `python3 tools/verify_dependency_inventory.py
---gomodcache .cache/gomod --snapshot paused-model --binary dist/dax-kiro-proxy`.
+--gomodcache .cache/gomod --snapshot web-search --binary dist/dax-kiro-proxy`.
 The default `development` snapshot identifies D78's earlier D77 binary; `installation` identifies D79.
 `native-history` identifies D87 and `relay-close` identifies D96; `effort` identifies D99, `usage`
 identifies D101, `output-styles` identifies D108, `tool-images` identifies D109, `client-version`
@@ -498,7 +498,7 @@ identifies D110–D112, `measured-client` identifies D113, `measured-kiro` ident
 identifies D125; `measured-client-269` identifies D126, `progress-setup` identifies D127 and
 `resolved-cancellation` identifies D128, `tool-outcomes` identifies D129 and `prompt-stop`
 identifies D130; `account-check` identifies D131, `schema-dialects` identifies D132 and
-`media-history` identifies D133 and `terminal-delivery` identifies D137.
+`media-history` identifies D133, `terminal-delivery` identifies D137 and `paused-model` identifies D138.
 Those historical snapshots do not match this rebuild and its changed production source. These
 offline byte checks do not grant release clearance; see DEPENDENCY_REVIEW.md for the D121 component
 record, the three unattributed metaschema resources and the owner's external rights items.

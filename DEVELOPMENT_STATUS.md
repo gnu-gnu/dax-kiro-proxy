@@ -18,6 +18,13 @@ does not redefine completion around an intermediate phase.
   also passes the enhanced local consumer/admission check (0.67s/1.497s): actual nested input
   is admitted, model matches configuration, URL-bearing result and completion succeed, and
   sources/ownership are preserved. No Kiro/model credit is used. Activation review has no findings.
+  Clean implementation commit `00f40d3` builds the installed 13,833,202-byte D146 artifact,
+  SHA-256 `4e66871356cf9129813909def9d27fe33a46051aa74050722fc5ca9c7869dea4`.
+  Candidate/installed inventories each pass 155 checks and all 18 component checks pass. There
+  are 116 production inputs and 268 packages; external dependencies are unchanged. Install
+  --force succeeds. Installed doctor verifies login/policy and launch availability, with
+  login_check 2008ms and both current CLI versions admitted unmeasured. Doctor does not prove
+  client initialization. The snapshot is web-search; release clearance remains false.
 
 - D146 on `d146-web-search` (base `efb2392`) prepares the explicit WebSearch conversion request.
   Native Claude 2.1.269 consumes URL/title server-search blocks, returns a successful correlated
