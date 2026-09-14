@@ -25,6 +25,8 @@ does not redefine completion around an intermediate phase.
   --force succeeds. Installed doctor verifies login/policy and launch availability, with
   login_check 2008ms and both current CLI versions admitted unmeasured. Doctor does not prove
   client initialization. The snapshot is web-search; release clearance remains false.
+  Final independent artifact review accepts `00f40d3` and `9e4d3f3`: all committed source hashes,
+  fresh package graph, metadata and installed bytes match. No correction or refreeze is needed.
 
 - D146 on `d146-web-search` (base `efb2392`) prepares the explicit WebSearch conversion request.
   Native Claude 2.1.269 consumes URL/title server-search blocks, returns a successful correlated

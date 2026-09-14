@@ -1363,3 +1363,9 @@ unmeasured under the existing same-major policy (d146-installed-doctor.json). Cl
 remains unverified by doctor. The separately approved native search controls verify finite
 allowance/denial, not a broad release or all-model gate. Release clearance stays false; prior
 advisory scans remain historical and owner rights stay outside the repository under D121.
+
+Independent review accepts 00f40d3 and 9e4d3f3 without findings. All 116 input hashes match
+the clean committed Git blobs, and a fresh package graph matches the 268 recorded packages.
+Candidate, dist and strictly resolved installed binaries each pass 155 checks; component checks
+pass 18. Metadata, eight changed/eleven added inputs and unchanged external dependencies match.
+No correction or refreeze is needed (d146-review-report.log); no native call or repeated test runs.
