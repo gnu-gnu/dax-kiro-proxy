@@ -2485,3 +2485,260 @@ allowance, one-hour maximum, actual client approval/refusal/hooks, late-reply be
 provider default value remain unverified. An early timeout is not reproduced in this call;
 do not change product timeout policy on this evidence. The original startup failure remains
 of unproven cause. No further model invocation is approved or prepared by this record.
+
+## D146: Native search conversion observation and diagnostic follow-up
+
+Prepared 2026-09-15, subsequently approved and executed once. The installed main/helper are 2.21.4; both pass
+existing same-major admission and the read-only search-only profile inventory. This is new
+version-specific evidence, not migration of the measured 2.21.3 pin. The first overly strict
+pin check stopped before ACP; both structural logs are retained in the D146 decision.
+
+The exact test below builds the candidate helper in an owned temporary root and prepares one
+fresh v2 ACP search session. It uses real HOME for the existing login and a private KIRO_HOME,
+empty MCP/resources, no inherited project, no effect capabilities and denied permission requests.
+The agent exposes and preallows only `web_search`, checked through the native inventory.
+Its fixed execution hook is configured to allow one search; no local file/shell tool is exposed. No client
+conversation or project content is sent. The synthetic prompt asks for one web search for the
+official Agent Client Protocol documentation site, returning its title and URL, with no other tool.
+
+The episode is bounded to 150 seconds, one prompt, one authorized search and no retry. Version
+commands and candidate helper compilation use a finite child-process runner. Conversion requires
+one correlated completed result with at least one valid URL/title, one terminal event, one
+budget slot consumed, joined process-group cleanup and removed temporary state. Unknown result
+layouts fail, with only bounded known field names/types and enum values recorded for diagnosis.
+No full prompt, tool output, arbitrary field/value, credential or subprocess stderr is logged.
+A cleanup failure preserves its root. The test does not claim that it verifies a second blocked
+search, interactive client permissions or a complete actual-client/Kiro end-to-end exchange.
+Native output adaptation and the remaining execution-limit check must be recorded before the
+production search gate is enabled. Local fixtures and the actual-client fake-response control
+are already prepared and do not consume Kiro credits.
+
+Explicit per-run approval is required under HANDOFF_AGENT_2026-09-12.md section 2. Preparing the
+code or running the read-only inventory grants no model invocation. The command below records
+the one approved invocation; neither a failure nor a zero-prompt stop authorizes a retry.
+
+```sh
+umask 077
+set -o noclobber
+GOTOOLCHAIN=go1.27.1 GOMODCACHE="$PWD/.cache/gomod" GOCACHE="$PWD/.cache/gobuild" \
+  DAX_INTEROP_CLAUDE_BINARY= \
+  DAX_INTEROP_KIRO_BINARY=/Users/geunwooshim/.local/bin/kiro-cli \
+  DAX_INTEROP_KIRO_CREDIT_OPT_IN=1 \
+  DAX_FIXTURE_BATCH_WAVES= DAX_INTEROP_TOOL_SOAK_ROUNDS= DAX_INTEROP_TOOL_SOAK_INTERVAL_MS= \
+  go test ./internal/launcher -run '^TestKiroLiveSearchConversion$' \
+  -count=1 -v -timeout 3m > .cache/history-review/d146-live-search-conversion.log 2>&1
+```
+
+Result: FAIL, case 13.16s/package 15.848s, exit one. Kiro 2.21.4 is reported unmeasured.
+The observer records 33 notifications with search kind, completed status and a `rawOutput`
+object whose inner fields are unknown to that observer. No tool-result content array is
+recorded, and conversion emits zero exchanges, links or terminal events. The process group
+joins, the private profile is removed and cleanup succeeds. `searches=0` in this original log
+means converted exchanges, not native invocations. The log does not prove the output layout
+or hook execution/limit. The approval is consumed. No automatic retry occurred.
+
+The revised observer follows children of unknown containers under a fixed `_` label and can
+inspect a whole JSON object/array encoded in a string. It records no arbitrary field names,
+strings, URLs or other tool-output values. It excludes agent answer text from tool shapes,
+counts correlated call statuses separately from converted exchanges and reads the budget after
+joining the native process, before removing the profile. Traversal has explicit depth, node,
+array, label and byte limits with a truncation flag. Synthetic privacy and bound tests pass.
+Counters bind to session/new ownership and require an initial call; unowned and orphan updates
+are flagged separately. Final focused diagnostic race passes in 6.270s and launcher vet is clean,
+with native opt-ins off. The preceding launcher-wide diagnostic race passes in 34.915s.
+The production converter is unchanged: no inferred native mapping is admitted.
+
+The user subsequently approves this follow-up with an explicit instruction to proceed, and it
+is executed exactly once: the same one-prompt test, same synthetic public
+documentation search, configured budget of one and 150-second episode bound, with no retry.
+It can still fail conversion; its purpose is to establish the missing result structure and
+hook ledger so an explicit native mapping can be implemented. It does not verify an over-limit
+denial. A later successful conversion and the separate execution-limit gate remain necessary.
+This is the exact executed invocation, preserving the previous failure log:
+
+```sh
+umask 077
+set -o noclobber
+GOTOOLCHAIN=go1.27.1 GOMODCACHE="$PWD/.cache/gomod" GOCACHE="$PWD/.cache/gobuild" \
+  DAX_INTEROP_CLAUDE_BINARY= \
+  DAX_INTEROP_KIRO_BINARY=/Users/geunwooshim/.local/bin/kiro-cli \
+  DAX_INTEROP_KIRO_CREDIT_OPT_IN=1 \
+  DAX_FIXTURE_BATCH_WAVES= DAX_INTEROP_TOOL_SOAK_ROUNDS= DAX_INTEROP_TOOL_SOAK_INTERVAL_MS= \
+  go test ./internal/launcher -run '^TestKiroLiveSearchConversion$' \
+  -count=1 -v -timeout 3m > .cache/history-review/d146-live-search-shape-followup.log 2>&1
+```
+
+Result: FAIL, case 11.17s/package 19.224s, exit one. Kiro 2.21.4 remains unmeasured. There are
+31 observed notifications, one owned initial/completed tool call, rawOutput-only, and zero
+foreign/orphan updates. Shapes identify `rawOutput.items[].<opaque tag>` as an object with
+`query:string`, `error:null` and `results` objects containing URL/title/snippet strings plus
+other metadata. The diagnostic reports truncation and samples bounded arrays; it does
+not retain complete result data or identify the opaque tag. The original converter emits no
+searches, links or terminal events. Crucially, the independently read execution ledger has
+zero slots with no read error. The process joins and the profile is removed. Neither approval
+survives this completed invocation; no additional model call is authorized.
+
+The candidate now admits one items entry and one opaque transport tag containing the observed
+payload, with exact query agreement and explicit error:null. It bounds input at 512 KiB and
+results at 32, preserves URL/title order, and rejects ambiguous/unsupported layouts. Public
+content and native output are frozen independently. Native output supplies structured results
+even when public content is only display text; generated answer prose is never used as a result
+source. Synthetic tests cover malformed shapes, divergence, unsafe URLs, repeats and absent
+execution records. Focused race passes kirofeature/websearch/launcher/command in
+1.212s/3.667s/6.603s/4.209s (`d146-native-output-local.log`). This is fixture validation, not a
+successful native conversion or permission gate.
+
+Non-model hook diagnosis: a native validator accepts the owned embedded hook configuration;
+the native config writer normalizes it while preserving preToolUse and agentSpawn command/matcher
+values (`d146-hook-config-observation.log`, `d146-hook-config-fields.log`). This creates no session
+or prompt. A compiled helper control allows one invocation and returns blocking exit 2 on the
+next, with joined process groups. One read-only ACP bootstrap control runs an embedded agentSpawn
+marker and does not run a standalone SessionStart marker; it has zero prompts and zero budget
+slots, with joined/removed ownership (5.02s/7.369s, `d146-bootstrap-hooks-readonly.log`). These
+observations narrow the investigation but do not establish preToolUse execution or enforcement.
+
+A further no-prompt bootstrap control invokes the actual compiled budget helper from the working
+embedded agentSpawn hook, using a separate private ledger. It records one bootstrap slot, with
+no ledger error; the ordinary search ledger stays zero and cleanup succeeds (4.63s/7.323s,
+`d146-bootstrap-helper-readonly.log`). This shows the helper runs in that Kiro hook environment;
+it does not prove preToolUse delivery or the reason the two actual searches lacked budget records.
+
+The candidate removes the optional matcher from preToolUse. Its native inventory already admits
+exactly one search tool, so there is no reason to filter that hook by a pattern. This is a candidate
+removal of an unnecessary matching dependency, not a verified explanation or fix. The observed
+embedded hook format is retained; the standalone bootstrap hook is only a test control.
+
+Final local preparation passes the stable source's full race suite (28 tested packages) and
+full vet (`d146-native-mapping-all-race.log`, `d146-native-mapping-vet.log`). The matcher-free
+native profile passes read-only initialization/inventory/cleanup in 5.30s/8.095s with zero
+prompts/tool calls/budget slots (`d146-unfiltered-profile-readonly.log`). A subsequent test-only
+version admission adjustment follows the existing same-major policy and reports the measured
+pin distinction. Current Claude 2.1.270 consumes the synthetic converted response from an
+authenticated local responder, completing three requests including one nested search in
+0.87s/1.750s, with ownership cleanup and source settings unchanged
+(`d146-current-client-search-conversion.log`). These checks use no Kiro/model credits and do
+not establish native search conversion or hook enforcement.
+
+Prepared invocation, **subsequently approved and executed below**: TestKiroLiveSearchConversionAndBudgetGate,
+with at most two sequential model prompts. First, a fresh session must complete the synthetic
+public-documentation search with one owned completed tool, one budget slot and a converted URL/title
+result. If any part fails, the test stops without the second episode. If it passes, a fresh session
+prepares an empty budget normally, then the test consumes its sole slot before submitting the same
+one-search prompt. This second episode must report one owned failed tool, no completed tool or
+links, one converted error and terminal, and an unchanged one-slot ledger. The preseeded slot is a
+test input, not an observed search or billed usage. Both episodes must execute the instrumented
+preToolUse entry marker, join their processes and remove their private profiles.
+
+Generic failed status alone is inconclusive. The instrumented hook wrapper also emits a fresh
+private denial token to stderr only when the original helper command returns blocking exit 2.
+The test requires that token in the correlated owned failed tool's rawOutput/content, never in
+answer text, input, foreign updates or an orphan update. Only the Boolean/count is logged, not
+the token or native error text. The token is absent from the test's model prompt. Synthetic
+counterexamples distinguish unrelated search failure and misplaced tokens; a real local shell
+control verifies the wrapper preserves successful exit and emits the witness on blocking exit.
+
+The harness adds an empty hook-entry marker and the private failure witness to its owned hook.
+It retains no hook input, native output body, prompts, result values or credentials. The original
+blocking helper command runs after the marker. Each episode remains bounded to 150 seconds and asks for one search;
+the allowance/exhaustion tests use no other native tool. No automatic retry occurs. If enforcement
+is broken, the supposedly denied episode may execute its requested search, which makes the test
+fail. Preparing this command grants no model-credit approval, and neither earlier approval carries
+over. A pass establishes these two finite allowance/exhaustion states, not a long-running soak.
+
+```sh
+umask 077
+set -o noclobber
+GOTOOLCHAIN=go1.27.1 GOMODCACHE="$PWD/.cache/gomod" GOCACHE="$PWD/.cache/gobuild" \
+  DAX_INTEROP_CLAUDE_BINARY= \
+  DAX_INTEROP_KIRO_BINARY=/Users/geunwooshim/.local/bin/kiro-cli \
+  DAX_INTEROP_KIRO_CREDIT_OPT_IN=1 \
+  DAX_FIXTURE_BATCH_WAVES= DAX_INTEROP_TOOL_SOAK_ROUNDS= DAX_INTEROP_TOOL_SOAK_INTERVAL_MS= \
+  go test ./internal/launcher -run '^TestKiroLiveSearchConversionAndBudgetGate$' \
+  -count=1 -v -timeout 6m > .cache/history-review/d146-live-search-budget-gate.log 2>&1
+```
+
+The user's instruction to verify, build and update the installation authorizes that invocation
+once. Result: FAIL, combined case 19.41s/package 21.415s, exit one. Allowance PASS 12.65s:
+30 updates, one initial/completed search, rawOutput only, ten converted links, one exchange and
+terminal, hook entry and one budget slot. Exhaustion FAIL 6.77s: seven updates, one owned orphan
+before any initial tool call is observed, hook entry, unchanged preseeded slot, no delivered
+search/link/terminal, protocol failure. Both episodes join their groups and remove their profiles.
+The collector stops at the first orphan and its old observer records no orphan status or result
+shape. Zero counted witnesses therefore cannot establish that the orphan lacks a hook witness.
+This is a successful finite allowance path and an unresolved denial path, not a completed gate.
+The approval is consumed; neither episode is repeated. Production search and installation stay
+pending. A local candidate build succeeds with the gate false; it is unfrozen and uninstalled.
+
+Prepared invocation, **subsequently approved and executed below**: TestKiroLiveSearchDeniedObservation.
+It runs only the exhausted-budget episode above, with one fresh session and at most one model
+prompt, a 150-second episode deadline and a three-minute test timeout. It requests one synthetic
+official-documentation search and preconsumes the single private budget slot. The observer now
+retains bounded shapes of owned orphan updates under the fixed `orphan.` prefix and counts
+failed orphan updates whose output contains the private hook witness. It retains no arbitrary
+names, values, error bodies or witness token. Orphan counts are separate from correlated calls
+and cannot satisfy the production oracle. The production collector is unchanged and will still
+fail if it encounters the same orphan. This diagnostic can identify a missing denial mapping;
+its structural output alone does not enable the feature. The local privacy/bounds/correlation
+controls pass under race in 6.731s and launcher vet passes. There is no automatic retry. A broken
+hook could still allow the one requested search; the diagnostic is a model-credit run even if
+the search is successfully blocked. Existing installation approval persists after verification.
+
+```sh
+umask 077
+set -o noclobber
+GOTOOLCHAIN=go1.27.1 GOMODCACHE="$PWD/.cache/gomod" GOCACHE="$PWD/.cache/gobuild" \
+  DAX_INTEROP_CLAUDE_BINARY= \
+  DAX_INTEROP_KIRO_BINARY=/Users/geunwooshim/.local/bin/kiro-cli \
+  DAX_INTEROP_KIRO_CREDIT_OPT_IN=1 \
+  DAX_FIXTURE_BATCH_WAVES= DAX_INTEROP_TOOL_SOAK_ROUNDS= DAX_INTEROP_TOOL_SOAK_INTERVAL_MS= \
+  go test ./internal/launcher -run '^TestKiroLiveSearchDeniedObservation$' \
+  -count=1 -v -timeout 3m > .cache/history-review/d146-live-search-denied-observation.log 2>&1
+```
+
+The user approves this observation once. Result: FAIL 9.96s/package 12.683s, exit one. Seven
+updates include one owned orphan, with failed status, search kind, web_search title, rawInput
+query string and content/text shapes. orphan_denial_updates=1 establishes that this owned failed
+update carries the private output witness. Hook entry, unchanged preseeded slot, process join
+and profile removal pass. No converted search/link/terminal is emitted because the old collector
+stops on the orphan. Approval is consumed. This identifies the native standalone failure form;
+it does not establish successful error conversion or a general out-of-order protocol rule.
+
+The candidate now admits only the complete bounded standalone failed-search form documented in
+PROTOCOL_SPEC.md, returning unavailable without forwarding source error text. Existing owner,
+ID, terminal freezing, call count and ledger checks remain. The observer separately deduplicates
+standalone failure/witness calls by hashed ID; generic or duplicate updates cannot satisfy the
+gate on their own. This check also requires one converted error, zero links, one terminal,
+hook entry, unchanged preseeded slot and full cleanup. Initial-announced and standalone paths
+are mutually exclusive. Focused local race passes (1.869s/3.766s/8.374s); independent review's
+focused race, vet and whitespace pass. The production gate remains false.
+
+Prepared invocation, **subsequently approved and executed below**: the same denied-only entry point with
+the new conversion adapter and unique-call oracle. One prompt, 150-second episode, three-minute
+test timeout, no automatic retry. It does not repeat the already-passing allowed search. The
+preseeded ledger slot and one returned error exchange are not executed or billed search counts.
+If it passes, retain the earlier finite allowed-search evidence and proceed with the already
+authorized clean build/freeze/install procedure. If it fails, preserve the result and do not
+enable search or retry without fresh credit approval.
+
+```sh
+umask 077
+set -o noclobber
+GOTOOLCHAIN=go1.27.1 GOMODCACHE="$PWD/.cache/gomod" GOCACHE="$PWD/.cache/gobuild" \
+  DAX_INTEROP_CLAUDE_BINARY= \
+  DAX_INTEROP_KIRO_BINARY=/Users/geunwooshim/.local/bin/kiro-cli \
+  DAX_INTEROP_KIRO_CREDIT_OPT_IN=1 \
+  DAX_FIXTURE_BATCH_WAVES= DAX_INTEROP_TOOL_SOAK_ROUNDS= DAX_INTEROP_TOOL_SOAK_INTERVAL_MS= \
+  go test ./internal/launcher -run '^TestKiroLiveSearchDeniedObservation$' \
+  -count=1 -v -timeout 3m > .cache/history-review/d146-live-search-denied-conversion.log 2>&1
+```
+
+The user approves that exact one-prompt confirmation. Result: PASS 18.13s/package 21.073s,
+exit zero. Kiro 2.21.4 delivers 45 updates, one distinct standalone failed call carrying the
+private hook witness, one unavailable exchange, zero links and one terminal. Hook entry,
+unchanged preseeded one-slot ledger, process join and profile removal pass, without protocol
+or cleanup failure. The emitted error/slot are not billed or executed search counts.
+Together with the earlier allowed-search PASS (ten links, one budget slot, terminal and cleanup),
+this completes the finite native allowance/denial gate. The production adapter is enabled and
+reports limited one-shot support. Broader replay/multi-model/soak support is not inferred.
+This approval is consumed; no further model-credit invocation is authorized. The user's existing
+build/install authorization remains in force and requires no additional permission.

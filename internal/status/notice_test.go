@@ -33,3 +33,14 @@ func TestLaunchNoticeDoesNotInventNegotiatedCapabilities(t *testing.T) {
 		}
 	}
 }
+
+func TestLaunchNoticeDisplaysLimitedSearchAdapter(t *testing.T) {
+	const model = "claude-dax-fixture"
+	notice, _ := LaunchNotice(model)
+	notice.NativeWebSearch = "limited"
+	raw, _ := json.Marshal(notice)
+	line, err := FormatNotice(raw, model)
+	if err != nil || !strings.Contains(line, "Native web search: limited one-shot support.") {
+		t.Fatal("enabled adapter not accurately displayed")
+	}
+}

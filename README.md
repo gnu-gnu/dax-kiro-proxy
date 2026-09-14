@@ -49,6 +49,15 @@ progress, `HANDOFF_REVIEW_2026-09-11.md` for the D109–D120 review brief and
 
 ## Development commands
 
+D146 enables the requested WebSearch conversion for Claude Code's one-shot
+`web_search_20250305` requests. Each search uses an isolated Kiro agent with only the native
+search tool and an execution budget. Native Kiro 2.21.4 controls verify a successful ten-link
+result and a hook-blocked search returning an error without links, with joined cleanup.
+The adapter handles Kiro's self-contained failed update when a hook blocks before the initial
+call notification. Domain/location restrictions, newer search versions, provider search replay
+and general search continuation are unsupported. The launch notice reports limited support.
+See D146 in `LIVE_KIRO_TEST_PLAN.md` for the finite evidence and earlier failed observations.
+
 With Go 1.27.1, build a local development executable:
 
 ```sh

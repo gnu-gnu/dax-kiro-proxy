@@ -238,6 +238,34 @@ and final usage metadata including the search request count. Duplicate Kiro upda
 suppressed. Web-fetch structured conversion is optional until independently specified; text fallback
 is acceptable.
 
+D146 enables a one-shot Claude Code adapter for `web_search_20250305`, with exactly one
+`web_search` declaration and `max_uses` from 1 through 8 (omission selects 8). Mixed client/server
+tool lists, newer versions, domain restrictions and location options reject before model work.
+Search requests have independent, ephemeral ownership even when their client session ID matches
+a foreground request waiting for its WebSearch result. Ordinary client `WebSearch` remains a
+client tool subject to its permission and hook system.
+
+The adapter emits correlated `server_tool_use` and `web_search_tool_result` blocks, optional
+answer text and the observed search-call count. URL/title results work with the measured native
+client's one-shot consumer; they contain no invented `encrypted_content` or citations. Provider
+search-block replay and general Anthropic search continuation are unsupported. Public ACP resource
+links are converted directly. The observed Kiro 2.21.4 shape additionally admits one `rawOutput.items`
+entry with a single opaque transport tag, whose object contains the matching `query`, `error:null`
+and a `results` array of URL/title objects. This narrow mapping rejects ambiguous containers and
+more than 32 results or 512 KiB; generated answer text is never parsed into search results. Both
+public and native result carriers retain their finalized identities across repeated updates.
+The observed Kiro pre-execution failure can arrive as a self-contained `tool_call_update` before
+an initial call. The adapter admits it only with exact `title:web_search`, `kind:search` and
+`status:failed`, a nonempty bounded query, no rawOutput, and one through eight public text content
+blocks within 64 KiB. It becomes a correlated `unavailable` error; the native error text is not
+forwarded or parsed to infer its cause. Owner, ID, frozen input/result, call-count and execution
+ledger checks still apply. Other orphan updates reject. The response's web_search_requests count
+counts emitted attempt/result exchanges, including errors, not executed or provider-billed searches.
+Finite native conversion and hook-denial controls pass on Kiro 2.21.4, enabling the adapter.
+Prepared launches with the adapter set `native_web_search: limited`; gateways without it retain
+`unsupported`. Other unnegotiated model capabilities remain unknown. These finite tests do not
+establish arbitrary replay, every catalog model or long-duration search stability.
+
 ### Usage fields
 
 Anthropic input/output/cache token fields remain zero when Kiro ACP provides no compatible accounting.

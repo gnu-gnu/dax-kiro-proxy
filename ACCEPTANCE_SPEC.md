@@ -168,6 +168,24 @@ Live Kiro tests that consume credits must be separately marked and opt-in.
   unchanged source settings. Reconstruction within bounds still preserves native result images.
 - Tool streaming produces a valid tool-use block and tool-use stop reason.
 - Server web search produces compatible use/result blocks and request count when supported.
+- D146 search admission accepts only its recorded one-shot subset. Verify JSON/SSE correlation,
+  duplicate and divergent updates, missing results, count/output bounds, and rejection of
+  unsolicited server blocks or server searches presented as client tool calls. Native structured
+  output must match its input query, reject ambiguous envelopes, unsafe URLs and malformed result
+  arrays, preserve finalized carriers and fail before result delivery when its budget is absent.
+  The observed self-contained failed update may initialize an error exchange only with its narrow
+  Kiro search identity, complete query and bounded public text content. Reject incomplete/foreign
+  updates, successful or pending orphans, changed terminal input/output and missing ledgers.
+  Deduplicate a standalone failure by native call ID. Actual denial verification requires a
+  private output-carried hook witness for the same unique call, successful error conversion,
+  no links, terminal and joined cleanup; generic failure alone is insufficient. The test-preseeded
+  ledger and emitted error-exchange count must not be described as executed or billed searches.
+  A nested search must preserve the waiting foreground owner and last-used foreground model.
+  Each native search owns a fresh restricted profile/process; cap concurrent owners at two,
+  deny permissions and advertise no client filesystem/terminal capabilities. Verify the budget before
+  effects, cancellation/crash cleanup, and cleanup failures retaining ownership. Actual native
+  search output and preToolUse behavior must pass before enabling the candidate. Public-resource
+  fixtures and native-client consumption alone do not establish those Kiro behaviors.
 - Provider token usage remains zero when unreported; estimates appear only in labeled local metadata.
 - Recognized auth expiry returns HTTP 200 valid text completion in streaming and non-streaming
   modes, includes an initial fallback header before commitment or a declared terminal trailer after

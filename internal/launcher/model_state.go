@@ -167,7 +167,8 @@ func (b *catalogBackend) Start(ctx context.Context, r *anthropic.Request) (infer
 		return nil, ErrModels
 	}
 	kind := requestfamily.Classify(r)
-	foreground := r.Identity.Agent == "" && r.Identity.ParentAgent == "" && (kind == requestfamily.Main || kind == requestfamily.ToolFollowup || kind == requestfamily.Resume || kind == requestfamily.Retry)
+	_, nativeSearch, _ := anthropic.SearchDeclaration(r.Tools)
+	foreground := !nativeSearch && r.Identity.Agent == "" && r.Identity.ParentAgent == "" && (kind == requestfamily.Main || kind == requestfamily.ToolFollowup || kind == requestfamily.Resume || kind == requestfamily.Retry)
 	turn, err := b.inner.Start(ctx, r)
 	if err != nil || turn == nil {
 		return turn, err

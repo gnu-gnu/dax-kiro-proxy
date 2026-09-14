@@ -1,10 +1,101 @@
 # Development status and acceptance evidence
 
-Last updated: 2026-09-13. Overall objective: complete the standalone Go Kiro ACP proxy and launcher
+Last updated: 2026-09-15. Overall objective: complete the standalone Go Kiro ACP proxy and launcher
 contract described in PRODUCT_SPEC.md, including the full acceptance/release gates. This document
 does not redefine completion around an intermediate phase.
 
 ## Current evidence
+
+- D146 activation: the explicitly approved denied-conversion check passes on Kiro 2.21.4 in
+  18.13s/21.073s. One distinct standalone failed call carries the private hook witness; it emits
+  one unavailable exchange, zero links and one terminal, with hook entry, unchanged preseeded
+  ledger and joined/removed ownership. Together with the prior ten-link allowed control, this
+  passes the finite native allowance/denial gate. The production adapter is enabled and its
+  prepared launch notice reports limited one-shot support. Default gateways still report
+  unsupported; ordinary sessions remain relay-only. No broad search replay, all-model or soak
+  claim is made. The model-credit approval is consumed; build/install remains authorized.
+  Enabled-source full race passes all 28 tested packages and full vet. Current Claude 2.1.270
+  also passes the enhanced local consumer/admission check (0.67s/1.497s): actual nested input
+  is admitted, model matches configuration, URL-bearing result and completion succeed, and
+  sources/ownership are preserved. No Kiro/model credit is used. Activation review has no findings.
+
+- D146 on `d146-web-search` (base `efb2392`) prepares the explicit WebSearch conversion request.
+  Native Claude 2.1.269 consumes URL/title server-search blocks, returns a successful correlated
+  outer WebSearch result and completes in three local requests (1.26s case, 1.510s package).
+  Its profile/process/validator close and source settings remain unchanged. This uses a local
+  responder, not a Kiro search. Independent ACP, gateway, budget and lifecycle controls pass.
+  The installed Kiro main/helper are now 2.21.4, admitted unmeasured under the existing same-major
+  policy. A first exact-pin observation stops before ACP; the corrected read-only profile test
+  passes in 5.58s (8.746s package), with exactly the search tool inventory, zero prompts/searches,
+  joined process ownership and removed temporary profile. The measured pin stays 2.21.3.
+  Production search remains gated off pending observed native results and hook behavior.
+  Independent review accepts the corrected draft after three admission/protocol/readiness fixes;
+  focused race, final whole-repository race (all 28 tested packages) and full vet pass. The first
+  full run was invalidated by concurrent source edits; its failed compile is recorded separately.
+  One explicitly approved native search attempt fails conversion in 13.16s (15.848s package):
+  33 notifications include a completed search tool and an unmapped `rawOutput` object; zero
+  converted exchanges, links or terminal events. Process-group join and profile removal pass.
+  The old observer did not expose the inner layout or independently record the hook ledger;
+  the failure does not establish the number of native searches or hook enforcement. Its approval
+  is consumed. Follow-up diagnostics now inspect bounded child shapes under opaque field names,
+  distinguish tool output from answer text, and read the ledger after process join but before
+  profile removal. Review adds session ownership and initial-call requirements to diagnostic
+  counters. Launcher-wide race passes before that fix (34.915s); final focused diagnostic race
+  passes after it (6.270s), with clean launcher vet. All use native opt-ins off.
+  Independent review accepts the follow-up; its own focused race passes in 5.607s with clean
+  vet/whitespace and no native calls.
+  The user then authorizes the prepared diagnostic follow-up once. It fails conversion in 11.17s
+  (19.224s package): 31 notifications, one owned initial/completed search, no unowned/orphan
+  updates, a structured results array under rawOutput.items, and zero budget slots despite a
+  successful ledger read. Sampled diagnostics report truncation; process/profile cleanup passes.
+  That approval is consumed. The new narrow native mapping passes independent fixtures, including
+  native results rejected when the execution ledger is absent. Focused race checks pass for
+  kirofeature/websearch/launcher/command (1.212s/3.667s/6.603s/4.209s). A compiled helper allows
+  the first invocation and blocks an exhausted budget. Non-model native config controls preserve
+  the hook command/matcher; a bootstrap control runs the embedded agentSpawn marker, but not the
+  standalone SessionStart marker. A further no-prompt bootstrap runs the actual helper and records
+  one separate budget slot (4.63s/7.323s). Neither proves preToolUse enforcement. The candidate
+  omits the optional matcher and prepares an allowance/exhaustion control for at most two
+  sequential model prompts, requiring fresh approval. Review requires a correlated native denial
+  witness instead of accepting generic search failure; that oracle and local counterexamples
+  are implemented. Final independent review accepts the changes, with its local race controls
+  passing in 5.871s and clean launcher vet/whitespace. The stable mapping/matcher/witness source
+  passes all 28 tested packages under race and full vet. The final native profile passes read-only
+  initialization/inventory/cleanup (5.30s/8.095s), with zero prompts/tool calls/budget slots.
+  A later test-only adjustment admits the existing same-major Claude policy and reports the
+  measured-pin distinction. Current Claude 2.1.270 passes the local response consumer in
+  0.87s/1.750s: three requests, one nested search, successful URL-bearing tool result, completion,
+  joined/removed ownership and unchanged source settings. This uses no Kiro/model credits and
+  does not prove a native Kiro round trip. The production gate stays false; no further credit run,
+  install, freeze or merge has occurred. D145's accepted personal-memory limitations remain out
+  of required work.
+  The user then approves verification, build and installation. The prepared two-prompt invocation
+  runs once: allowance passes in 12.65s with one converted search, ten links, one terminal,
+  hook entry and one budget slot. Exhaustion fails in 6.77s on an owned update before any initial
+  tool call is observed, with hook entry, unchanged one-slot ledger and no delivered search/link/
+  terminal. Both episodes join and remove their ownership; the package fails in 21.415s.
+  The approval is consumed and no retry runs. Orphan diagnostics now retain separate bounded
+  structural labels and witness-update counts without qualifying as correlated calls or a pass.
+  Local diagnostic race passes (6.731s), launcher vet and candidate build pass. The candidate is
+  an unfrozen dirty-tree verification build with search still disabled. Installation remains
+  pending the required native denial check; installed D138's bytes are unchanged. A concrete
+  one-prompt denied-only observation is prepared in LIVE_KIRO_TEST_PLAN.md for fresh approval.
+  The user's next instruction approves that observation once. It fails the old collector in
+  9.96s/12.683s but identifies one owned failed update containing the private hook witness,
+  exact search identity, query and text-content shapes before any initial call is observed.
+  Hook entry, unchanged preseeded ledger and cleanup pass. That approval is consumed. The new
+  narrow Kiro adapter accepts this complete failure as an unavailable error while retaining
+  ownership, terminal freezing, call bounds and ledger equality. Its text is not forwarded.
+  Independent fixture tests cover the standalone error and absent-ledger refusal; focused race
+  passes kirofeature/websearch/launcher in 1.869s/3.766s/8.374s. The native oracle now deduplicates
+  standalone failed calls/witnesses separately by hashed ID and still requires successful error
+  conversion, no links and cleanup. A one-prompt native conversion check is prepared, not approved
+  or executed. Emitted search-exchange counts include errors and do not establish executed or
+  billed searches. Installation authorization persists; the gate and installed artifact remain
+  unchanged pending the check.
+  The final stable source passes all 28 race-tested packages and full vet. The verification
+  candidate builds with Go 1.27.1 darwin/arm64; it is an unfrozen dirty-tree build with the gate
+  false, not an installation update. Independent final documentation review has no findings.
 
 - D145 records the user's acceptance of two personal-memory limitations: the temporary profile
   omits personal `~/.claude/CLAUDE.md`, and an exclusion matching only its private rules alias

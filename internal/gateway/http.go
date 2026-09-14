@@ -56,6 +56,7 @@ type Config struct {
 	Usage             *status.UsageCache
 	Metrics           *status.TurnQueue
 	LaunchModel       string
+	NativeWebSearch   bool
 	FirstEventTimeout time.Duration
 	TurnTimeout       time.Duration
 	WriteTimeout      time.Duration
@@ -307,6 +308,20 @@ func (h *Handler) messages(ctx context.Context, w http.ResponseWriter, r *http.R
 	var buffered strings.Builder
 	var blocks []anthropic.ResponseBlock
 	var pendingTools []anthropic.ToolUse
+	searchSpec, searchRequest, searchErr := anthropic.SearchDeclaration(request.Tools)
+	searchIDs := make(map[string]bool)
+	validSearch := func(event inference.Event) bool {
+		if !searchRequest || searchErr != nil || event.Text != "" || event.StopReason != "" || len(event.Tools) != 0 || len(event.Searches) == 0 || len(event.Searches) > searchSpec.MaxUses-len(searchIDs) {
+			return false
+		}
+		for _, exchange := range event.Searches {
+			if !exchange.Valid() || searchIDs[exchange.ID] {
+				return false
+			}
+			searchIDs[exchange.ID] = true
+		}
+		return true
+	}
 	flushText := func() {
 		if buffered.Len() > 0 {
 			text := buffered.String()
@@ -382,9 +397,9 @@ func (h *Handler) messages(ctx context.Context, w http.ResponseWriter, r *http.R
 		if event.Kind == inference.Text && event.Text == "" {
 			continue
 		}
-		supported := event.Kind == inference.Text || event.Kind == inference.End || event.Kind == inference.Tools || event.Kind == inference.Progress
+		supported := event.Kind == inference.Text || event.Kind == inference.End || event.Kind == inference.Tools || event.Kind == inference.Progress || event.Kind == inference.Search
 		invalidProgress := event.Kind == inference.Progress && (event.Text != "" || event.StopReason != "" || len(event.Tools) != 0)
-		if !supported || invalidProgress || event.Kind == inference.Tools && !validToolBatch(request, event.Tools) || len(pendingTools) > 0 && event.Kind != inference.End {
+		if !supported || invalidProgress || event.Kind != inference.Search && len(event.Searches) != 0 || event.Kind == inference.Search && !validSearch(event) || event.Kind == inference.Tools && !validToolBatch(request, event.Tools) || len(pendingTools) > 0 && event.Kind != inference.End {
 			if stream != nil {
 				_ = stream.Fail("Unsupported Kiro response event")
 			} else {
@@ -427,6 +442,35 @@ func (h *Handler) messages(ctx context.Context, w http.ResponseWriter, r *http.R
 					return
 				}
 				buffered.WriteString(event.Text)
+			}
+			continue
+		}
+		if event.Kind == inference.Search {
+			if stream != nil {
+				size := 0
+				for _, exchange := range event.Searches {
+					n, e := stream.SearchBytes(exchange)
+					if e != nil {
+						_ = stream.Fail("Invalid search result")
+						return
+					}
+					size += n
+				}
+				if size+512 > output.remaining {
+					_ = stream.Fail(errOutputLimit.Error())
+					return
+				}
+				for _, exchange := range event.Searches {
+					if stream.Search(exchange) != nil {
+						return
+					}
+				}
+				nextPing = time.Now().Add(h.cfg.KeepAliveInterval)
+			} else {
+				flushText()
+				for _, exchange := range event.Searches {
+					blocks = append(blocks, exchange.Blocks()...)
+				}
 			}
 			continue
 		}
@@ -475,7 +519,11 @@ func (h *Handler) messages(ctx context.Context, w http.ResponseWriter, r *http.R
 				err = output.json(anthropic.NewResponse("msg_"+id, turn.Model(), buffered.String(), event.StopReason))
 			} else {
 				flushText()
-				err = output.json(anthropic.NewBlocksResponse("msg_"+id, turn.Model(), blocks, event.StopReason))
+				response := anthropic.NewBlocksResponse("msg_"+id, turn.Model(), blocks, event.StopReason)
+				if len(searchIDs) > 0 {
+					response.Usage.ServerTools = &anthropic.ServerToolUsage{WebSearchRequests: len(searchIDs)}
+				}
+				err = output.json(response)
 			}
 		}
 		finished = err == nil && r.Context().Err() == nil
@@ -508,6 +556,9 @@ func clientIdentity(headers http.Header) (anthropic.ClientIdentity, error) {
 }
 
 func validToolBatch(request *anthropic.Request, tools []anthropic.ToolUse) bool {
+	if _, nativeSearch, _ := anthropic.SearchDeclaration(request.Tools); nativeSearch {
+		return false
+	}
 	disabled, err := request.ToolPolicy()
 	if err != nil || disabled || len(tools) == 0 || len(tools) > 64 {
 		return false

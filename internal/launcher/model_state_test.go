@@ -156,7 +156,7 @@ func TestDeliveredCompletionRestoresActualModelOnNextLaunch(t *testing.T) {
 }
 
 func TestModelPreferenceRequiresDeliveredForegroundCompletion(t *testing.T) {
-	for _, kind := range []string{"main", "followup", "title", "agent", "parent-agent", "handoff", "cancel", "early-finish", "auth", "noninteractive", "unadvertised", "paused-cancel", "paused-agent", "paused-auth"} {
+	for _, kind := range []string{"main", "followup", "title", "search", "agent", "parent-agent", "handoff", "cancel", "early-finish", "auth", "noninteractive", "unadvertised", "paused-cancel", "paused-agent", "paused-auth"} {
 		t.Run(kind, func(t *testing.T) {
 			cfg, data := modelStateFixture(t)
 			cfg.Interactive = kind != "noninteractive"
@@ -178,6 +178,8 @@ func TestModelPreferenceRequiresDeliveredForegroundCompletion(t *testing.T) {
 			}
 			r := &anthropic.Request{Model: models.Selection().Client, Messages: []anthropic.Message{{Role: "user", Content: []anthropic.Block{{Type: "text", Text: "synthetic foreground input"}}}}, Extra: map[string]json.RawMessage{}}
 			switch kind {
+			case "search":
+				r.Tools = []json.RawMessage{json.RawMessage(`{"type":"web_search_20250305","name":"web_search","max_uses":1}`)}
 			case "title":
 				r.System = []anthropic.Block{{Type: "text", Text: "Create a title for this conversation."}}
 				r.Extra["thinking"] = json.RawMessage(`{"type":"disabled"}`)
