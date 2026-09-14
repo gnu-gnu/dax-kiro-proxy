@@ -68,3 +68,22 @@ func TestModelNoticeUsesOnlyPreparedStateAndUIAuthority(t *testing.T) {
 		t.Fatal("missing prepared information triggered discovery")
 	}
 }
+
+func TestModelNoticeReportsConfiguredSearchSupport(t *testing.T) {
+	for _, enabled := range []bool{false, true} {
+		b := &noticeBackend{}
+		h, err := gateway.New(gateway.Config{Backend: b, Tokens: tokens, LaunchModel: "claude-dax-fixture", NativeWebSearch: enabled})
+		if err != nil {
+			t.Fatal(err)
+		}
+		out := request(h, "POST", "/dax-kiro-proxy/hooks/model-capabilities", tokens.UI, "{}")
+		var notice status.ModelNotice
+		want := "unsupported"
+		if enabled {
+			want = "limited"
+		}
+		if out.Code != 200 || json.Unmarshal(out.Body.Bytes(), &notice) != nil || notice.NativeWebSearch != want || b.starts.Load() != 0 || b.lists.Load() != 0 {
+			t.Fatal("prepared search support not accurately reported")
+		}
+	}
+}

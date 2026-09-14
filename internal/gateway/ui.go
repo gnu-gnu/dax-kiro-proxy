@@ -70,6 +70,9 @@ func (h *Handler) ui(w http.ResponseWriter, r *http.Request) {
 			writeError(w, 503, "api_error", "Startup model information unavailable")
 			return
 		}
+		if h.cfg.NativeWebSearch {
+			notice.NativeWebSearch = "limited"
+		}
 		writeJSON(w, 200, notice)
 		return
 	}

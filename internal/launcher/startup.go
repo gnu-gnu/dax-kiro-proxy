@@ -18,6 +18,7 @@ import (
 	"dax-kiro-proxy/internal/schemacheck"
 	"dax-kiro-proxy/internal/session"
 	"dax-kiro-proxy/internal/status"
+	"dax-kiro-proxy/internal/websearch"
 )
 
 var ErrClientVersion = errors.New("Claude Code installation or version is not supported")
@@ -157,7 +158,7 @@ func start(ctx context.Context, opts LaunchOptions, files childproc.AttachedIO, 
 	var runner startupRunner
 	var models *ModelState
 	var schema *schemacheck.Pool
-	var backend *session.Manager
+	var backend OwnedBackend
 	var metrics *status.TurnQueue
 	var usage *status.UsageCache
 	var identity catalog.Identity
@@ -342,6 +343,17 @@ func start(ctx context.Context, opts LaunchOptions, files childproc.AttachedIO, 
 		if err != nil {
 			return ErrRuntime
 		}
+		if kiroNativeSearchVerified {
+			open, err := NewKiroSearchOpener(KiroSearchConfig{Installation: info, Home: opts.Home, RuntimeParent: opts.RuntimeParent, ProxyExecutable: opts.ProxyExecutable})
+			if err != nil {
+				return ErrRuntime
+			}
+			wrapped, err := websearch.New(backend, open)
+			if err != nil {
+				return ErrRuntime
+			}
+			backend = wrapped
+		}
 		usage, err = NewKiroUsageCache(KiroUsageConfig{Installation: info, Home: opts.Home, RuntimeParent: opts.RuntimeParent, ScopeKey: key})
 		if err != nil {
 			return ErrRuntime
@@ -356,7 +368,7 @@ func start(ctx context.Context, opts LaunchOptions, files childproc.AttachedIO, 
 	cancel()
 	// RunClient takes ownership even when it rejects its configuration or parent is now canceled.
 	transferred = true
-	result.Client, err = services.client(ctx, ClientRunConfig{Backend: backend, Models: models, Schema: schema, Client: ClientConfig{RuntimeParent: runtime, Home: opts.Home, Project: opts.Project, UserSettings: opts.UserSettings, Executable: opts.ClientExecutable, StatusExecutable: opts.ProxyExecutable, Version: result.Startup.ClientVersion, Environment: opts.Environment, KeepHistory: opts.KeepHistory, ResumeSession: opts.ResumeSession}, IO: files, Server: gateway.ServerConfig{Gateway: gateway.Config{Metrics: metrics, Usage: usage, FirstEventTimeout: opts.FirstEventTimeout, TurnTimeout: opts.TurnTimeout}}, Attached: childproc.AttachedConfig{Lifetime: ClientLifetime}})
+	result.Client, err = services.client(ctx, ClientRunConfig{Backend: backend, Models: models, Schema: schema, Client: ClientConfig{RuntimeParent: runtime, Home: opts.Home, Project: opts.Project, UserSettings: opts.UserSettings, Executable: opts.ClientExecutable, StatusExecutable: opts.ProxyExecutable, Version: result.Startup.ClientVersion, Environment: opts.Environment, KeepHistory: opts.KeepHistory, ResumeSession: opts.ResumeSession}, IO: files, Server: gateway.ServerConfig{Gateway: gateway.Config{Metrics: metrics, Usage: usage, NativeWebSearch: kiroNativeSearchVerified, FirstEventTimeout: opts.FirstEventTimeout, TurnTimeout: opts.TurnTimeout}}, Attached: childproc.AttachedConfig{Lifetime: ClientLifetime}})
 	result.Startup.Phases = append(result.Startup.Phases, PhaseTiming{"gateway_startup", result.Client.GatewayTime.Milliseconds()}, PhaseTiming{"client_profile", result.Client.ProfileTime.Milliseconds()}, PhaseTiming{"process_launch", result.Client.LaunchTime.Milliseconds()}, PhaseTiming{"runtime_cleanup", result.Client.CleanupTime.Milliseconds()})
 	return result, err
 }

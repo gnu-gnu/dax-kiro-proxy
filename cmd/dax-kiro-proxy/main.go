@@ -32,6 +32,27 @@ import (
 )
 
 func main() {
+	if len(os.Args) > 1 && os.Args[1] == "web-search-budget" {
+		// This fixed policy helper has no model-controlled command or output. Its whole-process
+		// deadline also bounds inherited input and filesystem stalls; every failure blocks use.
+		timer := time.AfterFunc(2*time.Second, func() { os.Exit(2) })
+		executable, err := os.Executable()
+		if err != nil {
+			os.Exit(2)
+		}
+		lease, err := installation.Lease(executable)
+		if err != nil {
+			os.Exit(2)
+		}
+		code := searchBudget(os.Args[2:], os.Stdin)
+		if lease != nil {
+			if lease.Close() != nil {
+				code = 2
+			}
+		}
+		timer.Stop()
+		os.Exit(code)
+	}
 	// Helpers acquire their own shared lease before dispatch. The parent also holds
 	// its lease until child cleanup finishes, preserving executable paths for reexec.
 	var lease io.Closer

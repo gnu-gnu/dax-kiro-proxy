@@ -568,3 +568,137 @@ returned one medium and several low findings that were all applied before mergin
 | `a756dde` | Merge D123 (branch `d123-deferred-standing`; snapshot `deferred-standing`, SHA `20a81468…`) |
 | `e08ce8e`, `257514e`, `4f242dc` | D124 code and documents, inventory freeze, review fixes |
 | `e07e591` | Merge D124 (snapshot `measured-client-268`, SHA `282b8556…`) |
+
+## D146 continuation: explicit WebSearch conversion request
+
+The user requests implementation after a native WebSearch HTTP 400 is reproduced at the typed
+server-tool registry boundary. Work is on d146-web-search from efb2392. Candidate declaration,
+server response, gateway, independent ACP conversion, isolated search ownership and execution
+budget code exist. The main registry remains relay-only; the production search gate is false
+pending native output/hook validation. The actual Claude 2.1.269 local response consumer passes;
+Kiro 2.21.4's read-only restricted search inventory also passes without a prompt. The original
+2.21.3 pin remains measured; same-major admission is reported as unmeasured. Fresh-context review
+accepts the draft after three fixes; focused race, all 28 final race-tested packages and full vet
+pass. The initial mixed-source run is retained separately. The installed D138 artifact is unchanged.
+The user approved one 150-second, one-prompt search observation, which ran once and failed in
+13.16s (15.848s package). The 33 notifications include a completed search tool with an unmapped
+`rawOutput` object. No converted search/link/terminal is emitted; owned process/profile cleanup
+passes. The inner schema and hook ledger are not established by this log. That approval is
+consumed; no retry is authorized. Updated test diagnostics inspect opaque-container child shapes
+without retaining arbitrary names/values and read the budget after process join, before profile
+removal. Review adds session ownership and initial-call correlation to the diagnostic counters;
+final focused race (6.270s) and launcher vet pass with native opt-ins off. A concrete diagnostic
+follow-up is prepared in LIVE_KIRO_TEST_PLAN.md. Independent review accepts the diagnostic changes
+and passes its own focused race (5.607s), vet and whitespace checks without native calls. Do not guess a
+native result mapping or enable the production gate on that evidence alone.
+
+The user subsequently authorizes the prepared diagnostic follow-up once. It fails conversion
+in 11.17s (19.224s package), with one owned completed search among 31 updates. Its fixed shapes
+show rawOutput.items[].<opaque tag>.{query,error:null,results:[{url,title,snippet,...}]}; diagnostics
+are sampled/truncated. BudgetCount succeeds with zero slots. Groups join and the private profile
+is removed. That approval is consumed. A narrow structural mapping is now implemented and tested;
+it does not parse answer prose or recursively collect URLs. Independent fake ACP also proves
+that results with no budget record cannot be delivered. Compiled helper allowance/exhaustion
+passes. Native config controls preserve the preToolUse command/matcher, and a no-prompt bootstrap
+control observes the embedded agentSpawn marker but not the standalone SessionStart marker.
+Actual preToolUse enforcement remains open, so the production search gate is still false.
+A second no-prompt bootstrap runs the actual helper and records one separate slot, with cleanup
+passing (4.63s/7.323s). The candidate omits preToolUse's optional matcher; this is not a verified
+root cause or completed fix. The concrete allowance/exhaustion command in LIVE_KIRO_TEST_PLAN.md
+allows at most two sequential prompts, stopping before the second if the first fails. It needs
+fresh per-run approval; neither consumed approval carries over. No further model call, install,
+freeze or merge has occurred. The negative episode must contain a private hook-denial witness
+in its correlated failed tool result; generic failure alone is inconclusive. Only a count is
+logged. Do not reopen D145's accepted
+personal-memory limitations or start the merely recommended account-check timeout change.
+
+Final independent review accepts the matcher/witness follow-up, with local race controls passing
+in 5.871s and clean launcher vet/whitespace. No reviewer native/model invocation occurs.
+
+The stable mapping/matcher/witness source then passes full race (28 tested packages) and full vet.
+The matcher-free native profile passes read-only initialization/inventory/cleanup in
+5.30s/8.095s, with zero prompts/tools/budget slots. The Claude consumer test subsequently admits
+the existing same-major policy and reports the measured-pin distinction; this is test-only.
+Current Claude 2.1.270 passes the local fake-responder consumer in 0.87s/1.750s, with three
+requests, one nested search, a successful URL-bearing outer result and completion. Groups,
+validator and profile close, and source settings remain unchanged. Logs are
+d146-native-mapping-all-race.log, d146-native-mapping-vet.log,
+d146-unfiltered-profile-readonly.log and d146-current-client-search-conversion.log.
+No Kiro/model credits are consumed by these checks. The two-prompt allowance/exhaustion gate
+still requires fresh approval; it has not run. Installed D138 and the false production gate
+are unchanged.
+
+Final follow-up review accepts the test-only version admission and evidence wording without
+findings. Interop vet after the edit, formatting and whitespace pass; final evidence logs are
+mode 0600. No additional native/model invocation occurs.
+
+Latest user instruction authorizes verification, build and installation. The prepared two-prompt
+gate runs once: allowance PASS 12.65s (one search, ten links, terminal, hook entry, one budget
+slot); exhaustion FAIL 6.77s (seven updates, one owned orphan before an observed initial call,
+hook entry, unchanged preseeded slot, no delivered result, protocol failure). Both episodes
+join/remove ownership. Combined 19.41s/package 21.415s, exit one, retained in
+d146-live-search-budget-gate.log. This consumes that credit approval; no retry runs. The collector
+aborts on the first orphan, and the observer previously omitted its shape and witness, so do not
+infer a native-effect count or completed denial check. The gate stays false and installation is
+pending, with installed D138 confirmed unchanged.
+
+Test-only orphan diagnostics now expose bounded prefixed shapes and a separate failed-output
+witness UPDATE count. These never count as correlated calls or satisfy the gate. Local race
+passes 6.731s and launcher vet passes. A verification candidate build succeeds (Go 1.27.1,
+darwin/arm64, 13,745,794 bytes, SHA-256
+388ff25633ec5431f4e4e729e25696707fe90a622168da9a40d35ce8ba6da551), with vcs.modified=true at
+base efb2392; it is unfrozen and uninstalled. The exact one-prompt denied-only observation in
+LIVE_KIRO_TEST_PLAN.md requires fresh approval. Installation authorization persists once the
+required native gate passes; do not request installation permission again.
+
+The subsequent "proceed" approves the denied-only observation once. The old collector fails in
+9.96s/package 12.683s, but d146-live-search-denied-observation.log now identifies one owned failed
+orphan carrying the private output hook witness, complete search identity, query and text-content
+shapes. Hook entry, the unchanged preseeded slot and cleanup pass. Approval consumed; no retry.
+The candidate now narrowly accepts that self-contained failed update via kirofeature and emits
+an unavailable error without forwarding native error text. Successful/incomplete orphans and
+changed terminal state still reject; call bounds and budget equality are unchanged. Fake-ACP
+denial/missing-ledger controls and focused race pass (1.869s/3.766s/8.374s). The native oracle
+deduplicates standalone failed/witness calls separately from initial calls and also requires
+successful conversion, no links, terminal and cleanup. Independent review accepts the code and
+passes focused race (1.219s/2.178s/3.033s), vet and whitespace without native calls.
+The latest one-prompt command in LIVE_KIRO_TEST_PLAN.md is an unapproved conversion confirmation,
+not another diagnostic-only observation. The error-exchange count/preseeded slot must not be
+reported as executed or billed search usage. Gate false, installation still pending and already
+authorized after verification; do not reopen the prior accepted limitations.
+
+Final stable source passes all 28 race-tested packages and full vet (d146-standalone-all-race.log,
+d146-standalone-vet.log). Verification build d146-standalone-pending succeeds, 13,745,794 bytes,
+SHA-256 a9f804aa5e6edf698e574cb97260a8c106d23defcebfd065a52eea5730f87d52, Go 1.27.1 darwin/arm64,
+base efb2392 with vcs.modified=true. It is unfrozen/uninstalled. Final documentation review has
+no findings. All evidence logs remain private; no further native prompt, installation or merge.
+
+Latest explicit approval runs the prepared denied-conversion check once: PASS 18.13s/package
+21.073s, Kiro 2.21.4, 45 updates, one distinct standalone failure/witness, one unavailable error,
+zero links, one terminal, hook entry, unchanged preseeded ledger and successful cleanup
+(d146-live-search-denied-conversion.log). Combined with the previous successful ten-link search,
+the finite native gate now passes. Approval consumed; no further native model test is authorized.
+Production search is enabled and the actual launch advertises limited one-shot support through
+gateway configuration; unconfigured gateways remain unsupported. Measured version pins do not
+change. The already-authorized clean commit/build/freeze/install procedure follows; do not ask
+for installation approval again or reopen unrelated accepted limitations.
+
+Enabled-source full race passes all 28 tested packages and full vet. A subsequent test-only
+admission/model assertion in the actual Claude 2.1.270 local consumer passes (0.67s/1.497s),
+with three requests/one nested search, URL-bearing completion, unchanged sources and cleanup.
+Logs d146-enabled-all-race.log, d146-enabled-vet.log and d146-enabled-client-admission.log.
+Activation review has no findings; no extra Kiro/model call occurs.
+
+D146 is now installed from clean 00f40d3116149826920c42c1c2a7e6faf4b8af1f: 13,833,202 bytes,
+SHA-256 4e66871356cf9129813909def9d27fe33a46051aa74050722fc5ca9c7869dea4, Go 1.27.1 darwin/arm64,
+CGO_ENABLED=1, vcs.modified=false. Snapshot web-search has 116 source inputs/268 packages and
+unchanged external dependencies; candidate and installed checks pass 155, components pass 18.
+Install succeeds. Doctor verifies login/policy/launch, login_check 2008ms, current 2.21.4/2.1.270
+versions admitted unmeasured. Client initialization remains unverified by doctor. No further
+model call occurs. Inventory commit, independent artifact review and no-ff merge follow.
+
+Final artifact review accepts implementation 00f40d3 and inventory 9e4d3f3 without findings.
+All 116 committed source hashes, fresh 268-package graph and clean metadata match; candidate,
+dist and installed binaries each pass 155 checks, with 18 components verified. No correction
+or refreeze is needed (d146-review-report.log). D146 is complete for its documented finite scope;
+retain earlier limitations and consumed model approvals. No additional native call was made.

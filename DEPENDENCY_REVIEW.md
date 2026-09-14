@@ -1331,3 +1331,41 @@ Independent review accepts `295cfb1` without actionable findings. Both binaries 
 with all 18 components verified. All 105 inputs match clean `b09bb9e` Git blobs; build metadata,
 the sole source change, ordered packages and modules match. No correction or refreeze is needed
 (`d138-review-report.log`).
+
+## Native web search artifact snapshot — D146, 2026-09-15
+
+`third_party/inventory/macos-arm64-web-search.json` records the rebuilt 13,833,202-byte development
+command, SHA-256 `4e66871356cf9129813909def9d27fe33a46051aa74050722fc5ca9c7869dea4`.
+It identifies Go 1.27.1, darwin/arm64, CGO_ENABLED=1 and clean revision
+`00f40d3116149826920c42c1c2a7e6faf4b8af1f`, with vcs.modified=false. D138 paused-model is the
+hashed and retained predecessor. There are 116 production input records: eight changed files,
+eleven additions and no removals. The changes are the command entry point, Anthropic response,
+gateway HTTP/UI, inference contract, launcher model state/startup and status notice. Additions
+are the budget helper, Anthropic search encoding, three Kiro search adapters, launcher search
+ownership and five websearch package files.
+
+The graph has 268 packages, adding only the repository's internal/websearch package. Selected
+file lists change in the command, anthropic, kirofeature and launcher packages, with the new
+websearch list recorded separately. All prior import paths remain; the four external module
+versions/sums/package sets, native selected files, stdlib vendor packages and notices are
+unchanged. No dependency is added or upgraded.
+
+```sh
+python3 tools/verify_dependency_inventory.py --gomodcache .cache/gomod \
+  --snapshot web-search --binary dist/dax-kiro-proxy
+```
+
+Candidate and strictly resolved installed binaries each pass all 155 byte checks
+(d146-freeze.log, d146-candidate-verify.log, d146-installed-verify.log); all 18 component checks
+pass (d146-components.log). Install --force succeeds (d146-install.log). Installed doctor reports
+verified login/policy and launch availability; Kiro 2.21.4 and Claude 2.1.270 are admitted as
+unmeasured under the existing same-major policy (d146-installed-doctor.json). Client initialization
+remains unverified by doctor. The separately approved native search controls verify finite
+allowance/denial, not a broad release or all-model gate. Release clearance stays false; prior
+advisory scans remain historical and owner rights stay outside the repository under D121.
+
+Independent review accepts 00f40d3 and 9e4d3f3 without findings. All 116 input hashes match
+the clean committed Git blobs, and a fresh package graph matches the 268 recorded packages.
+Candidate, dist and strictly resolved installed binaries each pass 155 checks; component checks
+pass 18. Metadata, eight changed/eleven added inputs and unchanged external dependencies match.
+No correction or refreeze is needed (d146-review-report.log); no native call or repeated test runs.

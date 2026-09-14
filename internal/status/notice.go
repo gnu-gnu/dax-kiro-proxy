@@ -41,9 +41,17 @@ func FormatNotice(raw []byte, model string) (string, error) {
 		}
 	}
 	var got ModelNotice
-	if json.Unmarshal(raw, &got) != nil || got != expected {
+	if json.Unmarshal(raw, &got) != nil {
+		return "", ErrView
+	}
+	search := "unavailable"
+	if got.NativeWebSearch == "limited" {
+		expected.NativeWebSearch = "limited"
+		search = "limited one-shot support"
+	}
+	if got != expected {
 		return "", ErrView
 	}
 	label, _ := ModelLabel(model)
-	return "Kiro launch " + label + ". Tools follow client permissions. Image/PDF and effort support: unverified. Native web search: unavailable. Provider token usage: unreported.", nil
+	return "Kiro launch " + label + ". Tools follow client permissions. Image/PDF and effort support: unverified. Native web search: " + search + ". Provider token usage: unreported.", nil
 }

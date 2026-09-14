@@ -11,17 +11,20 @@ import (
 )
 
 type Usage struct {
-	Input         int `json:"input_tokens"`
-	Output        int `json:"output_tokens"`
-	CacheCreation int `json:"cache_creation_input_tokens"`
-	CacheRead     int `json:"cache_read_input_tokens"`
+	Input         int              `json:"input_tokens"`
+	Output        int              `json:"output_tokens"`
+	CacheCreation int              `json:"cache_creation_input_tokens"`
+	CacheRead     int              `json:"cache_read_input_tokens"`
+	ServerTools   *ServerToolUsage `json:"server_tool_use,omitempty"`
 }
 type ResponseBlock struct {
-	Type  string          `json:"type"`
-	Text  *string         `json:"text,omitempty"`
-	ID    string          `json:"id,omitempty"`
-	Name  string          `json:"name,omitempty"`
-	Input json.RawMessage `json:"input,omitempty"`
+	Type      string          `json:"type"`
+	Text      *string         `json:"text,omitempty"`
+	ID        string          `json:"id,omitempty"`
+	Name      string          `json:"name,omitempty"`
+	Input     json.RawMessage `json:"input,omitempty"`
+	ToolUseID string          `json:"tool_use_id,omitempty"`
+	Content   json.RawMessage `json:"content,omitempty"`
 }
 type ToolUse struct {
 	ID, Name string
@@ -100,6 +103,7 @@ type TextStream struct {
 	flush       func() error
 	index       int
 	open, ended bool
+	searches    int
 }
 
 func BeginTextStream(w io.Writer, flush func() error, id, model string) (*TextStream, error) {
@@ -213,7 +217,11 @@ func (s *TextStream) End(reason string) error {
 	if err := s.stopBlock(); err != nil {
 		return err
 	}
-	if err := s.event(streamEvent{Type: "message_delta", Delta: stopDelta{Reason: reason}, Usage: &Usage{}}); err != nil {
+	usage := Usage{}
+	if s.searches > 0 {
+		usage.ServerTools = &ServerToolUsage{WebSearchRequests: s.searches}
+	}
+	if err := s.event(streamEvent{Type: "message_delta", Delta: stopDelta{Reason: reason}, Usage: &usage}); err != nil {
 		return err
 	}
 	s.ended = true

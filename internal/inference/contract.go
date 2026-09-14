@@ -18,6 +18,8 @@ const (
 	Tools
 	// Progress carries no content. It satisfies the first-event wait, never the turn deadline.
 	Progress
+	// Search is a complete server-side web search exchange, never a client tool handoff.
+	Search
 )
 
 type Event struct {
@@ -25,6 +27,7 @@ type Event struct {
 	Text       string
 	StopReason string
 	Tools      []anthropic.ToolUse
+	Searches   []anthropic.SearchExchange
 }
 type Model struct {
 	ID          string `json:"id"`
