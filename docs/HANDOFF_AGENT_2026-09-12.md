@@ -334,7 +334,7 @@ These were given during the sessions and are not all written elsewhere.
 - Work in batches. Each batch: branch from `main` → implement → verify → documents → commit →
   (production change only) clean rebuild, inventory freeze, `install --force`, inventory commit →
   brief an independent reviewer agent that has no session context → apply its findings → refreeze
-  only if a production input changed → `git merge --no-ff` into `main`. Keep the branch.
+  only if a production input changed → `git merge --no-ff` into `main`. Delete the merged branch locally and on the remote (user direction 2026-09-15; earlier batches kept it).
 - The user reads terse Korean, wants options with a recommendation, and then usually says "권장대로
   진행" (proceed as recommended) or "승인" (approved). "일단" means a pragmatic fix with the
   deviation recorded. Report outcomes with fixed facts; do not pad.
