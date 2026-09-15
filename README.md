@@ -1,4 +1,4 @@
-# dax-kiro-proxy specification repository
+# dax-kiro-proxy: Developer Agent Exchange (DAX) proxy for Kiro
 
 This repository is the implementation boundary for a new, standalone Kiro ACP proxy.
 Implementation is proceeding in Go from these specifications. It contains no source code copied from,
