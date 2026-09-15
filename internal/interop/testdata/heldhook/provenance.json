@@ -2,7 +2,7 @@
   "created": "2026-09-09",
   "fixture": "main.go",
   "scope": "Independent effect-free held client hook for launcher cancellation observation",
-  "repository_sources": ["PRODUCT_SPEC.md", "ACCEPTANCE_SPEC.md", "LIVE_KIRO_TEST_PLAN.md"],
+  "repository_sources": ["docs/PRODUCT_SPEC.md", "docs/ACCEPTANCE_SPEC.md", "docs/LIVE_KIRO_TEST_PLAN.md"],
   "constraints": [
     "Standard library only; no previous implementation or public client source input",
     "No stdin, transcript, credential, file-content, tool execution or network reads",

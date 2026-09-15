@@ -52,7 +52,7 @@ request tool execution from the client.
 
 ## Required gates
 
-Before merging a feature, run the applicable tests from `ACCEPTANCE_SPEC.md`. Before the first
-release, complete the dependency review recorded in `DEPENDENCY_REVIEW.md`; the owner's rights
-checklist in `CLEAN_ROOM_BOUNDARY.md` is handled outside the repository (D121). Select a language
-using `LANGUAGE_DECISION.md`, and record the decision.
+Before merging a feature, run the applicable tests from `docs/ACCEPTANCE_SPEC.md`. Before the first
+release, complete the dependency review recorded in `docs/DEPENDENCY_REVIEW.md`; the owner's rights
+checklist in `docs/CLEAN_ROOM_BOUNDARY.md` is handled outside the repository (D121). Select a language
+using `docs/LANGUAGE_DECISION.md`, and record the decision.

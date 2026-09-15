@@ -18,7 +18,7 @@
     "https://kiro.dev/docs/cli/acp/",
     "https://kiro.dev/docs/cli/2x-reference/"
   ],
-  "repository_sources": ["PROTOCOL_SPEC.md", "ACCEPTANCE_SPEC.md", "IMPLEMENTATION_DECISIONS.md"],
+  "repository_sources": ["docs/PROTOCOL_SPEC.md", "docs/ACCEPTANCE_SPEC.md", "docs/IMPLEMENTATION_DECISIONS.md"],
   "fixtures": ["fake/main.go", "fake/relay.go", "fake/pool.go", "fake/inventory.go", "fake/native.go", "fake/recovery.go", "fake/tool_history.go", "fake/image_history.go", "fake/churn.go", "fake/pending_churn.go", "fake/progress.go", "fake/media_history.go", "fake/native_tool_soak.go"],
   "constraints": [
     "The native-tool-soak peer reads a bounded authored plan and at most one prompt in sixteen ACP frames of at most 8 MiB, requests 8 to 128 owned Read operations only through the supplied MCP relay, bounds per-call MCP replies at 64 KiB and its default lifetime at eight minutes (an explicit bounded plan may select up to forty minutes for paced rounds), and promptly reaps its own child. It never opens requested files or native transcripts; only an opt-in unmodified client executes or refuses Read. Temporary structural witnesses record its own ownership and call/result counts, not prompt or tool content",

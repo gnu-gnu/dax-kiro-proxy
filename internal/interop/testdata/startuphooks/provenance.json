@@ -2,7 +2,7 @@
   "created": "2026-09-09",
   "fixture": "main.go",
   "scope": "Independent command hooks for a bounded interactive client startup observation",
-  "repository_sources": ["PRODUCT_SPEC.md", "FLOWS_AND_STATE.md", "ACCEPTANCE_SPEC.md"],
+  "repository_sources": ["docs/PRODUCT_SPEC.md", "docs/FLOWS_AND_STATE.md", "docs/ACCEPTANCE_SPEC.md"],
   "public_api_sources": [
     "https://code.claude.com/docs/en/hooks",
     "https://code.claude.com/docs/en/statusline",

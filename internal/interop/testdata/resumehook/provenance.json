@@ -3,7 +3,7 @@
   "files": ["main.go", "main_test.go"],
   "scope": "Independently authored bounded native Bash hook for interrupted conversation resume",
   "public_sources": ["https://code.claude.com/docs/en/hooks"],
-  "repository_sources": ["ACCEPTANCE_SPEC.md", "LIVE_KIRO_TEST_PLAN.md"],
+  "repository_sources": ["docs/ACCEPTANCE_SPEC.md", "docs/LIVE_KIRO_TEST_PLAN.md"],
   "constraints": [
     "Standard library only, no proxy or prior implementation imports",
     "Read only an owned expectation and the public native hook packet, never native transcripts, credentials or effect files",

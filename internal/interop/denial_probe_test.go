@@ -41,7 +41,7 @@ func TestClaudeOnePromptDenialProbeWithFakeACP(t *testing.T) {
 }
 
 // This is a separately opted-in interoperability test, never an option of the product's run command.
-// Its actual Kiro request consumes account credits. See LIVE_KIRO_TEST_PLAN.md before enabling it.
+// Its actual Kiro request consumes account credits. See docs/LIVE_KIRO_TEST_PLAN.md before enabling it.
 func TestKiroLiveOnePromptClientDenial(t *testing.T) {
 	if os.Getenv("DAX_INTEROP_KIRO_CREDIT_OPT_IN") != "1" {
 		t.Skip("credit-consuming Kiro test requires explicit DAX_INTEROP_KIRO_CREDIT_OPT_IN=1")
