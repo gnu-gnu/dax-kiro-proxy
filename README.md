@@ -1,511 +1,108 @@
 # dax-kiro-proxy: Developer Agent Exchange (DAX) proxy for Kiro
 
-This repository is the implementation boundary for a new, standalone Kiro ACP proxy.
-Implementation is proceeding in Go from these specifications. It contains no source code copied from,
-derived line-by-line from, or linked to another repository.
+Claude Code를 평소처럼 쓰면서, 모델 추론은 로컬에 로그인된 Kiro CLI로 처리하게 해 주는 로컬 프록시입니다.
 
-The intended product presents a loopback gateway for a documented Claude Code Messages subset
-and uses the locally installed Kiro CLI through Agent Client Protocol (ACP) as its model
-backend. The client remains responsible for executing tools and enforcing its own permission and hook
-policies.
+> **개발 빌드입니다.** macOS Apple silicon(arm64)만 지원하며, 정식 릴리스 기준은 아직 통과하지 않았습니다.
 
-## Document order
+## 역할
 
-All specification and record documents live in `docs/`; only this README and `AGENTS.md` stay at the
-repository root. Bare document names inside `docs/` refer to sibling files in that directory.
-Read these documents before implementation:
+- Claude Code가 실행되는 동안만 유지되는 인증된 루프백 게이트웨이를 엽니다. 이 게이트웨이는 Anthropic Messages 형식으로 요청을 받습니다.
+- 각 대화를 Kiro의 ACP(Agent Client Protocol) 세션으로 변환합니다.
+- Kiro가 요청한 도구 호출을 Claude Code로 돌려보냅니다. Kiro에는 직접 실행 권한이 없습니다.
+- `run` 명령 하나로 Kiro 로그인 확인, 임시 클라이언트 프로필 준비, 게이트웨이 시작, Claude Code 실행, 종료 후 정리까지 처리합니다.
 
-1. `docs/CLEAN_ROOM_BOUNDARY.md` — provenance, licensing boundary, and prohibited inputs.
-2. `docs/PRODUCT_SPEC.md` — goals, scope, external behavior, and security posture.
-3. `docs/PROTOCOL_SPEC.md` — HTTP, SSE, ACP, and relay wire contracts.
-4. `docs/FLOWS_AND_STATE.md` — request flows, state machines, recovery, and concurrency.
-5. `docs/IMPLEMENTATION_REQUIREMENTS.md` — component boundaries and staged delivery plan.
-6. `docs/ACCEPTANCE_SPEC.md` — black-box requirements and release gates.
-7. `docs/LANGUAGE_DECISION.md` — criteria for selecting Go or Rust before implementation.
-8. `docs/PHASE_0_REVIEW.md` — specification findings, proposed resolutions, and remaining gates.
-9. `docs/LANGUAGE_DECISION_RECORD.md` — confirmed Go selection and the historical Go/Rust experiment design.
-10. `docs/DEPENDENCY_REVIEW.md` — component and license inventory, retained notices, advisory scan, and
-    the owner's external rights items.
-11. `docs/IMPLEMENTATION_DECISIONS.md` — adopted wire, lifecycle, and resource policies.
-12. `docs/DEVELOPMENT_STATUS.md` — implementation evidence and remaining acceptance gates.
-13. `docs/LIVE_KIRO_TEST_PLAN.md` — bounded opt-in client-denial/native-effect experiments and their limits.
-14. `docs/HANDOFF_REVIEW_2026-09-11.md` — review brief for D109–D120: decisions needing judgment,
-    production changes, verification state, open items and the commit map.
-15. `docs/HANDOFF_AGENT_2026-09-12.md` — agent handoff after D124: inherited state, the user's standing
-    instructions, the batch and artifact procedure, the remaining planned batches D125–D128 with
-    code positions, and decisions waiting on the user.
+## 철학
 
-`AGENTS.md` makes this reading order mandatory for coding agents.
+- **실행 권한은 클라이언트에만 있습니다.** 파일 수정이나 셸 명령 같은 도구는 Claude Code가 자신의 권한과 훅 규칙으로 실행합니다. 프록시와 Kiro는 도구를 직접 실행하지 않습니다.
+- **원본 Claude Code 설정을 바꾸지 않습니다.** 실행마다 임시 프로필을 만들고 종료 시 지웁니다. 유일한 예외는 프로젝트 신뢰 질문에 "예"로 답한 값 하나를 `~/.claude.json`에 기록하는 것입니다(D118).
+- **Kiro 밖으로 조용히 넘어가지 않습니다.** 다른 모델 제공자로 대체 연결하지 않습니다. 하위 프로세스 환경에서는 Anthropic 등 다른 제공자의 자격 증명과 설정 변수를 제거합니다.
+- **로컬에서만, 인증하고, 상한을 둡니다.** 루프백 주소에만 바인딩하고 모든 모델 경로를 인증합니다. 프로세스, 요청, 큐, 대기 중인 도구 호출에는 모두 상한이 있습니다.
+- **측정한 것만 주장합니다.** 실제로 측정한 버전 조합을 기준으로 삼고, 측정하지 않은 빌드는 따로 표시합니다. 추정 토큰을 청구 토큰처럼 보고하지 않고, 검증하지 못한 동작은 제한 사항으로 기록합니다.
+- **명세에서 새로 구현합니다.** 이 저장소의 명세, 공개 프로토콜 문서, 공개 클라이언트의 블랙박스 관찰만을 근거로 Go로 새로 작성했습니다.
 
-## Current phase
+## 핵심 기능
 
-The user selected Go and authorized implementation through the complete standalone product. The
-specification-only baseline is `7b108dd`. Phase 0 reports retain the historical unmeasured
-experiment design; the explicit language selection supersedes comparative experiments as a selection
-gate. The dependency inventory is complete for the darwin/arm64 development artifact (D121); the
-owner's rights and project-license decisions are outside this repository, and live-release gates
-remain open. Implementation began with independent fixtures and fake-process transport tests and now
-reaches an installed development artifact (D146); consult docs/DEVELOPMENT_STATUS.md for verified
-progress, `docs/HANDOFF_REVIEW_2026-09-11.md` for the D109–D120 review brief and
-`docs/HANDOFF_AGENT_2026-09-12.md` for the agent handoff after D124.
+- Claude Code 모델 선택기에 Kiro 모델을 보여 주고, 마지막으로 쓴 모델을 다음 실행에 복원합니다.
+- 스트리밍 응답과 도구 호출, 도구 결과를 지원합니다. 이미지 입력은 검증된 형식만 전달합니다.
+- 추론 강도(effort)는 가능한 경우에만 맞춥니다. auto 모델이거나 Kiro가 거부하면 기본값으로 진행합니다.
+- `--client-history`로 대화를 보관하고 `--resume`으로 이어갈 수 있습니다.
+- 사용자의 MCP 서버, 플러그인, 스킬, 커맨드, 에이전트, 출력 스타일, rules를 임시 프로필로 가져옵니다. 일부 제한은 아래에 적었습니다.
+- 기존 상태 표시줄 설정이 없으면 Kiro 계정 사용량을 상태 표시줄에 보여 줍니다.
+- 턴, 도구 대기, 첫 모델 이벤트에 시간 제한을 둡니다. Ctrl+C로 취소할 수 있고, 종료하면 자신이 띄운 프로세스와 임시 파일을 정리합니다.
+- Claude Code의 단발성 웹 검색 요청을 검색 도구만 가진 격리된 Kiro 에이전트로 처리합니다(D146).
+- `doctor`, `models`, `install`, `uninstall` 명령으로 점검, 모델 조회, 설치와 제거를 처리합니다.
 
-## Development commands
+## 시작하기
 
-D146 enables the requested WebSearch conversion for Claude Code's one-shot
-`web_search_20250305` requests. Each search uses an isolated Kiro agent with only the native
-search tool and an execution budget. Native Kiro 2.21.4 controls verify a successful ten-link
-result and a hook-blocked search returning an error without links, with joined cleanup.
-The adapter handles Kiro's self-contained failed update when a hook blocks before the initial
-call notification. Domain/location restrictions, newer search versions, provider search replay
-and general search continuation are unsupported. The launch notice reports limited support.
-See D146 in `docs/LIVE_KIRO_TEST_PLAN.md` for the finite evidence and earlier failed observations.
+### 요구 사항
 
-With Go 1.27.1, build a local development executable:
+- macOS Apple silicon
+- Kiro CLI 2.x, `kiro-cli login`으로 로그인한 상태 (측정 버전 2.21.3)
+- Claude Code 2.x (측정 버전 2.1.269)
+
+같은 메이저 버전의 다른 빌드도 새 측정 없이 실행되며, `doctor`가 unmeasured로 표시합니다. Kiro는 `kiro-cli`와 `kiro-cli-chat`의 버전이 같아야 합니다. 다른 메이저 버전은 거부합니다.
+
+### 릴리스로 설치
 
 ```sh
-mkdir -p dist
+gh release download v0.1.0-dev.1 --repo gnu-gnu/dax-kiro-proxy
+shasum -a 256 -c SHA256SUMS
+tar -xzf dax-kiro-proxy-v0.1.0-dev.1-darwin-arm64.tar.gz
+./dax-kiro-proxy-v0.1.0-dev.1-darwin-arm64/dax-kiro-proxy install
+```
+
+브라우저로 받았다면 설치 전에 격리 속성을 지워야 합니다.
+
+```sh
+xattr -d com.apple.quarantine dax-kiro-proxy-v0.1.0-dev.1-darwin-arm64/dax-kiro-proxy 2>/dev/null || true
+```
+
+### 소스에서 빌드
+
+Go 1.27.1이 필요합니다.
+
+```sh
 go build -o ./dist/dax-kiro-proxy ./cmd/dax-kiro-proxy
-./dist/dax-kiro-proxy --help
-./dist/dax-kiro-proxy doctor --json --timing
-./dist/dax-kiro-proxy models
-./dist/dax-kiro-proxy run
+./dist/dax-kiro-proxy install
 ```
 
-To retain native Claude conversation data across launches, use `run --client-history`. To resume a
-known native session, use `run --resume <UUID>`; this implies history retention. `run
---tool-timeout`, `--turn-timeout` and `--first-event-timeout` (D122) bound one client tool result
-(default 15m, 30s..1h, at most the turn deadline), one model turn including its tool waits (default
-30m or the tool wait when only that is given, 1m..1h) and the wait for the first model event
-(default 90s, 10s..turn); an interactive session itself is bounded at seven days, after which the
-client is closed with a diagnostic naming that limit. A closed terminal window (SIGHUP) runs the
-same cleanup as Ctrl+C. These options share `~/.claude/projects` with the native client, including
-its conversation text, auto-memory and other data under that directory. Claude controls its formats
-and retention; ordinary Claude sessions can access that same data. Source settings remain separate,
-and temporary routing credentials are removed on exit. Without these options, the client profile and
-its conversations are ephemeral.
+`install`은 실행 파일과 고지 파일을 `~/.local/bin` 아래 관리 디렉터리에 복사하고 `~/.local/bin/dax-kiro-proxy` 링크를 만듭니다. PATH와 셸 프로필은 바꾸지 않습니다. 아래 명령을 그대로 쓰려면 `~/.local/bin`을 PATH에 추가하세요.
 
-D127 counts validated ACP thoughts, plans and tool activity toward the first-event wait without
-showing their content as an answer or extending the total turn deadline. Silent progress
-preserves SSE keepalives. Relay attachment also follows the configured session setup allowance
-(default 30s) instead of expiring after five seconds; message-read and acknowledgement limits
-remain separate.
-
-D128 preserves a committed client tool result when its relay caller is canceled just afterward.
-That late cancellation cannot discard later queued or delivered work. Cancellation of a tool
-whose result is still unresolved continues to retire the whole prompt.
-
-D129 preserves a tool wait's failure when timeout or cancellation overlaps response finalization.
-An exact retry must prove the same history and complete tool IDs; normal result delivery still
-requires successful finalization. Known deadlines keep their cause through cleanup, and a late
-finalization cannot alter a new turn after recovery.
-
-D137 lets an immediate tool result or next question wait for the previous response's final
-delivery bookkeeping. Terminal bytes can already be visible to the client while the server's
-final write is returning. One request may wait per session; further overlapping starts remain
-busy. Cancellation of that waiter leaves the previous turn intact. Results are still checked
-and released only after successful delivery; failed delivery retains its cancellation or timeout.
-
-D130 preserves the answer when ACP stops at its per-turn model-request limit. It emits
-`pause_turn`, retains the completed text and lets the next explicit question continue normally.
-The proxy does not issue an automatic continuation; the measured Claude 2.1.269 text/print
-control likewise sends one request per explicit question. This limit is distinct from max_tokens.
-After successful foreground delivery, this response also records the actual model for the next
-interactive launch (D138). Cancellation, auth fallback and agent work cannot replace that
-preference.
-
-D132 accepts tool input schemas explicitly declaring Draft 7 or 2019-09, as well as 2020-12.
-Schemas without a declaration still use 2020-12. The schema is preserved and validated under its
-declared version in the existing bounded worker, with external reference retrieval disabled.
-Independent MCP controls reproduce Claude 2.1.269 forwarding the older declarations unchanged
-while the previous registry rejected them. This addresses existing MCP tool compatibility.
-
-D133 lets a proven conversation continue after its accumulated media exceeds one prompt's
-allowance. Complete requests allow 256 inline media parts and 12 MiB decoded media, while each
-actual ACP prompt keeps the 20-part/6-MiB bound. Old images stay in history and only the new delta
-is sent. If a fresh session needs to reconstruct more than a prompt can hold, it fails explicitly
-without dropping past images. Actual Claude 2.1.269 retains 20, then 21, then 21 images in three
-requests while the same independent ACP owner receives 20, then one, then none.
-
-D87 verifies explicit-ID text resume with fresh profiles, addresses, tokens and backend processes,
-using both an independent ACP peer and actual Kiro. D88 also verifies ordinary terminal `run`,
-keyboard exit and a new `run --resume UUID`: the previous answer appears before new input, followed
-by a successful answer using restored context and joined cleanup. D89 also verifies selecting a
-named prior conversation through `/resume` after a new `run --client-history`, with the same owned
-HOME/project and proxy state directory. The backend starts a fresh restricted session from
-client-supplied history; hidden Kiro context is not restored. Continue/latest, cross-project selection,
-pending-tool recovery, file checkpoints, media sidecars and concurrent history writers remain separate
-checks; these text results do not complete the full alpha resume gate.
-
-D104 adds a finite concurrent-history check with actual Claude and independent ACP processes. Two
-different native sessions share one owned HOME/project, overlap during initial requests and then
-overlap again during explicit-ID resumes. Each resumed request retains only its own prior question
-and answer in order. All initial owners are joined before fresh resume profiles, credentials and
-endpoints are created; four turns and both retained transcripts pass with unchanged source settings.
-This covers distinct-session text histories, not simultaneous writers to one session, actual Kiro
-concurrency, interactive resume selection or long-duration retention.
-
-Resuming the same UUID concurrently does not guarantee a combined conversation. D105 compares
-ordinary Claude configuration with the temporary profile using controlled local responses. Both
-paths retain both completed replies on disk, but a later request includes only one completed
-branch in the concurrent cases. Sequential resumes include both replies. Use distinct native
-sessions for parallel conversations; the proxy does not merge transcripts or silently change
-session IDs. These finite text observations do not establish a universal native selection rule.
-
-D90 additionally verifies completed Write/Bash history across two native print launches with actual
-Kiro/Claude. The resumed request retains the original tool ID, decoded input and successful result
-text in order; it completes without a new tool handoff. The owned file effect and both native tool
-hooks occur once across each episode. Old resources are joined before fresh profile/endpoint/token/
-backend ownership. The interrupted-work and subsequent policy checks below extend this evidence;
-these finite single-tool results do not establish general exactly-once crash recovery.
-
-D109 fixes image tool results losing their native image form when recreating backend context.
-An actual Claude/independent-ACP check reads an owned PNG once, removes the source file and resumes
-the same conversation with fresh resources. The completed result retains its call ID, image bytes
-and pixels; ACP receives the image directly, with no second Read or hook execution. Settings stay
-unchanged and recorded resources clean up. This covers one finite PNG result; actual Kiro image
-interpretation, other formats and broader media retention remain separate checks.
-
-D91 verifies cancellation before a delivered Bash operation executes, joined old ownership, and a
-fresh native resume with an explicitly non-executing question. No old effect occurs after late hook
-release. The measured native client omits the unfinished tool pair and retains its partial response
-or a non-completion placeholder; this is not an explicit cancellation result. D92 below covers new
-tools after completed history; interactive pending recovery remains separate.
-
-D92 additionally verifies a distinct new Bash operation after completed-history resume under
-current allow/deny rules and a PreToolUse veto with actual Kiro/Claude. Old tool history stays exact
-and old effects remain once; the new operation executes once or returns its matching refusal.
-All six stages clean up and preserve source settings. D106 additionally verifies interactive
-one-time Bash approval, refusal with a comment and hook veto after completed-history resume with
-actual Claude and independent ACP. Old effects remain once, new results retain exact ownership,
-and completion is visible before joined terminal cleanup. Actual Kiro interactive resume remains
-a separate check. D98 extends configured-policy work to an interrupted history; D107 adds its
-interactive new-operation checks with independent ACP.
-
-D98 verifies a distinct new Bash operation after cancellation at a delivered native hook wait and
-explicit-ID resume. With actual Kiro/Claude, the old operation stays unexecuted after late hook
-release, the exact old question/partial text remains in both resumed requests, and the new allowed
-operation executes once. Recorded ownership is removed and source settings stay unchanged. Native
-client/fake-ACP controls additionally cover current configured denial and hook veto with no-text and
-partial-text histories. D107 also verifies new Bash approval, refusal with a comment and hook veto
-in the native terminal after both interrupted-history forms. Old effects stay absent after late
-hook release, the original question/partial text or placeholder stays exact, and fresh ownership
-cleans up. These checks do not retry the abandoned operation. Actual Kiro interactive permissions
-and uncertain effect/acknowledgement windows remain open.
-
-The diagnostic checks support the measured Kiro CLI 2.21.3 (including its adjacent `kiro-cli-chat`
-helper; D114 moved the measured pin from 2.21.2) and the measured Claude Code 2.1.269 (D126 moved
-the measured build from 2.1.268 after the full regression pass; D124 and D113 record prior moves). A
-Kiro main/helper pair reporting the same build with that major version, or a Claude Code build with
-the same major version, is admitted and reported as unmeasured (D114, D110). They use the installed
-CLIs' finite version/account/catalog commands, without an ACP session or model prompt. `--kiro` and
-`--client` accept absolute executable paths. Private scope/cache state defaults to
-`~/.dax-kiro-proxy`; `--state-dir` selects a different private directory. Temporary runtime files
-are removed when the command finishes. Source client settings are not modified, except that a yes
-answer to the client's workspace-trust dialog is recorded in `~/.claude.json` for that project
-exactly as native Claude Code records it, so the question is asked once per project (D118).
-The D125 write-back additionally respects an existing client lock and revalidates staged source
-bytes and identity before publication. A concurrent change makes it skip and the dialog can repeat.
-The measured client may eventually write through a held lock; this is not an atomic update guarantee
-against writers that disregard the lock.
-
-Development `run` is enabled on macOS arm64 for the measured Kiro 2.21.3/v2 and Claude Code 2.1.269
-combination. Run it from a foreground terminal: a pipe, a background job or an ssh session without a
-pty is refused with "run needs a foreground terminal" before any client starts (D122). Other Kiro
-major versions, mismatched main/helper pairs, other Claude Code major versions and unverified
-execution platforms are rejected; there is no trust override. A same-major Kiro pair or Claude Code
-build launches without new measurement and `doctor` marks it unmeasured (D114, D110). The prepared
-client environment also keeps the measured build's handling of product model IDs: a later build's
-unknown-model context-window notice is opted out (D112). The client receives the ephemeral model
-token only as a Bearer token, and the private profile carries the user's completed-onboarding state,
-so a launch shows no theme or API-key dialog (D115). Each launch owns a temporary Kiro configuration
-with default-resource suppression, and each ACP process has a separate relay-only agent directory.
-The client continues to decide tool permissions and execute tools.
-
-`doctor` succeeding means its checks completed; inspect `launch_available` and `policy` separately.
-An account-command timeout is reported as a timeout (D131); retry `doctor --timing` to inspect
-the startup stages. Command launch/read failures likewise do not ask for login. A completed
-nonzero account-command exit or invalid identity retains the login-check failure. All these
-failures stop startup, and a concurrent cleanup failure is reported separately.
-`client_version` and `kiro_version` are the detected builds; `client_version_measured` and
-`kiro_version_measured` say whether each is the measured one. For this measured combination,
-successful login and policy checks report `launch_available: true` and `policy: verified`. This
-means the measured development policy is available, not that the client has initialized or all
-release gates have passed. The compiled run command's full terminal/startup/tool/shutdown
-composition passes with independent fake processes. This development build is not a release.
-
-For a local per-user installation of the development executable:
+### 실행
 
 ```sh
-./dist/dax-kiro-proxy install
-~/.local/bin/dax-kiro-proxy --help
-./dist/dax-kiro-proxy install --force
-~/.local/bin/dax-kiro-proxy uninstall
+dax-kiro-proxy doctor     # 로그인, 버전, 실행 정책 점검 (모델 호출 없음)
+dax-kiro-proxy models     # 사용할 수 있는 Kiro 모델 목록
+cd <프로젝트 디렉터리>
+dax-kiro-proxy run        # Claude Code 실행
 ```
 
-`install` copies its own executable and seven retained notice/reference files into a private
-generation under `~/.local/bin`. `--bin-dir /absolute/directory` selects another owned directory;
-use that same option for later reinstall or uninstall. The command creates the public executable
-link but does not change PATH, shell profiles, client settings, credentials or product state. Stop
-installed proxy/helper processes before replacing or removing the installation. `--force` only
-replaces a fully validated idle installation; changed or unknown files are preserved and reported.
-Repeated uninstall succeeds when the managed installation is already absent. An interrupted
-publication can leave the new generation active; the error says so. Valid retained generations can
-be recovered by retrying, while incomplete/changed artifacts require inspection and are preserved.
-Tests cover an isolated HOME on the current macOS arm64 host, including self reinstall/uninstall;
-clean-host release installation remains open (D79); the dependency inventory is complete (D121) and
-release clearance is the owner's external decision.
+`run`은 포그라운드 터미널에서만 실행됩니다. 자주 쓰는 옵션은 다음과 같습니다.
 
-Every live control named in this section was re-verified on the measured Kiro 2.21.3 / Claude Code
-2.1.267 pair on 2026-09-11 (D113, D114); the version names below record the build each was first
-measured on. They have not been rerun on Claude Code 2.1.268 or 2.1.269, which D124 and D126
-measured with the owned-witness batches; until a separately approved live rerun, live evidence stays
-on that 2.1.267 pair.
+| 옵션 | 설명 |
+| --- | --- |
+| `--client-history` | 대화를 `~/.claude/projects`에 보관합니다 |
+| `--resume <UUID>` | 이전 대화를 이어갑니다. `--client-history`가 함께 적용됩니다 |
+| `--model <ID>` | 정확한 Kiro 백엔드 모델 ID를 지정합니다 |
+| `--effort <VALUE>` | 시작 추론 강도를 지정합니다 |
+| `--turn-timeout`, `--tool-timeout`, `--first-event-timeout` | 턴, 도구 대기, 첫 모델 이벤트의 시간 제한을 바꿉니다 |
 
-The initial-session native-effect challenge and real-client Read-hook refusal both pass freshly on
-Kiro 2.21.2, with unchanged files and joined process cleanup. Six actual Kiro 2.21.2 / Claude
-2.1.263 cases now also verify allowed Read/Write/Bash, denied Write/Bash and Bash hook vetoes,
-including matching results, effects and cleanup. Relay descriptions explicitly associate opaque wire
-names with original client names. Interactive Write/Bash approval and refusal with a comment pass
-with fake ACP; the Write content/permission screen is checked before input. Bare refusal now
-verifies cleanup at the existing deadline and safe recreation for a following question, using actual
-Claude with fake ACP. The shared launcher configuration also passes actual Bash approval and hook
-refusal. Actual Kiro/client runtime cancellation after a delivered Read handoff and held client hook
-joins all observed processes/artifacts (D74). D81 below verifies process-loss recovery, and D82
-verifies typed Ctrl+C during a streamed response. D86 below verifies idle model selection for a
-measured pair; persisted resume and broader cancellation paths remain alpha work. D117 measures the
-pinned Kiro build's logged-out boundary from a synthetic HOME (one recognized stderr line, exit
-status 1 at initialize) and verifies the client-visible `kiro-cli login` completion after an
-ordinary question and one more answered question in the same session once the login is restored; an
-actual logout during a live session remains a manual check.
+전체 옵션은 `dax-kiro-proxy --help`로 확인할 수 있습니다.
 
-On Kiro 2.21.2, seven initial-session file-resource controls pass: active inherited files disappear
-when default-resource inheritance is disabled, including with a separate session workspace. An
-override in the process launch directory can re-enable inheritance; the launch directory must stay
-owned and isolated. Initial skill controls now also pass for the owned launch and KIRO_HOME roots:
-both are actively inherited with suppression off and absent with it on. Persisted-session loading
-is disabled in this prepared launch path. Dynamic configuration changes and unmeasured source paths
-are outside the initial-session evidence; the proxy issues no configuration reload command.
+## 알려진 제한
 
-Default Claude Code traffic with 25 tools and its ordinary system prompt passes text and a Read
-hook-denial round trip through the real gateway/validator/relay with fake ACP. Exact full-history
-continuations can recreate after a validated tool registry change (D70) or successful tool results
-followed by client text (D73), with joined cleanup, one original deadline and a default limit of
-sixteen recreations per turn. Result-only continuations keep their prompt, including when the client
-rotates its one-message standing instruction: the rotated message is recorded for history matching
-instead of recreating the session, and the backend sees the next prompt's own standing message
-(D123, which removes one recreation per conversation on Claude Code builds that rotate it, such as
-2.1.263 and 2.1.268). Recreation adds provider work and loses hidden backend context. Actual Kiro
-also passes default-tool Read hook refusal and one joined recreation (D71), with all 25 client tools
-and ordinary thinking/context declarations. D72's actual registry experiment reaches the wait,
-expanded tools, one plugin call and joined cleanup, but fails its final-answer marker condition;
-D119 later closes the actual-Kiro plugin skill and hook gate, leaving remote marketplaces and
-mid-session plugin changes open. Other lifecycle paths remain alpha checks. No general Messages/API
-compatibility is implied.
+- 개인 `~/.claude/CLAUDE.md`는 임시 프로필에서 읽히지 않습니다(D145).
+- 임시 rules 경로에만 맞는 `claudeMdExcludes` 패턴은 개인 rule과 그 import를 누락시킬 수 있습니다(D102, D145).
+- 원격 플러그인 마켓플레이스, 세션 중 플러그인 변경, 원격 MCP OAuth는 검증하지 않았습니다.
+- 실제 Kiro의 이미지 해석은 검증하지 않았습니다.
+- 웹 검색의 도메인 제한, 위치 지정, 새 검색 버전, 검색 이어가기는 지원하지 않습니다.
+- 같은 대화 UUID를 동시에 이어가면 두 응답이 모두 기록되더라도 다음 요청에는 한쪽만 들어갈 수 있습니다(D105). 병렬 작업은 서로 다른 대화로 하세요.
+- `--client-history`나 `--resume`을 쓰면 대화가 `~/.claude/projects`에 남습니다. 마지막 모델 같은 프록시 상태는 `~/.dax-kiro-proxy`에 보관됩니다.
 
-Actual Kiro 2.21.2 and Claude 2.1.263 now also verify process loss before Read delivery, a client-visible
-error, joined old cleanup and a fresh text request in a new process (D81). Two requests produce one
-intercepted tool and one successful new completion, with no client Read, changed source or retained
-owned process/artifact. D75's absent-login condition is resolved by D80's read-only product preflight.
-This is a fresh-request recovery check; interactive same-process continuation, late tool results and
-sibling-session failure remain separate work. Development execution-policy admission remains enabled.
+## 문서
 
-The compiled foreground `run` also passes a controlled actual Kiro/Claude keyboard check (D82).
-Ctrl+C during visible main-response streaming produces an ACP cancellation and retires that group
-while Claude/proxy remain alive. Subsequent confirmed Ctrl+D exit restores terminal settings and
-removes all recorded processes/groups, listener and private artifacts with unchanged source settings.
-Natural completion and ordinary-character controls pass with actual Claude and fake ACP. This
-text-only fixture admits one main prompt and at most one separate title prompt; it does not establish
-a following question, keyboard exit during a held tool hook or every unobserved descendant.
-
-D83 separately verifies keyboard exit during an exact native Read hook wait with actual Kiro and
-Claude. The hook is still alive at the exit confirmation; ordinary shutdown completes in 2.392s,
-with an ACP cancelled reply, no tool completion, removed recorded hook/client/ACP processes and
-private artifacts, restored terminal and unchanged sources. A fake-ACP release control first proves
-that the same held Read can complete. No late effect is observed after the old release marker is
-created. Arbitrary hooks, following questions and unobserved descendants remain separate checks.
-
-D84 verifies a new text question after streamed Ctrl+C in the same actual Claude/Kiro run. Old
-main-group cleanup precedes the new input, which reaches a previously unobserved ACP group and
-completes visibly with end_turn while the original Claude/proxy/profile/address remain in use.
-The measured projection contains the old/new instruction fragments and the partial-response marker.
-Two main and two title prompts stay within the declared budget; subsequent keyboard exit restores
-the terminal and removes all recorded processes and private artifacts. This does not establish
-complete history equivalence, pending-tool recovery or persisted restart/resume. D116 extends the
-compiled-command control to Ctrl+C during a held tool: the interrupted hook, no delivered result, a
-fresh ACP group for the new question and the recorded interrupted-history counts of the follow-up
-projection.
-
-D85 verifies the native Claude model picker with two independent fake-ACP models. Both entries are
-visible; unchanged selection and switching both complete the next question on the observed model.
-The switch follows a correlated successful idle ACP selection. After keyboard exit, a new doctor
-preflight restores that model without another recorded client/ACP session or source-settings change.
-Persisted conversation resume remains a separate live check.
-
-D86 also passes model selection with the actual pinned Kiro/Claude pair. All nineteen currently
-advertised models render and receive focus in the native picker; one distinct selected model is
-acknowledged by ACP before the next question completes. Both answers are observed in their active
-ACP sessions and the client UI. Last-model preflight restoration, source preservation, keyboard
-exit and removal of all four recorded groups/seven PIDs and private artifacts pass. This exercises
-two models; it does not establish successful inference with every catalog entry or persisted resume.
-
-D99 corrects the optional effort request using the unmodified Kiro terminal's observed command
-shape. With an advertised Sonnet 4.6 model, the production adapter's high/low settings receive
-successful acknowledgements and matching ACP effort metadata, without model prompts or source
-settings changes. Repeating the same value sends no extra setting RPC. Auto still skips effort;
-unavailable or rejected optional settings retain their existing fallback behavior. Empty-argument
-effort output lists choices and does not prove the current value.
-
-The temporary client profile now retains standard-HOME user/local MCP declarations and decisions
-at their native scopes. Installed-client controls verify all three MCP scopes, disabled/re-enabled
-servers, project refusal and local/project/user precedence, with unchanged source files and joined
-process cleanup. Plugins, skills, existing status commands and remote MCP OAuth remain separate
-preservation work; see decision D64 for the measured limits.
-
-D101 connects account usage to `run`. Status reads return immediately from a 60-second cache; an
-asynchronous refresh uses a fresh empty-agent Kiro session with a 15-second deadline and no model
-prompt. The measured 2.21.3 adapter (2.21.2 when D101 was recorded) reports server-provided used
-credits and, when present, their limit. It does not infer a remaining balance or combine
-supplemental credit buckets. One native refresh passes with preserved source settings and joined
-process/file cleanup. Failed refreshes retain the last good/model-only view. `doctor` and `models`
-do not start usage sessions. D103 also verifies that the actual Claude status line shows a cold view
-followed by the reported account usage, with no model request and joined cleanup. Independent
-delayed/failing cache controls verify retained values marked stale and cancellation while the UI
-remains responsive. Nonempty bonus/add-on/enterprise payloads remain separate checks; this optional
-feature does not change development-launch admission.
-
-Standard user plugins now also have a read-only seed path into the temporary profile. Full print
-startup checks an owned plugin's MCP initialization/discovery, disable/re-enable behavior and source
-preservation. Finite list commands do not establish that startup behavior. Plugin tool success and
-hook refusal also pass through the real gateway/relay with fake ACP. The current interactive control
-checks the client's `/mcp` connected screen before input; server initialization/listing alone proved
-insufficient. A second print launch of the same private profile also completes a tool round trip.
-The held-startup wait-to-plugin flow also passes through the real gateway/relay with fake ACP, for
-both allowance and hook refusal: three main requests, two backend processes and one/zero native
-calls. Other dynamic changes and arbitrary immediate-input coverage remain separate work (D70).
-
-The private profile now also snapshots the two bounded native plugin registration files. This lets
-the first session load installed plugin skills and hooks while retaining the read-only content seed.
-Installed-client checks cover namespaced skill invocation, SessionStart/Stop hooks, disable/re-enable,
-hook suppression and source preservation. Private uninstall leaves the original source intact; a Git
-seed rejects marketplace update/removal even when a real local revision is available. A
-model-selected owned skill now also completes through the real gateway/relay with fake ACP (D73),
-preserving its successful result and separate client-expanded instructions through one joined
-recreation. D119 verifies with the actual restricted Kiro that a plugin skill's own instruction
-reaches the model, with a fresh marker that only the expanded skill supplies appearing in the
-answer, and that plugin SessionStart/Stop hooks surround a real turn; remote marketplaces on the
-actual backend, Kiro-side skills and mid-session plugin changes remain unverified.
-
-Personal skills, legacy commands and agent definitions now retain their native user scope in the
-temporary profile (D76). Installed-client controls verify explicit skill/command expansion and
-same-name precedence against natural execution, with unchanged sources and joined cleanup. Each
-launch snapshots the standard `~/.claude/{skills,commands,agents}` trees: at most 1,024 entries,
-depth sixteen, 2 MiB per file and 32 MiB total. Unsafe links, special files, writable sources and
-exceeded limits reject preparation. Changes to the original assets take effect on a new launch;
-custom roots, actual agent execution and relative helper execution remain separate work.
-
-D108 also preserves personal `~/.claude/output-styles` as bounded private copies at native user
-scope. Installed-client comparisons verify personal selection, a same-name project definition,
-project/local selection precedence and a local Default override. Selected style instructions match
-the original client's system block while project memory remains separate user content; prepared
-runs leave source settings and assets unchanged. Style metadata is copied without interpretation.
-The `keep-coding-instructions` declaration matches the native reference, but these synthetic turns
-show no corresponding system-size change in that reference; no broader coding-behavior claim is
-made. Mid-session switching, plugin/managed styles and actual Kiro behavior remain separate checks.
-Personal CLAUDE.md and rule-exclusion behavior below are accepted limitations (D145).
-
-The temporary profile does not load personal `~/.claude/CLAUDE.md`. A `claudeMdExcludes`
-pattern matching only the temporary rules path can also omit a personal rule and its imports.
-The user accepts these two limitations: they do not block ordinary use or product completion,
-including release acceptance. Their fixes are deferred; full personal-instruction fidelity is
-not claimed. Other permission, hook, source-preservation and lifecycle requirements still apply.
-
-Personal `~/.claude/rules` now remains available at its native scope through a validated source
-reference (D77). Installed-client checks cover relative imports, original-path exclusions,
-conditional activation after Read and the full four-hop import limit. The source reference is not an
-immutable snapshot; preparation validates the shared asset bounds and cleanup removes only the
-private link. D102 identifies a remaining exclusion gap: a pattern matching only the private rules
-alias can suppress a rule and its imports that natural startup includes. This is reproduced in user,
-project and local settings; the original-path exclusion controls still pass, and a 2026-09-11
-re-check of the public references with the measured 2.1.267 client found no relocation interface, so
-the gap remains. Full personal rules preservation remains incomplete. Personal `~/.claude/CLAUDE.md`
-is also not loaded by the temporary profile. Tested adapters either bypass its original exclusion,
-lose one import hop or omit a root body with path frontmatter. None is enabled. This remains a
-client-environment compatibility gap. D93 also rejects using the public additional-directory memory
-option as a substitute: the measured candidate loses the root's relative imports and moves its text
-after project instructions. D97 also rejects using absence from local context inspection as an
-exclusion decision: empty and comment-only roots disappear without an exclusion. A pattern matching
-only the temporary root path can hide otherwise active personal instructions, so adding alias
-exclusions alone is insufficient. Further controls (D80) reject redirecting the settings-stage
-configuration path to the original HOME: history suppression helps finite print runs, but
-interactive startup still changes original settings and plugin uninstall changes the original
-registration. The private profile stays in use.
-
-The product status display now yields to existing user/project/local status choices, including
-commands without a refresh interval. It supplies a bounded user-scope default only when no such
-choice or uncertain project source is found. Linked worktrees and unsafe/ambiguous sources suppress
-this optional default; native settings resolution and separate notice/metrics hooks remain with
-the client. Installed UI checks verify precedence, unchanged sources, no extra periodic execution
-and process cleanup (D67). Dynamic changes and managed/custom source coverage remain separate work.
-
-Development launch and release readiness are separate milestones in docs/ACCEPTANCE_SPEC.md. The next
-priority is the remaining client tool-wait and live alpha lifecycle checks, followed by combined
-concurrency and resource verification. D145's two personal-memory fixes are deferred. Optional web/account-usage
-features, full Anthropic API coverage and release soak tests are not development-launch prerequisites.
-
-A bounded independent-process concurrency test now covers 1,024 local HTTP requests across 64 waves
-and eight simultaneous sessions. All 512 observed ACP process/group instances are joined, with
-stable settled descriptor/goroutine counts and recorded Go heap bounds (D94). This short fixture
-test did not complete actual-client, pending-tool or long-duration soak; D95 and D120 add those
-runs. D95 separately covers 256 concurrent single-call denial/recovery episodes and 32
-foreign-history rejections, with all 512 ACP groups and 512 relay children/config directories
-cleaned. Its finite fixture evidence left actual-client and long-duration soak to D120;
-multi-call/shared-process soak remains open.
-
-D96 removes a fixed one-second idle relay shutdown delay by closing accepted connections
-immediately, while retaining handler/peer joins and cleanup failures. The same 544-request fixture
-episode drops from 41.61s to 10.67s with all recorded ownership removed. Whole-repository race
-tests, native-client allow/deny/hook controls and actual Kiro/Claude allowed-tool resume pass. These
-finite measurements do not establish general throughput. D120 runs the churn controls at their
-maximum waves and adds a many-turn actual-client soak (20 and 100 turns of one session with the
-independent fixture) that samples the proxy's resident size, descriptors and process-group size
-after every turn; one authorized live soak against the actual Kiro also samples the backend process
-group's resident size under a first declared envelope.
-
-D139 adds two actual Claude 2.1.269 conversations sharing one gateway, manager and pool, with
-independent ACP processes. Across 128 overlapping tool rounds, 127 allowed Read results and
-128 hook refusals remain with their own sessions. Canceling one client before its last tool is
-delivered leaves the other able to finish. Post-warm-up descriptors/goroutines stay at 30/50;
-recorded groups, HTTP ownership and private profiles clean up. This finite 16.092-second active
-loop uses fake ACP; interactive permissions, actual Kiro and long-duration combined soak remain
-separate checks.
-
-D140 adds an optional schedule to this same native-client control. Set
-`DAX_INTEROP_TOOL_SOAK_INTERVAL_MS=15000` with `DAX_INTEROP_TOOL_SOAK_ROUNDS=128` for an
-active span of at least 31 minutes 45 seconds. Both client sessions and their shared runtime
-stay open throughout. The extended race run passes with 31m45.004s active, all 127 allowed
-Read results and 128 hook refusals correlated, and final cancellation/sibling completion and
-cleanup verified. Descriptors/goroutines stay at 28/48 after warm-up. The default remains the
-short unpaced control. This is a local fake-ACP experiment; consult docs/DEVELOPMENT_STATUS.md
-for the measured resource limits and remaining live gates.
-
-Phase 7 has frozen dependency inventories and retained scoped notices. For the installed D146
-development artifact, run `python3 tools/verify_dependency_inventory.py
---gomodcache .cache/gomod --snapshot web-search --binary dist/dax-kiro-proxy`.
-The default `development` snapshot identifies D78's earlier D77 binary; `installation` identifies D79.
-`native-history` identifies D87 and `relay-close` identifies D96; `effort` identifies D99, `usage`
-identifies D101, `output-styles` identifies D108, `tool-images` identifies D109, `client-version`
-identifies D110–D112, `measured-client` identifies D113, `measured-kiro` identifies D114,
-`onboarding` identifies D115, `project-trust` identifies D118, `run-diagnostics` identifies D122
-`deferred-standing` identifies D123, `measured-client-268` identifies D124 and `trust-publication`
-identifies D125; `measured-client-269` identifies D126, `progress-setup` identifies D127 and
-`resolved-cancellation` identifies D128, `tool-outcomes` identifies D129 and `prompt-stop`
-identifies D130; `account-check` identifies D131, `schema-dialects` identifies D132 and
-`media-history` identifies D133, `terminal-delivery` identifies D137 and `paused-model` identifies D138.
-Those historical snapshots do not match this rebuild and its changed production source. These
-offline byte checks do not grant release clearance; see docs/DEPENDENCY_REVIEW.md for the D121 component
-record, the three unattributed metaschema resources and the owner's external rights items.
-
-## Naming
-
-`dax-kiro-proxy` is the working product and executable name. Names, environment variables, endpoint
-prefixes, and temporary artifacts belonging to an earlier host project are not part of this contract.
+- [docs/README.md](docs/README.md): 전체 문서 목록과 필수 읽기 순서
+- [docs/USAGE_AND_EVIDENCE.md](docs/USAGE_AND_EVIDENCE.md): 옵션 상세, 호환성과 설치 동작, 기능별 검증 기록
+- [docs/PRODUCT_SPEC.md](docs/PRODUCT_SPEC.md): 제품 목표, 범위, 보안 원칙
+- [docs/IMPLEMENTATION_DECISIONS.md](docs/IMPLEMENTATION_DECISIONS.md): D번호별 설계 결정
+- [AGENTS.md](AGENTS.md): 코딩 에이전트 작업 규칙

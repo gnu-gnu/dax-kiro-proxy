@@ -3,7 +3,7 @@
 ## Mandatory reading
 
 Before planning or modifying implementation code, read every Markdown document in the repository in
-the order listed by `README.md`. Do not rely on a summary in place of the full documents.
+the order listed by `docs/README.md`. Do not rely on a summary in place of the full documents.
 
 ## Source boundary
 
