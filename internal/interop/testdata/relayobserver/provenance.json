@@ -1,7 +1,7 @@
 {
   "created": "2026-09-09",
   "scope": "Independently authored process-identity observer for the repository's effect-free MCP relay",
-  "repository_sources": ["IMPLEMENTATION_DECISIONS.md", "ACCEPTANCE_SPEC.md"],
+  "repository_sources": ["docs/IMPLEMENTATION_DECISIONS.md", "docs/ACCEPTANCE_SPEC.md"],
   "public_api_sources": ["https://pkg.go.dev/os", "https://pkg.go.dev/syscall", "https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/setpgid.2.html"],
   "fixture": "main.go",
   "constraints": [

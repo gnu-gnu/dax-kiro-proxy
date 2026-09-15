@@ -11,25 +11,27 @@ policies.
 
 ## Document order
 
+All specification and record documents live in `docs/`; only this README and `AGENTS.md` stay at the
+repository root. Bare document names inside `docs/` refer to sibling files in that directory.
 Read these documents before implementation:
 
-1. `CLEAN_ROOM_BOUNDARY.md` — provenance, licensing boundary, and prohibited inputs.
-2. `PRODUCT_SPEC.md` — goals, scope, external behavior, and security posture.
-3. `PROTOCOL_SPEC.md` — HTTP, SSE, ACP, and relay wire contracts.
-4. `FLOWS_AND_STATE.md` — request flows, state machines, recovery, and concurrency.
-5. `IMPLEMENTATION_REQUIREMENTS.md` — component boundaries and staged delivery plan.
-6. `ACCEPTANCE_SPEC.md` — black-box requirements and release gates.
-7. `LANGUAGE_DECISION.md` — criteria for selecting Go or Rust before implementation.
-8. `PHASE_0_REVIEW.md` — specification findings, proposed resolutions, and remaining gates.
-9. `LANGUAGE_DECISION_RECORD.md` — confirmed Go selection and the historical Go/Rust experiment design.
-10. `DEPENDENCY_REVIEW.md` — component and license inventory, retained notices, advisory scan, and
+1. `docs/CLEAN_ROOM_BOUNDARY.md` — provenance, licensing boundary, and prohibited inputs.
+2. `docs/PRODUCT_SPEC.md` — goals, scope, external behavior, and security posture.
+3. `docs/PROTOCOL_SPEC.md` — HTTP, SSE, ACP, and relay wire contracts.
+4. `docs/FLOWS_AND_STATE.md` — request flows, state machines, recovery, and concurrency.
+5. `docs/IMPLEMENTATION_REQUIREMENTS.md` — component boundaries and staged delivery plan.
+6. `docs/ACCEPTANCE_SPEC.md` — black-box requirements and release gates.
+7. `docs/LANGUAGE_DECISION.md` — criteria for selecting Go or Rust before implementation.
+8. `docs/PHASE_0_REVIEW.md` — specification findings, proposed resolutions, and remaining gates.
+9. `docs/LANGUAGE_DECISION_RECORD.md` — confirmed Go selection and the historical Go/Rust experiment design.
+10. `docs/DEPENDENCY_REVIEW.md` — component and license inventory, retained notices, advisory scan, and
     the owner's external rights items.
-11. `IMPLEMENTATION_DECISIONS.md` — adopted wire, lifecycle, and resource policies.
-12. `DEVELOPMENT_STATUS.md` — implementation evidence and remaining acceptance gates.
-13. `LIVE_KIRO_TEST_PLAN.md` — bounded opt-in client-denial/native-effect experiments and their limits.
-14. `HANDOFF_REVIEW_2026-09-11.md` — review brief for D109–D120: decisions needing judgment,
+11. `docs/IMPLEMENTATION_DECISIONS.md` — adopted wire, lifecycle, and resource policies.
+12. `docs/DEVELOPMENT_STATUS.md` — implementation evidence and remaining acceptance gates.
+13. `docs/LIVE_KIRO_TEST_PLAN.md` — bounded opt-in client-denial/native-effect experiments and their limits.
+14. `docs/HANDOFF_REVIEW_2026-09-11.md` — review brief for D109–D120: decisions needing judgment,
     production changes, verification state, open items and the commit map.
-15. `HANDOFF_AGENT_2026-09-12.md` — agent handoff after D124: inherited state, the user's standing
+15. `docs/HANDOFF_AGENT_2026-09-12.md` — agent handoff after D124: inherited state, the user's standing
     instructions, the batch and artifact procedure, the remaining planned batches D125–D128 with
     code positions, and decisions waiting on the user.
 
@@ -43,9 +45,9 @@ experiment design; the explicit language selection supersedes comparative experi
 gate. The dependency inventory is complete for the darwin/arm64 development artifact (D121); the
 owner's rights and project-license decisions are outside this repository, and live-release gates
 remain open. Implementation began with independent fixtures and fake-process transport tests and now
-reaches an installed development artifact (D146); consult DEVELOPMENT_STATUS.md for verified
-progress, `HANDOFF_REVIEW_2026-09-11.md` for the D109–D120 review brief and
-`HANDOFF_AGENT_2026-09-12.md` for the agent handoff after D124.
+reaches an installed development artifact (D146); consult docs/DEVELOPMENT_STATUS.md for verified
+progress, `docs/HANDOFF_REVIEW_2026-09-11.md` for the D109–D120 review brief and
+`docs/HANDOFF_AGENT_2026-09-12.md` for the agent handoff after D124.
 
 ## Development commands
 
@@ -56,7 +58,7 @@ result and a hook-blocked search returning an error without links, with joined c
 The adapter handles Kiro's self-contained failed update when a hook blocks before the initial
 call notification. Domain/location restrictions, newer search versions, provider search replay
 and general search continuation are unsupported. The launch notice reports limited support.
-See D146 in `LIVE_KIRO_TEST_PLAN.md` for the finite evidence and earlier failed observations.
+See D146 in `docs/LIVE_KIRO_TEST_PLAN.md` for the finite evidence and earlier failed observations.
 
 With Go 1.27.1, build a local development executable:
 
@@ -445,7 +447,7 @@ this optional default; native settings resolution and separate notice/metrics ho
 the client. Installed UI checks verify precedence, unchanged sources, no extra periodic execution
 and process cleanup (D67). Dynamic changes and managed/custom source coverage remain separate work.
 
-Development launch and release readiness are separate milestones in ACCEPTANCE_SPEC.md. The next
+Development launch and release readiness are separate milestones in docs/ACCEPTANCE_SPEC.md. The next
 priority is the remaining client tool-wait and live alpha lifecycle checks, followed by combined
 concurrency and resource verification. D145's two personal-memory fixes are deferred. Optional web/account-usage
 features, full Anthropic API coverage and release soak tests are not development-launch prerequisites.
@@ -483,7 +485,7 @@ active span of at least 31 minutes 45 seconds. Both client sessions and their sh
 stay open throughout. The extended race run passes with 31m45.004s active, all 127 allowed
 Read results and 128 hook refusals correlated, and final cancellation/sibling completion and
 cleanup verified. Descriptors/goroutines stay at 28/48 after warm-up. The default remains the
-short unpaced control. This is a local fake-ACP experiment; consult DEVELOPMENT_STATUS.md
+short unpaced control. This is a local fake-ACP experiment; consult docs/DEVELOPMENT_STATUS.md
 for the measured resource limits and remaining live gates.
 
 Phase 7 has frozen dependency inventories and retained scoped notices. For the installed D146
@@ -500,7 +502,7 @@ identifies D125; `measured-client-269` identifies D126, `progress-setup` identif
 identifies D130; `account-check` identifies D131, `schema-dialects` identifies D132 and
 `media-history` identifies D133, `terminal-delivery` identifies D137 and `paused-model` identifies D138.
 Those historical snapshots do not match this rebuild and its changed production source. These
-offline byte checks do not grant release clearance; see DEPENDENCY_REVIEW.md for the D121 component
+offline byte checks do not grant release clearance; see docs/DEPENDENCY_REVIEW.md for the D121 component
 record, the three unattributed metaschema resources and the owner's external rights items.
 
 ## Naming

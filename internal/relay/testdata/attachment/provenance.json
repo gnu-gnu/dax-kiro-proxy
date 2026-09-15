@@ -1,7 +1,7 @@
 {
   "created": "2026-09-09",
   "scope": "Independently authored private attachment protocol and process-lifetime peer",
-  "repository_sources": ["IMPLEMENTATION_DECISIONS.md", "ACCEPTANCE_SPEC.md"],
+  "repository_sources": ["docs/IMPLEMENTATION_DECISIONS.md", "docs/ACCEPTANCE_SPEC.md"],
   "public_api_sources": ["https://pkg.go.dev/net", "https://pkg.go.dev/os", "https://pkg.go.dev/syscall"],
   "fixtures": ["main.go"],
   "constraints": [

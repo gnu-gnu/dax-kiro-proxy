@@ -2,7 +2,7 @@
   "created": "2026-09-08",
   "updated": "2026-09-10",
   "scope": "Independent local HTTP client and finite preflight CLI for launcher lifetime and executable-boundary tests; no installed-client captures or external inference",
-  "repository_sources": ["PRODUCT_SPEC.md", "PROTOCOL_SPEC.md", "ACCEPTANCE_SPEC.md", "IMPLEMENTATION_DECISIONS.md"],
+  "repository_sources": ["docs/PRODUCT_SPEC.md", "docs/PROTOCOL_SPEC.md", "docs/ACCEPTANCE_SPEC.md", "docs/IMPLEMENTATION_DECISIONS.md"],
   "fixtures": ["client/main.go", "preflight/main.go", "usage/main.go"],
   "constraints": [
     "Only Go standard-library imports; no proxy implementation imports",
